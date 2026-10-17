@@ -8,6 +8,6 @@ const PICKUP := 1 << 3
 const TRIGGER := 1 << 4
 
 ## What a player body collides with while moving.
-const PLAYER_MOVE_MASK := WORLD | PLAYER
+const PLAYER_MOVE_MASK := WORLD  # players do not collide with each other (keeps prediction exact)
 ## What a hitscan shot traces against.
 const HITSCAN_MASK := WORLD | HITBOX

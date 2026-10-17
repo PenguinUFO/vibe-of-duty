@@ -6,6 +6,8 @@ extends Control
 @onready var _host_button: Button = %HostButton
 @onready var _join_button: Button = %JoinButton
 @onready var _quit_button: Button = %QuitButton
+@onready var _settings_button: Button = %SettingsButton
+@onready var _center: Control = $Center
 @onready var _status: Label = %Status
 
 
@@ -15,6 +17,10 @@ func _ready() -> void:
 	_host_button.pressed.connect(_on_host)
 	_join_button.pressed.connect(_on_join)
 	_quit_button.pressed.connect(get_tree().quit)
+	_settings_button.pressed.connect(_open_settings)
+	for button in [_host_button, _join_button, _quit_button, _settings_button]:
+		button.pressed.connect(func() -> void: Audio.play("ui_click"))
+	Audio.play_music_id("menu")
 	Net.connected_to_server.connect(_start_game)
 	Net.connection_failed.connect(_on_connection_failed)
 	if Game.auto_join != "":
@@ -62,3 +68,12 @@ func _set_buttons_disabled(disabled: bool) -> void:
 
 func _start_game() -> void:
 	get_tree().change_scene_to_file(Game.LEVEL_SCENE)
+
+
+func _open_settings() -> void:
+	_center.visible = false
+	var panel := SettingsPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_center.visible = true)
+	add_child(panel)

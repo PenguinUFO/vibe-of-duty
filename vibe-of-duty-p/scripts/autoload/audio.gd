@@ -10,6 +10,8 @@ const SFX_DIR := "res://audioSFX"
 const AUDIO_EXTENSIONS: Array[String] = ["ogg", "wav", "mp3"]
 const MIX_RATE := 22050
 const POOL_SIZE := 16
+const MUSIC_DIR := "res://music"
+const HEARING_RANGE := 70.0  # positional sounds fade out completely beyond this (m)
 
 # kind: "noise" (decaying noise burst), "tone" (sine, freq -> freq_end sweep), "thump" (low sweep + noise)
 const PLACEHOLDERS := {
@@ -26,6 +28,9 @@ const PLACEHOLDERS := {
 	"land": {"kind": "thump", "dur": 0.12, "freq": 110.0, "freq_end": 60.0, "decay": 25.0, "vol": 0.5},
 	"step": {"kind": "noise", "dur": 0.06, "decay": 50.0, "vol": 0.25},
 	"slide": {"kind": "noise", "dur": 0.35, "decay": 6.0, "vol": 0.3},
+	"impact": {"kind": "noise", "dur": 0.05, "decay": 60.0, "vol": 0.35},
+	"match_start": {"kind": "tone", "dur": 0.4, "freq": 440.0, "freq_end": 880.0, "decay": 5.0, "vol": 0.5},
+	"match_end": {"kind": "tone", "dur": 0.6, "freq": 880.0, "freq_end": 330.0, "decay": 4.0, "vol": 0.5},
 	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},
 	"spawn": {"kind": "tone", "dur": 0.25, "freq": 400.0, "freq_end": 800.0, "decay": 8.0, "vol": 0.4},
 	"ui_click": {"kind": "tone", "dur": 0.04, "freq": 1200.0, "freq_end": 1200.0, "decay": 50.0, "vol": 0.4},
@@ -33,6 +38,8 @@ const PLACEHOLDERS := {
 
 var _streams: Dictionary = {}  # id -> AudioStream
 var _file_index: Dictionary = {}  # id -> resource path
+var _music_index: Dictionary = {}  # id -> resource path
+var _music_id := ""
 var _pool_2d: Array[AudioStreamPlayer] = []
 var _pool_3d: Array[AudioStreamPlayer3D] = []
 var _music_player: AudioStreamPlayer
@@ -41,12 +48,15 @@ var _silent := DisplayServer.get_name() == "headless"  # dedicated server: nothi
 
 func _ready() -> void:
 	_scan_dir(SFX_DIR)
+	_scan_music(MUSIC_DIR)
 	for i in POOL_SIZE:
 		var p2 := AudioStreamPlayer.new()
 		add_child(p2)
 		_pool_2d.append(p2)
 		var p3 := AudioStreamPlayer3D.new()
 		p3.bus = &"SFX"
+		p3.unit_size = 8.0
+		p3.max_distance = HEARING_RANGE
 		add_child(p3)
 		_pool_3d.append(p3)
 	_music_player = AudioStreamPlayer.new()
@@ -83,6 +93,24 @@ func play_music(stream: AudioStream) -> void:
 
 func stop_music() -> void:
 	_music_player.stop()
+	_music_id = ""
+
+
+## Plays the looping track `res://music/<id>.ogg|mp3|wav` (ids used: "menu", "game"). Silence if the file
+## does not exist, so music can simply be dropped into the folder later.
+func play_music_id(id: String) -> void:
+	if _silent or _music_id == id:
+		return
+	if not _music_index.has(id):
+		stop_music()
+		return
+	var stream: AudioStream = load(_music_index[id])
+	if stream is AudioStreamOggVorbis or stream is AudioStreamMP3:
+		stream.loop = true
+	elif stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_music_id = id
+	play_music(stream)
 
 
 func _get_stream(id: String) -> AudioStream:
@@ -113,6 +141,15 @@ func _scan_dir(dir_path: String) -> void:
 			_file_index[clean.get_basename()] = dir_path.path_join(clean)
 	for sub in DirAccess.get_directories_at(dir_path):
 		_scan_dir(dir_path.path_join(sub))
+
+
+func _scan_music(dir_path: String) -> void:
+	for file in DirAccess.get_files_at(dir_path):
+		var clean := file.trim_suffix(".import").trim_suffix(".remap")
+		if clean.get_extension() in AUDIO_EXTENSIONS:
+			_music_index[clean.get_basename()] = dir_path.path_join(clean)
+	for sub in DirAccess.get_directories_at(dir_path):
+		_scan_music(dir_path.path_join(sub))
 
 
 func _synthesize(def: Dictionary) -> AudioStreamWAV:

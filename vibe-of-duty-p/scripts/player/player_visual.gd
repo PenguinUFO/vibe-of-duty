@@ -19,6 +19,11 @@ var _tag: Label3D
 var _dead := false
 
 
+static func preload_scenes() -> void:
+	for path in CHARACTER_SCENES:
+		load(path)
+
+
 func setup(peer_id: int, display_name: String) -> void:
 	var scene: PackedScene = load(CHARACTER_SCENES[peer_id % CHARACTER_SCENES.size()])
 	_model = scene.instantiate()
@@ -28,6 +33,11 @@ func setup(peer_id: int, display_name: String) -> void:
 		_model.collision_mask = 0
 	for shape in _model.find_children("*", "CollisionShape3D", true, false):
 		shape.queue_free()
+	# The prefab carries every character variant and attachment as hidden meshes; drop what is never shown.
+	for mesh in _model.find_children("*", "MeshInstance3D", true, false):
+		if not (mesh as MeshInstance3D).visible:
+			mesh.get_parent().remove_child(mesh)
+			mesh.queue_free()
 	_model.rotation.y = MODEL_YAW_OFFSET
 	add_child(_model)
 

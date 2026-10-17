@@ -12,6 +12,12 @@ static func count() -> int:
 	return _defs.size()
 
 
+## Loads every weapon prefab up front so the first switch/shot does not hitch.
+static func preload_scenes() -> void:
+	for i in count():
+		load(get_def(i).scene_path)
+
+
 static func get_def(index: int) -> WeaponDef:
 	_build()
 	return _defs[clampi(index, 0, _defs.size() - 1)]

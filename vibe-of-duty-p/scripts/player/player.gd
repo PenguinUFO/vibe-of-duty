@@ -122,6 +122,7 @@ var _hurt_rect: ColorRect
 var _death_label: Label
 var _hurt_alpha := 0.0
 var _last_health := MAX_HEALTH
+var _debug_timer := 0.0
 var _stance_crouched := false
 var _sprint_blend := 0.0
 var _view_recoil := Vector2.ZERO
@@ -129,6 +130,10 @@ var _look_delta := Vector2.ZERO
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
 var _bot_select := 0
+var _puppet_on_floor := true
+var _puppet_sliding := false
+var _puppet_reloading := false
+var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 
 @onready var _collision: CollisionShape3D = $Collision
@@ -195,10 +200,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		var sens := Settings.mouse_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
 		look_yaw -= event.relative.x * sens
 		look_pitch = clampf(look_pitch - event.relative.y * sens, -MAX_PITCH, MAX_PITCH)
-	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event.is_action_pressed("ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _physics_process(delta: float) -> void:
@@ -279,7 +280,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 
 ## Advances the simulation by one fixed tick.
 func step(cmd: PlayerCmd, dt: float) -> void:
-	if not alive:
+	if not alive or Game.is_frozen():
 		var dead := PlayerCmd.new()  # a dead player keeps looking where they were, but can do nothing
 		dead.yaw = cmd.yaw
 		dead.pitch = cmd.pitch
@@ -544,6 +545,7 @@ func push_snapshot(state: Array) -> void:
 	if _snapshots.size() > 20:
 		_snapshots.pop_front()
 	var flags: int = state[5]
+	_puppet_sounds(flags, state[4])
 	is_crouched = flags & STATE_CROUCHED != 0
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0
@@ -558,6 +560,7 @@ func push_snapshot(state: Array) -> void:
 func _update_puppet() -> void:
 	if _snapshots.is_empty():
 		return
+	var previous_pos := global_position
 	var render_t := Time.get_ticks_msec() / 1000.0 - INTERP_DELAY
 	while _snapshots.size() >= 3 and _snapshots[1]["t"] <= render_t:
 		_snapshots.pop_front()
@@ -571,6 +574,13 @@ func _update_puppet() -> void:
 	_head.rotation.x = lerpf(a["pitch"], b["pitch"], f)
 	_visual.set_crouched(is_crouched)
 	_visual.set_aim_pitch(_head.rotation.x)
+	# Footsteps of other players, from their displayed movement.
+	var moved := Vector2(global_position.x - previous_pos.x, global_position.z - previous_pos.z).length()
+	if _puppet_on_floor and not is_sliding and moved < 1.0:
+		_step_distance += moved
+		if _step_distance >= STEP_STRIDE:
+			_step_distance = 0.0
+			Audio.play("step", global_position, -8.0 if is_crouched else 0.0)
 	if _stance_crouched != is_crouched:
 		_apply_stance()
 
@@ -708,6 +718,7 @@ func _on_shot(event: Dictionary) -> void:
 			ShotEffects.spawn_tracer(scene_root, muzzle, r["pos"])
 			if r["hit"] and r["player"] == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
+				Audio.play("impact", r["pos"])
 
 
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),
@@ -770,9 +781,11 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) ->
 	Audio.play(def.sound_shot, origin)
 	var scene_root := get_tree().current_scene
 	var muzzle := _visual.muzzle_global_position()
-	for end in ends:
-		ShotEffects.spawn_tracer(scene_root, muzzle, end)
-		ShotEffects.spawn_impact(scene_root, end, Vector3.UP)
+	for i in ends.size():
+		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
+		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
+		if i < 2:  # a shotgun blast would otherwise play eight impacts at once
+			Audio.play("impact", ends[i])
 
 
 func _build_hud() -> void:
@@ -852,6 +865,8 @@ func _update_hud(speed: float, delta: float) -> void:
 	_health_label.modulate = Color.WHITE if health > 30 else Color(1.0, 0.35, 0.3)
 	if health < _last_health:
 		_hurt_alpha = minf(0.55, 0.2 + float(_last_health - health) / MAX_HEALTH)
+		if alive:
+			Audio.play("hurt")
 	_last_health = health
 	_hurt_alpha = maxf(_hurt_alpha - delta * 1.2, 0.0)
 	_hurt_rect.color.a = _hurt_alpha if alive else 0.35
@@ -859,7 +874,11 @@ func _update_hud(speed: float, delta: float) -> void:
 	_death_label.visible = not alive
 	if not alive:
 		_death_label.text = "YOU DIED\n%s\nRespawn in %.1f" % ["Killed by %s" % killed_by if killed_by != "" else "", death_time_left]
-	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s" % [
+	_debug_timer -= delta
+	if _debug_timer > 0.0:
+		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
+	_debug_timer = 0.1
+	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s\nEsc menu   Tab scores   F10 leave" % [
 		Engine.get_frames_per_second(), speed,
 		"slide " if is_sliding else "", "crouch " if is_crouched else "",
 		"sprint " if is_sprinting else ""]
@@ -893,6 +912,7 @@ func die(by: String, respawn_delay: float) -> void:
 	killed_by = by
 	death_time_left = respawn_delay
 	_visual.set_dead(true)
+	Audio.play("death", null if is_local else global_position)
 
 
 func respawn(xform: Transform3D) -> void:
@@ -906,6 +926,7 @@ func respawn(xform: Transform3D) -> void:
 	_visual.set_dead(false)
 	if _view:
 		_view.set_weapon(weapons.index)
+	Audio.play("spawn", null if is_local else global_position)
 
 
 ## Local player: the server confirmed that one of our shots damaged somebody.
@@ -913,3 +934,21 @@ func on_hit_confirmed(killed: bool, head: bool) -> void:
 	if _crosshair:
 		_crosshair.show_hit(killed or head)
 	Audio.play("kill" if killed else "hit")
+
+
+## Sounds of another player, derived from changes between snapshots (their simulation does not run here).
+func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
+	var on_floor := flags & STATE_ON_FLOOR != 0
+	if _puppet_on_floor and not on_floor and new_velocity.y > 2.0:
+		Audio.play("jump", global_position)
+	elif on_floor and not _puppet_on_floor:
+		Audio.play("land", global_position)
+	_puppet_on_floor = on_floor
+	var sliding := flags & STATE_SLIDING != 0
+	if sliding and not _puppet_sliding:
+		Audio.play("slide", global_position)
+	_puppet_sliding = sliding
+	var reloading := flags & STATE_RELOADING != 0
+	if reloading and not _puppet_reloading:
+		Audio.play("reload", global_position)
+	_puppet_reloading = reloading

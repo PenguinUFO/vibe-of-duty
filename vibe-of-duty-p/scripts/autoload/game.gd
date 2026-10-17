@@ -1,5 +1,5 @@
 extends Node
-## Match state (Free-for-All). Stub: server-authoritative logic is added in later stages.
+## Match state (Free-for-All): scores, timer, winner. The server owns it; clients receive it through NetWorld RPCs.
 
 enum State { MENU, LOBBY, PLAYING, ENDED }
 
@@ -10,10 +10,11 @@ const MENU_SCENE := "res://prefabs/ui/main_menu.tscn"
 const LEVEL_SCENE := "res://prefabs/levels/test_level.tscn"
 const SCORE_LIMIT := 20
 const MATCH_TIME := 600.0  # seconds
+const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the next one
 
 # Launch arguments (pass after "--"): --server (dedicated, no local player), --port=N,
 # --join=IP (skip the menu), --name=Name, --bot (scripted input for tests), --netlog (periodic net debug prints),
-# --lag=MS and --perturb (network simulation for tests).
+# --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules).
 var dedicated := false
 var bot_mode := false
 var net_log := false
@@ -23,7 +24,13 @@ var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positi
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var launch_port := Net.DEFAULT_PORT
+var score_limit := SCORE_LIMIT
+var match_time := MATCH_TIME
+var intermission_time := INTERMISSION_TIME
 var state: State = State.MENU
+var time_left := MATCH_TIME       # seconds left in the running match
+var intermission_left := 0.0      # seconds until the next match starts (while ENDED)
+var winners: Array = []           # peer ids of the winners of the last match
 var scores: Dictionary = {}  # peer_id -> {"kills": int, "deaths": int}
 
 
@@ -44,6 +51,12 @@ func _ready() -> void:
 			net_perturb = true
 		elif arg.begins_with("--lag="):
 			sim_lag_ms = int(arg.trim_prefix("--lag="))
+		elif arg.begins_with("--score-limit="):
+			score_limit = maxi(1, int(arg.trim_prefix("--score-limit=")))
+		elif arg.begins_with("--match-time="):
+			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
+		elif arg.begins_with("--intermission="):
+			intermission_time = maxf(0.5, float(arg.trim_prefix("--intermission=")))
 		elif arg.begins_with("--join="):
 			auto_join = arg.trim_prefix("--join=")
 		elif arg.begins_with("--port="):
@@ -84,3 +97,47 @@ func add_kill(killer_id: int, victim_id: int) -> void:
 	scores[victim_id]["deaths"] += 1
 	score_changed.emit(killer_id)
 	score_changed.emit(victim_id)
+
+
+## True between matches (the scoreboard is shown and nobody can move or shoot).
+func is_frozen() -> bool:
+	return state == State.ENDED
+
+
+## Starts a fresh match: clears scores and the clock.
+func reset_match() -> void:
+	scores.clear()
+	winners = []
+	time_left = match_time
+	intermission_left = 0.0
+	set_state(State.PLAYING)
+
+
+## Ends the running match and picks the winners (most kills; ties broken by fewer deaths, then shared).
+func end_match() -> void:
+	winners = leaders()
+	intermission_left = intermission_time
+	set_state(State.ENDED)
+
+
+func leaders() -> Array:
+	var best_kills := -1
+	var best_deaths := 0
+	var result: Array = []
+	for id in scores:
+		var kills: int = scores[id]["kills"]
+		var deaths: int = scores[id]["deaths"]
+		if kills > best_kills or (kills == best_kills and deaths < best_deaths):
+			best_kills = kills
+			best_deaths = deaths
+			result = [id]
+		elif kills == best_kills and deaths == best_deaths:
+			result.append(id)
+	return result
+
+
+func top_kills() -> int:
+	var best := 0
+	for id in scores:
+		best = maxi(best, scores[id]["kills"])
+	return best

@@ -24,6 +24,8 @@ var lag_comp_enabled := true
 var _ready_peers: Array[int] = []  # server: peers whose level has finished loading
 var _last_snap_tick := 0           # client: tick of the most recent snapshot...
 var _last_snap_time := 0.0         # ...and when it arrived (seconds)
+var hud: GameHud
+var pause_menu: PauseMenu
 var _log_timer := 0.0
 
 @onready var _players_root: Node = $"../Players"
@@ -32,6 +34,19 @@ var _log_timer := 0.0
 
 func _ready() -> void:
 	lag_comp_enabled = Game.lag_comp_enabled
+	Game.reset_match()
+	if not Game.dedicated:
+		hud = GameHud.new()
+		hud.world = self
+		add_child(hud)
+		pause_menu = PauseMenu.new()
+		add_child(pause_menu)
+		Audio.play_music_id("game")
+		# Load everything the first shot / first opponent would otherwise load mid-match (a hitch).
+		WeaponDB.preload_scenes()
+		PlayerVisual.preload_scenes()
+	Settings.graphics_changed.connect(_apply_sun)
+	_apply_sun()
 	Net.peer_left.connect(_on_peer_left)
 	Net.disconnected.connect(_on_disconnected)
 	if multiplayer.is_server():
@@ -41,14 +56,22 @@ func _ready() -> void:
 		_client_ready.rpc_id(1, Settings.player_name)
 
 
+## Gives the level's sun the shadow settings of the current graphics quality.
+func _apply_sun() -> void:
+	var sun := get_node_or_null("../Sun") as DirectionalLight3D
+	if sun:
+		Settings.apply_sun(sun)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("leave"):
 		Net.leave()  # emits Net.disconnected -> back to the menu
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
+	_server_match_clock(delta)
 	# Runs after every Player has stepped this tick (Players come before World in the scene tree).
 	server_tick += 1
 	for id in players.keys():
@@ -76,7 +99,8 @@ func _process(_delta: float) -> void:
 				p.shots_total, p.hits_total])
 	var role := "SERVER" if multiplayer.is_server() else "CLIENT %d" % multiplayer.get_unique_id()
 	var scores := " scores=%s" % str(Game.scores) if multiplayer.is_server() else ""
-	print("[%s] t=%.1f %s%s" % [role, Time.get_ticks_msec() / 1000.0, " ".join(parts), scores])
+	print("[%s] t=%.1f state=%d left=%.0f %s%s" % [role, Time.get_ticks_msec() / 1000.0, Game.state,
+			Game.time_left if Game.state == Game.State.PLAYING else Game.intermission_left, " ".join(parts), scores])
 
 
 ## Client: the server tick whose world state the local player currently sees on screen (puppets are
@@ -114,6 +138,9 @@ func _server_add_player(id: int, player_name: String) -> void:
 	if id != 1:
 		_spawn_player.rpc_id(id, id, player_name, xform)
 		_ready_peers.append(id)
+		_sync_scores.rpc_id(id, Game.scores)
+		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.winners)
+	_broadcast_scores()
 
 
 func _on_peer_left(id: int) -> void:
@@ -124,6 +151,8 @@ func _on_peer_left(id: int) -> void:
 	_despawn_player(id)
 	for peer in _ready_peers:
 		_despawn_player.rpc_id(peer, id)
+	Game.scores.erase(id)
+	_broadcast_scores()
 
 
 func _broadcast_snapshot() -> void:
@@ -179,23 +208,86 @@ func _server_suicide(player: Player) -> void:
 
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool) -> void:
 	Game.add_kill(killer.peer_id, victim.peer_id)
+	_broadcast_scores()
 	_apply_death(victim.peer_id, killer.peer_id, weapon, head, RESPAWN_DELAY)
 	for peer in _ready_peers:
 		_player_died.rpc_id(peer, victim.peer_id, killer.peer_id, weapon, head, RESPAWN_DELAY)
 	var victim_id := victim.peer_id
-	get_tree().create_timer(RESPAWN_DELAY).timeout.connect(func() -> void: _server_respawn(victim_id))
+	get_tree().create_timer(RESPAWN_DELAY).timeout.connect(func() -> void: _server_respawn(victim_id, false))
+	if Game.state == Game.State.PLAYING and Game.top_kills() >= Game.score_limit:
+		_server_end_match("score limit")
 
 
-func _server_respawn(id: int) -> void:
+## Server: respawns a player. `force` also resets a living player (new match); otherwise only the dead are
+## respawned, and not between matches (the next match respawns everybody).
+func _server_respawn(id: int, force: bool) -> void:
 	if not players.has(id):
 		return
 	var player: Player = players[id]
+	if not force and (player.alive or Game.is_frozen()):
+		return
 	var xform := _pick_spawn(id)
 	player.spawn_protect = SPAWN_PROTECTION_TICKS
+	player.alive = true
 	lag_comp.clear(id)
 	_apply_respawn(id, xform)
 	for peer in _ready_peers:
 		_player_respawned.rpc_id(peer, id, xform)
+
+
+# --- Match flow (server) ----------------------------------------------------------------------------
+
+func _server_match_clock(delta: float) -> void:
+	if Game.state == Game.State.PLAYING:
+		Game.time_left = maxf(Game.time_left - delta, 0.0)
+		if Game.time_left <= 0.0:
+			_server_end_match("time limit")
+	elif Game.state == Game.State.ENDED:
+		Game.intermission_left = maxf(Game.intermission_left - delta, 0.0)
+		if Game.intermission_left <= 0.0:
+			_server_start_match()
+	if server_tick % 60 == 0:
+		_broadcast_match()  # once a second: clients count down locally in between
+
+
+func _server_end_match(reason: String) -> void:
+	Game.end_match()
+	Audio.play("match_end")
+	if Game.net_log:
+		print("[MATCH] ended (%s) winners=%s scores=%s" % [reason, str(Game.winners), str(Game.scores)])
+	_broadcast_match()
+	_apply_match_state()
+
+
+func _server_start_match() -> void:
+	Game.reset_match()
+	Audio.play("match_start")
+	for id in players.keys():
+		Game.ensure_player(id)
+	if Game.net_log:
+		print("[MATCH] started")
+	_broadcast_scores()
+	_broadcast_match()
+	_apply_match_state()
+	for id in players.keys():
+		_server_respawn(id, true)
+
+
+func _broadcast_scores() -> void:
+	for peer in _ready_peers:
+		_sync_scores.rpc_id(peer, Game.scores)
+	_apply_match_state()
+
+
+func _broadcast_match() -> void:
+	for peer in _ready_peers:
+		_sync_match.rpc_id(peer, Game.state, Game.time_left, Game.winners)
+
+
+## Lets the HUD on this machine (host or client) know that scores/state changed.
+func _apply_match_state() -> void:
+	if hud:
+		hud.refresh()
 
 
 # --- Client (also called locally on the server) ---------------------------------------------------
@@ -249,13 +341,41 @@ func _player_died(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	_apply_death(victim_id, killer_id, weapon, head, delay)
 
 
-func _apply_death(victim_id: int, killer_id: int, _weapon: int, _head: bool, delay: float) -> void:
+func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay: float) -> void:
 	if not players.has(victim_id):
 		return
+	var victim: Player = players[victim_id]
 	var killer_name := ""
 	if killer_id != victim_id and players.has(killer_id):
 		killer_name = (players[killer_id] as Player).player_name
-	(players[victim_id] as Player).die(killer_name, delay)
+	victim.die(killer_name, delay)
+	if hud:
+		var me := multiplayer.get_unique_id()
+		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else ""
+		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
+
+
+@rpc("authority", "reliable")
+func _sync_scores(scores: Dictionary) -> void:
+	Game.scores = scores.duplicate(true)
+	_apply_match_state()
+
+
+@rpc("authority", "reliable")
+func _sync_match(state: int, time_left: float, winners: Array) -> void:
+	var was_ended := Game.state == Game.State.ENDED
+	Game.time_left = time_left
+	Game.winners = winners
+	Game.set_state(state as Game.State)
+	if state == Game.State.PLAYING and was_ended:
+		Audio.play("match_start")
+		if hud:
+			hud.clear_feed()
+	elif state == Game.State.ENDED and not was_ended:
+		Audio.play("match_end")
+	if Game.net_log and not multiplayer.is_server():
+		print("[CLIENT %d] match state=%d time_left=%.0f winners=%s" % [multiplayer.get_unique_id(), state, time_left, str(winners)])
+	_apply_match_state()
 
 
 @rpc("authority", "reliable")
