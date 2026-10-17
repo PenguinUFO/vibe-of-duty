@@ -1,35 +1,35 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ivjd8udxgkqo"]
 
-[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" uid="uid://yeysxq314wdq" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/player/player_visual.gd" id="2_visual"]
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" unique_id=52541394]
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_player")
 
-[node name="Collision" type="CollisionShape3D" parent="."]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=727769214]
 
-[node name="Head" type="Node3D" parent="."]
+[node name="Head" type="Node3D" parent="." unique_id=250124598]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 
-[node name="Camera" type="Camera3D" parent="Head"]
-near = 0.05
+[node name="Camera" type="Camera3D" parent="Head" unique_id=457548773]
 far = 300.0
 
-[node name="Visual" type="Node3D" parent="."]
+[node name="Visual" type="Node3D" parent="." unique_id=913152383]
+script = ExtResource("2_visual")
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=831456968]
 
-[node name="Debug" type="Label" parent="HUD"]
+[node name="Debug" type="Label" parent="HUD" unique_id=885916582]
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 252.0
 offset_bottom = 100.0
-mouse_filter = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 
-[node name="Crosshair" type="ColorRect" parent="HUD"]
+[node name="Crosshair" type="ColorRect" parent="HUD" unique_id=224310507]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5

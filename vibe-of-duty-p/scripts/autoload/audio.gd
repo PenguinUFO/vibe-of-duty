@@ -35,6 +35,7 @@ var _file_index: Dictionary = {}  # id -> resource path
 var _pool_2d: Array[AudioStreamPlayer] = []
 var _pool_3d: Array[AudioStreamPlayer3D] = []
 var _music_player: AudioStreamPlayer
+var _silent := DisplayServer.get_name() == "headless"  # dedicated server: nothing to play
 
 
 func _ready() -> void:
@@ -54,6 +55,8 @@ func _ready() -> void:
 
 ## Plays sound [param id]. If [param world_position] is a Vector3 the sound is positional.
 func play(id: String, world_position: Variant = null, volume_db: float = 0.0) -> void:
+	if _silent:
+		return
 	var stream := _get_stream(id)
 	if stream == null:
 		push_warning("Audio: unknown sound id '%s'" % id)

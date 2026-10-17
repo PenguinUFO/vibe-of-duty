@@ -1,8 +1,7 @@
 [gd_scene format=3 uid="uid://dkums48nem5br"]
 
-[ext_resource type="Script" uid="uid://dga8fmdqcl6tf" path="res://scripts/game/level.gd" id="1_level"]
+[ext_resource type="Script" path="res://scripts/net/world.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
-[ext_resource type="PackedScene" path="res://prefabs/player/player.tscn" id="3_player"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.35, 0.55, 0.85, 1)
@@ -19,7 +18,6 @@ ambient_light_source = 3
 tonemap_mode = 2
 
 [node name="TestLevel" type="Node3D" unique_id=1240588564]
-script = ExtResource("1_level")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1990076302]
 environment = SubResource("env")
@@ -172,4 +170,7 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -30, 0.05, 5)
 [node name="Spawn5" type="Marker3D" parent="SpawnPoints" unique_id=1680589791]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 5, 0.05, 15)
 
-[node name="Player" parent="." unique_id=1653643665 instance=ExtResource("3_player")]
+[node name="Players" type="Node3D" parent="."]
+
+[node name="World" type="Node" parent="."]
+script = ExtResource("1_world")
