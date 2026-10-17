@@ -1,11 +1,10 @@
 [gd_scene format=3 uid="uid://ivjd8udxgkqo"]
 
 [ext_resource type="Script" uid="uid://yeysxq314wdq" path="res://scripts/player/player.gd" id="1_player"]
-[ext_resource type="Script" path="res://scripts/player/player_visual.gd" id="2_visual"]
+[ext_resource type="Script" uid="uid://crsnt4fnntx8v" path="res://scripts/player/player_visual.gd" id="2_visual"]
 
 [node name="Player" type="CharacterBody3D" unique_id=52541394]
 collision_layer = 2
-collision_mask = 1
 script = ExtResource("1_player")
 
 [node name="Collision" type="CollisionShape3D" parent="." unique_id=727769214]

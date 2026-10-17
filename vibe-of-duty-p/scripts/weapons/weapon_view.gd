@@ -10,6 +10,7 @@ extends Node3D
 const FLASH_TIME := 0.04
 const KICK_DECAY := 14.0
 const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
+const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
 const VIEWMODEL_SCALE := 0.7  # the pack's guns are big; shrink them in first person only
 
 var weapon_index := -1
@@ -70,11 +71,13 @@ func set_weapon(index: int) -> void:
 	_pivot.scale = Vector3.ONE * scale_factor
 	_muzzle.position = Vector3(-def.muzzle.x, def.muzzle.y, -def.muzzle.z) * scale_factor
 	_hip_pos = def.hip_offset
-	# Aim alignment: the eye sits at the height of the front sight (so its tip is at screen centre, just above
-	# the rear sight) and `eye_relief` in front of the rear sight. Prefab (x, y, z) -> view (-x, y, -z) * scale.
+	# Aim alignment: the eye sits on the line through the rear and front sight, `eye_relief` behind the rear sight,
+	# so both sights line up at screen centre. Prefab (x, y, z) -> view (-x, y, -z) * scale. Every component of both
+	# sight points matters.
 	var rear := Vector3(-def.rear_sight.x, def.rear_sight.y, -def.rear_sight.z) * scale_factor
 	var front := Vector3(-def.front_sight.x, def.front_sight.y, -def.front_sight.z) * scale_factor
-	_ads_pos = -Vector3(0.0, front.y, rear.z + def.eye_relief)
+	var eye := rear - (front - rear).normalized() * def.eye_relief
+	_ads_pos = -eye
 
 
 func _process(delta: float) -> void:
@@ -119,9 +122,10 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	_sway = _sway.limit_length(0.06)
 	pos += Vector3(_sway.x, -_sway.y, 0.0) * (1.0 - ads * 0.7)
 
-	# Recoil kick.
-	pos.z += _kick * 0.03
-	rot.x += _kick * deg_to_rad(2.5)
+	# Recoil kick (much weaker while aiming: the sights stay nearly still).
+	var kick := _kick * (1.0 - ads * ADS_KICK_CUT)
+	pos.z += kick * 0.03
+	rot.x += kick * deg_to_rad(2.5)
 
 	# Sprint pose.
 	pos += SPRINT_OFFSET * sprint_blend
