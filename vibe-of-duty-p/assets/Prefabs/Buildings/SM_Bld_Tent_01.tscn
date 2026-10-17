@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://brv0x76o0wgn6"]
+
+[ext_resource type="ArrayMesh" uid="uid://nuv775fvmtyc" path="res://assets/models/extracted/SM_Bld_Tent_01.res" id="1_iv66k"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_34x3w"]
+[ext_resource type="Shape3D" uid="uid://buqb4h8b7u1cx" path="res://assets/models/CollisionCustom/extracted/SM_Bld_Tent_01_C_Collision.res" id="3_34x3w"]
+
+[node name="SM_Bld_Tent_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_iv66k")
+surface_material_override/0 = ExtResource("2_34x3w")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = ExtResource("3_34x3w")

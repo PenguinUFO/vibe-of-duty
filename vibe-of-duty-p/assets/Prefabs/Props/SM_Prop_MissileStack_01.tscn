@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://ejxqbc34l3q8"]
+
+[ext_resource type="ArrayMesh" uid="uid://dh7a3qyj1dhe" path="res://assets/models/extracted/SM_Prop_MissileStack_01.res" id="1_e3vkj"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_epsa1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_e3vkj"]
+size = Vector3(0.9038086, 0.7495117, 0.44958496)
+
+[node name="SM_Prop_MissileStack_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_e3vkj")
+surface_material_override/0 = ExtResource("2_epsa1")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0012207031, 0.3762207, 0.001159668)
+shape = SubResource("BoxShape3D_e3vkj")

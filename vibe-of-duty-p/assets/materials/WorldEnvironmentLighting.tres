@@ -1,0 +1,42 @@
+[gd_resource type="Environment" load_steps=3 format=3 uid="uid://cydxk2hl6771x"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_hbon4"]
+resource_name = "Default-Skybox"
+sky_top_color = Color(0.28427514, 0.50463694, 0.55846477, 1)
+sky_horizon_color = Color(0.5903925, 0.60232633, 0.6222151, 1)
+sky_curve = 0.0731028
+sky_cover_modulate = Color(0.8776157, 0.8776158, 0.8776157, 1)
+ground_bottom_color = Color(0.49064416, 0.5024887, 0.5222306, 1)
+ground_horizon_color = Color(0.5921569, 0.6039216, 0.62352943, 1)
+ground_curve = 0.033635926
+
+[sub_resource type="Sky" id="Sky_kihif"]
+sky_material = SubResource("ProceduralSkyMaterial_hbon4")
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_kihif")
+ambient_light_source = 2
+ambient_light_color = Color(0.9937579, 0.9755588, 0.9572285, 1)
+ambient_light_energy = 0.3
+tonemap_exposure = 0.87
+ssao_enabled = true
+ssao_radius = 0.94
+ssao_intensity = 0.76
+ssao_power = 0.2942186
+ssao_detail = 5.0
+ssao_horizon = 0.0
+ssao_sharpness = 1.0
+ssil_radius = 2.01
+ssil_intensity = 0.88
+ssil_sharpness = 0.64
+glow_intensity = 0.45
+glow_strength = 0.51
+glow_bloom = 0.11
+fog_mode = 1
+fog_light_color = Color(0.60933006, 0.6093302, 0.60932994, 1)
+fog_density = 0.2581
+adjustment_enabled = true
+adjustment_brightness = 1.08
+adjustment_contrast = 1.11
+adjustment_saturation = 0.88

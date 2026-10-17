@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://b66vcluolcitv"]
+
+[ext_resource type="ArrayMesh" uid="uid://bia6s5b7g5b4p" path="res://assets/models/extracted/SM_Char_Attach_Male_Armor_03.res" id="1_k7ih7"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_oqhul"]
+
+[node name="SM_Chr_Attach_Male_Armor_03" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_k7ih7")
+surface_material_override/0 = ExtResource("2_oqhul")

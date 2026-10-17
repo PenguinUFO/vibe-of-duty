@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3 uid="uid://dj23x6teusggh"]
+
+[ext_resource type="ArrayMesh" uid="uid://bxw6i4rt1qg1g" path="res://assets/models/extracted/SM_Prop_Portaloo_01.res" id="1_f4t8f"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_sf118"]
+[ext_resource type="ArrayMesh" uid="uid://csmcubi157p3d" path="res://assets/models/extracted/SM_Prop_Portaloo_01_Door.res" id="3_sf118"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_shsre"]
+points = PackedVector3Array(-0.8547776, 2.8159113, -0.7479734, -0.8547776, 2.8159113, 0.74717486, -0.59986496, 2.9825592, -0.41045976, -0.0074578524, 3.1403396, -0.73625314, -0.7177926, 0.33912498, -0.75791335, -0.71811837, 0.33851343, 0.7577082, 0.80923986, 2.7703507, 0.7200254, 0.28214896, 3.114043, 0.72343767, 0.70303977, 0.33851343, 0.7577082, 0.6176889, 2.9645183, -0.72186244, 0.7440865, 0.2547308, -0.7049497, 0.67176616, 0.01744856, -0.67943215, -0.6793521, 0.03396047, -0.67216265, -0.6793521, 0.03396047, 0.6716608, 0.67209196, 0.01653123, 0.679227, 0.7440865, 2.586579, -0.66340953)
+
+[node name="SM_Prop_Portaloo_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_f4t8f")
+surface_material_override/0 = ExtResource("2_sf118")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_shsre")
+
+[node name="SM_Prop_Portaloo_01_Door" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.554103, 0.29851428, 0.7697876)
+gi_mode = 2
+mesh = ExtResource("3_sf118")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sf118")

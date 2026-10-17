@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://db8sqh54hqvy"]
+
+[ext_resource type="ArrayMesh" uid="uid://sir5tpl8lfum" path="res://assets/models/extracted/SM_Env_Planecrash_Debris_01.res" id="1_ccs46"]
+[ext_resource type="Material" uid="uid://d0wqo4xnjpcxb" path="res://assets/materials/Alts/PolygonBattleRoyale_Veh_Destroyed_01_mat.tres" id="2_xxodj"]
+
+[node name="SM_Env_Planecrash_Debris_01" type="MeshInstance3D"]
+transform = Transform3D(0.99999994, 0, 0, 0, 1, 0, 0, 0, 0.99999994, 0, 0, 0)
+gi_mode = 2
+mesh = ExtResource("1_ccs46")
+surface_material_override/0 = ExtResource("2_xxodj")

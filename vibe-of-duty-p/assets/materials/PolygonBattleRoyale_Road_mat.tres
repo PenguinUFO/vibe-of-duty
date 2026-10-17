@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://dfafpanh44t3j"]
+
+[ext_resource type="Texture2D" uid="uid://xtnguh15e2fd" path="res://assets/textures/PolygonBattleRoyale_Road_01.png" id="1_a0bvb"]
+[ext_resource type="Texture2D" uid="uid://ctxgpc28pe64w" path="res://assets/textures/PolygonBattleRoyale_Road_Normal.png" id="2_31n0t"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Road_mat"
+albedo_texture = ExtResource("1_a0bvb")
+metallic_specular = 0.1
+roughness = 0.8
+normal_enabled = true
+normal_scale = 1.62
+normal_texture = ExtResource("2_31n0t")
+uv1_scale = Vector3(1, 1, 0)

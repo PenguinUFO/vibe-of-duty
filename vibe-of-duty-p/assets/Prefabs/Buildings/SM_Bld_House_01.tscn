@@ -1,0 +1,75 @@
+[gd_scene load_steps=12 format=3 uid="uid://cdpnlepbbh5sb"]
+
+[ext_resource type="ArrayMesh" uid="uid://pdslb58ehs5l" path="res://assets/models/extracted/SM_Bld_House_01.res" id="1_b1ryt"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_gahge"]
+[ext_resource type="Shape3D" uid="uid://b58aapvy51q1t" path="res://assets/models/CollisionCustom/extracted/SM_Bld_House_01_C_Collision.res" id="3_7uial"]
+[ext_resource type="ArrayMesh" uid="uid://cvtcfc4flu1ca" path="res://assets/models/extracted/SM_Bld_House_01_Door_01.res" id="3_gahge"]
+[ext_resource type="ArrayMesh" uid="uid://ciptph24ogvj0" path="res://assets/models/extracted/SM_Bld_House_01_Door_02.res" id="4_7uial"]
+[ext_resource type="ArrayMesh" uid="uid://b86lpyje37d5x" path="res://assets/models/extracted/SM_Bld_House_01_Door_03.res" id="5_wblmb"]
+[ext_resource type="ArrayMesh" uid="uid://dhih6dgk7tx5y" path="res://assets/models/extracted/SM_Bld_House_01_Glass.res" id="6_s4rlt"]
+[ext_resource type="Material" uid="uid://clkvyp34i3c3n" path="res://assets/materials/PolygonBattleRoyale_Glass_mat.tres" id="7_cgxmg"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_nbd3n"]
+size = Vector3(1.0252991, 2.2243495, 0.23755309)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jkbke"]
+size = Vector3(1.0252993, 2.2243495, 0.2375525)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_mvnsy"]
+size = Vector3(1.0252991, 2.22435, 0.2375525)
+
+[node name="SM_Bld_House_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_b1ryt")
+surface_material_override/0 = ExtResource("2_gahge")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = ExtResource("3_7uial")
+
+[node name="SM_Bld_House_01_Door_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7418562, 1.5352739, 4.42742)
+gi_mode = 2
+mesh = ExtResource("3_gahge")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_gahge")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Bld_House_01_Door_01"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Bld_House_01_Door_01/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.51264966, 1.7881393e-07, -1.5236437e-06)
+shape = SubResource("BoxShape3D_nbd3n")
+
+[node name="SM_Bld_House_01_Door_02" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7418556, 1.5352739, -3.2961462)
+gi_mode = 2
+mesh = ExtResource("4_7uial")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_gahge")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Bld_House_01_Door_02"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Bld_House_01_Door_02/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.51264894, 1.7881393e-07, -1.8291175e-06)
+shape = SubResource("BoxShape3D_jkbke")
+
+[node name="SM_Bld_House_01_Door_03" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7581407, 4.5419717, -3.2961485)
+gi_mode = 2
+mesh = ExtResource("5_wblmb")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_gahge")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Bld_House_01_Door_03"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Bld_House_01_Door_03/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5126494, 1.1920929e-07, -1.8291175e-06)
+shape = SubResource("BoxShape3D_mvnsy")
+
+[node name="SM_Bld_House_01_Glass" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.322031e-06, 3.3728063, 0.5656372)
+gi_mode = 2
+mesh = ExtResource("6_s4rlt")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("7_cgxmg")

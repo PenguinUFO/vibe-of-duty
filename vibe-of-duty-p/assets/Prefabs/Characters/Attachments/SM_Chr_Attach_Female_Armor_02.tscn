@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://b0ulklwrxrooa"]
+
+[ext_resource type="ArrayMesh" uid="uid://6bxkkfy27p18" path="res://assets/models/extracted/SM_Char_Attach_Female_Armor_02.res" id="1_unavi"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_nusm8"]
+
+[node name="SM_Chr_Attach_Female_Armor_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_unavi")
+surface_material_override/0 = ExtResource("2_nusm8")

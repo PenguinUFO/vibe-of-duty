@@ -1,0 +1,400 @@
+[remap]
+
+importer="scene"
+importer_version=1
+type="PackedScene"
+uid="uid://c1b8mxs8b0muj"
+path="res://.godot/imported/Characters.fbx-800e8f474137fcb3b1bfb0de20518fc1.scn"
+
+[deps]
+
+source_file="res://assets/models/Characters/Characters.fbx"
+dest_files=["res://.godot/imported/Characters.fbx-800e8f474137fcb3b1bfb0de20518fc1.scn"]
+
+[params]
+
+nodes/root_type=""
+nodes/root_name=""
+nodes/root_script=null
+mesh_library/use_node_names_as_mesh_names=false
+array_mesh/deduplicate_surfaces=true
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
+nodes/use_node_type_suffixes=true
+meshes/ensure_tangents=1
+meshes/generate_lods=true
+meshes/create_shadow_meshes=false
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=24.0
+animation/trimming=true
+animation/remove_immutable_tracks=false
+animation/import_rest_as_RESET=true
+import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
+_subresources={
+"animations": {},
+"materials": {
+"standardSurface1": {
+"use_external/enabled": true,
+"use_external/fallback_path": "res://assets/models/Characters/Characters.material",
+"use_external/path": "uid://n34mao7v3d4n"
+}
+},
+"meshes": {
+"Character_70sFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_70sFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cyi0i05jlmbhc"
+},
+"Character_BusinessMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_BusinessMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://b4iae5aojoi08"
+},
+"Character_GhillieSuit_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_GhillieSuit_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://c2t2qk61k7wu6"
+},
+"Character_GothFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_GothFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://bsudcpkl0fana"
+},
+"Character_MercenaryFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MercenaryFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://e10w4ofxt3v1"
+},
+"Character_MercenaryMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MercenaryMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cwgufnp4f26cd"
+},
+"Character_MilitaryFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MilitaryFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cge1ehnwwivna"
+},
+"Character_MilitaryMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MilitaryMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dhqed0o4li3q4"
+},
+"Character_RedneckMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_RedneckMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://m32532it1nxs"
+},
+"Character_SportsBraFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportsBraFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://b7k0bqrys3uyf"
+},
+"Character_SportyFemale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dnydrnb6podlt"
+},
+"Character_SportyFemale_02": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyFemale_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cyhpcftn5igep"
+},
+"Character_SportyMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://snfx7n46s7is"
+},
+"Character_SportyMale_02": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyMale_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dxl0n0lf3l46a"
+},
+"Character_ToplessMale_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_ToplessMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://djib40evsl5pt"
+},
+"Root Scene_Character_70sFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_70sFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cyi0i05jlmbhc"
+},
+"Root Scene_Character_BusinessMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_BusinessMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://b4iae5aojoi08"
+},
+"Root Scene_Character_GhillieSuit_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_GhillieSuit_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://c2t2qk61k7wu6"
+},
+"Root Scene_Character_GothFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_GothFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://bsudcpkl0fana"
+},
+"Root Scene_Character_MercenaryFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MercenaryFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://e10w4ofxt3v1"
+},
+"Root Scene_Character_MercenaryMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MercenaryMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cwgufnp4f26cd"
+},
+"Root Scene_Character_MilitaryFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MilitaryFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cge1ehnwwivna"
+},
+"Root Scene_Character_MilitaryMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_MilitaryMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dhqed0o4li3q4"
+},
+"Root Scene_Character_RedneckMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_RedneckMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://m32532it1nxs"
+},
+"Root Scene_Character_SportsBraFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportsBraFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://b7k0bqrys3uyf"
+},
+"Root Scene_Character_SportyFemale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyFemale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dnydrnb6podlt"
+},
+"Root Scene_Character_SportyFemale_02": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyFemale_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://cyhpcftn5igep"
+},
+"Root Scene_Character_SportyMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://snfx7n46s7is"
+},
+"Root Scene_Character_SportyMale_02": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_SportyMale_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dxl0n0lf3l46a"
+},
+"Root Scene_Character_ToplessMale_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/Character_ToplessMale_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://djib40evsl5pt"
+},
+"Root Scene_SM_Char_Attach_Female_Armor_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://rngesmu0rqq4"
+},
+"Root Scene_SM_Char_Attach_Female_Armor_02": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://brw4r06wfx51h"
+},
+"Root Scene_SM_Char_Attach_Female_Armor_03": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_03.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://d4gvmd32iofjq"
+},
+"Root Scene_SM_Char_Attach_Male_Armor_01": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://bu24prvvlfx0x"
+},
+"Root Scene_SM_Char_Attach_Male_Armor_02": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dte0altkje1gq"
+},
+"Root Scene_SM_Char_Attach_Male_Armor_03": {
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_03.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://c6ifdg1av1kmm"
+},
+"SM_Char_Attach_Female_Armor_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://rngesmu0rqq4"
+},
+"SM_Char_Attach_Female_Armor_02": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://brw4r06wfx51h"
+},
+"SM_Char_Attach_Female_Armor_03": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Female_Armor_03.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://d4gvmd32iofjq"
+},
+"SM_Char_Attach_Male_Armor_01": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_01.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://bu24prvvlfx0x"
+},
+"SM_Char_Attach_Male_Armor_02": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_02.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://dte0altkje1gq"
+},
+"SM_Char_Attach_Male_Armor_03": {
+"generate/lightmap_uv": 0,
+"generate/lods": 0,
+"generate/shadow_meshes": 0,
+"lods/normal_merge_angle": 20.0,
+"save_to_file/enabled": true,
+"save_to_file/fallback_path": "res://assets/models/Characters/extracted/SM_Char_Attach_Male_Armor_03.mesh",
+"save_to_file/make_streamable": "",
+"save_to_file/path": "uid://c6ifdg1av1kmm"
+}
+},
+"nodes": {
+"PATH:AnimationPlayer": {
+"optimizer/enabled": true,
+"optimizer/max_angular_error": 0.00277777777777777,
+"optimizer/max_linear_error": 0.5
+}
+}
+}
+fbx/importer=0
+fbx/allow_geometry_helper_nodes=false
+fbx/embedded_image_handling=1
+fbx/naming_version=2

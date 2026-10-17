@@ -1,0 +1,107 @@
+[gd_scene load_steps=15 format=3 uid="uid://by22njuuvxf7e"]
+
+[ext_resource type="ArrayMesh" uid="uid://beqmsh4codlid" path="res://assets/models/extracted/SM_Prop_Container_01.res" id="1_7dk86"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_h2x7k"]
+[ext_resource type="ArrayMesh" uid="uid://34v57knuo7vw" path="res://assets/models/extracted/SM_Prop_Container_Door_01.res" id="3_h2x7k"]
+[ext_resource type="ArrayMesh" uid="uid://2sg1vbgeb434" path="res://assets/models/extracted/SM_Prop_Container_Door_02.res" id="4_d3dah"]
+[ext_resource type="ArrayMesh" uid="uid://b0qem0ihrehfk" path="res://assets/models/extracted/SM_Prop_Container_Door_03.res" id="5_uava8"]
+[ext_resource type="ArrayMesh" uid="uid://dmyvfs10plg2" path="res://assets/models/extracted/SM_Prop_Container_Door_04.res" id="6_5eeji"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7dk86"]
+size = Vector3(2.16333, 0.16833496, 6.069397)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_h2x7k"]
+size = Vector3(0.16357422, 2.585083, 6.0595093)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_d3dah"]
+size = Vector3(0.16131592, 2.5957642, 6.048462)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_uava8"]
+size = Vector3(2.4368896, 0.15363312, 6.055908)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lsk8j"]
+size = Vector3(1.0718662, 2.440891, 0.21814086)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_5mcgt"]
+size = Vector3(1.1806571, 2.440891, 0.21814086)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_yv77x"]
+size = Vector3(1.0718662, 2.440891, 0.21814087)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_r8yu1"]
+size = Vector3(1.1806571, 2.440891, 0.21814087)
+
+[node name="SM_Prop_Container_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_7dk86")
+surface_material_override/0 = ExtResource("2_h2x7k")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0059814453, 0.078063965, -0.0082092285)
+shape = SubResource("BoxShape3D_7dk86")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1441401, 1.2964478, -0.008392334)
+shape = SubResource("BoxShape3D_h2x7k")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1389778, 1.2901306, -0.0079956055)
+shape = SubResource("BoxShape3D_d3dah")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.008972168, 2.5281808, -0.00012207031)
+shape = SubResource("BoxShape3D_uava8")
+
+[node name="SM_Prop_Container_Door_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0718662, 0.16177167, 2.915728)
+gi_mode = 2
+mesh = ExtResource("3_h2x7k")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h2x7k")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Prop_Container_Door_01"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Prop_Container_Door_01/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5359331, 1.1332282, 0.07132507)
+shape = SubResource("BoxShape3D_lsk8j")
+
+[node name="SM_Prop_Container_Door_02" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0718659, 0.16177167, 2.915728)
+gi_mode = 2
+mesh = ExtResource("4_d3dah")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h2x7k")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Prop_Container_Door_02"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Prop_Container_Door_02/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5903286, 1.1332282, 0.07132507)
+shape = SubResource("BoxShape3D_5mcgt")
+
+[node name="SM_Prop_Container_Door_03" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0718659, 0.16177167, -2.9157283)
+gi_mode = 2
+mesh = ExtResource("5_uava8")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h2x7k")
+
+[node name="BoxCollider" type="StaticBody3D" parent="SM_Prop_Container_Door_03"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Prop_Container_Door_03/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5359331, 1.1332282, -0.071324766)
+shape = SubResource("BoxShape3D_yv77x")
+
+[node name="MeshRenderer" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0718662, 0.16177167, -2.9157283)
+gi_mode = 2
+mesh = ExtResource("6_5eeji")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h2x7k")
+
+[node name="BoxCollider" type="StaticBody3D" parent="MeshRenderer"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshRenderer/BoxCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5903286, 1.1332282, -0.071324766)
+shape = SubResource("BoxShape3D_r8yu1")

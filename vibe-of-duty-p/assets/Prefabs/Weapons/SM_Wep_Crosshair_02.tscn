@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://0bmend4uowcv"]
+
+[ext_resource type="ArrayMesh" uid="uid://djoujbai2obtm" path="res://assets/models/extracted/SM_Wep_Crosshair_02.res" id="1_fi88s"]
+[ext_resource type="Material" uid="uid://c030axev20m" path="res://assets/materials/PolygonBattleRoyale_Wep_01_mat.tres" id="2_pct5p"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_1ure3"]
+points = PackedVector3Array(-0.0052014804, -0.0029490832, -0.0005304556, -0.00022648973, -0.0058981664, -0.0005304556, -0.00096202875, -0.0055298195, 0.0005754506, -0.0052014804, -0.0029490832, 0.0005754506, -0.0052014804, 0.0029467745, -0.0005304556, 0.0003271848, -0.0058981664, 0.0005754506, 0.0016184193, -0.005160318, -0.0005304556, -0.0052014804, 0.0029467745, 0.0005754506, -0.002253263, 0.0047908174, -0.0005304556, 0.005120312, -0.0031338339, 0.0005754506, 0.005120312, -0.0031338339, -0.0005304556, -0.00022648973, 0.0058981664, 0.0005754506, 0.0003271848, 0.0058981664, -0.0005304556, 0.005120312, 0.0031326795, 0.0005754506, 0.005120312, 0.0031326795, -0.0005304556, 0.0003271848, 0.0058981664, 0.0005754506)
+
+[node name="SM_Wep_Crosshair_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_fi88s")
+surface_material_override/0 = ExtResource("2_pct5p")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_1ure3")

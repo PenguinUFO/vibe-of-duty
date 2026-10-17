@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bcsvd1k3u6wru"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_FX_Emmision_mat"
+depth_draw_mode = 1
+roughness = 0.5
+emission_enabled = true
+emission = Color(1, 0.874332, 0.6190008, 1)
+uv1_scale = Vector3(1, 1, 0)

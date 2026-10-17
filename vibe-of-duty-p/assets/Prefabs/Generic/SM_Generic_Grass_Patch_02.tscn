@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://dsk8fbi7tb65m"]
+
+[ext_resource type="ArrayMesh" uid="uid://06agp71redh7" path="res://assets/models/extracted/SM_Gerneric_Grass_Patch_02.res" id="1_rf48v"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_fbo52"]
+
+[node name="SM_Generic_Grass_Patch_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_rf48v")
+surface_material_override/0 = ExtResource("2_fbo52")

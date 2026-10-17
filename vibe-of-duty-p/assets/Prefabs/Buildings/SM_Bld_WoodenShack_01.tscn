@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://dpjgce33s5gwq"]
+
+[ext_resource type="ArrayMesh" uid="uid://cg51yqpxxopvo" path="res://assets/models/extracted/SM_Bld_WoodenShack_01.res" id="1_5ob00"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_m8g1h"]
+[ext_resource type="Shape3D" uid="uid://cfqm8ych5w1sp" path="res://assets/models/CollisionCustom/extracted/SM_Bld_WoodenShack_01_C_Collision.res" id="3_m8g1h"]
+
+[node name="SM_Bld_WoodenShack_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_5ob00")
+surface_material_override/0 = ExtResource("2_m8g1h")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = ExtResource("3_m8g1h")

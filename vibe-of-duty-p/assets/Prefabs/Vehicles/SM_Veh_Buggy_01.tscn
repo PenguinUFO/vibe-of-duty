@@ -1,0 +1,101 @@
+[gd_scene load_steps=14 format=3 uid="uid://dw6f1rpegy8"]
+
+[ext_resource type="ArrayMesh" uid="uid://cbn83umni8mg3" path="res://assets/models/extracted/SM_Veh_Buggy_01.res" id="1_dtrfm"]
+[ext_resource type="Material" uid="uid://caabpmcynai07" path="res://assets/materials/PolygonBattleRoyale_Veh_01_mat.tres" id="2_sm6rl"]
+[ext_resource type="ArrayMesh" uid="uid://bae3jl4ppi8he" path="res://assets/models/extracted/SM_Veh_Buggy_Shocks_01.res" id="3_sm6rl"]
+[ext_resource type="ArrayMesh" uid="uid://cwogoirctrdei" path="res://assets/models/extracted/SM_Veh_Buggy_Wheel_fr.res" id="4_at17x"]
+[ext_resource type="ArrayMesh" uid="uid://bt0wgoo82wshw" path="res://assets/models/extracted/SM_Veh_Buggy_Wheel_fl.res" id="5_dxvon"]
+[ext_resource type="ArrayMesh" uid="uid://byura65dlde04" path="res://assets/models/extracted/SM_Veh_Buggy_SteeringW_01.res" id="6_0rw3r"]
+[ext_resource type="ArrayMesh" uid="uid://dmd4mv2vpx4tj" path="res://assets/models/extracted/SM_Veh_Buggy_Wheel_rl.res" id="7_kqray"]
+[ext_resource type="ArrayMesh" uid="uid://6v4ike4b3lv1" path="res://assets/models/extracted/SM_Veh_Buggy_Wheel_rr.res" id="8_ucl7g"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_k1ife"]
+points = PackedVector3Array(1.236934, 0.8203964, 2.4734514, 1.0846596, 0.8201806, -0.7185316, 0.4001615, 2.4931076, -0.7194545, 0.552436, 1.2006954, 2.5500443, 1.1607966, 0.44031328, 2.5500443, 0.9326308, 0.28815055, -1.1748588, 0.5521903, 1.8089147, -2.0879745, -0.5115199, 1.9606458, -1.9357116, -0.35949117, 2.4931076, -0.7194545, -1.1962634, 0.8203964, 2.5500443, -1.1962634, 0.44031328, 2.5500443, -0.8917147, 0.28815055, -1.1748588, -0.66379434, 0.97255915, -2.1636446, 0.22897565, 1.2846546, -2.1428814, -1.1201262, 0.8201806, -0.7185316, -1.272155, 0.8203964, 2.39732)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dtrfm"]
+height = 0.23855591
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_sm6rl"]
+height = 0.23956299
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_at17x"]
+height = 0.31689453
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dxvon"]
+height = 0.34570313
+
+[node name="SM_Veh_Buggy_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_dtrfm")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_k1ife")
+
+[node name="SM_Veh_Buggy_Shocks_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.80267364, 1.899102)
+gi_mode = 2
+mesh = ExtResource("3_sm6rl")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="SM_Veh_Buggy_Wheel_fr" type="MeshInstance3D" parent="SM_Veh_Buggy_Shocks_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.90516186, -0.30266076, -0.05304885)
+gi_mode = 2
+mesh = ExtResource("4_at17x")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Buggy_Shocks_01/SM_Veh_Buggy_Wheel_fr"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Buggy_Shocks_01/SM_Veh_Buggy_Wheel_fr/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.06410217, 0, 0)
+shape = SubResource("CylinderShape3D_dtrfm")
+
+[node name="SM_Veh_Buggy_Wheel_fl" type="MeshInstance3D" parent="SM_Veh_Buggy_Shocks_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.90516186, -0.30266076, -0.05304885)
+gi_mode = 2
+mesh = ExtResource("5_dxvon")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Buggy_Shocks_01/SM_Veh_Buggy_Wheel_fl"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Buggy_Shocks_01/SM_Veh_Buggy_Wheel_fl/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.06637573, 0, 0)
+shape = SubResource("CylinderShape3D_sm6rl")
+
+[node name="SM_Veh_Buggy_SteeringW_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9164619, -0.40012196, 0, 0.40012196, 0.9164619, 0.2777667, 1.116443, 0.29158115)
+gi_mode = 2
+mesh = ExtResource("6_0rw3r")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="SM_Veh_Buggy_Wheel_rl" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98372656, 0.5000129, -1.2946527)
+gi_mode = 2
+mesh = ExtResource("7_kqray")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Buggy_Wheel_rl"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Buggy_Wheel_rl/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.05053717, 0, 0)
+shape = SubResource("CylinderShape3D_at17x")
+
+[node name="SM_Veh_Buggy_Wheel_rr" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.98372656, 0.5000129, -1.2946527)
+gi_mode = 2
+mesh = ExtResource("8_ucl7g")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_sm6rl")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Buggy_Wheel_rr"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Buggy_Wheel_rr/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.059570372, 0, 0)
+shape = SubResource("CylinderShape3D_dxvon")

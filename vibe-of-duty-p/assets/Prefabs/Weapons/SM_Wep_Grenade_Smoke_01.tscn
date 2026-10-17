@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3 uid="uid://buqp35hxwyct1"]
+
+[ext_resource type="ArrayMesh" uid="uid://c6n4twuv1ro6m" path="res://assets/models/extracted/SM_Wep_Grenade_Smoke_01.res" id="1_yj3rc"]
+[ext_resource type="Material" uid="uid://c030axev20m" path="res://assets/materials/PolygonBattleRoyale_Wep_01_mat.tres" id="2_mnl4t"]
+[ext_resource type="ArrayMesh" uid="uid://c07fyf20g03ue" path="res://assets/models/extracted/_SK_Wep_Grenade_Clip_01.res" id="3_mnl4t"]
+[ext_resource type="ArrayMesh" uid="uid://cai30dqr32pvw" path="res://assets/models/extracted/_SK_Wep_Grenade_Pin_01.res" id="4_fuewn"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_hs2s3"]
+points = PackedVector3Array(-0.006115306, 0.056238968, 0.029803127, -0.031559587, 0.056071196, 0.0018660761, -0.022543658, -0.055894487, 0.022996165, 0.022088211, -0.05642831, 0.023181748, 0.022088211, 0.056757543, 0.023181748, -0.014114674, 0.09938717, 0.012305189, -0.014114674, 0.09938717, -0.030379182, -0.014114674, 0.0742517, -0.0379086, -0.021938562, -0.053850703, -0.023254074, -0.031559587, -0.055040367, 0.0018660761, 0.016684704, -0.05351516, -0.025421433, 0.030257002, -0.053423647, -0.0050204247, 0.012194894, 0.091791615, -0.027767748, 0.030257002, 0.055247586, -0.0050204247, 0.013495848, 0.06671716, -0.0379086, -0.0059519317, -0.053286377, -0.029875454)
+
+[node name="SM_Wep_Grenade_Smoke_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_yj3rc")
+surface_material_override/0 = ExtResource("2_mnl4t")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_hs2s3")
+
+[node name="_SK_Wep_Grenade_Clip_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01284958, 0.1024057, 1.42659e-17)
+gi_mode = 2
+mesh = ExtResource("3_mnl4t")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_mnl4t")
+
+[node name="_SK_Wep_Grenade_Pin_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0065192245, 0.093219005, -2.6186124e-17)
+gi_mode = 2
+mesh = ExtResource("4_fuewn")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_mnl4t")

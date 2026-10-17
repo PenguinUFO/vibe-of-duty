@@ -1,0 +1,40 @@
+[gd_scene load_steps=8 format=3 uid="uid://b1bi4aiouyqd"]
+
+[ext_resource type="ArrayMesh" uid="uid://bg45lkje7kfo3" path="res://assets/models/extracted/SM_Env_Road_Straight_01.res" id="1_7q8l8"]
+[ext_resource type="Material" uid="uid://dfafpanh44t3j" path="res://assets/materials/PolygonBattleRoyale_Road_mat.tres" id="2_5gyro"]
+[ext_resource type="ArrayMesh" uid="uid://byk6aort10yys" path="res://assets/models/extracted/SM_Env_Road_Straight_01_Dirt.res" id="3_5gyro"]
+[ext_resource type="Shape3D" uid="uid://cu4uow1a8wnwl" path="res://assets/models/CollisionCustom/extracted/SM_Env_Road_Straight_01_Collision.res" id="3_nf1ld"]
+[ext_resource type="Material" uid="uid://2gj6klblc47h" path="res://assets/materials/PolygonBattleRoyale_02_A_mat.tres" id="4_cmstx"]
+[ext_resource type="ArrayMesh" uid="uid://18bunyyo3cb8" path="res://assets/models/extracted/SM_Env_Road_Straight_01_Edge.res" id="5_nf1ld"]
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_cg753"]
+data = PackedVector3Array(10, -0.67069995, 5.0014997, 6.657, -0.13149999, 5.0014997, 6.657, -0.13149999, -0.0015, 6.657, -0.13149999, -0.0015, 10, -0.67069995, -0.0015, 10, -0.67069995, 5.0014997, -4.5910997, -0.092, 5.0014997, -6.657, -0.13149999, 5.0014997, -6.657, -0.13149999, -0.0015, -6.657, -0.13149999, -0.0015, -4.5910997, -0.092, -0.0015, -4.5910997, -0.092, 5.0014997, 6.657, -0.13149999, 5.0014997, 4.5910997, -0.092, 5.0014997, 4.5910997, -0.092, -0.0015, 4.5910997, -0.092, -0.0015, 6.657, -0.13149999, -0.0015, 6.657, -0.13149999, 5.0014997, -6.657, -0.13149999, -0.0015, -6.657, -0.13149999, 5.0014997, -10, -0.67069995, 5.0014997, -10, -0.67069995, 5.0014997, -10, -0.67069995, -0.0015, -6.657, -0.13149999, -0.0015)
+
+[node name="SM_Env_Road_Straight_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_7q8l8")
+surface_material_override/0 = ExtResource("2_5gyro")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = ExtResource("3_nf1ld")
+
+[node name="SM_Env_Road_Straight_01_Dirt" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.0015257794)
+gi_mode = 2
+mesh = ExtResource("3_5gyro")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("4_cmstx")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Env_Road_Straight_01_Dirt"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Env_Road_Straight_01_Dirt/MeshCollider"]
+shape = SubResource("ConcavePolygonShape3D_cg753")
+
+[node name="SM_Env_Road_Straight_01_Edge" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.0015257794)
+gi_mode = 2
+mesh = ExtResource("5_nf1ld")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_5gyro")

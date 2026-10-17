@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://b5njcbuyhlvxk"]
+
+[ext_resource type="ArrayMesh" uid="uid://bse253hhsce65" path="res://assets/models/extracted/SM_Env_Grass_Square_01.res" id="1_tll8w"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_l0t3g"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_jb1tr"]
+points = PackedVector3Array(-7.89995, 0.107097864, -9.777657, -9.875076, -0.22224718, -8.787172, -8.557649, 0.43605626, -8.460179, 6.2507267, 0.43605626, -8.790975, 3.6179008, -0.22224718, -9.777657, -10.203926, -0.22224718, 9.3134, -9.875076, 0.43605626, 0.7545538, -6.255703, 0.7653046, -4.1826572, 9.872129, 0.43605626, -5.823325, 10.200979, -0.22224718, -9.119868, -4.6073956, 0.7653046, -3.1940746, -9.217378, 0.43605626, 8.653711, 10.200979, -0.22224718, 8.655613, 8.885582, 0.10690454, 9.644196, 10.53389, 0.10690454, 6.02256, 9.2124, 0.43605626, 7.6670303)
+
+[node name="SM_Env_Grass_Square_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_tll8w")
+surface_material_override/0 = ExtResource("2_l0t3g")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_jb1tr")

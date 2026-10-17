@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://j6oal1qk6b2"]
+
+[ext_resource type="ArrayMesh" uid="uid://ceweloyumaww7" path="res://assets/models/extracted/SM_Env_Rubble_Pebbles_02.res" id="1_gltem"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_e768x"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_lx5b6"]
+points = PackedVector3Array(0.03174913, -0.057282683, -1.2092916, -0.39534038, -0.11833985, 0.46851826, -1.3718727, -0.057282683, 0.6212989, -1.3412844, 0.06474204, 0.49907434, 0.03174913, 0.09527062, -1.2092916, 0.2148968, 0.09527062, -1.1787355, 0.5811919, -0.057282683, -0.38538694, 0.15372014, -0.11833985, 0.01110208, -1.188725, -0.057282683, 0.68259645, 0.4588387, -0.057282683, 0.34666407, -1.3338284, 0.0049095973, 0.58555746, -0.36532557, 0.18682651, 0.49907434, -0.63947344, 0.18682651, 0.28573692, 0.30627942, 0.18682651, -0.20242047, 0.5504124, 0.03424333, -0.44649923, 0.42844152, 0.09524076, 0.4075911)
+
+[node name="SM_Env_Rubble_Pebbles_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_gltem")
+surface_material_override/0 = ExtResource("2_e768x")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_lx5b6")

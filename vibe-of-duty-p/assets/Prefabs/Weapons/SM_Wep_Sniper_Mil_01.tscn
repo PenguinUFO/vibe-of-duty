@@ -1,0 +1,49 @@
+[gd_scene load_steps=8 format=3 uid="uid://bb3b0ymmxuyox"]
+
+[ext_resource type="ArrayMesh" uid="uid://dh3luupvja6y4" path="res://assets/models/extracted/SM_Wep_Sniper_Mil_01.res" id="1_rqe10"]
+[ext_resource type="Material" uid="uid://c030axev20m" path="res://assets/materials/PolygonBattleRoyale_Wep_01_mat.tres" id="2_63adn"]
+[ext_resource type="ArrayMesh" uid="uid://cdtynpcy4a178" path="res://assets/models/extracted/SM_Wep_Sniper_Mil_Bolt_01.res" id="3_63adn"]
+[ext_resource type="ArrayMesh" uid="uid://b72qghn2cvxdy" path="res://assets/models/extracted/SM_Wep_Sniper_Mil_Scope_01.res" id="4_qqjph"]
+[ext_resource type="ArrayMesh" uid="uid://btlklae4xxsjw" path="res://assets/models/extracted/SM_Wep_Sniper_Mil_Stock_01.res" id="5_nrjyx"]
+[ext_resource type="ArrayMesh" uid="uid://d0hxm3kg7osvg" path="res://assets/models/extracted/SM_Wep_Sniper_Mil_Trigger_01.res" id="6_tenat"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_ox5kd"]
+points = PackedVector3Array(0.01119452, -0.10702857, -0.26898408, 0.028033681, -0.048078317, -0.2941934, 0.0196141, -0.09017575, -0.024923325, -0.022473916, -0.09017575, -0.024923325, -0.022473916, -0.09861946, -0.26898408, -0.022473916, 0.019211821, -0.27738717, 0.0196141, 0.027638234, -0.27738717, 0.0196141, 0.06973567, 0.08456421, 0.028033681, 0.052882858, 0.5892448, 0.028033681, -0.031242803, 0.4798808, -0.022473916, -0.031242803, 0.4798808, -0.014059279, 0.061291955, 0.96812594, -0.016689472, 0.042968415, 0.18132347, -0.011270881, 0.055097602, 0.12633258, 0.0196141, 0.052882858, 0.96812594, -0.014059279, 0.027638234, 0.96812594)
+
+[node name="SM_Wep_Sniper_Mil_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_rqe10")
+surface_material_override/0 = ExtResource("2_63adn")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_ox5kd")
+
+[node name="SM_Wep_Sniper_Mil_Bolt_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0010400746, 0.0424959, 0.070972994)
+gi_mode = 2
+mesh = ExtResource("3_63adn")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_63adn")
+
+[node name="SM_Wep_Sniper_Mil_Scope_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06428296, 0.16693784)
+gi_mode = 2
+mesh = ExtResource("4_qqjph")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_63adn")
+
+[node name="SM_Wep_Sniper_Mil_Stock_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0008226037, -0.046180304, -0.28881183)
+gi_mode = 2
+mesh = ExtResource("5_nrjyx")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_63adn")
+
+[node name="SM_Wep_Sniper_Mil_Trigger_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.016016286, 0.05413999)
+gi_mode = 2
+mesh = ExtResource("6_tenat")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_63adn")

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8x8wu7is6x7u"]
+
+[ext_resource type="ArrayMesh" uid="uid://d2r15s3i6lswp" path="res://assets/models/extracted/SM_Wep_Ammo_BulletLarge_01.res" id="1_gu45l"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_e4mco"]
+
+[node name="SM_Wep_Ammo_BulletLarge_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_gu45l")
+surface_material_override/0 = ExtResource("2_e4mco")

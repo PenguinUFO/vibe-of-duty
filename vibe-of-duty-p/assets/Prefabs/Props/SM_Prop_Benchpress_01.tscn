@@ -1,0 +1,63 @@
+[gd_scene load_steps=10 format=3 uid="uid://b5sr1hv6ssqwp"]
+
+[ext_resource type="ArrayMesh" uid="uid://b5pheulqlkw05" path="res://assets/models/extracted/SM_Prop_Benchpress_01.res" id="1_odokx"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_ewkcx"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_odokx"]
+size = Vector3(0.46777344, 0.37329102, 1.5671387)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ewkcx"]
+size = Vector3(0.07867432, 1.4589844, 0.076171875)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12cuo"]
+size = Vector3(0.07800293, 1.4591675, 0.074798584)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_a3jv6"]
+size = Vector3(0.9805908, 0.053955078, 1.3618164)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_uj8o5"]
+height = 0.06619263
+radius = 0.24658203
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dcsvm"]
+height = 0.07397461
+radius = 0.25439453
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_bkh8l"]
+height = 1.8605957
+radius = 0.032714844
+
+[node name="SM_Prop_Benchpress_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_odokx")
+surface_material_override/0 = ExtResource("2_ewkcx")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00048828125, 0.19104004, 0.16687012)
+shape = SubResource("BoxShape3D_odokx")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45083618, 0.7799072, -0.052612305)
+shape = SubResource("BoxShape3D_ewkcx")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45159912, 0.7782898, -0.051834106)
+shape = SubResource("BoxShape3D_12cuo")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.1035156e-05, 0.025024414, -0.09790039)
+shape = SubResource("BoxShape3D_a3jv6")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.6909808, 1.216781, -0.12812048)
+shape = SubResource("CylinderShape3D_uj8o5")
+
+[node name="CollisionShape3D6" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.69185495, 1.2141218, -0.13392831)
+shape = SubResource("CylinderShape3D_dcsvm")
+
+[node name="CollisionShape3D7" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.00012207031, 1.2142154, -0.13479948)
+shape = SubResource("CylinderShape3D_bkh8l")

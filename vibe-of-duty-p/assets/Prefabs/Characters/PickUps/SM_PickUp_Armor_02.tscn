@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://k2oiie5442xj"]
+
+[ext_resource type="ArrayMesh" uid="uid://c0ucxtfhyx53k" path="res://assets/models/extracted/SM_PickUp_Armor_02.res" id="1_1iqxq"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_s0k1b"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_tc5ly"]
+points = PackedVector3Array(0.22516885, 0.0180821, -0.06050852, 0.16732323, -0.0040811747, -0.19639128, 0.18636835, 0.017929252, -0.2567157, 0.15644667, 0.07181986, -0.10264389, 0.101664245, 0.06859908, 0.237598, 0.1218192, 0.034251466, 0.24284577, 0.110321105, -0.025873244, 0.22047889, -0.11542327, -0.01138523, -0.15695624, -0.13016213, 0.018158525, -0.27760506, 0.005950406, 0.08566371, -0.07874851, -0.018510789, 0.07719145, 0.237598, -0.19031624, 0.04283291, 0.237598, -0.112981595, -0.025873244, 0.22047889, -0.22787371, 0.009991959, -0.03620553, -0.22836205, 0.01803843, -0.036256477, -0.16576627, 0.07339203, -0.09046693)
+
+[node name="SM_PickUp_Armor_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_1iqxq")
+surface_material_override/0 = ExtResource("2_s0k1b")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_tc5ly")

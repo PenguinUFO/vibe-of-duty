@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3 uid="uid://dynlmb6rf0dwf"]
+
+[ext_resource type="ArrayMesh" uid="uid://cowpk13h3l0ko" path="res://assets/models/extracted/SM_Env_Bridge_01.res" id="1_s8k15"]
+[ext_resource type="Material" uid="uid://dfafpanh44t3j" path="res://assets/materials/PolygonBattleRoyale_Road_mat.tres" id="2_4nqsg"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s8k15"]
+size = Vector3(9.810699, 1.0339966, 4.985718)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4nqsg"]
+size = Vector3(0.5241089, 2.7606812, 4.9938965)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tuvjd"]
+size = Vector3(0.6186218, 2.7561035, 4.9711914)
+
+[node name="SM_Env_Bridge_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_s8k15")
+surface_material_override/0 = ExtResource("2_4nqsg")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.000869751, -0.49832153, 2.4987183)
+shape = SubResource("BoxShape3D_s8k15")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.144075, 0.073638916, 2.4927979)
+shape = SubResource("BoxShape3D_4nqsg")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.14534, 0.06774902, 2.5163574)
+shape = SubResource("BoxShape3D_tuvjd")

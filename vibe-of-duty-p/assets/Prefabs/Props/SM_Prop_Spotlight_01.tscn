@@ -1,0 +1,25 @@
+[gd_scene load_steps=5 format=3 uid="uid://bxq31a1qryy0h"]
+
+[ext_resource type="ArrayMesh" uid="uid://dtwdrytdqc4xl" path="res://assets/models/extracted/SM_Prop_Spotlight_01.res" id="1_rmevu"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_qvadq"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rmevu"]
+size = Vector3(0.22478485, 6.0839386, 0.2331543)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_qvadq"]
+size = Vector3(1.0491943, 0.85180664, 0.37304688)
+
+[node name="SM_Prop_Spotlight_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_rmevu")
+surface_material_override/0 = ExtResource("2_qvadq")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.004322052, 3.0377579, -0.00012207031)
+shape = SubResource("BoxShape3D_rmevu")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0021362305, 6.027543, -0.037109375)
+shape = SubResource("BoxShape3D_qvadq")

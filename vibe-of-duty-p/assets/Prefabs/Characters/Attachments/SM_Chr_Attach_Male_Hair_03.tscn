@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://cnijk4hxvu1y2"]
+
+[ext_resource type="ArrayMesh" uid="uid://be5pkc3p3250u" path="res://assets/models/extracted/SM_Chr_Attach_Male_Hair_03.res" id="1_5vdkj"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_575b3"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_vgvdi"]
+points = PackedVector3Array(-0.01989074, 0.1568377, 0.123027295, 0.06014739, 0.209045, 0.06988767, -0.10786108, 0.18615723, 0.065535724, -0.102848366, 0.05453811, 0.08400288, 0.10674909, 0.05453811, 0.08400288, 0.11162408, 0.19067684, 0.028114647, 0.013628319, 0.22364679, -0.04661295, -0.11025726, 0.19311047, -0.05070722, -0.1357615, -0.016298063, -0.09096278, -0.09009625, -0.07232962, -0.15544039, 0.14470246, -0.03362323, -0.07939575, 0.11523214, 0.120246254, -0.10642367, 0.14561138, -0.03428958, -0.08915901, 0.0642512, 0.09706878, -0.13854794, -0.060901336, 0.13919383, -0.12572114, 0.072651625, -0.067404404, -0.16946971)
+
+[node name="SM_Chr_Attach_Male_Hair_03" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_5vdkj")
+surface_material_override/0 = ExtResource("2_575b3")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_vgvdi")

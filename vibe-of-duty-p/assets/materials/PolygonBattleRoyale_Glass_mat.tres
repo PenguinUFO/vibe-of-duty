@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://clkvyp34i3c3n"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Glass_mat"
+transparency = 1
+depth_draw_mode = 1
+albedo_color = Color(0.27281573, 0.39467987, 0.42647058, 0.722)
+roughness = 0.8
+uv1_scale = Vector3(1, 1, 0)

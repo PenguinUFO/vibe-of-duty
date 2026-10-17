@@ -1,0 +1,38 @@
+[gd_scene load_steps=7 format=3 uid="uid://b02ilbi1ffj4y"]
+
+[ext_resource type="ArrayMesh" uid="uid://dfcxy5assdxw3" path="res://assets/models/extracted/SM_Veh_Truck_Destroyed_01.res" id="1_lx8th"]
+[ext_resource type="Material" uid="uid://d0wqo4xnjpcxb" path="res://assets/materials/Alts/PolygonBattleRoyale_Veh_Destroyed_01_mat.tres" id="2_f85dw"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_81whh"]
+points = PackedVector3Array(-1.2722675, -0.013118001, 1.8508265, -1.3622756, 1.0639318, 0.6405575, -0.29813302, 0.3544634, 0.6405575, 1.2678273, -0.013118001, 1.8508265, -1.3622756, 0.117772415, 2.8872333, -1.3622756, 2.6016674, 0.6405575, 0.20398569, 1.2716032, 0.37807328, -1.4805806, 2.6016674, 3.123672, 0.9093001, 0.4593571, 0.89661497, 1.5947464, 1.7734002, 3.0056217, 1.5947464, 1.7734002, 3.1240103, 1.1669822, 0.6428455, 3.7406452, 1.3575344, 2.601365, 0.75860775, -1.1256657, 0.9466443, 3.833665, -0.29813302, 3.0750494, 1.8237662, 1.3578353, 2.8383584, 3.0056217)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lx8th"]
+size = Vector3(0.06298828, 2.5292969, 4.2773438)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_f85dw"]
+size = Vector3(0.13928223, 2.4882507, 4.264923)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_81whh"]
+size = Vector3(2.4819946, 0.19616699, 4.1188965)
+
+[node name="SM_Veh_Truck_Destroyed_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_lx8th")
+surface_material_override/0 = ExtResource("2_f85dw")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_81whh")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3219943, 1.2685547, -1.1464844)
+shape = SubResource("BoxShape3D_lx8th")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2857139, 1.2587433, -1.1450348)
+shape = SubResource("BoxShape3D_f85dw")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0055236816, 1.194397, -1.1500244)
+shape = SubResource("BoxShape3D_81whh")

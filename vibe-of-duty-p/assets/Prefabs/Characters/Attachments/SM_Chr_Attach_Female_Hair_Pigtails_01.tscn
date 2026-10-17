@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://cqc3nco7v146f"]
+
+[ext_resource type="ArrayMesh" uid="uid://dbggbcrc8wsjd" path="res://assets/models/extracted/SM_Chr_Attach_Female_Hair_Pigtails_01.res" id="1_stdx4"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_k13jw"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_pj6l4"]
+points = PackedVector3Array(-0.15302366, 0.32040974, -0.04051397, -0.19536749, 0.27600214, -0.103965476, -0.15235072, 0.3195929, -0.031990252, 0.15720433, 0.31127575, 0.037049323, 0.24432492, 0.2706183, -0.049217954, -0.26581973, 0.09101996, -0.05990479, -0.16001195, 0.2584396, 0.063470274, 0.2630121, 0.16153003, -0.103965476, -0.025940448, 0.04538706, -0.12902161, 0.09539685, -0.014837977, 0.107582465, 0.2630121, 0.07334603, -0.042265065, -0.054359466, 0.13501914, 0.13405493, -0.11601165, -0.041274615, 0.08991699, -0.051150024, -0.030469751, -0.081201226, 0.08789092, 0.02938398, -0.104145736, 0.10424867, -0.058911413, 0.045856312)
+
+[node name="SM_Chr_Attach_Female_Hair_Pigtails_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_stdx4")
+surface_material_override/0 = ExtResource("2_k13jw")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_pj6l4")

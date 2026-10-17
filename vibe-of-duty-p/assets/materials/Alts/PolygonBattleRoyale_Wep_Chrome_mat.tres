@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://bnsnrymgp0x0n"]
+
+[ext_resource type="Texture2D" uid="uid://ckyj3arhabfbc" path="res://assets/textures/Weapons/Wep_Skin_26.png" id="1_6sc6d"]
+[ext_resource type="Texture2D" uid="uid://brpn3ybyppb8t" path="res://assets/textures/Weapons/Wep_Skin_Metallic.roughness.png" id="2_2fc75"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Wep_Chrome_mat"
+depth_draw_mode = 1
+albedo_texture = ExtResource("1_6sc6d")
+metallic = 0.363
+metallic_texture = ExtResource("2_2fc75")
+roughness_texture = ExtResource("2_2fc75")
+roughness_texture_channel = 3
+uv1_scale = Vector3(1, 1, 0)

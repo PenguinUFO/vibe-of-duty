@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://c6vo5os1n6ofm"]
+
+[ext_resource type="ArrayMesh" uid="uid://dth6xp88huwyi" path="res://assets/models/extracted/SM_Prop_Rubbish_Bottle_01.res" id="1_r5mi2"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_eu4vt"]
+
+[node name="SM_Prop_Rubbish_Bottle_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_r5mi2")
+surface_material_override/0 = ExtResource("2_eu4vt")

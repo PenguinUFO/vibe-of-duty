@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://dbyjftbds5mk8"]
+
+[ext_resource type="ArrayMesh" uid="uid://cw57tnfcf8lio" path="res://assets/models/extracted/SM_Env_Bridge_Support_01.res" id="1_gkj0r"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_j4ffg"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_rk7s2"]
+points = PackedVector3Array(5.0608397, -0.44342756, -1.533146, 5.5493364, -0.46951962, 0.73127913, 5.537369, -8.265678, -0.826767, 4.861742, -7.977131, -1.6389573, -4.851623, -0.9437814, -1.6350743, -5.516371, -0.4933095, -0.8238548, -5.5413938, -0.4756589, 0.729985, 5.5634804, -8.283329, 0.73289704, -4.8962297, -0.5738878, 1.55706, 4.8943806, -0.5731206, 1.5567362, 4.918316, -8.188937, 1.5641787, -5.2063003, -8.2764225, -1.3499987, -4.859239, -7.973294, -1.6373394, -5.5511856, -8.274887, 0.73127913, -5.026786, -8.097615, 1.5978312, 4.560375, -6.2443104, 1.666754)
+
+[node name="SM_Env_Bridge_Support_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_gkj0r")
+surface_material_override/0 = ExtResource("2_j4ffg")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_rk7s2")

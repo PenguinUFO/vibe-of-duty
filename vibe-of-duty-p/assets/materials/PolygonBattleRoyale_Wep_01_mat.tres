@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://c030axev20m"]
+
+[ext_resource type="Texture2D" uid="uid://lijd1iwl5uj2" path="res://assets/textures/Weapons/Wep_Skin_01.png" id="1_fjtxo"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Wep_01_mat"
+depth_draw_mode = 1
+albedo_texture = ExtResource("1_fjtxo")
+roughness = 0.8
+uv1_scale = Vector3(1, 1, 0)

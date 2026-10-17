@@ -1,0 +1,85 @@
+[gd_scene load_steps=12 format=3 uid="uid://c57msxq0iy7bp"]
+
+[ext_resource type="ArrayMesh" uid="uid://bwyobcuvemt1t" path="res://assets/models/extracted/SM_Veh_Bike_01.res" id="1_gfbq8"]
+[ext_resource type="Material" uid="uid://caabpmcynai07" path="res://assets/materials/PolygonBattleRoyale_Veh_01_mat.tres" id="2_h4e50"]
+[ext_resource type="ArrayMesh" uid="uid://b4kobk1nsdfog" path="res://assets/models/extracted/SM_Veh_Bike_HandleBars_01.res" id="3_h4e50"]
+[ext_resource type="ArrayMesh" uid="uid://c0f37fta8s3tf" path="res://assets/models/extracted/SM_Veh_Bike_Front_Shock_01.res" id="4_636tc"]
+[ext_resource type="ArrayMesh" uid="uid://dweneg8gd73d1" path="res://assets/models/extracted/SM_Veh_Bike_Front_Wheel_01.res" id="5_5o0xd"]
+[ext_resource type="ArrayMesh" uid="uid://88d7gdps0k20" path="res://assets/models/extracted/SM_Veh_Bike_Rear_Shock_01.res" id="6_yq28c"]
+[ext_resource type="ArrayMesh" uid="uid://cgoyiekjsulrr" path="res://assets/models/extracted/SM_Veh_Bike_Rear_Wheel_01.res" id="7_hore2"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_dv5h3"]
+points = PackedVector3Array(-0.14700437, 0.25379217, 0.15834892, -0.13147835, 0.27353063, -0.15785527, 0.13854909, 0.2762367, -0.15870869, 0.27128792, 0.34667444, -0.050462484, 0.20156306, 0.6023196, 0.34440172, -0.029165924, 0.91455364, 0.42661762, -0.21672922, 0.85764635, 0.29788852, -0.28645408, 0.41639584, -0.3524425, -0.10048321, 0.6952019, -1.0265279, 0.13178134, 0.7183627, -1.0032002, 0.2945485, 0.46279716, -0.39895564, 0.1783025, 0.9506082, 0.25151753, -0.054018915, 1.0668901, 0.08893478, -0.14694749, 0.9739283, -0.91031605, -0.21672922, 0.811245, -0.93335927, 0.123478055, 0.95283675, -0.8912556)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_gfbq8"]
+height = 0.096191406
+radius = 0.33154297
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_gfbq8"]
+points = PackedVector3Array(0.40520853, 0.28675374, -0.057799637, 0.28121775, 0.27996925, -0.040312767, 0.099386215, 0.14269093, 0.21132271, 0.4081933, 0.27852574, -0.044093713, 0.4120655, 0.24922237, -0.048887417, 0.40480512, 0.26892635, -0.08197069, 0.40375644, 0.28271195, -0.07346356, -0.4038371, 0.28271195, -0.07346356, -0.40528917, 0.28668162, -0.057799637, -0.28129846, 0.27996925, -0.040312767, 0.06485918, -0.41890866, 0.462148, 0.16569746, 0.10407689, 0.18640898, 0.40117496, 0.21609369, -0.010875389, -0.09946686, 0.14269093, 0.21132271, 0.41101676, 0.26300797, -0.0404478, 0.41061342, 0.24518052, -0.06455132, 0.4076286, 0.25340858, -0.07825726, 0.40286905, 0.20757696, -0.01870735, 0.06485918, -0.40281343, -0.22760464, -0.40488583, 0.26892635, -0.08197069, -0.41109747, 0.26300797, -0.0404478, -0.408274, 0.27852574, -0.044093713, 0.053887963, -0.42901325, 0.44547135, 0.09930551, -0.40404043, 0.41839707, -0.06493986, -0.41890866, 0.462148, -0.40125564, 0.21609369, -0.010875389, -0.16577812, 0.10407689, 0.18640898, 0.12858897, -0.44568583, 0.021195129, 0.09930551, -0.39646196, -0.18952511, 0.1159237, -0.45052162, 0.0059363097, 0.053887963, -0.41075277, -0.21491146, -0.06493986, -0.40281343, -0.22760464, -0.4077093, 0.25340858, -0.07825726, -0.4106941, 0.24518052, -0.06455132, -0.4120655, 0.24922237, -0.048887417, -0.40294972, 0.20757696, -0.01870735, 0.100676954, -0.45001638, 0.042868063, 0.1159237, -0.45008856, 0.03652148, 0.12229663, -0.4503051, 0.021262646, -0.05396864, -0.42901325, 0.44547135, -0.099386185, -0.40404043, 0.41839707, 0.12044126, -0.44597456, 0.0014126748, 0.100676954, -0.4505938, -0.0003427565, -0.11600435, -0.45052162, 0.0059363097, -0.05396864, -0.41075277, -0.21491146, -0.099386185, -0.39646196, -0.18952511, -0.12866962, -0.44568583, 0.021195129, -0.1007576, -0.45001638, 0.042868063, -0.122377336, -0.4503051, 0.021262646, -0.11600435, -0.45008856, 0.03652148, -0.1007576, -0.4505938, -0.0003427565, -0.1205219, -0.44597456, 0.0014126748)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_h4e50"]
+height = 0.10736084
+radius = 0.30664063
+
+[node name="SM_Veh_Bike_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_gfbq8")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_dv5h3")
+
+[node name="SM_Veh_Bike_HandleBars_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.84906733, 0.52828467, 0, -0.52828467, 0.84906733, 2.842171e-14, 0.9483239, 0.3621042)
+gi_mode = 2
+mesh = ExtResource("3_h4e50")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="SM_Veh_Bike_Front_Shock_01" type="MeshInstance3D" parent="SM_Veh_Bike_HandleBars_01"]
+transform = Transform3D(1, 0, 0, 0, 0.99981225, 0.019378424, 0, -0.019378424, 0.99981225, 0, -0.7543957, 0.06814724)
+gi_mode = 2
+mesh = ExtResource("4_636tc")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="SM_Veh_Bike_Front_Wheel_01" type="MeshInstance3D" parent="SM_Veh_Bike_HandleBars_01/SM_Veh_Bike_Front_Shock_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5527137e-15, -2.0861626e-07, 2.9802322e-07)
+gi_mode = 2
+mesh = ExtResource("5_5o0xd")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Bike_HandleBars_01/SM_Veh_Bike_Front_Shock_01/SM_Veh_Bike_Front_Wheel_01"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Bike_HandleBars_01/SM_Veh_Bike_Front_Shock_01/SM_Veh_Bike_Front_Wheel_01/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.00024414063, 0, 0)
+shape = SubResource("CylinderShape3D_gfbq8")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Bike_HandleBars_01"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Bike_HandleBars_01/MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_gfbq8")
+
+[node name="SM_Veh_Bike_Rear_Shock_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1974423e-14, 0.40760794, -0.1518279)
+gi_mode = 2
+mesh = ExtResource("6_yq28c")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="SM_Veh_Bike_Rear_Wheel_01" type="MeshInstance3D" parent="SM_Veh_Bike_Rear_Shock_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5527137e-15, -0.08553526, -0.49838647)
+gi_mode = 2
+mesh = ExtResource("7_hore2")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_h4e50")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Bike_Rear_Shock_01/SM_Veh_Bike_Rear_Wheel_01"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Bike_Rear_Shock_01/SM_Veh_Bike_Rear_Wheel_01/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.00491333, 0, 0)
+shape = SubResource("CylinderShape3D_h4e50")

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://olbavwdp4tha"]
+
+[ext_resource type="ArrayMesh" uid="uid://bi0nrsx8gjifd" path="res://assets/models/extracted/SM_Generic_Cloud_02.res" id="1_eax2w"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_fin1j"]
+
+[node name="SM_Generic_Cloud_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_eax2w")
+surface_material_override/0 = ExtResource("2_fin1j")

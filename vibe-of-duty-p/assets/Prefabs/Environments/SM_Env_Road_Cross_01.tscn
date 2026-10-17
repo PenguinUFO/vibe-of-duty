@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://c48vvdj6ngski"]
+
+[ext_resource type="ArrayMesh" uid="uid://4n1u7tiaaedm" path="res://assets/models/extracted/SM_Env_Road_Cross_01.res" id="1_gjjjk"]
+[ext_resource type="Material" uid="uid://dfafpanh44t3j" path="res://assets/materials/PolygonBattleRoyale_Road_mat.tres" id="2_cim07"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_olvgo"]
+points = PackedVector3Array(-5.0793715, -0.07936512, -0.07936478, -5.0793715, 0.07936512, -0.07936478, 5.079364, -0.07936512, -0.07936478, -5.0793715, -0.07936512, 10.07937, -5.0793715, 0.07936512, 10.07937, 5.079364, 0.07936512, -0.07936478, 5.079364, -0.07936512, 10.07937, 5.079364, 0.07936512, 10.07937)
+
+[node name="SM_Env_Road_Cross_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_gjjjk")
+surface_material_override/0 = ExtResource("2_cim07")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_olvgo")

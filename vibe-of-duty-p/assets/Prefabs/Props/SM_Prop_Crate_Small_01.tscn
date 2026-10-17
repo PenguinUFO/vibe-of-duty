@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://cglbjrbis2toe"]
+
+[ext_resource type="ArrayMesh" uid="uid://yj1pk03nikvi" path="res://assets/models/extracted/SM_Prop_Crate_Small_01.res" id="1_v1svn"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_l8y2n"]
+[ext_resource type="ArrayMesh" uid="uid://eer87seh740w" path="res://assets/models/extracted/SM_Prop_Crate_Small_01_Lid.res" id="3_l8y2n"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_l8y2n"]
+size = Vector3(0.8111572, 0.22113037, 0.44085693)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_v1svn"]
+size = Vector3(0.6779175, 0.07086182, 0.4099121)
+
+[node name="SM_Prop_Crate_Small_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_v1svn")
+surface_material_override/0 = ExtResource("2_l8y2n")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0022583008, 0.11123657, 0.0030822754)
+shape = SubResource("BoxShape3D_l8y2n")
+
+[node name="SM_Prop_Crate_Small_01_Lid" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1551548e-08, 0.22146729, -0.20473434)
+gi_mode = 2
+mesh = ExtResource("3_l8y2n")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_l8y2n")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Prop_Crate_Small_01_Lid"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Prop_Crate_Small_01_Lid/MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.052073e-05, 0.0362854, 0.20471191)
+shape = SubResource("BoxShape3D_v1svn")

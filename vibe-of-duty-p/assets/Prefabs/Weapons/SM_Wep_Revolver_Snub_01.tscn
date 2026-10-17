@@ -1,0 +1,97 @@
+[gd_scene load_steps=14 format=3 uid="uid://bl3mg3fe327si"]
+
+[ext_resource type="ArrayMesh" uid="uid://c0scffqbsw2lu" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_01.res" id="1_y3s35"]
+[ext_resource type="Material" uid="uid://c030axev20m" path="res://assets/materials/PolygonBattleRoyale_Wep_01_mat.tres" id="2_i7trc"]
+[ext_resource type="ArrayMesh" uid="uid://ig5stuvj5ojy" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_CylinderFlip_01.res" id="3_i7trc"]
+[ext_resource type="ArrayMesh" uid="uid://863qax4drem6" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Cylinder_01.res" id="4_60xc2"]
+[ext_resource type="ArrayMesh" uid="uid://cgdqrieryum66" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_01.res" id="5_0vtme"]
+[ext_resource type="ArrayMesh" uid="uid://6klscabhbwuk" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_02.res" id="6_htjyl"]
+[ext_resource type="ArrayMesh" uid="uid://brtconxdg1cc5" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_03.res" id="7_7wrjh"]
+[ext_resource type="ArrayMesh" uid="uid://cws37gkwcm3d1" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_04.res" id="8_73pof"]
+[ext_resource type="ArrayMesh" uid="uid://c47678mq0mpvl" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_05.res" id="9_d7030"]
+[ext_resource type="ArrayMesh" uid="uid://dpmeqy8feecgh" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Bullet_06.res" id="10_o1xw7"]
+[ext_resource type="ArrayMesh" uid="uid://hs7ojr5gt7er" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Hammer_01.res" id="11_umslf"]
+[ext_resource type="ArrayMesh" uid="uid://dv37x35r6fehf" path="res://assets/models/extracted/SM_Wep_Revolver_Snub_Trigger_01.res" id="12_kxngj"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_sv7a8"]
+points = PackedVector3Array(-0.018822651, -0.0796415, 0.011046022, -0.018822651, 0.035116747, -0.013519473, -0.014001595, -0.07906365, -0.016433172, 0.013339799, -0.079587325, -0.017036006, 0.022182819, -0.0796415, 0.011046022, -0.00651836, -0.03455081, 0.10533933, -0.014721221, 0.06382888, 0.2119154, -0.022919666, 0.06381083, 0.07667959, 0.022182819, -0.018136133, -0.038135204, -0.010165058, -0.052139245, -0.04054654, -0.014721221, 0.09252296, 0.05618323, 0.00926486, 0.041364796, -0.0076669566, 0.01808139, 0.08432465, 0.12995507, 0.009878527, 0.059711672, 0.2160599, -0.00651836, 0.10483848, 0.20782116, 0.00881454, 0.09140337, 0.059147168)
+
+[node name="SM_Wep_Revolver_Snub_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_y3s35")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_sv7a8")
+
+[node name="SM_Wep_Revolver_Snub_CylinderFlip_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011608201, 0.02101223, 0.103100605)
+gi_mode = 2
+mesh = ExtResource("3_i7trc")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Cylinder_01" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0116081955, 0.033481263, 0.0007160455)
+gi_mode = 2
+mesh = ExtResource("4_60xc2")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_01" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00045277746, 0.01683829, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("5_0vtme")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_02" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014808787, 0.008027025, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("6_htjyl")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_03" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014355989, -0.00881131, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("7_7wrjh")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_04" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0004528221, -0.016838312, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("8_73pof")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_05" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.014808829, -0.008027036, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("9_d7030")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Bullet_06" type="MeshInstance3D" parent="SM_Wep_Revolver_Snub_CylinderFlip_01/SM_Wep_Revolver_Snub_Cylinder_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.014356035, 0.008811288, -0.00064720213)
+gi_mode = 2
+mesh = ExtResource("10_o1xw7")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Hammer_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.152557e-09, 0.046702337, 0.03880028)
+gi_mode = 2
+mesh = ExtResource("11_umslf")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")
+
+[node name="SM_Wep_Revolver_Snub_Trigger_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.152557e-09, 0.010952085, 0.07733116)
+gi_mode = 2
+mesh = ExtResource("12_kxngj")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_i7trc")

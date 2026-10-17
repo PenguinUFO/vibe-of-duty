@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bhfmbcwfm07on"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Water_mat"
+transparency = 1
+depth_draw_mode = 1
+albedo_color = Color(0.14509805, 0.1882353, 0.21960784, 0.6745098)
+metallic = 0.167
+roughness = 0.09
+uv1_scale = Vector3(1, 1, 0)

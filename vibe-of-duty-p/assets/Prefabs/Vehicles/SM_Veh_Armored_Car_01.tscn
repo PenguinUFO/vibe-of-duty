@@ -1,0 +1,102 @@
+[gd_scene load_steps=15 format=3 uid="uid://pdmgk4ceb5p0"]
+
+[ext_resource type="ArrayMesh" uid="uid://djxj125iaetb0" path="res://assets/models/extracted/SM_Veh_Armored_Car_01.res" id="1_uh8uq"]
+[ext_resource type="Material" uid="uid://caabpmcynai07" path="res://assets/materials/PolygonBattleRoyale_Veh_01_mat.tres" id="2_1ewcr"]
+[ext_resource type="ArrayMesh" uid="uid://gjnp4sx2thd6" path="res://assets/models/extracted/SM_Veh_Armored_Car_Glass_01.res" id="3_1ewcr"]
+[ext_resource type="Material" uid="uid://bdlfe5012mqta" path="res://assets/materials/Alts/PolygonBattleRoyale_Veh_Glass_mat.tres" id="4_vg63p"]
+[ext_resource type="ArrayMesh" uid="uid://dfhh1t38l81c0" path="res://assets/models/extracted/SM_Veh_Armored_Car_SteeringW_01.res" id="5_bv778"]
+[ext_resource type="ArrayMesh" uid="uid://cvbbu1x7uklp7" path="res://assets/models/extracted/SM_Veh_Armored_Car_Wheel_fl.res" id="6_vg63p"]
+[ext_resource type="ArrayMesh" uid="uid://clqashdysv128" path="res://assets/models/extracted/SM_Veh_Armored_Car_Wheel_fr.res" id="7_o0c1s"]
+[ext_resource type="ArrayMesh" uid="uid://dsdhuxchelv5u" path="res://assets/models/extracted/SM_Veh_Armored_Car_Wheel_rl.res" id="8_p1hvp"]
+[ext_resource type="ArrayMesh" uid="uid://c3rowsyaa337t" path="res://assets/models/extracted/SM_Veh_Armored_Car_Wheel_rr.res" id="9_pls0f"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_uh8uq"]
+points = PackedVector3Array(1.200943, 1.6378855, 2.0878878, 1.1586232, 1.2389655, 1.8215194, 1.1731999, 1.2401861, 1.5868177, 1.200943, 1.6378855, 2.0604124, 1.186131, 1.8175113, 2.0878878, 1.0495319, 1.158612, 2.2806783, 1.0760994, 1.1472201, 2.2532034, 1.0760994, 1.011331, 2.2513409, 1.1066637, 0.5353123, 0.6531327, 1.1068988, 0.53368485, -0.67591345, 1.1590934, 1.2656145, -1.9080983, 1.186131, 1.8175113, 2.0604124, 1.166852, 1.8305306, 2.0878878, 1.0217891, 1.4820606, 2.237836, 1.0659897, 1.380754, 2.237836, 0.6945156, 2.3980913, -1.6217061, 1.0039206, 1.1110101, 2.2904577, 1.0495319, 0.9999391, 2.2774186, 1.0020397, 1.3050792, 2.2699676, 0.6909889, 1.155764, 2.3603096, 0.97029996, 0.4038986, 1.8592396, 0.97029996, 0.3508042, 1.7311778, 1.091852, 0.5111045, 0.64707875, 1.0911465, 0.5094771, -0.6726537, 0.97029996, 0.3508042, -1.5816578, 0.97029996, 0.4038986, -1.710185, 1.02367, 1.0652391, -2.3570123, 1.0594065, 1.5833671, -2.3123071, 1.115833, 1.4486985, -1.9812098, 1.0217891, 1.6732817, -2.2852979, 0.70979774, 2.3777485, -1.9933175, 0.69475067, 2.397481, -2.0007682, 0.73683536, 2.1883583, 0.31272173, 0.35854304, 2.2040222, 0.33647132, -1.1670871, 1.8305306, 2.0878878, 0.88613033, 1.4509362, 2.2690363, 0.9641869, 1.3209465, 2.2760215, 0.43330812, 2.4281983, -2.2629452, 0, 2.4290123, -2.2634108, -0.6947507, 2.3980913, -1.6217061, 0.7366003, 1.1097896, 2.349599, 0.6909889, 0.9350459, 2.355187, 0.49537718, 0.7094456, 2.3295746, 0.5184181, 1.1781409, 2.366829, 0.5400481, 0.85530263, 2.360775, 0.77609885, 0.4032883, 1.8783321, 0.49138033, 0.698664, 2.3193297, 0.44153702, 0.41427338, 1.9127927, -0.970535, 0.3508042, 1.7311778, -0.970535, 0.3508042, -1.5816578, 0.091692924, 0.38375935, -1.7204299, 0.23699105, 0.48567617, -2.1418688, 0.6785281, 0.581897, -2.18378, 0.94584846, 0.8410628, -2.3570123, 0.6543118, 0.745859, -2.390541, 0.96183586, 1.5833671, -2.3663259, 0.48738348, 2.3832412, -2.2941456, 0.6909889, 2.3557787, -2.0613065, 0.4304868, 2.4225025, -2.288092, -0.47398221, 2.2040222, 0.33647132, -1.1863662, 1.8175113, 2.0878878, -1.0220242, 1.4820606, 2.237836, -0.88636553, 1.4509362, 2.2690363, -0.73707056, 2.1883583, 0.31272173, 0, 2.4225025, -2.2885575, -0.43072194, 2.4225025, -2.288092, -0.43354326, 2.4281983, -2.2629452, -0.6949858, 2.397481, -2.0007682, -1.1863662, 1.8175113, 2.0604124, 0.33315122, 0.7112765, 2.3356285, 0.33691287, 0.7002914, 2.3253837, -0.51865315, 1.1781409, 2.366829, 0.34255552, 0.9020908, 2.3617063, -0.54028326, 0.85530263, 2.360775, -0.4417721, 0.41427338, 1.9127927, -0.7763339, 0.4032883, 1.8783321, -0.970535, 0.4038986, 1.8592396, -1.0763346, 1.011331, 2.2513409, -1.1068989, 0.5353123, 0.6531327, -1.0920869, 0.5111045, 0.64707875, -1.0913817, 0.5094771, -0.6726537, -1.107134, 0.53368485, -0.67591345, -0.970535, 0.4038986, -1.710185, 0.0905174, 0.48730358, -2.1418688, 0.13871503, 0.48567617, -2.1418688, -0.091928124, 0.38375935, -1.7204299, -0.65454686, 0.745859, -2.390541, -0.962071, 1.5833671, -2.3663259, -0.48761863, 2.3832412, -2.2941456, -1.200943, 1.6378855, 2.0878878, -1.0497671, 1.158612, 2.2806783, -1.0662248, 1.380754, 2.237836, -1.0022749, 1.3050792, 2.2699676, -0.9644221, 1.3209465, 2.2760215, -0.69122404, 1.155764, 2.3603096, -0.7100328, 2.3777485, -1.9933175, -0.69122404, 2.3557787, -2.0613065, -1.0220242, 1.6732817, -2.2852979, -1.200943, 1.6378855, 2.0604124, -1.0596417, 1.5833671, -2.3123071, -1.1160682, 1.4486985, -1.9812098, -1.1593285, 1.2656145, -1.9080983, -0.3333863, 0.7112765, 2.3356285, -0.33714807, 0.7002914, 2.3253837, -0.34279072, 0.9020908, 2.3617063, -0.69122404, 0.9350459, 2.355187, -0.49561232, 0.7094456, 2.3295746, -0.49161547, 0.698664, 2.3193297, -1.0497671, 0.9999391, 2.2774186, -1.0763346, 1.1472201, 2.2532034, -1.1588583, 1.2389655, 1.8215194, -1.1734351, 1.2401861, 1.5868177, -1.023905, 1.0652391, -2.3570123, -0.94608355, 0.8410628, -2.3570123, -0.6787632, 0.581897, -2.18378, -1.0041558, 1.1110101, 2.2904577, -0.7368354, 1.1097896, 2.349599)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_bv778"]
+height = 0.37561035
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_vg63p"]
+height = 0.38684082
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1ewcr"]
+height = 0.38238525
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_uh8uq"]
+height = 0.3897705
+
+[node name="SM_Veh_Armored_Car_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_uh8uq")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_uh8uq")
+
+[node name="SM_Veh_Armored_Car_Glass_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9398024, -0.107304074)
+gi_mode = 2
+mesh = ExtResource("3_1ewcr")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("4_vg63p")
+
+[node name="SM_Veh_Armored_Car_SteeringW_01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.40777358, 1.5323198, 0.37318128)
+gi_mode = 2
+mesh = ExtResource("5_bv778")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="SM_Veh_Armored_Car_Wheel_fl" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.91266555, 0.5421047, 1.7306961)
+gi_mode = 2
+mesh = ExtResource("6_vg63p")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Armored_Car_Wheel_fl"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Armored_Car_Wheel_fl/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.13543707, 0, 0)
+shape = SubResource("CylinderShape3D_bv778")
+
+[node name="SM_Veh_Armored_Car_Wheel_fr" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.91266555, 0.5421047, 1.7306961)
+gi_mode = 2
+mesh = ExtResource("7_o0c1s")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Armored_Car_Wheel_fr"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Armored_Car_Wheel_fr/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.14019781, 0, 0)
+shape = SubResource("CylinderShape3D_vg63p")
+
+[node name="SM_Veh_Armored_Car_Wheel_rl" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.048778, 0.5421047, -1.5813184)
+gi_mode = 2
+mesh = ExtResource("8_p1hvp")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Armored_Car_Wheel_rl"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Armored_Car_Wheel_rl/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.00021362305, 0, 0)
+shape = SubResource("CylinderShape3D_1ewcr")
+
+[node name="SM_Veh_Armored_Car_Wheel_rr" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.048778, 0.5421047, -1.5813184)
+gi_mode = 2
+mesh = ExtResource("9_pls0f")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_1ewcr")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Veh_Armored_Car_Wheel_rr"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Veh_Armored_Car_Wheel_rr/MeshCollider"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.0015258789, 0, 0)
+shape = SubResource("CylinderShape3D_uh8uq")

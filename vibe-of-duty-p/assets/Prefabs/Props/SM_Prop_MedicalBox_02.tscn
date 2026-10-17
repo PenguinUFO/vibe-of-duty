@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://dnf65hbb5iuy5"]
+
+[ext_resource type="ArrayMesh" uid="uid://ycwr3h1yxy53" path="res://assets/models/extracted/SM_Prop_MedicalBox_02.res" id="1_bvkma"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_j81u2"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bvkma"]
+size = Vector3(0.33996582, 0.12133789, 0.26843262)
+
+[node name="SM_Prop_MedicalBox_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_bvkma")
+surface_material_override/0 = ExtResource("2_j81u2")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0020141602, 0.06604004, 0.03765869)
+shape = SubResource("BoxShape3D_bvkma")

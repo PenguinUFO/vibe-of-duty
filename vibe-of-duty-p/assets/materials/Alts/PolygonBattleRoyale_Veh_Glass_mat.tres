@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bdlfe5012mqta"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Veh_Glass_mat"
+transparency = 1
+depth_draw_mode = 1
+albedo_color = Color(0.20777467, 0.4420938, 0.46323532, 0.24)
+metallic = 0.194
+roughness = 0.523
+uv1_scale = Vector3(1, 1, 0)

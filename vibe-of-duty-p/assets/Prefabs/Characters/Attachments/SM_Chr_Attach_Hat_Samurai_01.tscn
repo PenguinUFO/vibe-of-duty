@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://cf3ubt1brhprp"]
+
+[ext_resource type="ArrayMesh" uid="uid://bu6e7t0u1d3lr" path="res://assets/models/extracted/SM_Chr_Attach_Hat_Samurai_01.res" id="1_552c2"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_uve0e"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_s71bl"]
+points = PackedVector3Array(0.024665415, -0.08008693, -0.23979281, 0.16142607, -0.060282618, -0.21111313, 0.008168161, -0.08777691, -0.23095496, -0.15664321, -0.06379402, -0.21527211, 0.007899463, 0.22045413, -0.12853992, 0.2744887, 0.10092593, 0.12819086, 0.2213428, -0.07109774, -0.10757169, 0.08055189, 0.27049163, -0.073779926, 0.20581281, -0.08774179, 0.068102166, -0.2058663, -0.08774179, 0.068102166, -0.23058532, -0.07180002, -0.09968695, -0.08092779, 0.26304746, -0.090155944, 0.00800693, 0.2709481, 0.09582873, 0.023483187, 0.14056969, 0.20279266, -0.27448845, 0.10092593, 0.12814753, -0.22526535, 0.13330108, 0.1434838)
+
+[node name="SM_Chr_Attach_Hat_Samurai_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_552c2")
+surface_material_override/0 = ExtResource("2_uve0e")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_s71bl")

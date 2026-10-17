@@ -1,0 +1,40 @@
+[gd_scene load_steps=8 format=3 uid="uid://b3578d44uo4v5"]
+
+[ext_resource type="ArrayMesh" uid="uid://dem72b1fon1ni" path="res://assets/models/extracted/SM_Env_Road_Straight_03.res" id="1_sgmju"]
+[ext_resource type="Material" uid="uid://dfafpanh44t3j" path="res://assets/materials/PolygonBattleRoyale_Road_mat.tres" id="2_ex0in"]
+[ext_resource type="ArrayMesh" uid="uid://c0a4bd7rnacru" path="res://assets/models/extracted/SM_Env_Road_Straight_03_Dirt.res" id="3_ex0in"]
+[ext_resource type="Material" uid="uid://2gj6klblc47h" path="res://assets/materials/PolygonBattleRoyale_02_A_mat.tres" id="4_w4gt0"]
+[ext_resource type="ArrayMesh" uid="uid://c3i2ge5cb2h63" path="res://assets/models/extracted/SM_Env_Road_Straight_03_Edge.res" id="5_l7gua"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_eh0k3"]
+points = PackedVector3Array(-5.790308, -0.21063384, -0.0015234374, -5.000205, 1.4901161e-08, -0.0015234374, 5.790308, -0.21063384, -0.0015234374, -5.790308, -0.21063384, 5, -5.000205, 1.4901161e-08, 5, 4.999072, 1.4901161e-08, -0.0015234374, 5.790308, -0.21063384, 5, 4.999072, 1.4901161e-08, 5)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_80dtb"]
+data = PackedVector3Array(10, -0.67069995, 5.0014997, 6.657, -0.13149999, 5.0014997, 6.8271, -0.096999995, 1.3934, 6.8271, -0.096999995, 1.3934, 10.1133995, -0.67069995, 1.3781999, 10, -0.67069995, 5.0014997, -4.5910997, -0.092, 5.0014997, -6.657, -0.13149999, 5.0014997, -6.3982997, -0.1574, 3.4982998, -6.3982997, -0.1574, 3.4982998, -4.4507, -0.118, 3.4982998, -4.5910997, -0.092, 5.0014997, 6.657, -0.13149999, 5.0014997, 4.5910997, -0.092, 5.0014997, 4.7611, -0.057499997, 1.3934, 4.7611, -0.057499997, 1.3934, 6.8271, -0.096999995, 1.3934, 6.657, -0.13149999, 5.0014997, -9.8817, -0.67069995, 3.4982998, -6.3982997, -0.1574, 3.4982998, -6.657, -0.13149999, 5.0014997, -6.657, -0.13149999, 5.0014997, -10, -0.67069995, 5.0014997, -9.8817, -0.67069995, 3.4982998, 10, -0.67069995, 0, 10.1133995, -0.67069995, 1.3781999, 6.8271, -0.096999995, 1.3934, 6.8271, -0.096999995, 1.3934, 6.657, -0.13149999, 0, 10, -0.67069995, 0, 6.657, -0.13149999, 0, 6.8271, -0.096999995, 1.3934, 4.7611, -0.057499997, 1.3934, 4.7611, -0.057499997, 1.3934, 4.5910997, -0.092, 0, 6.657, -0.13149999, 0, -4.5910997, -0.092, 0, -4.4507, -0.118, 3.4982998, -6.3982997, -0.1574, 3.4982998, -6.3982997, -0.1574, 3.4982998, -6.657, -0.13149999, 0, -4.5910997, -0.092, 0, -6.657, -0.13149999, 0, -6.3982997, -0.1574, 3.4982998, -9.8817, -0.67069995, 3.4982998, -9.8817, -0.67069995, 3.4982998, -10, -0.67069995, 0, -6.657, -0.13149999, 0)
+
+[node name="SM_Env_Road_Straight_03" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_sgmju")
+surface_material_override/0 = ExtResource("2_ex0in")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_eh0k3")
+
+[node name="SM_Env_Road_Straight_03_Dirt" type="MeshInstance3D" parent="."]
+gi_mode = 2
+mesh = ExtResource("3_ex0in")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("4_w4gt0")
+
+[node name="MeshCollider" type="StaticBody3D" parent="SM_Env_Road_Straight_03_Dirt"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Env_Road_Straight_03_Dirt/MeshCollider"]
+shape = SubResource("ConcavePolygonShape3D_80dtb")
+
+[node name="SM_Env_Road_Straight_03_Edge" type="MeshInstance3D" parent="."]
+gi_mode = 2
+mesh = ExtResource("5_l7gua")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_ex0in")

@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://b7046hu3xp120"]
+
+[ext_resource type="Texture2D" uid="uid://b0w4plklnepko" path="res://assets/textures/PolygonBattleRoyale_Texture_01_B.png" id="1_6lq5v"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_01_B_mat"
+depth_draw_mode = 1
+albedo_texture = ExtResource("1_6lq5v")
+roughness = 0.8
+uv1_scale = Vector3(1, 1, 0)

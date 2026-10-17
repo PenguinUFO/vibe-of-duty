@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://bp8r2y0i18sd3"]
+
+[ext_resource type="Texture2D" uid="uid://ctd3hd7vbotyd" path="res://assets/textures/PolygonBattleRoyale_Vehicles_02.png" id="1_ofaun"]
+
+[resource]
+resource_name = "PolygonBattleRoyale_Veh_02_mat"
+depth_draw_mode = 1
+albedo_texture = ExtResource("1_ofaun")
+roughness = 0.8
+uv1_scale = Vector3(1, 1, 0)

@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://bdr77rb1hb4o4"]
+
+[ext_resource type="ArrayMesh" uid="uid://d1nxeay4o4wyi" path="res://assets/models/extracted/SM_Wep_Shotgun_Ammo_Pile_01.res" id="1_luwp2"]
+[ext_resource type="Material" uid="uid://c030axev20m" path="res://assets/materials/PolygonBattleRoyale_Wep_01_mat.tres" id="2_3hhtt"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_qlj4o"]
+points = PackedVector3Array(0.04215557, 0.004739294, -0.07573775, -0.027223397, -0.0015774965, -0.088343225, -0.014617799, 0.026815634, -0.09777787, 0.03899213, 0.029980514, -0.06941556, 0.016920283, 0.020505328, 0.047321215, 0.016920283, 0.004739294, 0.044150397, 0.0074460134, -0.0015774965, 0.040999025, -0.039861113, -0.0015774965, -0.0094617605, -0.037315905, 0.062537275, -0.023623466, -0.02408404, 0.029980514, -0.09464596, -0.017781243, 0.06467746, -0.03469216, -0.011470415, 0.06467746, -0.01578395, -0.014617799, 0.026815634, 0.10095282, -0.030402899, 0.0015744134, 0.09461118, -0.036713727, 0.020505328, 0.09145981, -0.033550285, 0.06467746, -0.0094617605)
+
+[node name="SM_Wep_Shotgun_Ammo_Pile_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_luwp2")
+surface_material_override/0 = ExtResource("2_3hhtt")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_qlj4o")

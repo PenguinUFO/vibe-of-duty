@@ -1,0 +1,26 @@
+[gd_scene load_steps=6 format=3 uid="uid://dgrctwryin8kh"]
+
+[ext_resource type="ArrayMesh" uid="uid://vs411mxrdbxk" path="res://assets/models/extracted/SM_Prop_WireFence_02.res" id="1_148dl"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_icftv"]
+[ext_resource type="ArrayMesh" uid="uid://ccohkgxvn662n" path="res://assets/models/extracted/SM_Prop_WireFence_02_Wires.res" id="3_icftv"]
+[ext_resource type="Material" uid="uid://rs0n02rro0c4" path="res://assets/materials/Alts/PolygonBattleRoyale_WireFence_mat.tres" id="4_n1b51"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_k0bdp"]
+points = PackedVector3Array(0.015026987, 2.6559536, -0.17855611, 0.015226118, -0.5260825, -0.07426145, 0.015226118, -0.5260825, 0.08216268, 0.015026987, 2.7079146, 0.18645734, 0.015026987, 2.81249, -0.17855611, 1.9969807, 2.6559536, -0.17855611, 2.0493522, -0.5260825, -0.07426145, 2.0493522, -0.5260825, 0.08216268, 1.6315746, 2.6559536, 0.18645734, 0.015026987, 2.81249, 0.18645734, 1.9969807, 2.81249, -0.17855611, 2.0493522, 2.1856906, -0.07426145, 2.0493522, 2.1340566, 0.08216268, 1.9969807, 2.7079146, 0.18645734, 1.7357204, 2.6559536, 0.18645734, 1.9969807, 2.81249, 0.18645734)
+
+[node name="SM_Prop_WireFence_02" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_148dl")
+surface_material_override/0 = ExtResource("2_icftv")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_k0bdp")
+
+[node name="SM_Prop_WireFence_02_Wires" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0116357, 1.1230174, 0)
+gi_mode = 2
+mesh = ExtResource("3_icftv")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("4_n1b51")

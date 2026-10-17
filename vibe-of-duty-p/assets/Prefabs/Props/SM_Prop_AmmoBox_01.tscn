@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3 uid="uid://o5couagul5dw"]
+
+[ext_resource type="ArrayMesh" uid="uid://suwk5m28i3fq" path="res://assets/models/extracted/SM_Prop_AmmoBox_01.res" id="1_4r7o0"]
+[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_4v1lj"]
+[ext_resource type="ArrayMesh" uid="uid://dllouilx4nxfk" path="res://assets/models/extracted/SM_Prop_AmmoBox_01_Lid.res" id="3_4v1lj"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_nqgrj"]
+points = PackedVector3Array(-0.21839492, 0.24701817, 0.056307554, -0.22706318, 0.23768486, -0.062096912, -0.19310136, 1.3877788e-17, 0.09136644, -0.18901172, 0.23891802, 0.096220106, 0.18892461, 0.23891802, 0.096220106, 0.2183967, 0.24699399, 0.056328386, 0.18750212, 0.23804756, -0.0987598, -0.19865794, 0.22351566, -0.10469669, -0.18843384, 0.0029982629, -0.09246878, 0.1930587, 1.3877788e-17, 0.09136644, 0.17732248, 0.039074134, 0.10811472, -0.15607232, 0.20216513, 0.10811472, 0.22706497, 0.23768486, -0.062096912, 0.19861528, 0.22351566, -0.10469669, 0.16838747, 0.02309146, -0.09928058, 0.18839118, 0.0029982629, -0.09246878)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_4r7o0"]
+points = PackedVector3Array(-2.5050249e-05, 0, -0.10155349, -0.0067900084, 0, -0.09413777, -2.5050249e-05, 0.016309422, -0.10155349, 0.41301322, 0, -0.10155349, -0.0067900084, 0.016309422, -0.09413777, -0.0067900084, 0, 0.0941182, 0.013296071, 0.022834355, -0.093183465, 0.41301322, 0.016309422, -0.10155349, 0.41981995, 0, -0.09413777, -0.0067900084, 0.016309422, 0.0941182, 0.0049442714, 0.022834355, -0.07874965, -2.5050249e-05, 0, 0.101553805, 0.11656608, 0.05956408, -0.015447609, 0.117443025, 0.05854948, -0.020020306, 0.40148774, 0.022834355, -0.093183465, 0.41981995, 0.016309422, -0.09413777, 0.41981995, 0, 0.0941182, -2.5050249e-05, 0.016309422, 0.101553805, 0.013296071, 0.022834355, 0.09268675, 0.0049442714, 0.022834355, 0.078252934, 0.41301322, 0, 0.101553805, 0.11656608, 0.05956408, 0.019364536, 0.29717377, 0.05956408, -0.015447609, 0.2963386, 0.05854948, -0.020020306, 0.40983954, 0.022834355, -0.07874965, 0.41981995, 0.016309422, 0.0941182, 0.41301322, 0.016309422, 0.101553805, 0.117443025, 0.05854948, 0.023937233, 0.40148774, 0.022834355, 0.09268675, 0.29717377, 0.05956408, 0.019364536, 0.40983954, 0.022834355, 0.078252934, 0.2963386, 0.05854948, 0.023937233)
+
+[node name="SM_Prop_AmmoBox_01" type="MeshInstance3D"]
+gi_mode = 2
+mesh = ExtResource("1_4r7o0")
+surface_material_override/0 = ExtResource("2_4v1lj")
+
+[node name="MeshCollider" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshCollider"]
+shape = SubResource("ConvexPolygonShape3D_nqgrj")
+
+[node name="SM_Prop_AmmoBox_01_Lid" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2065152, 0.24023747, -1.0734568e-06)
+gi_mode = 2
+mesh = ExtResource("3_4v1lj")
+skeleton = NodePath("")
+surface_material_override/0 = ExtResource("2_4v1lj")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="SM_Prop_AmmoBox_01_Lid"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SM_Prop_AmmoBox_01_Lid/StaticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_4r7o0")
