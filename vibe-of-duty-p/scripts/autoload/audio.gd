@@ -26,6 +26,7 @@ const PLACEHOLDERS := {
 	"land": {"kind": "thump", "dur": 0.12, "freq": 110.0, "freq_end": 60.0, "decay": 25.0, "vol": 0.5},
 	"step": {"kind": "noise", "dur": 0.06, "decay": 50.0, "vol": 0.25},
 	"slide": {"kind": "noise", "dur": 0.35, "decay": 6.0, "vol": 0.3},
+	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},
 	"spawn": {"kind": "tone", "dur": 0.25, "freq": 400.0, "freq_end": 800.0, "decay": 8.0, "vol": 0.4},
 	"ui_click": {"kind": "tone", "dur": 0.04, "freq": 1200.0, "freq_end": 1200.0, "decay": 50.0, "vol": 0.4},
 }

@@ -18,6 +18,8 @@ var dedicated := false
 var bot_mode := false
 var net_log := false
 var auto_join := ""
+var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
+var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var launch_port := Net.DEFAULT_PORT
@@ -33,6 +35,11 @@ func _ready() -> void:
 			bot_mode = true
 		elif arg == "--netlog":
 			net_log = true
+		elif arg == "--bot-aim":
+			bot_mode = true
+			bot_aim = true
+		elif arg == "--no-lagcomp":
+			lag_comp_enabled = false
 		elif arg == "--perturb":
 			net_perturb = true
 		elif arg.begins_with("--lag="):
