@@ -875,6 +875,8 @@ func _target_state(other: Player, tick: float) -> Dictionary:
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
 func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
 	var def := WeaponDB.get_def(weapon)
+	if world.hud:
+		world.hud.mark_shot(origin)
 	_visual.set_weapon(weapon)
 	_visual.show_shot()
 	Audio.play(def.sound_shot, origin)
