@@ -6,7 +6,8 @@ extends RefCounted
 var move := Vector2.ZERO  # x: right, y: back (Input.get_vector convention, forward is -y)
 var yaw := 0.0
 var pitch := 0.0
-var jump := false
+var jump := false       # one-press event (buffered for a few ticks)
+var jump_held := false  # key is down (lets a jump grab a ledge in mid-air)
 var sprint := false
 var crouch := false
 var fire := false    # held

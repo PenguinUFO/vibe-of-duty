@@ -32,7 +32,8 @@ static func _build() -> void:
 	rifle.display_name = "AR-01"
 	rifle.scene_path = PREFAB_DIR + "SM_Wep_Rifle_Assault_01.tscn"
 	rifle.muzzle = Vector3(0.0, 0.085, 0.665)
-	rifle.sight_height = 0.17
+	rifle.rear_sight = Vector3(0.0, 0.1897, -0.0366)
+	rifle.front_sight = Vector3(0.0, 0.1969, 0.4374)
 	rifle.damage = 28.0
 	rifle.fire_interval = 0.085
 	rifle.automatic = true
@@ -57,7 +58,9 @@ static func _build() -> void:
 	shotgun.display_name = "SG-12"
 	shotgun.scene_path = PREFAB_DIR + "SM_Wep_Shotgun_01.tscn"
 	shotgun.muzzle = Vector3(0.0, 0.06, 0.86)
-	shotgun.sight_height = 0.12
+	shotgun.rear_sight = Vector3(0.0, 0.111, 0.157)
+	shotgun.front_sight = Vector3(0.0, 0.135, 0.84)  # eye above the stock comb, looking along the barrel
+	shotgun.eye_relief = 0.2
 	shotgun.damage = 12.0
 	shotgun.pellets = 8
 	shotgun.max_range = 45.0
@@ -85,7 +88,9 @@ static func _build() -> void:
 	pistol.display_name = "P-45"
 	pistol.scene_path = PREFAB_DIR + "SM_Wep_Pistol_Heavy_01.tscn"
 	pistol.muzzle = Vector3(0.0, 0.06, 0.296)
-	pistol.sight_height = 0.105
+	pistol.rear_sight = Vector3(0.0, 0.102, -0.05)
+	pistol.front_sight = Vector3(0.0, 0.102, 0.25)
+	pistol.eye_relief = 0.17
 	pistol.damage = 34.0
 	pistol.max_range = 100.0
 	pistol.fire_interval = 0.18

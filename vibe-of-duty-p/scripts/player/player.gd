@@ -26,6 +26,15 @@ const STAND_EYE := 1.65
 const CROUCH_EYE := 0.95
 
 const JUMP_BUFFER_TIME := 0.12
+
+# Vaulting (mantle) over tall obstacles. Heights are measured from the player's feet.
+const MANTLE_MIN_HEIGHT := 1.0        # lower ledges are simply jumped onto
+const MANTLE_MAX_HEIGHT := 2.8        # jump + pull-up: covers the 2.6 m cover walls of the test level
+const MANTLE_REACH := 1.1             # how far in front of the body the wall may be (m)
+const MANTLE_RISE_SPEED := 5.5        # m/s while pulling up
+const MANTLE_FORWARD_TICKS := 14      # ticks to step onto the ledge
+const MANTLE_COOLDOWN_TICKS := 18
+const MANTLE_EXIT_SPEED := 2.5
 const LAND_SOUND_MIN_SPEED := 4.0
 const STEP_STRIDE := 2.4
 const MAX_PITCH := deg_to_rad(89.0)
@@ -37,7 +46,9 @@ enum Mode {
 }
 
 const INTERP_DELAY := 0.1  # seconds puppets are rendered in the past
-const MAX_CMD_QUEUE := 4
+const MAX_CMD_QUEUE := 120        # received commands kept per player (2 s); beyond that the oldest are dropped
+const CMD_BUDGET_PER_TICK := 1.1  # server steps a client may take per tick (10% slack lets bursts catch up, caps speed hacks)
+const CMD_BUDGET_MAX := 8.0
 const CMD_REDUNDANCY := 3  # last N commands are re-sent in every packet to survive packet loss
 const FLAG_JUMP := 1
 const FLAG_SPRINT := 2
@@ -45,6 +56,7 @@ const FLAG_CROUCH := 4
 const FLAG_FIRE := 8
 const FLAG_AIM := 16
 const FLAG_RELOAD := 32
+const FLAG_JUMP_HELD := 256
 const FLAG_SELECT_SHIFT := 6  # 2 bits: weapon index + 1, 0 = no switch
 const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
@@ -53,6 +65,7 @@ const STATE_ON_FLOOR := 8
 const STATE_WEAPON_SHIFT := 4  # 2 bits: current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
+const STATE_MANTLING := 256
 const MAX_HEALTH := 100
 const RECONCILE_EPS := 0.02          # m; smaller prediction errors are ignored
 const HISTORY_MAX := 180             # commands kept for replay (3 s)
@@ -75,6 +88,11 @@ var look_pitch := 0.0
 var is_sliding := false
 var is_crouched := false
 var is_sprinting := false
+var is_mantling := false
+var gaps_filled := 0   # debug (server): lost commands replaced by a repeat of the previous one
+var cmds_dropped := 0  # debug (server): commands discarded because the queue overflowed
+var queue_peak := 0
+var mantle_count := 0  # debug: vaults started (counted on replays too)
 
 var _slide_dir := Vector3.ZERO
 var _slide_speed := 0.0
@@ -94,6 +112,8 @@ var _cmd_seq := 0
 var _sent_cmds: Array = []        # last CMD_REDUNDANCY encoded commands (client -> server)
 var _cmd_queue: Array = []        # received encoded commands (server)
 var _last_received_seq := 0
+var _last_cmd := PlayerCmd.new()  # server: previously applied command (used to fill gaps)
+var _step_budget := 0.0
 var _acked_seq := 0               # server: seq of the last command applied
 var _snapshots: Array = []        # puppet: [{t, pos, yaw, pitch}]
 var last_server_state: Array = [] # local: most recent snapshot entry for this player
@@ -130,6 +150,18 @@ var _look_delta := Vector2.ZERO
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
 var _bot_select := 0
+var _mantle_tick := 0
+var _mantle_total := 0
+var _mantle_rise := 0
+var _mantle_cooldown := 0
+var _floor_y := 0.0  # height of the last ground we stood on (limits how high jump + vault can reach)
+var _mantle_from := Vector3.ZERO
+var _mantle_up := Vector3.ZERO
+var _mantle_to := Vector3.ZERO
+var _mantle_dir := Vector3.ZERO
+var _probe_shape := CapsuleShape3D.new()
+var _vault_note := ""        # local debug: why the last vault attempt failed
+var _vault_note_until := 0
 var _puppet_on_floor := true
 var _puppet_sliding := false
 var _puppet_reloading := false
@@ -146,6 +178,8 @@ var _correction := Vector3.ZERO   # visual offset hiding a position correction, 
 
 func _ready() -> void:
 	_shape.radius = RADIUS
+	_probe_shape.radius = RADIUS - 0.03
+	_probe_shape.height = STAND_HEIGHT - 0.06
 	_collision.shape = _shape
 	_apply_stance()
 	_head.position.y = STAND_EYE
@@ -184,6 +218,8 @@ func teleport(xform: Transform3D) -> void:
 	_prev_pos = global_position
 	_curr_pos = global_position
 	velocity = Vector3.ZERO
+	is_mantling = false
+	_floor_y = global_position.y
 	_snapshots.clear()
 	_history.clear()
 	_pending_state = []
@@ -215,11 +251,10 @@ func _physics_process(delta: float) -> void:
 		if _jumped_this_step:
 			_jump_buffer = 0.0
 	elif control == Mode.REMOTE_SERVER:
-		# One command per tick; extra backlog is drained faster so latency stays bounded.
-		var n := 2 if _cmd_queue.size() > 2 else 1
-		for i in n:
-			if _cmd_queue.is_empty():
-				break
+		# One command per tick; a backlog (e.g. after a network burst) is worked off with spare budget.
+		_step_budget = minf(_step_budget + CMD_BUDGET_PER_TICK, CMD_BUDGET_MAX)
+		while _step_budget >= 1.0 and not _cmd_queue.is_empty():
+			_step_budget -= 1.0
 			step(_pop_server_cmd(), delta)
 	_curr_pos = global_position
 
@@ -261,6 +296,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 		cmd.move = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		cmd.sprint = Input.is_action_pressed("sprint")
 		cmd.crouch = Input.is_action_pressed("crouch")
+		cmd.jump_held = Input.is_action_pressed("jump")
 		cmd.fire = Input.is_action_pressed("fire")
 		cmd.aim = Input.is_action_pressed("aim")
 		cmd.reload = Input.is_action_just_pressed("reload")
@@ -292,6 +328,13 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	_jumped_this_step = false
 
+	# A vault in progress overrides normal movement (and blocks shooting / aiming).
+	_mantle_cooldown = maxi(_mantle_cooldown - 1, 0)
+	if is_mantling:
+		_mantle_update(dt)
+		_weapon_step(_mantle_weapon_cmd(cmd), dt)
+		return
+
 	# Slide start / update.
 	_slide_cooldown = maxf(_slide_cooldown - dt, 0.0)
 	var crouch_pressed := cmd.crouch and not _prev_crouch
@@ -316,6 +359,17 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	elif is_crouched and _can_stand():
 		is_crouched = false
 	_apply_stance()
+
+	# Jumping at a tall obstacle vaults over it instead.
+	var wants_vault := cmd.jump or (cmd.jump_held and not on_floor and cmd.move.y < -0.1)
+	if wants_vault and not cmd.crouch and _mantle_cooldown <= 0 and _try_start_mantle(cmd):
+		_jumped_this_step = true
+		_end_slide()
+		is_crouched = false
+		_apply_stance()
+		_sfx("jump")
+		_weapon_step(_mantle_weapon_cmd(cmd), dt)
+		return
 
 	# Horizontal movement.
 	var wish := global_transform.basis * Vector3(cmd.move.x, 0.0, cmd.move.y)
@@ -361,6 +415,8 @@ func _post_move(dt: float) -> void:
 	if on_floor and not _prev_on_floor and _prev_vy < -LAND_SOUND_MIN_SPEED:
 		_sfx("land")
 	_prev_on_floor = on_floor
+	if on_floor:
+		_floor_y = global_position.y
 	if on_floor and not is_sliding:
 		_step_distance += Vector2(velocity.x, velocity.z).length() * dt
 		if _step_distance >= STEP_STRIDE:
@@ -399,6 +455,13 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	var cmd := PlayerCmd.new()
 	if Game.bot_aim and world != null:
 		return _bot_aim_cmd(t)
+	if Game.bot_vault:
+		# Runs back and forth over the test ledges, jumping all the time (vaults whenever one is in reach).
+		look_yaw = PI if fmod(t, 7.0) >= 3.5 else 0.0  # 3.5 s each way (~18 m): crosses the ledges in both directions
+		cmd.yaw = look_yaw
+		cmd.move = Vector2(0.0, -1.0)
+		cmd.jump = fmod(t, 0.4) < delta
+		return cmd
 	look_yaw += 0.8 * delta
 	cmd.yaw = look_yaw
 	cmd.move = Vector2(0.0, -1.0)
@@ -447,6 +510,7 @@ func _encode_cmd(cmd: PlayerCmd) -> Array:
 	flags |= FLAG_JUMP if cmd.jump else 0
 	flags |= FLAG_SPRINT if cmd.sprint else 0
 	flags |= FLAG_CROUCH if cmd.crouch else 0
+	flags |= FLAG_JUMP_HELD if cmd.jump_held else 0
 	flags |= FLAG_FIRE if cmd.fire else 0
 	flags |= FLAG_AIM if cmd.aim else 0
 	flags |= FLAG_RELOAD if cmd.reload else 0
@@ -463,6 +527,7 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	cmd.jump = flags & FLAG_JUMP != 0
 	cmd.sprint = flags & FLAG_SPRINT != 0
 	cmd.crouch = flags & FLAG_CROUCH != 0
+	cmd.jump_held = flags & FLAG_JUMP_HELD != 0
 	cmd.fire = flags & FLAG_FIRE != 0
 	cmd.aim = flags & FLAG_AIM != 0
 	cmd.reload = flags & FLAG_RELOAD != 0
@@ -484,6 +549,8 @@ func _send_cmd(cmd: PlayerCmd) -> void:
 	_sent_cmds.append(_encode_cmd(cmd))
 	if _sent_cmds.size() > CMD_REDUNDANCY:
 		_sent_cmds.pop_front()
+	if Game.sim_loss > 0.0 and randf() * 100.0 < Game.sim_loss:
+		return  # test hook: this packet is "lost" on the way to the server
 	if Game.sim_lag_ms > 0:
 		_send_delayed(_sent_cmds.duplicate())
 	else:
@@ -508,19 +575,36 @@ func submit_cmds(entries: Array) -> void:
 				and entry[5] is float:
 			_last_received_seq = entry[0]
 			_cmd_queue.append(entry)
-	while _cmd_queue.size() > 2 * MAX_CMD_QUEUE:
+	queue_peak = maxi(queue_peak, _cmd_queue.size())
+	while _cmd_queue.size() > MAX_CMD_QUEUE:
 		_cmd_queue.pop_front()
+		cmds_dropped += 1
 
 
 func _pop_server_cmd() -> PlayerCmd:
-	# Drop old commands if a burst built up a huge backlog (the client will be reconciled).
-	while _cmd_queue.size() > 2 * MAX_CMD_QUEUE:
-		_cmd_queue.pop_front()
+	var next_seq: int = _cmd_queue[0][0]
+	if _acked_seq > 0 and next_seq > _acked_seq + 1:
+		# A command never arrived (packet loss / reordering). Simulate the missing tick anyway with a repeat
+		# of the previous input, so the server keeps exactly one step per client tick and stays in lockstep with
+		# the client's prediction; the client is corrected if the guess was wrong.
+		_acked_seq += 1
+		gaps_filled += 1
+		var filler := PlayerCmd.new()
+		filler.move = _last_cmd.move
+		filler.yaw = _last_cmd.yaw
+		filler.pitch = _last_cmd.pitch
+		filler.sprint = _last_cmd.sprint
+		filler.crouch = _last_cmd.crouch
+		filler.fire = _last_cmd.fire
+		filler.aim = _last_cmd.aim
+		return filler  # no jump / reload / weapon switch: one-shot events are not repeated
 	var entry: Array = _cmd_queue.pop_front()
 	_acked_seq = entry[0]
-	return _decode_cmd(entry)
+	_last_cmd = _decode_cmd(entry)
+	return _last_cmd
 
 
+## Server: compact per-player state for snapshots.
 func get_net_state() -> Array:
 	var flags := 0
 	flags |= STATE_CROUCHED if is_crouched else 0
@@ -530,7 +614,10 @@ func get_net_state() -> Array:
 	flags |= weapons.index << STATE_WEAPON_SHIFT
 	flags |= STATE_RELOADING if weapons.is_reloading() else 0
 	flags |= STATE_ADS if weapons.ads > 0.5 else 0
-	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array()]
+	flags |= STATE_MANTLING if is_mantling else 0
+	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
+			_mantle_cooldown, _floor_y]
+	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
 	return [peer_id, global_position, rotation.y, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
 
 
@@ -549,6 +636,7 @@ func push_snapshot(state: Array) -> void:
 	is_crouched = flags & STATE_CROUCHED != 0
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0
+	is_mantling = flags & STATE_MANTLING != 0
 	velocity = state[4]
 	weapons.index = (flags >> STATE_WEAPON_SHIFT) & 3
 	_visual.set_weapon(weapons.index)
@@ -645,6 +733,17 @@ func _apply_server_state(state: Array) -> void:
 	_slide_cooldown = extra[3]
 	_prev_crouch = extra[4]
 	weapons.from_array(extra[5])
+	var mantle: Array = extra[6]
+	is_mantling = mantle[0]
+	_mantle_tick = mantle[1]
+	_mantle_total = mantle[2]
+	_mantle_rise = mantle[3]
+	_mantle_from = mantle[4]
+	_mantle_up = mantle[5]
+	_mantle_to = mantle[6]
+	_mantle_dir = mantle[7]
+	_mantle_cooldown = mantle[8]
+	_floor_y = mantle[9]
 	_apply_stance()
 
 
@@ -838,7 +937,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_look_delta = (look - _prev_look) / maxf(delta, 0.0001) * delta
 	_look_delta.x = wrapf(_look_delta.x, -PI, PI)
 	_prev_look = look
-	_sprint_blend = move_toward(_sprint_blend, 1.0 if is_sprinting else 0.0, delta * 6.0)
+	_sprint_blend = move_toward(_sprint_blend, 1.0 if (is_sprinting or is_mantling) else 0.0, delta * 6.0)
 	# Pull the weapon back when a wall is right in front of the camera.
 	var cam_pos := _camera.global_position
 	var forward := -_camera.global_transform.basis.z
@@ -878,17 +977,19 @@ func _update_hud(speed: float, delta: float) -> void:
 	if _debug_timer > 0.0:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
+	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
 	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s\nEsc menu   Tab scores   F10 leave" % [
 		Engine.get_frames_per_second(), speed,
 		"slide " if is_sliding else "", "crouch " if is_crouched else "",
 		"sprint " if is_sprinting else ""]
+	_debug.text += vault_line
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_debug.text += "\nrtt %d ms  recon %d  err %.2f m" % [rtt_ms, recon_count, last_error]
 
 
 func debug_weapon_string() -> String:
-	return "w%d mag=%d/%d shots=%d" % [weapons.index, weapons.mags[weapons.index], weapons.reserves[weapons.index],
-			weapons.shots]
+	return "w%d mag=%d/%d shots=%d mv=%d drop=%d gaps=%d qpeak=%d" % [weapons.index, weapons.mags[weapons.index], weapons.reserves[weapons.index],
+			weapons.shots, mantle_count, cmds_dropped, gaps_filled, queue_peak]
 
 
 # --- Health, death, respawn ---------------------------------------------------------------------------
@@ -952,3 +1053,110 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	if reloading and not _puppet_reloading:
 		Audio.play("reload", global_position)
 	_puppet_reloading = reloading
+
+
+# --- Vaulting ------------------------------------------------------------------------------------------
+
+## Looks for a vaultable ledge in front of the player and, if one is found, starts the mantle.
+## Depends only on the world geometry, the position and cmd.yaw, so client and server agree.
+func _try_start_mantle(cmd: PlayerCmd) -> bool:
+	if cmd.move.y > 0.5:
+		return _vault_fail("moving backwards")
+	var space := get_world_3d().direct_space_state
+	var feet := global_position
+	var facing := Basis(Vector3.UP, cmd.yaw) * Vector3.FORWARD
+
+	# 1. A wall in front of the body (at knee, waist and chest height).
+	var wall := {}
+	for height in [0.4, 0.9, 1.4]:
+		var origin: Vector3 = feet + Vector3.UP * height
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, origin + facing * MANTLE_REACH, Layers.WORLD))
+		if not hit.is_empty() and absf(hit["normal"].y) < 0.3:
+			wall = hit
+			break
+	if wall.is_empty():
+		return _vault_fail("no wall within %.1f m ahead (face the wall)" % MANTLE_REACH)
+	var wall_normal: Vector3 = wall["normal"]
+	var inward := -Vector3(wall_normal.x, 0.0, wall_normal.z).normalized()
+
+	# 2. The top surface of the obstacle, probed from above a little way into it.
+	var probe: Vector3 = wall["position"] + inward * 0.25
+	var top_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
+			Vector3(probe.x, feet.y + MANTLE_MAX_HEIGHT + 0.4, probe.z), Vector3(probe.x, feet.y, probe.z), Layers.WORLD))
+	if top_hit.is_empty() or top_hit["normal"].y < 0.7:
+		return _vault_fail("no flat top to climb onto")
+	var top_y: float = top_hit["position"].y
+	# Measured from the ground we last stood on, so jumping first does not extend the reach beyond a vault.
+	var ledge_height := top_y - _floor_y
+	if ledge_height > MANTLE_MAX_HEIGHT:
+		return _vault_fail("too high (%.1f m, max %.1f)" % [ledge_height, MANTLE_MAX_HEIGHT])
+	if ledge_height < MANTLE_MIN_HEIGHT or top_y - feet.y < 0.3:
+		return _vault_fail("low ledge (%.1f m): just jump" % ledge_height)
+
+	# 3. Where we end up: on top of the ledge, a body radius behind its edge.
+	var target: Vector3 = wall["position"] + inward * (RADIUS + 0.2)
+	var target_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
+			Vector3(target.x, top_y + 0.4, target.z), Vector3(target.x, top_y - 0.3, target.z), Layers.WORLD))
+	if target_hit.is_empty():
+		return _vault_fail("top is too thin to stand on")
+	target.y = target_hit["position"].y
+
+	# 4. Head room: along the pull-up column and at the destination.
+	var up_point := Vector3(feet.x, top_y + 0.02, feet.z)
+	if not _capsule_clear(up_point) or not _capsule_clear(target + Vector3.UP * 0.02):
+		return _vault_fail("no head room")
+
+	is_mantling = true
+	mantle_count += 1
+	_mantle_from = feet
+	_mantle_up = up_point
+	_mantle_to = target + Vector3.UP * 0.02
+	_mantle_dir = inward
+	_mantle_tick = 0
+	_mantle_rise = clampi(ceili((up_point.y - feet.y) / MANTLE_RISE_SPEED * 60.0), 8, 40)
+	_mantle_total = _mantle_rise + MANTLE_FORWARD_TICKS
+	return true
+
+
+## Records why a vault was refused (shown in the debug overlay of the local player) and returns false.
+func _vault_fail(reason: String) -> bool:
+	if is_local and not _replaying:
+		_vault_note = reason
+		_vault_note_until = Time.get_ticks_msec() + 2000
+	return false
+
+
+func _capsule_clear(feet_position: Vector3) -> bool:
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = _probe_shape
+	params.transform = Transform3D(Basis.IDENTITY, feet_position + Vector3.UP * (STAND_HEIGHT * 0.5))
+	params.collision_mask = Layers.WORLD
+	return get_world_3d().direct_space_state.intersect_shape(params, 1).is_empty()
+
+
+func _mantle_update(dt: float) -> void:
+	_mantle_tick += 1
+	var target: Vector3
+	if _mantle_tick <= _mantle_rise:
+		target = _mantle_from.lerp(_mantle_up, float(_mantle_tick) / float(_mantle_rise))
+	else:
+		var f := float(_mantle_tick - _mantle_rise) / float(_mantle_total - _mantle_rise)
+		target = _mantle_up.lerp(_mantle_to, 1.0 - (1.0 - f) * (1.0 - f))  # ease out
+	velocity = (target - global_position) / dt
+	global_position = target
+	is_sprinting = false
+	if _mantle_tick >= _mantle_total:
+		is_mantling = false
+		_mantle_cooldown = MANTLE_COOLDOWN_TICKS
+		_floor_y = global_position.y
+		velocity = _mantle_dir * MANTLE_EXIT_SPEED
+		_sfx("land", -6.0)
+
+
+## While vaulting you cannot shoot, aim or reload (weapon switching still works).
+func _mantle_weapon_cmd(cmd: PlayerCmd) -> PlayerCmd:
+	var weapon_cmd := PlayerCmd.new()
+	weapon_cmd.yaw = cmd.yaw
+	weapon_cmd.pitch = cmd.pitch
+	weapon_cmd.select = cmd.select
+	return weapon_cmd

@@ -19,9 +19,12 @@ var dedicated := false
 var bot_mode := false
 var net_log := false
 var auto_join := ""
+var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
+var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
+var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var launch_port := Net.DEFAULT_PORT
 var score_limit := SCORE_LIMIT
@@ -45,10 +48,16 @@ func _ready() -> void:
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true
+		elif arg == "--bot-vault":
+			bot_mode = true
+			bot_vault = true
+			test_spawn = Vector3(23.0, 0.05, -0.5)
 		elif arg == "--no-lagcomp":
 			lag_comp_enabled = false
 		elif arg == "--perturb":
 			net_perturb = true
+		elif arg.begins_with("--loss="):
+			sim_loss = clampf(float(arg.trim_prefix("--loss=")), 0.0, 90.0)
 		elif arg.begins_with("--lag="):
 			sim_lag_ms = int(arg.trim_prefix("--lag="))
 		elif arg.begins_with("--score-limit="):

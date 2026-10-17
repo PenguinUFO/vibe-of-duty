@@ -176,6 +176,8 @@ func _send_snapshot_delayed(peer: int, tick: int, states: Array) -> void:
 
 ## Spawn point farthest from living players (two best candidates, picked at random).
 func _pick_spawn(exclude_id: int) -> Transform3D:
+	if Game.test_spawn != Vector3.INF:
+		return Transform3D(Basis.IDENTITY, Game.test_spawn)
 	var scored: Array = []
 	for spawn in _spawns:
 		var nearest := INF

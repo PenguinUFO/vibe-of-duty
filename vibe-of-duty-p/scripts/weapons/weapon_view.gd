@@ -70,7 +70,11 @@ func set_weapon(index: int) -> void:
 	_pivot.scale = Vector3.ONE * scale_factor
 	_muzzle.position = Vector3(-def.muzzle.x, def.muzzle.y, -def.muzzle.z) * scale_factor
 	_hip_pos = def.hip_offset
-	_ads_pos = Vector3(0.0, -def.sight_height * scale_factor, -0.28)
+	# Aim alignment: the eye sits at the height of the front sight (so its tip is at screen centre, just above
+	# the rear sight) and `eye_relief` in front of the rear sight. Prefab (x, y, z) -> view (-x, y, -z) * scale.
+	var rear := Vector3(-def.rear_sight.x, def.rear_sight.y, -def.rear_sight.z) * scale_factor
+	var front := Vector3(-def.front_sight.x, def.front_sight.y, -def.front_sight.z) * scale_factor
+	_ads_pos = -Vector3(0.0, front.y, rear.z + def.eye_relief)
 
 
 func _process(delta: float) -> void:

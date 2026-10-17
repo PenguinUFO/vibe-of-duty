@@ -7,7 +7,9 @@ var id := ""
 var display_name := ""
 var scene_path := ""          # Synty prefab; its barrel points to +Z
 var muzzle := Vector3.ZERO    # muzzle position in prefab space (before the 180 deg turn to face -Z)
-var sight_height := 0.15      # height of the sight line above the prefab origin, used to align ADS
+var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab space (ADS alignment)
+var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel end in prefab space
+var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
 
 var damage := 25.0
 var pellets := 1
