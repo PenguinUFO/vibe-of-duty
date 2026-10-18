@@ -39,7 +39,7 @@ func _init(code: String = "") -> void:
 	panel.add_child(box)
 
 	var title := Label.new()
-	title.text = "Enter the 4-digit code"
+	title.text = "Введите код из 4 цифр"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 20)
 	box.add_child(title)
@@ -57,12 +57,12 @@ func _init(code: String = "") -> void:
 	buttons.add_theme_constant_override("separation", 10)
 	box.add_child(buttons)
 	var ok := Button.new()
-	ok.text = "OK"
+	ok.text = "ОК"
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ok.pressed.connect(_submit)
 	buttons.add_child(ok)
 	var cancel := Button.new()
-	cancel.text = "Cancel"
+	cancel.text = "Отмена"
 	cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cancel.pressed.connect(func() -> void: _finish(false))
 	buttons.add_child(cancel)

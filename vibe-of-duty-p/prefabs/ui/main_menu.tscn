@@ -36,12 +36,12 @@ theme_override_constants/separation = 10
 [node name="Title" type="Label" parent="Center/Box"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 36
-text = "VIBE OF DUTY"
+text = "Press F to Хрючево"
 horizontal_alignment = 1
 
 [node name="NameLabel" type="Label" parent="Center/Box"]
 layout_mode = 2
-text = "Player name"
+text = "Имя игрока"
 
 [node name="NameEdit" type="LineEdit" parent="Center/Box"]
 unique_name_in_owner = true
@@ -50,7 +50,7 @@ max_length = 24
 
 [node name="IpLabel" type="Label" parent="Center/Box"]
 layout_mode = 2
-text = "Server address"
+text = "Адрес сервера"
 
 [node name="IpEdit" type="LineEdit" parent="Center/Box"]
 unique_name_in_owner = true
@@ -65,28 +65,28 @@ theme_override_constants/separation = 10
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Host game"
+text = "Создать игру"
 
 [node name="JoinButton" type="Button" parent="Center/Box/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Join"
+text = "Подключиться"
 
 [node name="SettingsButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Settings"
+text = "Настройки"
 
 [node name="KidModeCheck" type="CheckButton" parent="Center/Box"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Kid mode"
+text = "Детский режим"
 
 [node name="QuitButton" type="Button" parent="Center/Box"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Quit"
+text = "Выход"
 
 [node name="Status" type="Label" parent="Center/Box"]
 unique_name_in_owner = true

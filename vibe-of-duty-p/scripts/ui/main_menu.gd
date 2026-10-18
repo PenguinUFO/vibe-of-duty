@@ -29,7 +29,7 @@ func _ready() -> void:
 	Audio.play_music_id("menu")
 	if Settings.has_gamepad():
 		_host_button.grab_focus.call_deferred()  # d-pad / stick navigation needs a focused control
-	Net.connected_to_server.connect(func() -> void: _status.text = "Connected, loading the map...")
+	Net.connected_to_server.connect(func() -> void: _status.text = "Подключено, загрузка карты...")
 	Net.map_received.connect(func(_path: String) -> void: _start_game())
 	Net.connection_failed.connect(_on_connection_failed)
 	if Game.auto_join != "":
@@ -84,7 +84,7 @@ func _on_host() -> void:
 func _start_server() -> void:
 	var err := Net.host(Game.launch_port)
 	if err != OK:
-		_status.text = "Could not host on port %d: %s" % [Game.launch_port, error_string(err)]
+		_status.text = "Не удалось создать игру на порту %d: %s" % [Game.launch_port, error_string(err)]
 		return
 	_start_game()
 
@@ -96,7 +96,7 @@ func _on_join() -> void:
 
 func _connect(address: String) -> void:
 	_set_buttons_disabled(true)
-	_status.text = "Connecting to %s..." % address
+	_status.text = "Подключение к %s..." % address
 	var err := Net.join(address, Game.launch_port)
 	if err != OK:
 		_on_connection_failed()
@@ -104,7 +104,7 @@ func _connect(address: String) -> void:
 
 func _on_connection_failed() -> void:
 	_set_buttons_disabled(false)
-	_status.text = "Connection failed."
+	_status.text = "Не удалось подключиться."
 
 
 func _set_buttons_disabled(disabled: bool) -> void:

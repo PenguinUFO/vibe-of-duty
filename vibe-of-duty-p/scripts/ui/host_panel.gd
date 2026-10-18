@@ -29,7 +29,7 @@ func _init() -> void:
 	add_child(box)
 
 	var title := Label.new()
-	title.text = "HOST GAME"
+	title.text = "СОЗДАТЬ ИГРУ"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	box.add_child(title)
@@ -41,23 +41,23 @@ func _init() -> void:
 		if path == Settings.host_map:
 			_map.select(_map.item_count - 1)
 	_map.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
-	_add_row(box, "Map", _map)
-	_score_limit = _add_spin(box, "Kill limit", 1, 100, Settings.host_score_limit, "")
-	_match_minutes = _add_spin(box, "Match length", 1, 60, Settings.host_match_minutes, " min")
-	_port = _add_spin(box, "Port", 1024, 65535, Settings.host_port, "")
+	_add_row(box, "Карта", _map)
+	_score_limit = _add_spin(box, "Лимит убийств", 1, 100, Settings.host_score_limit, "")
+	_match_minutes = _add_spin(box, "Длительность матча", 1, 60, Settings.host_match_minutes, " мин")
+	_port = _add_spin(box, "Порт", 1024, 65535, Settings.host_port, "")
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
 	box.add_child(buttons)
 	var back := Button.new()
-	back.text = "Back"
+	back.text = "Назад"
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.pressed.connect(func() -> void:
 		Audio.play("ui_click")
 		closed.emit())
 	buttons.add_child(back)
 	var start := Button.new()
-	start.text = "Start"
+	start.text = "Начать"
 	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start.pressed.connect(_on_start)
 	buttons.add_child(start)

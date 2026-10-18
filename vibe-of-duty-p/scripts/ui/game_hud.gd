@@ -109,9 +109,9 @@ func refresh() -> void:
 func add_kill(killer: String, victim: String, weapon: String, headshot: bool, involves_me: bool) -> void:
 	var label := _make_label(18)
 	if killer == "":
-		label.text = "%s died" % victim
+		label.text = "%s погиб" % victim
 	else:
-		label.text = "%s  [%s]%s  %s" % [killer, weapon, " HS" if headshot else "", victim]
+		label.text = "%s  [%s]%s  %s" % [killer, weapon, " В ГОЛОВУ" if headshot else "", victim]
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3) if involves_me else Color.WHITE)
 	_feed.add_child(label)
@@ -140,14 +140,14 @@ func _update_labels() -> void:
 	var seconds := ceili(Game.time_left)
 	_timer_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
 	var mine: Dictionary = Game.scores.get(multiplayer.get_unique_id(), {"kills": 0, "deaths": 0})
-	_score_label.text = "Kills %d / %d    Deaths %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
+	_score_label.text = "Убийства %d / %d    Смерти %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
 	_banner.visible = ended
 	if ended:
 		var names: PackedStringArray = []
 		for id in Game.winners:
 			names.append(_player_name(id))
-		_banner.text = "MATCH OVER\n%s %s\nNext match in %d" % [", ".join(names) if not names.is_empty() else "Nobody",
-				"wins" if names.size() == 1 else "win", ceili(Game.intermission_left)]
+		_banner.text = "МАТЧ ОКОНЧЕН\n%s %s\nСледующий матч через %d" % [", ".join(names) if not names.is_empty() else "Никто не",
+				"побеждает" if names.size() <= 1 else "побеждают", ceili(Game.intermission_left)]
 
 
 func _rebuild_board() -> void:
@@ -156,7 +156,7 @@ func _rebuild_board() -> void:
 	for child in _board_grid.get_children():
 		_board_grid.remove_child(child)
 		child.queue_free()
-	for header in ["Player", "Kills", "Deaths"]:
+	for header in ["Игрок", "Убийства", "Смерти"]:
 		var h := _make_label(20)
 		h.text = header
 		h.add_theme_color_override("font_color", Color(0.6, 0.75, 1.0))
@@ -177,7 +177,7 @@ func _rebuild_board() -> void:
 
 
 func _player_name(id: int) -> String:
-	return (world.players[id] as Player).player_name if world.players.has(id) else "Player"
+	return (world.players[id] as Player).player_name if world.players.has(id) else "Игрок"
 
 
 func _make_label(font_size: int) -> Label:

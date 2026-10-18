@@ -2,6 +2,9 @@ extends Node
 ## Player-facing settings, persisted to user://settings.cfg.
 
 const SAVE_PATH := "user://settings.cfg"
+## Shown in the window title and the main menu. Set at runtime rather than as application/config/name, which also
+## names the user:// folder (renaming it would lose the saved settings).
+const GAME_TITLE := "Press F to Хрючево"
 const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
 const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
@@ -18,7 +21,7 @@ var mouse_sensitivity := 0.0025  # radians per pixel
 var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STICK_LOOK_SPEED)
 var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
-var player_name := "Player"
+var player_name := "Игрок"
 var server_address := "127.0.0.1"  # last address typed in the main menu
 var kid_mode := false  # unlocked with a code in the main menu; more health, stronger and wider aim assist
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
@@ -48,7 +51,7 @@ func _ready() -> void:
 ## Gamepad bindings (Xbox layout names; other pads map to the same positions). Added here rather than in the project's
 ## input map so the whole layout is readable in one place:
 ##   left stick move, right stick look, A jump, B crouch, Y or L3 sprint (latches until you stop), RT fire, LT aim,
-##   X reload, d-pad right next weapon, Back scoreboard, Start pause menu. Menus: d-pad / left stick, A accept, B back.
+##   X reload, d-pad right next weapon, d-pad up oink (F on the keyboard), Back scoreboard, Start pause menu. Menus: d-pad / left stick, A accept, B back.
 func _bind_gamepad() -> void:
 	var axes := {
 		"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
@@ -66,7 +69,7 @@ func _bind_gamepad() -> void:
 	var buttons := {
 		"jump": [JOY_BUTTON_A], "crouch": [JOY_BUTTON_B], "sprint_toggle": [JOY_BUTTON_Y, JOY_BUTTON_LEFT_STICK],
 		"reload": [JOY_BUTTON_X], "weapon_next": [JOY_BUTTON_DPAD_RIGHT], "scoreboard": [JOY_BUTTON_BACK],
-		"pause": [JOY_BUTTON_START],
+		"pause": [JOY_BUTTON_START], "oink": [JOY_BUTTON_DPAD_UP],
 	}
 	for action in buttons:
 		_ensure_action(action)
@@ -83,6 +86,9 @@ func _bind_gamepad() -> void:
 	var escape := InputEventKey.new()
 	escape.keycode = KEY_ESCAPE
 	InputMap.action_add_event("pause", escape)
+	var oink_key := InputEventKey.new()  # Press F to Хрючево: the player oinks, everyone nearby hears it
+	oink_key.physical_keycode = KEY_F
+	InputMap.action_add_event("oink", oink_key)
 
 
 func _ensure_action(action: String, deadzone: float = 0.5) -> void:
@@ -163,6 +169,7 @@ func apply_graphics() -> void:
 func apply_display() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
+	DisplayServer.window_set_title(GAME_TITLE)
 	if fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 		return

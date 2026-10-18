@@ -1,6 +1,7 @@
 class_name Mannequin
 extends Node3D
-## Blockout human: a smooth mannequin built from capsules, posed procedurally every frame (no skeleton, no clips).
+## Blockout human with a pig's head (snout, ears, curly tail - "80% human, 20% pig"): an angular, flat-shaded
+## (SUPERHOT-like) mannequin built from low-poly capsules, posed procedurally every frame (no skeleton, no clips).
 ## Rigid parts - pelvis, torso, neck, head, upper/lower arms, hands, thighs, shins, feet - are placed from joint
 ## positions that come from a few simple rules:
 ##   - legs: two-bone IK from the hips to feet planted on the ground (crouching lowers the pelvis, the knees bend);
@@ -44,14 +45,16 @@ const RIGHT_POLE := Vector3(0.9, -1.0, 0.3)       # where the elbows point (mann
 const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
 
 # --- colours ---
-const SUIT := Color(0.22, 0.24, 0.27)
-const SKIN := Color(0.72, 0.72, 0.74)   # mannequin "wood": head
-const GLOVE := Color(0.78, 0.76, 0.74)  # hands: light, so they read against the dark gun
-const VISOR := Color(0.03, 0.03, 0.04)
-const BOOT := Color(0.12, 0.11, 0.1)
+# Grim, realistic palette: worn fatigues, dirty pig skin, dull leather. Player colours stay distinct but muted.
+const SUIT := Color(0.2, 0.21, 0.17)    # faded olive-grey fatigues
+const SKIN := Color(0.6, 0.45, 0.41)    # weathered, dirty pig skin: head, neck, tail
+const SNOUT := Color(0.5, 0.34, 0.32)   # snout and ears, a shade darker than the skin
+const GLOVE := Color(0.42, 0.36, 0.29)  # worn tan leather: still reads against the dark gun
+const VISOR := Color(0.03, 0.025, 0.02) # eyes and nostrils
+const BOOT := Color(0.09, 0.075, 0.06)
 const PALETTE: Array[Color] = [
-	Color(0.91, 0.45, 0.23), Color(0.23, 0.65, 0.91), Color(0.61, 0.36, 0.9),
-	Color(0.48, 0.79, 0.31), Color(0.95, 0.76, 0.3), Color(0.91, 0.29, 0.37),
+	Color(0.5, 0.29, 0.17), Color(0.24, 0.34, 0.42), Color(0.36, 0.28, 0.4),
+	Color(0.33, 0.39, 0.22), Color(0.52, 0.44, 0.22), Color(0.45, 0.2, 0.19),
 ]
 
 static var _materials := {}
@@ -88,10 +91,10 @@ static func chest_frame(aim_pitch: float, crouch_amount: float) -> Transform3D:
 func build(accent: Color) -> void:
 	_part("Pelvis", _capsule(0.14, 0.36), SUIT)
 	_part("Torso", _capsule(0.2, 0.64), accent)
-	_part("Neck", _capsule(0.05, 0.16), SUIT)
+	_part("Neck", _capsule(0.05, 0.16), SKIN)
 	_part("Head", _sphere(HEAD_RADIUS), SKIN)
-	var visor := _box(Vector3(0.17, 0.045, 0.06))
-	_attach(_parts["Head"], visor, VISOR, Vector3(0.0, 0.015, -0.09))
+	_build_pig_face(_parts["Head"])
+	_part("Tail", _tail(), SKIN)
 	for side in ["L", "R"]:
 		_part("Hip" + side, _sphere(0.085), SUIT)
 		_part("Thigh" + side, _limb(0.085, 0.065, THIGH), SUIT)
@@ -100,8 +103,40 @@ func build(accent: Color) -> void:
 		_part("Foot" + side, _box(Vector3(0.1, 0.08, 0.25)), BOOT)
 	_right_arm = make_arm(self, "R", accent)
 	_left_arm = make_arm(self, "L", accent)
-	(_parts["Torso"] as Node3D).scale = Vector3(1.0, 1.0, 0.62)
-	(_parts["Pelvis"] as Node3D).scale = Vector3(1.0, 1.0, 0.7)
+	(_parts["Torso"] as Node3D).scale = Vector3(1.0, 1.0, 0.7)  # a bit of a belly
+	(_parts["Pelvis"] as Node3D).scale = Vector3(1.0, 1.0, 0.75)
+
+
+## Anthropomorphic pig, mostly human: the head gets a snout, small dark eyes and floppy ears (cosmetic only - the head
+## hitbox stays the HEAD_RADIUS sphere). Head frame: -Z forward.
+static func _build_pig_face(head: Node3D) -> void:
+	var snout := CylinderMesh.new()
+	snout.top_radius = 0.05
+	snout.bottom_radius = 0.056
+	snout.height = 0.06
+	snout.radial_segments = 6
+	snout.rings = 0
+	var snout_part := _attach(head, snout, SNOUT, Vector3(0.0, -0.025, -0.125))
+	snout_part.rotation.x = -PI * 0.5  # cylinder axis along -Z, the wide end at the face
+	snout_part.scale = Vector3(1.0, 1.0, 0.8)  # a bit flatter than round
+	for s in [-1.0, 1.0]:
+		var nostril := _attach(head, _sphere(0.011), VISOR, Vector3(0.018 * s, -0.025, -0.153))
+		nostril.scale = Vector3(0.8, 1.3, 0.5)
+		_attach(head, _sphere(0.014), VISOR, Vector3(0.042 * s, 0.035, -0.098))
+		var ear := PrismMesh.new()
+		ear.size = Vector3(0.075, 0.09, 0.016)
+		var ear_part := _attach(head, ear, SNOUT, Vector3(0.075 * s, 0.095, -0.02))
+		ear_part.rotation = Vector3(-1.05, 0.3 * s, -0.75 * s)  # tilted out, the tip flopping forward
+
+
+## A small curly tail: a thin torus, placed on the back of the pelvis in pose().
+static func _tail() -> TorusMesh:
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = 0.026
+	mesh.outer_radius = 0.04
+	mesh.rings = 7
+	mesh.ring_segments = 4
+	return mesh
 
 
 ## Poses the whole body (call every frame, after the weapon's owner has set pitch / ads / crouch).
@@ -109,6 +144,9 @@ func pose() -> void:
 	var chest := chest_frame(pitch, crouch)
 	var pelvis_y := chest.origin.y - SPINE_PIVOT
 	_place(_parts["Pelvis"], Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.0, pelvis_y, 0.0)))
+	# Tail ring faces backwards (+Z), on the back of the pelvis.
+	_place(_parts["Tail"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5).rotated(Vector3.FORWARD, 0.4),
+			Vector3(0.0, pelvis_y + 0.03, 0.135)))
 	_place(_parts["Torso"], chest * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
 	var head := head_offset(pitch, ads, crouch)
 	var neck_base := chest * Vector3(0.0, SHOULDER_UP + 0.02, 0.0)
@@ -210,7 +248,7 @@ func _part(part_name: String, mesh: Mesh, color: Color) -> void:
 static func _new_part(parent: Node3D, part_name: String, mesh: Mesh, color: Color) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = part_name
-	instance.mesh = mesh
+	instance.mesh = _facet(mesh)
 	instance.material_override = _material(color)
 	parent.add_child(instance)
 	return instance
@@ -218,7 +256,7 @@ static func _new_part(parent: Node3D, part_name: String, mesh: Mesh, color: Colo
 
 static func _attach(parent: Node3D, mesh: Mesh, color: Color, offset: Vector3) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
-	instance.mesh = mesh
+	instance.mesh = _facet(mesh)
 	instance.material_override = _material(color)
 	instance.position = offset
 	parent.add_child(instance)
@@ -249,8 +287,8 @@ static func _capsule(radius: float, height: float) -> CapsuleMesh:
 	var mesh := CapsuleMesh.new()
 	mesh.radius = radius
 	mesh.height = height
-	mesh.radial_segments = 12
-	mesh.rings = 3
+	mesh.radial_segments = 6
+	mesh.rings = 1
 	return mesh
 
 
@@ -261,8 +299,8 @@ static func _limb(proximal: float, distal: float, length: float) -> CylinderMesh
 	mesh.bottom_radius = proximal
 	mesh.top_radius = distal
 	mesh.height = length
-	mesh.radial_segments = 12
-	mesh.rings = 1
+	mesh.radial_segments = 5
+	mesh.rings = 0
 	return mesh
 
 
@@ -270,9 +308,43 @@ static func _sphere(radius: float) -> SphereMesh:
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
 	mesh.height = radius * 2.2
-	mesh.radial_segments = 14
-	mesh.rings = 7
+	mesh.radial_segments = 6
+	mesh.rings = 3
 	return mesh
+
+
+## SUPERHOT-style low poly: the primitives above have few segments, and every face gets its own normal (flat
+## shading), so the body reads as crisp facets instead of smooth capsules.
+static func _facet(mesh: Mesh) -> Mesh:
+	var arrays := mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	if indices.is_empty():
+		indices = PackedInt32Array(range(verts.size()))
+	var out_verts := PackedVector3Array()
+	var out_normals := PackedVector3Array()
+	for i in range(0, indices.size() - 2, 3):
+		var a := verts[indices[i]]
+		var b := verts[indices[i + 1]]
+		var c := verts[indices[i + 2]]
+		var n := (b - a).cross(c - a)
+		if n.length_squared() < 1e-12:
+			continue  # degenerate (capsule / sphere poles)
+		n = n.normalized()
+		# Keep the primitive's outward side, whatever the winding convention.
+		if n.dot(normals[indices[i]] + normals[indices[i + 1]] + normals[indices[i + 2]]) < 0.0:
+			n = -n
+		for v in [a, b, c]:
+			out_verts.append(v)
+			out_normals.append(n)
+	var out := []
+	out.resize(Mesh.ARRAY_MAX)
+	out[Mesh.ARRAY_VERTEX] = out_verts
+	out[Mesh.ARRAY_NORMAL] = out_normals
+	var result := ArrayMesh.new()
+	result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out)
+	return result
 
 
 static func _box(size: Vector3) -> BoxMesh:
@@ -285,6 +357,6 @@ static func _material(color: Color) -> StandardMaterial3D:
 	if not _materials.has(color):
 		var material := StandardMaterial3D.new()
 		material.albedo_color = color
-		material.roughness = 0.8 if color != VISOR else 0.25
+		material.roughness = 0.92 if color != VISOR else 0.35  # matte cloth and skin, wet-looking eyes
 		_materials[color] = material
 	return _materials[color]

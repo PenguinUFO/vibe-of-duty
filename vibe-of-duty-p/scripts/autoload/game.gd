@@ -25,6 +25,7 @@ var auto_join := ""
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
 var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
+var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
@@ -49,6 +50,9 @@ func _ready() -> void:
 			bot_mode = true
 		elif arg == "--netlog":
 			net_log = true
+		elif arg == "--bot-oink":
+			bot_mode = true
+			bot_oink = true
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true
@@ -108,9 +112,12 @@ static func is_map(path: String) -> bool:
 	return list_maps().has(path)
 
 
-## "res://prefabs/levels/train.tscn" -> "Train".
+## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
+const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон"}
+
 static func map_name(path: String) -> String:
-	return path.get_file().get_basename().capitalize()
+	var base := path.get_file().get_basename()
+	return MAP_NAMES.get(base, base.capitalize())
 
 
 func set_state(new_state: State) -> void:

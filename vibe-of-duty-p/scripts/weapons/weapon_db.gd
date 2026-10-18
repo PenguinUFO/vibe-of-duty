@@ -27,7 +27,7 @@ static func _build() -> void:
 
 	var rifle := WeaponDef.new()
 	rifle.id = "ak"
-	rifle.display_name = "AK"
+	rifle.display_name = "АК"
 	rifle.scene_path = "res://prefabs/weapons/ak_blockout.tscn"  # tools/make_ak_blockout.py
 	rifle.muzzle = Vector3(0.0, 0.045, 0.565)
 	rifle.rear_sight = Vector3(0.0, 0.112, 0.28)   # bottom of the rear notch

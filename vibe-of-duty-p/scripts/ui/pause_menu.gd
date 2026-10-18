@@ -32,14 +32,14 @@ func _ready() -> void:
 	center.add_child(_menu_box)
 
 	var title := Label.new()
-	title.text = "PAUSED"
+	title.text = "ПАУЗА"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	_menu_box.add_child(title)
-	_add_button("Resume", close)
-	_add_button("Settings", _open_settings)
-	_add_button("Leave match", _leave)
-	_add_button("Quit game", get_tree().quit)
+	_add_button("Продолжить", close)
+	_add_button("Настройки", _open_settings)
+	_add_button("Покинуть матч", _leave)
+	_add_button("Выйти из игры", get_tree().quit)
 
 	_settings = SettingsPanel.new()
 	_settings.visible = false

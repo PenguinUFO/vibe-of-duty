@@ -47,7 +47,10 @@ enum Mode {
 	PUPPET,         # client-side view of another player, interpolated from server snapshots
 }
 
-const INTERP_DELAY := 0.1  # seconds puppets are rendered in the past
+## Other players are drawn slightly in the past from a buffer of their poses, so they move smoothly despite network
+## jitter. The delay adapts (_buffered_pose): one 60 Hz step plus how late poses have recently been.
+const INTERP_MIN_DELAY := 0.03   # s
+const INTERP_MAX_DELAY := 0.2
 const MAX_CMD_QUEUE := 120        # received commands kept per player (2 s); beyond that the oldest are dropped
 const CMD_BUDGET_PER_TICK := 1.1  # server steps a client may take per tick (10% slack lets bursts catch up, caps speed hacks)
 const CMD_BUDGET_MAX := 8.0
@@ -80,7 +83,7 @@ signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVec
 
 var control: Mode = Mode.LOCAL
 var peer_id := 1
-var player_name := "Player"
+var player_name := "Игрок"
 var is_local: bool:
 	get:
 		return control == Mode.LOCAL
@@ -88,6 +91,7 @@ var is_local: bool:
 var look_yaw := 0.0
 var _sprint_latched := false  # gamepad sprint (Y / L3) stays on until the player stops moving forward
 var _pad_look := false  # the gamepad was used last (not the mouse): aim assist is on
+var _next_oink := 0.0     # s (ticks clock) when F may oink again
 var _aim_assist := AimAssist.new()
 var look_pitch := 0.0
 
@@ -116,6 +120,12 @@ var _shape := CapsuleShape3D.new()
 var _eye_height := STAND_EYE
 var _prev_pos := Vector3.ZERO  # body position at the previous physics tick (camera interpolation)
 var _curr_pos := Vector3.ZERO
+var _prev_yaw := 0.0            # body yaw at the previous / current physics tick (host: smooth remote players)
+var _curr_yaw := 0.0
+var _seq_offset := INF          # other player: local clock minus their 60 Hz step clock, smoothed (_buffer_pose)
+var _jitter := 0.0              # other player: how far recent poses were off that clock (s, slowly forgotten)
+var _interp_delay := 0.06       # other player: how far in the past they are drawn right now (s)
+var shown_tick := 0.0           # other player: server tick of the pose drawn this frame (0 = none yet)
 var _cmd_seq := 0
 var _sent_cmds: Array = []        # last CMD_REDUNDANCY encoded commands (client -> server)
 var _cmd_queue: Array = []        # received encoded commands (server)
@@ -123,7 +133,7 @@ var _last_received_seq := 0
 var _last_cmd := PlayerCmd.new()  # server: previously applied command (used to fill gaps)
 var _step_budget := 0.0
 var _acked_seq := 0               # server: seq of the last command applied
-var _snapshots: Array = []        # puppet: [{t, pos, yaw, pitch}]
+var _snapshots: Array = []        # other player: buffered poses [{t, pos, yaw, pitch, tick}] (_buffer_pose)
 var last_server_state: Array = [] # local: most recent snapshot entry for this player
 var recon_count := 0              # debug: number of reconciliations so far
 var last_error := 0.0             # debug: size of the last prediction error (m)
@@ -211,6 +221,8 @@ func _ready() -> void:
 		_visual.set_weapon(weapons.index)
 	_prev_pos = global_position
 	_curr_pos = global_position
+	_prev_yaw = rotation.y
+	_curr_yaw = rotation.y
 	if is_local:
 		# The local camera is decoupled from the 60 Hz physics body: it follows an interpolated
 		# position and takes mouse look directly, so view rotation never waits for a physics tick.
@@ -236,6 +248,8 @@ func teleport(xform: Transform3D) -> void:
 	rotation.y = look_yaw
 	_prev_pos = global_position
 	_curr_pos = global_position
+	_prev_yaw = rotation.y
+	_curr_yaw = rotation.y
 	velocity = Vector3.ZERO
 	is_mantling = false
 	_floor_y = global_position.y
@@ -254,6 +268,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		_debug_shown = not _debug_shown  # developer overlay: fps, speed, network stats
 		_debug_timer = 0.0
+	if event.is_action_pressed("oink") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_try_oink()
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var sens := Settings.mouse_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
 		look_yaw -= event.relative.x * sens
@@ -266,12 +282,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	_prev_pos = _curr_pos
+	_prev_yaw = _curr_yaw
 	if control == Mode.LOCAL:
 		_reconcile_pending(delta)
 		if Game.net_perturb and _cmd_seq > 0 and _cmd_seq % 240 == 0:
 			global_position += Vector3(0.6, 0.0, 0.3)  # test hook: fake a prediction error
 		var cmd := _gather_cmd(delta)
-		cmd.view_tick = world.get_view_tick() if world != null and not multiplayer.is_server() else 0.0
+		cmd.view_tick = world.get_view_tick() if world != null else 0.0
 		step(cmd, delta)
 		_send_cmd(cmd)
 		if _jumped_this_step:
@@ -282,7 +299,9 @@ func _physics_process(delta: float) -> void:
 		while _step_budget >= 1.0 and not _cmd_queue.is_empty():
 			_step_budget -= 1.0
 			step(_pop_server_cmd(), delta)
+			_record_host_sample()
 	_curr_pos = global_position
+	_curr_yaw = rotation.y
 
 
 func _process(delta: float) -> void:
@@ -303,8 +322,15 @@ func _process(delta: float) -> void:
 		_head.global_transform = Transform3D(Basis.from_euler(view_angles), pos + Vector3.UP * _eye_height)
 	else:
 		_head.position.y = _eye_height
-		# Server-simulated remote player seen on the host: drive its body like a puppet's.
-		_visual.set_aim_pitch(_head.rotation.x)
+		# Server-simulated remote player seen on the host: drive its body like a puppet's. The physics body moves
+		# at 60 Hz, and in uneven steps when their commands arrive in bursts; the model is drawn from the buffered
+		# poses instead (_buffered_pose), smoothly at any frame rate. The host's shots are judged at shown_tick.
+		var shown := _buffered_pose(delta)
+		if not shown.is_empty():
+			_visual.position = global_transform.basis.inverse() * (shown["pos"] - global_position)
+			_visual.rotation.y = angle_difference(rotation.y, shown["yaw"])
+			shown_tick = shown["tick"]
+		_visual.set_aim_pitch(shown.get("pitch", _head.rotation.x))
 		_visual.set_ads(aiming)
 		_visual.set_crouched(is_crouched)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
@@ -539,6 +565,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	# Scripted input for automated network tests (launch args --bot / --bot-aim).
 	var t := Time.get_ticks_msec() / 1000.0
 	var cmd := PlayerCmd.new()
+	if Game.bot_oink:
+		_try_oink()
 	if Game.bot_aim and world != null:
 		return _bot_aim_cmd(t)
 	if Game.bot_vault:
@@ -708,15 +736,15 @@ func get_net_state() -> Array:
 
 
 ## Client: feed a server snapshot entry for this player.
-func push_snapshot(state: Array) -> void:
+func push_snapshot(state: Array, tick: int) -> void:
 	if control == Mode.LOCAL:
 		last_server_state = state
 		health = state[8]
 		_pending_state = state  # applied at the start of the next physics tick (needs the physics delta)
 		return
-	_snapshots.append({"t": Time.get_ticks_msec() / 1000.0, "pos": state[1], "yaw": state[2], "pitch": state[3]})
-	if _snapshots.size() > 20:
-		_snapshots.pop_front()
+	# Their last command the server has simulated; the host's own player has none, its steps are the server ticks.
+	var seq: int = state[6] if state[6] > 0 else tick
+	_buffer_pose(seq, state[1], state[2], state[3], tick)
 	var flags: int = state[5]
 	_puppet_sounds(flags, state[4])
 	is_crouched = flags & STATE_CROUCHED != 0
@@ -734,25 +762,19 @@ func push_snapshot(state: Array) -> void:
 
 
 func _update_puppet() -> void:
-	if _snapshots.is_empty():
+	var delta := get_process_delta_time()
+	var shown := _buffered_pose(delta)
+	if shown.is_empty():
 		return
 	var previous_pos := global_position
-	var render_t := Time.get_ticks_msec() / 1000.0 - INTERP_DELAY
-	while _snapshots.size() >= 3 and _snapshots[1]["t"] <= render_t:
-		_snapshots.pop_front()
-	var a: Dictionary = _snapshots[0]
-	var b: Dictionary = _snapshots[1] if _snapshots.size() > 1 else a
-	var f := 1.0
-	if b["t"] > a["t"]:
-		f = clampf((render_t - a["t"]) / (b["t"] - a["t"]), 0.0, 1.0)
-	global_position = a["pos"].lerp(b["pos"], f)
-	rotation.y = lerp_angle(a["yaw"], b["yaw"], f)
-	_head.rotation.x = lerpf(a["pitch"], b["pitch"], f)
-	# Velocity of the displayed movement (smooth, unlike the 30 Hz snapshot velocity): drives the body and hitboxes.
-	var delta := get_process_delta_time()
+	global_position = shown["pos"]
+	rotation.y = shown["yaw"]
+	_head.rotation.x = shown["pitch"]
+	shown_tick = shown["tick"]
+	# Velocity of the displayed movement (smooth, unlike the snapshot velocity): drives the body and hitboxes.
 	if delta > 0.0 and previous_pos.distance_to(global_position) < 2.0:
-		var shown := (global_position - previous_pos) / delta
-		_puppet_velocity = _puppet_velocity.lerp(Vector3(shown.x, 0.0, shown.z), 1.0 - exp(-12.0 * delta))
+		var drawn_vel := (global_position - previous_pos) / delta
+		_puppet_velocity = _puppet_velocity.lerp(Vector3(drawn_vel.x, 0.0, drawn_vel.z), 1.0 - exp(-12.0 * delta))
 	_visual.set_crouched(is_crouched)
 	_visual.set_aim_pitch(_head.rotation.x)
 	_visual.update_motion(delta, global_transform.basis.inverse() * _puppet_velocity, _puppet_on_floor)
@@ -770,6 +792,51 @@ func _update_puppet() -> void:
 ## Drops interpolation history (after a teleport).
 func reset_interpolation() -> void:
 	_snapshots.clear()
+
+
+## Host: buffers a remote player's pose after each of their commands (drawn by _process via _buffered_pose).
+func _record_host_sample() -> void:
+	_buffer_pose(_acked_seq, global_position, rotation.y, _head.rotation.x, float(world.server_tick) if world else 0.0)
+
+
+## Puts a pose of another player into the buffer. `seq` counts their steady 60 Hz steps (their command number, or
+## the server tick for the host's own player): the pose is timed by it rather than by when it got here, so jitter
+## on the way (their client -> server -> us) does not show as uneven movement. `tick`: the server tick of the pose.
+func _buffer_pose(seq: int, pos: Vector3, yaw: float, pitch: float, tick: float) -> void:
+	var seq_time := seq / float(Engine.physics_ticks_per_second)
+	var sample := Time.get_ticks_usec() / 1e6 - seq_time
+	if is_inf(_seq_offset) or absf(sample - _seq_offset) > 0.25:
+		_seq_offset = sample  # first pose, or a long stall: start over
+		_jitter = 0.0
+		_snapshots.clear()
+	else:
+		_seq_offset += (sample - _seq_offset) * 0.03  # follows the latency, averages the jitter out
+		# Recent worst case, forgotten slowly (half-life ~20 s at 60 poses/s) so the delay below stays steady.
+		_jitter = maxf(absf(sample - _seq_offset), _jitter * 0.9995)
+	_snapshots.append({"t": _seq_offset + seq_time, "pos": pos, "yaw": yaw, "pitch": pitch, "tick": tick})
+	if _snapshots.size() > 40:
+		_snapshots.pop_front()
+
+
+## The buffered pose _interp_delay in the past: {pos, yaw, pitch, tick}, or {} when there is none. The delay is
+## one 60 Hz step plus the recent jitter (a few ms on a LAN), and changes slowly so the speed does not jump.
+func _buffered_pose(delta: float) -> Dictionary:
+	if _snapshots.is_empty():
+		return {}
+	var target := clampf(1.0 / Engine.physics_ticks_per_second + _jitter + 0.008, INTERP_MIN_DELAY, INTERP_MAX_DELAY)
+	# Changing the delay by r s/s changes the drawn speed by r: grow quickly enough to cover worse jitter, but no
+	# more than 5%; shrink barely noticeably.
+	_interp_delay = move_toward(_interp_delay, target, delta * (0.05 if target > _interp_delay else 0.01))
+	var render_t := Time.get_ticks_usec() / 1e6 - _interp_delay  # usec: a 1 ms clock is +-15% speed noise at 144 FPS
+	while _snapshots.size() >= 3 and _snapshots[1]["t"] <= render_t:
+		_snapshots.pop_front()
+	var a: Dictionary = _snapshots[0]
+	var b: Dictionary = _snapshots[1] if _snapshots.size() > 1 else a
+	var f := 1.0
+	if b["t"] > a["t"]:
+		f = clampf((render_t - a["t"]) / (b["t"] - a["t"]), 0.0, 1.0)
+	return {"pos": (a["pos"] as Vector3).lerp(b["pos"], f), "yaw": lerp_angle(a["yaw"], b["yaw"], f),
+			"pitch": lerpf(a["pitch"], b["pitch"], f), "tick": lerpf(a["tick"], b["tick"], f)}
 
 
 ## Client-side prediction check. The server state corresponds to our command number `ack`; we compare it with
@@ -921,7 +988,8 @@ func _on_shot(event: Dictionary) -> void:
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),
 ## or -1 to use everyone's live positions.
 func _judge_tick(view_tick: float, is_server: bool) -> float:
-	if not is_server or control != Mode.REMOTE_SERVER or world == null or not world.lag_comp_enabled or view_tick <= 0.0:
+	# The host's own shots too: it sees remote players slightly in the past as well (_buffered_pose).
+	if not is_server or control == Mode.PUPPET or world == null or not world.lag_comp_enabled or view_tick <= 0.0:
 		return -1.0
 	var now := float(world.server_tick + 1)
 	return clampf(view_tick, now - LagComp.MAX_REWIND_TICKS, now)
@@ -1062,13 +1130,13 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 func _update_hud(speed: float, delta: float) -> void:
 	var def := weapons.current()
 	_ammo_label.text = "%s\n%d / %d%s" % [def.display_name, weapons.mags[weapons.index], weapons.reserves[weapons.index],
-			"   RELOADING" if weapons.is_reloading() else ""]
+			"   ПЕРЕЗАРЯДКА" if weapons.is_reloading() else ""]
 	var spread := weapons.spread_angle(speed, is_crouched, not is_on_floor())
 	var fov_rad := deg_to_rad(_camera.fov)
 	var px := tan(spread) / tan(fov_rad * 0.5) * get_viewport().get_visible_rect().size.y * 0.5
 	_crosshair.update_state(px if alive else 0.0, weapons.ads if alive else 1.0)
 	_ammo_label.visible = alive
-	_health_label.text = "HP %d" % health
+	_health_label.text = "ЗДОРОВЬЕ %d" % health
 	_health_label.modulate = Color.WHITE if health > 30 else Color(1.0, 0.35, 0.3)
 	if health < _last_health:
 		_hurt_alpha = minf(0.55, 0.2 + float(_last_health - health) / max_health)
@@ -1080,19 +1148,19 @@ func _update_hud(speed: float, delta: float) -> void:
 	death_time_left = maxf(death_time_left - delta, 0.0)
 	_death_label.visible = not alive
 	if not alive:
-		_death_label.text = "YOU DIED\n%s\nRespawn in %.1f" % ["Killed by %s" % killed_by if killed_by != "" else "", death_time_left]
+		_death_label.text = "ВЫ ПОГИБЛИ\n%s\nВозрождение через %.1f" % ["Вас убил %s" % killed_by if killed_by != "" else "", death_time_left]
 	_debug_timer -= delta
 	if _debug_timer > 0.0:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
 	if not _debug_shown:
-		_debug.text = "Esc menu   Tab scores   F10 leave   F3 info"
+		_debug.text = "Esc меню   Tab счёт   F хрю   F10 выйти   F3 инфо"
 		return
 	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
-	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s\nEsc menu   Tab scores   F10 leave   F3 info" % [
+	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт   F хрю   F10 выйти   F3 инфо" % [
 		Engine.get_frames_per_second(), speed,
-		"slide " if is_sliding else "", "crouch " if is_crouched else "",
-		"sprint " if is_sprinting else ""]
+		"подкат " if is_sliding else "", "присед " if is_crouched else "",
+		"бег " if is_sprinting else ""]
 	_debug.text += vault_line
 	_debug.text += "\nsens: mouse x%.2f  stick x%.2f  view turn %.0f deg/s" % [
 			Settings.mouse_sensitivity / 0.0025, Settings.stick_sensitivity, rad_to_deg(_turn_rate)]
@@ -1178,6 +1246,28 @@ func on_hit_confirmed(killed: bool, head: bool) -> void:
 	if _crosshair:
 		_crosshair.show_hit(killed or head)
 	Audio.play("kill" if killed else "hit")
+
+
+## F / d-pad up: the local player oinks. Heard at once here; the server passes it on to everyone else
+## (NetWorld.server_oink, which also enforces the cooldown).
+func _try_oink() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if not alive or world == null or now < _next_oink:
+		return
+	_next_oink = now + NetWorld.OINK_COOLDOWN
+	play_oink()
+	if multiplayer.is_server():
+		world.server_oink(peer_id)
+	else:
+		world.request_oink.rpc_id(1)
+
+
+## Each player has their own pig voice (by peer id); others hear it from where the head is.
+func play_oink() -> void:
+	var voice: String = ["oink", "oink2", "oink3"][absi(peer_id) % 3]
+	if Game.net_log:
+		print("[%d] oink from %d (%s)" % [multiplayer.get_unique_id(), peer_id, voice])
+	Audio.play(voice, null if is_local else global_position + Vector3.UP * 1.5)
 
 
 ## Sounds of another player, derived from changes between snapshots (their simulation does not run here).

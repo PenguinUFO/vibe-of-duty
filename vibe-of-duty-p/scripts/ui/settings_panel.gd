@@ -8,7 +8,8 @@ signal closed
 
 const SENSITIVITY_UNIT := 0.0025  # Settings.mouse_sensitivity (rad/pixel) that counts as "1.00"
 const VOLUME_BUSES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
-const PRESET_NAMES: Array[String] = ["Low", "Medium", "High", "Custom"]
+const VOLUME_NAMES := {&"Master": "Общая громкость", &"SFX": "Звуки", &"Music": "Музыка", &"UI": "Интерфейс"}
+const PRESET_NAMES: Array[String] = ["Низкое", "Среднее", "Высокое", "Своё"]
 const PRESETS: Array[Dictionary] = [
 	{"aa": 0, "shadows": 0},  # Low
 	{"aa": 0, "shadows": 1},  # Medium
@@ -36,62 +37,62 @@ func _init() -> void:
 	add_child(box)
 
 	var title := Label.new()
-	title.text = "SETTINGS"
+	title.text = "НАСТРОЙКИ"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	box.add_child(title)
 
-	_add_slider(box, "Mouse sensitivity", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
+	_add_slider(box, "Чувствительность мыши", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
 			func(v: float) -> void: Settings.mouse_sensitivity = v * SENSITIVITY_UNIT, "%.2f")
-	_add_slider(box, "Stick sensitivity", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
+	_add_slider(box, "Чувствительность стика", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
 			func(v: float) -> void: Settings.stick_sensitivity = v, "%.2f")
-	_add_slider(box, "Aim assist (gamepad)", 0.0, 1.0, 0.05, Settings.aim_assist,
+	_add_slider(box, "Помощь в прицеливании", 0.0, 1.0, 0.05, Settings.aim_assist,
 			func(v: float) -> void: Settings.aim_assist = v, "%d%%", true)
-	_add_slider(box, "Field of view", 60.0, 120.0, 1.0, Settings.fov,
+	_add_slider(box, "Поле зрения", 60.0, 120.0, 1.0, Settings.fov,
 			func(v: float) -> void: Settings.fov = v, "%d")
 
-	_add_heading(box, "Graphics")
+	_add_heading(box, "Графика")
 	var sizes: Array = []
 	for size in Settings.WINDOW_SIZES:
 		sizes.append("%d x %d" % [size.x, size.y])
-	var resolution := _add_option(box, "Resolution", sizes, maxi(Settings.WINDOW_SIZES.find(Settings.window_size), 0),
+	var resolution := _add_option(box, "Разрешение", sizes, maxi(Settings.WINDOW_SIZES.find(Settings.window_size), 0),
 			func(i: int) -> void:
 				Settings.window_size = Settings.WINDOW_SIZES[i]
 				Settings.apply_display())
 	resolution.disabled = Settings.fullscreen  # fullscreen uses the desktop resolution
 	var fullscreen := CheckBox.new()
-	fullscreen.text = "Fullscreen"
+	fullscreen.text = "Полноэкранный режим"
 	fullscreen.button_pressed = Settings.fullscreen
 	fullscreen.toggled.connect(func(on: bool) -> void:
 		Settings.fullscreen = on
 		resolution.disabled = on
 		Settings.apply_display())
 	box.add_child(fullscreen)
-	_preset = _add_option(box, "Preset", PRESET_NAMES, _current_preset(), _on_preset)
-	_aa = _add_option(box, "Anti-aliasing", ["Off", "FXAA"], Settings.antialiasing, func(i: int) -> void:
+	_preset = _add_option(box, "Качество", PRESET_NAMES, _current_preset(), _on_preset)
+	_aa = _add_option(box, "Сглаживание", ["Выкл", "FXAA"], Settings.antialiasing, func(i: int) -> void:
 		Settings.antialiasing = i
 		_graphics_changed())
-	_shadows = _add_option(box, "Shadows", ["Off", "Medium", "High"], Settings.shadow_quality, func(i: int) -> void:
+	_shadows = _add_option(box, "Тени", ["Выкл", "Средние", "Высокие"], Settings.shadow_quality, func(i: int) -> void:
 		Settings.shadow_quality = i
 		_graphics_changed())
-	_add_slider(box, "Render scale", 0.5, 1.0, 0.05, Settings.render_scale, func(v: float) -> void:
+	_add_slider(box, "Масштаб рендера", 0.5, 1.0, 0.05, Settings.render_scale, func(v: float) -> void:
 		Settings.render_scale = v
 		Settings.apply_graphics(), "%d%%", true)
 	var vsync := CheckBox.new()
-	vsync.text = "VSync"
+	vsync.text = "Вертикальная синхронизация"
 	vsync.button_pressed = Settings.vsync
 	vsync.toggled.connect(func(on: bool) -> void:
 		Settings.vsync = on
 		Settings.apply_graphics())
 	box.add_child(vsync)
 
-	_add_heading(box, "Audio")
+	_add_heading(box, "Звук")
 	for bus in VOLUME_BUSES:
-		_add_slider(box, "%s volume" % bus, 0.0, 1.0, 0.01, Settings.volumes.get(bus, 1.0),
+		_add_slider(box, VOLUME_NAMES[bus], 0.0, 1.0, 0.01, Settings.volumes.get(bus, 1.0),
 				func(v: float) -> void: Settings.set_volume(bus, v), "%d%%", true, true)
 
 	var back := Button.new()
-	back.text = "Back"
+	back.text = "Назад"
 	back.pressed.connect(_on_back)
 	box.add_child(back)
 

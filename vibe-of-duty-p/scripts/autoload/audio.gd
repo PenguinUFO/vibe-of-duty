@@ -34,6 +34,10 @@ const PLACEHOLDERS := {
 	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},
 	"spawn": {"kind": "tone", "dur": 0.25, "freq": 400.0, "freq_end": 800.0, "decay": 8.0, "vol": 0.4},
 	"ui_click": {"kind": "tone", "dur": 0.04, "freq": 1200.0, "freq_end": 1200.0, "decay": 50.0, "vol": 0.4},
+	# Pig grunt (F), three voices so a crowd does not sound like one recording. See _synth_oink.
+	"oink": {"kind": "oink", "dur": 0.42, "freq": 150.0, "vol": 0.9},
+	"oink2": {"kind": "oink", "dur": 0.36, "freq": 185.0, "vol": 0.9},
+	"oink3": {"kind": "oink", "dur": 0.5, "freq": 125.0, "vol": 0.9},
 }
 
 var _streams: Dictionary = {}  # id -> AudioStream
@@ -153,6 +157,8 @@ func _scan_music(dir_path: String) -> void:
 
 
 func _synthesize(def: Dictionary) -> AudioStreamWAV:
+	if def["kind"] == "oink":
+		return _synth_oink(def)
 	var count := int(MIX_RATE * float(def["dur"]))
 	var data := PackedByteArray()
 	data.resize(count * 2)
@@ -175,6 +181,39 @@ func _synthesize(def: Dictionary) -> AudioStreamWAV:
 		if kind != "tone":
 			sample += rng.randf_range(-1.0, 1.0) * (0.5 if kind == "thump" else 1.0)
 		data.encode_s16(i * 2, int(clampf(sample * env * vol, -1.0, 1.0) * 32767.0))
+	return _wav(data)
+
+
+## "Хрю": a buzzy sawtooth whose pitch rises and falls, chopped by a fast flutter (the snort), with breathy noise,
+## softened by a low-pass so it sounds nasal rather than electronic.
+func _synth_oink(def: Dictionary) -> AudioStreamWAV:
+	var dur: float = def["dur"]
+	var base: float = def["freq"]
+	var vol: float = def["vol"]
+	var count := int(MIX_RATE * dur)
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(def)
+	var phase := 0.0
+	var low := 0.0
+	var low2 := 0.0
+	for i in count:
+		var t := float(i) / MIX_RATE
+		var u := t / dur
+		var f := base * (1.0 + 0.7 * sin(PI * minf(u * 1.4, 1.0)) - 0.25 * u)  # up quickly, then sagging down
+		phase = fmod(phase + f / MIX_RATE, 1.0)
+		var saw := 2.0 * phase - 1.0
+		var flutter := 0.55 + 0.45 * sin(TAU * 38.0 * t)  # the rattle of a snort
+		var x := saw * flutter + rng.randf_range(-1.0, 1.0) * 0.35
+		low += 0.22 * (x - low)
+		low2 += 0.35 * (low - low2)
+		var env := smoothstep(0.0, 0.025, t) * (1.0 - smoothstep(dur - 0.14, dur, t))
+		data.encode_s16(i * 2, int(clampf(low2 * env * vol * 1.6, -1.0, 1.0) * 32767.0))
+	return _wav(data)
+
+
+func _wav(data: PackedByteArray) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
 	wav.mix_rate = MIX_RATE

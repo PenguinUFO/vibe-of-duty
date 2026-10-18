@@ -10,7 +10,7 @@ extends Node
 ## Client -> server: PlayerCmd packets (see Player.submit_cmds).
 
 const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
-const SNAPSHOT_INTERVAL := 2  # physics ticks between snapshots (60 Hz / 2 = 30 Hz)
+const SNAPSHOT_INTERVAL := 1  # physics ticks between snapshots (60 Hz: others can be drawn only ~30 ms behind)
 const KILL_HEIGHT := -20.0
 
 ## Below this height a living player dies (fell off the map). Maps may raise it: on the train the ground beside the
@@ -19,6 +19,7 @@ const KILL_HEIGHT := -20.0
 const RESPAWN_DELAY := 3.0
 const SPAWN_PROTECTION_TICKS := 120
 const HEAD_DAMAGE_MULT := 2.0
+const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
 
 var players: Dictionary = {}  # peer_id -> Player
 var server_tick := 0          # server: number of physics ticks simulated so far
@@ -26,6 +27,7 @@ var lag_comp := LagComp.new()
 var lag_comp_enabled := true
 
 var _ready_peers: Array[int] = []  # server: peers whose level has finished loading
+var _last_oink := {}               # server: peer_id -> time (s) of their last oink
 var _last_snap_tick := 0           # client: tick of the most recent snapshot...
 var _last_snap_time := 0.0         # ...and when it arrived (seconds)
 var hud: GameHud
@@ -107,13 +109,18 @@ func _process(_delta: float) -> void:
 			Game.time_left if Game.state == Game.State.PLAYING else Game.intermission_left, " ".join(parts), scores])
 
 
-## Client: the server tick whose world state the local player currently sees on screen (puppets are
-## drawn Player.INTERP_DELAY in the past). Sent with every command so the server can rewind targets.
+## The server tick the local player sees the others at (they are drawn slightly in the past, Player._buffered_pose):
+## the average over them. Sent with every command so the server can rewind targets to what was on screen; 0 when
+## nobody else is shown (shots are then judged against live positions).
 func get_view_tick() -> float:
-	if _last_snap_tick == 0:
-		return 0.0
-	var render_time := Time.get_ticks_msec() / 1000.0 - Player.INTERP_DELAY
-	return float(_last_snap_tick) + (render_time - _last_snap_time) * 60.0
+	var total := 0.0
+	var count := 0
+	for id in players:
+		var p: Player = players[id]
+		if p.control != Player.Mode.LOCAL and p.shown_tick > 0.0:
+			total += p.shown_tick
+			count += 1
+	return total / count if count > 0 else 0.0
 
 
 # --- Server --------------------------------------------------------------------------------------
@@ -336,6 +343,35 @@ func _remote_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVec
 		(players[shooter_id] as Player).show_remote_shot(weapon, origin, ends)
 
 
+## Client -> server: the sender pressed F (oink).
+@rpc("any_peer", "reliable")
+func request_oink() -> void:
+	if multiplayer.is_server():
+		server_oink(multiplayer.get_remote_sender_id())
+
+
+## Passes an oink on to everyone but the player (who already heard it). The cooldown is checked here too, so a
+## modified client cannot spam it.
+func server_oink(id: int) -> void:
+	if not players.has(id) or not (players[id] as Player).alive:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - float(_last_oink.get(id, -1000.0)) < OINK_COOLDOWN - 0.15:  # some slack for network jitter
+		return
+	_last_oink[id] = now
+	for peer in _ready_peers:
+		if peer != id:
+			_oink.rpc_id(peer, id)
+	if not Game.dedicated and id != multiplayer.get_unique_id():
+		(players[id] as Player).play_oink()  # the host machine hears clients too
+
+
+@rpc("authority", "reliable")
+func _oink(id: int) -> void:
+	if players.has(id) and id != multiplayer.get_unique_id():
+		(players[id] as Player).play_oink()
+
+
 @rpc("authority", "reliable")
 func _hit_confirm(killed: bool, head: bool) -> void:
 	var me := multiplayer.get_unique_id()
@@ -409,7 +445,7 @@ func _receive_snapshot(tick: int, states: Array) -> void:
 	_last_snap_time = Time.get_ticks_msec() / 1000.0
 	for state in states:
 		if state is Array and state.size() == 9 and players.has(state[0]):
-			(players[state[0]] as Player).push_snapshot(state)
+			(players[state[0]] as Player).push_snapshot(state, tick)
 
 
 func _on_disconnected() -> void:
