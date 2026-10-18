@@ -87,6 +87,8 @@ var look_pitch := 0.0
 
 var is_sliding := false
 var is_crouched := false
+var _puppet_velocity := Vector3.ZERO  # puppets: smoothed velocity of the displayed movement
+var aiming := false  # sights raised (ADS over half way); puppets take it from the snapshot flags
 var is_sprinting := false
 var is_mantling := false
 var gaps_filled := 0   # debug (server): lost commands replaced by a repeat of the previous one
@@ -134,6 +136,7 @@ var killed_by := ""         # local HUD: who killed us
 var death_time_left := 0.0  # local HUD: respawn countdown
 var shots_total := 0   # server stats (for tests / netlog)
 var hits_total := 0
+var head_hits_total := 0
 var _view: WeaponView
 var _arms: FirstPersonArms
 var _crosshair: Crosshair
@@ -174,6 +177,7 @@ var _correction := Vector3.ZERO   # visual offset hiding a position correction, 
 @onready var _camera: Camera3D = $Head/Camera
 @onready var _hud: CanvasLayer = $HUD
 @onready var _debug: Label = $HUD/Debug
+var _debug_shown := false  # F3
 @onready var _visual: PlayerVisual = $Visual
 
 
@@ -184,6 +188,7 @@ func _ready() -> void:
 	_collision.shape = _shape
 	_apply_stance()
 	_head.position.y = STAND_EYE
+	collision_mask = Layers.PLAYER_MOVE_MASK
 	floor_snap_length = 0.4
 	floor_max_angle = deg_to_rad(46.0)
 	floor_stop_on_slope = true
@@ -237,6 +242,9 @@ func teleport(xform: Transform3D) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local:
 		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		_debug_shown = not _debug_shown  # developer overlay: fps, speed, network stats
+		_debug_timer = 0.0
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var sens := Settings.mouse_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
 		look_yaw -= event.relative.x * sens
@@ -283,8 +291,9 @@ func _process(delta: float) -> void:
 		_head.position.y = _eye_height
 		# Server-simulated remote player seen on the host: drive its body like a puppet's.
 		_visual.set_aim_pitch(_head.rotation.x)
-		_visual.set_ads(weapons.ads > 0.5)
-		_visual.update_motion(delta, global_transform.basis.inverse() * velocity)
+		_visual.set_ads(aiming)
+		_visual.set_crouched(is_crouched)
+		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov
 	_camera.fov = lerpf(_camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
@@ -504,7 +513,7 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 	cmd.aim = true
 	if target != null and alive:
 		var eye := global_position + Vector3.UP * STAND_EYE
-		var dir := (target.global_position + Vector3.UP * 1.5 - eye).normalized()
+		var dir := (LagComp.head_center(target.hitbox_state()) - eye).normalized()  # headshots test the hitbox model
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
@@ -649,7 +658,8 @@ func push_snapshot(state: Array) -> void:
 	velocity = state[4]
 	weapons.index = (flags >> STATE_WEAPON_SHIFT) & 3
 	_visual.set_weapon(weapons.index)
-	_visual.set_ads(flags & STATE_ADS != 0)
+	aiming = flags & STATE_ADS != 0
+	_visual.set_ads(aiming)
 	health = state[8]
 	if health <= 0 and alive:
 		die("", 0.0)  # missed the death event (e.g. joined late)
@@ -670,9 +680,14 @@ func _update_puppet() -> void:
 	global_position = a["pos"].lerp(b["pos"], f)
 	rotation.y = lerp_angle(a["yaw"], b["yaw"], f)
 	_head.rotation.x = lerpf(a["pitch"], b["pitch"], f)
+	# Velocity of the displayed movement (smooth, unlike the 30 Hz snapshot velocity): drives the body and hitboxes.
+	var delta := get_process_delta_time()
+	if delta > 0.0 and previous_pos.distance_to(global_position) < 2.0:
+		var shown := (global_position - previous_pos) / delta
+		_puppet_velocity = _puppet_velocity.lerp(Vector3(shown.x, 0.0, shown.z), 1.0 - exp(-12.0 * delta))
 	_visual.set_crouched(is_crouched)
 	_visual.set_aim_pitch(_head.rotation.x)
-	_visual.update_motion(get_process_delta_time(), global_transform.basis.inverse() * velocity)
+	_visual.update_motion(delta, global_transform.basis.inverse() * _puppet_velocity, _puppet_on_floor)
 	# Footsteps of other players, from their displayed movement.
 	var moved := Vector2(global_position.x - previous_pos.x, global_position.z - previous_pos.z).length()
 	if _puppet_on_floor and not is_sliding and moved < 1.0:
@@ -768,7 +783,9 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 		"airborne": not is_on_floor(),
 		"sprinting": is_sprinting,
 	}
-	for event in weapons.tick(cmd, dt, ctx):
+	var events := weapons.tick(cmd, dt, ctx)
+	aiming = weapons.ads > 0.5
+	for event in events:
 		match event["type"]:
 			"shot":
 				event["view_tick"] = cmd.view_tick
@@ -813,6 +830,8 @@ func _on_shot(event: Dictionary) -> void:
 	if is_server:
 		shots_total += 1
 		hits_total += hits.size()
+		for hit in hits:
+			head_hits_total += 1 if hit["zone"] == "head" else 0
 		server_shot.emit(self, event["weapon"], origin, ends, hits)
 		if world != null:
 			for victim_id in damage_by_victim:
@@ -858,10 +877,8 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 		var state := _target_state(other, tick)
 		if state.is_empty():
 			continue
-		var pos: Vector3 = state["pos"]
-		var crouched: bool = state["crouched"]
-		var t_head := LagComp.ray_sphere(origin, dir, LagComp.head_center(pos, crouched), LagComp.HEAD_RADIUS)
-		var seg := LagComp.body_segment(pos, crouched)
+		var t_head := LagComp.ray_sphere(origin, dir, LagComp.head_center(state), LagComp.HEAD_RADIUS)
+		var seg := LagComp.body_segment(state)
 		var t_body := LagComp.ray_capsule(origin, dir, seg[0], seg[1], LagComp.BODY_RADIUS)
 		var t := -1.0
 		var zone := ""
@@ -880,7 +897,15 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 func _target_state(other: Player, tick: float) -> Dictionary:
 	if tick >= 0.0:
 		return world.lag_comp.sample(other.peer_id, tick)
-	return {"pos": other.global_position, "crouched": other.is_crouched}
+	return other.hitbox_state()
+
+
+## What the hitboxes depend on (LagComp): position, stance, facing, aim pitch, velocity and aiming.
+## Puppets report their displayed state, the server its simulation.
+func hitbox_state() -> Dictionary:
+	var vel := velocity if control != Mode.PUPPET else _puppet_velocity
+	return {"pos": global_position, "crouched": is_crouched, "yaw": rotation.y, "pitch": _head.rotation.x,
+			"vel": Vector3(vel.x, 0.0, vel.z), "ads": aiming}
 
 
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
@@ -992,8 +1017,11 @@ func _update_hud(speed: float, delta: float) -> void:
 	if _debug_timer > 0.0:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
+	if not _debug_shown:
+		_debug.text = "Esc menu   Tab scores   F10 leave   F3 info"
+		return
 	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
-	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s\nEsc menu   Tab scores   F10 leave" % [
+	_debug.text = "%d FPS\nspeed %.1f m/s\n%s%s%s\nEsc menu   Tab scores   F10 leave   F3 info" % [
 		Engine.get_frames_per_second(), speed,
 		"slide " if is_sliding else "", "crouch " if is_crouched else "",
 		"sprint " if is_sprinting else ""]
@@ -1145,7 +1173,7 @@ func _capsule_clear(feet_position: Vector3) -> bool:
 	var params := PhysicsShapeQueryParameters3D.new()
 	params.shape = _probe_shape
 	params.transform = Transform3D(Basis.IDENTITY, feet_position + Vector3.UP * (STAND_HEIGHT * 0.5))
-	params.collision_mask = Layers.WORLD
+	params.collision_mask = Layers.PLAYER_MOVE_MASK
 	return get_world_3d().direct_space_state.intersect_shape(params, 1).is_empty()
 
 

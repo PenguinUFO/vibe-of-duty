@@ -1,12 +1,16 @@
 extends SceneTree
-## Renders the test level from a few views to ../shots/level_<view>.png and prints the GPU time of each view
+## Renders a map (SHOT_MAP, default the train) from a few views to ../shots/level_<view>.png and prints the GPU time of each view
 ## (vsync off, 1080p). Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
 
-const VIEWS := {  # name -> [camera position, look at]
-	"spawn": [Vector3(0, 1.65, -34), Vector3(0, 1.4, 0)],
-	"cover": [Vector3(-14, 1.65, 8), Vector3(6, 1.0, -14)],
-	"high": [Vector3(30, 9, 30), Vector3(0, 0, 0)],
-	"wall": [Vector3(18, 1.65, -30), Vector3(-10, 2.0, -40)],
+const VIEWS := {  # train.tscn (cars along z, 20 m each: A from -42.1, B -20.7, C 0.7, D 22.1)
+	"a_lower": [Vector3(0.3, 1.65, -40.0), Vector3(0.0, 1.2, -28.0)],
+	"a_upper": [Vector3(-0.5, 4.95, -24.0), Vector3(0.5, 4.6, -36.0)],
+	"b_lower": [Vector3(-1.0, 1.65, -19.5), Vector3(0.5, 1.0, -8.0)],
+	"b_upper": [Vector3(0.0, 4.95, -19.0), Vector3(0.0, 4.6, -6.0)],
+	"cargo": [Vector3(2.0, 4.95, 2.0), Vector3(-1.0, 1.0, 14.0)],
+	"d_upper": [Vector3(2.0, 4.95, 39.0), Vector3(1.5, 4.6, 28.0)],
+	"outside": [Vector3(16.0, 3.5, -20.0), Vector3(0.0, 2.5, 0.0)],
+	"window": [Vector3(2.3, 1.65, 32.0), Vector3(12.0, 0.5, 30.0)],
 }
 const FRAMES := 120
 
@@ -16,13 +20,15 @@ func _initialize() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	DisplayServer.window_set_size(Vector2i(1920, 1080))
 	root.size = Vector2i(1920, 1080)
-	var level: Node = load("res://prefabs/levels/test_level.tscn").instantiate()
+	var map := OS.get_environment("SHOT_MAP") if OS.has_environment("SHOT_MAP") else "train"
+	var views: Dictionary = VIEWS
+	var level: Node = load("res://prefabs/levels/%s.tscn" % map).instantiate()
 	root.add_child(level)
 	await process_frame
 	await process_frame
 	var world = level.get_node("World")
 	var scene: PackedScene = load("res://prefabs/player/player.tscn")
-	var spots := [Vector3(-8, 0.05, -20), Vector3(6, 0.05, -14), Vector3(0, 0.05, -8)]
+	var spots := [Vector3(0.5, 0.05, -38), Vector3(-0.5, 3.35, -18), Vector3(-1.0, 0.05, 2.0)]
 	for i in 3:
 		var p = scene.instantiate()
 		p.control = 2  # puppet
@@ -46,14 +52,23 @@ func _initialize() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var tag := OS.get_environment("SHOT_TAG")
-	for view in VIEWS:
-		cam.look_at_from_position(VIEWS[view][0], VIEWS[view][1])
+	for hide in OS.get_environment("SHOT_HIDE").split(",", false):  # cost experiments: hide nodes by path
+		var node := level.get_node_or_null(hide) as Node3D
+		if node:
+			node.visible = false
+	var scenery := level.get_node_or_null("Scenery")
+	for view in views:
+		if scenery and OS.has_environment("SHOT_TUNNEL"):  # park a tunnel over the train
+			scenery._tunnel.visible = true
+			scenery._tunnel_z = -40.0
+			scenery._next_tunnel = 999.0
+		cam.look_at_from_position(views[view][0], views[view][1])
 		for i in 30:
 			await process_frame
 		var gpu := 0.0
 		for i in FRAMES:
 			await process_frame
 			gpu += RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid())
-		print("%-6s gpu %.2f ms" % [view, gpu / FRAMES])
+		print("%-8s gpu %.2f ms" % [view, gpu / FRAMES])
 		root.get_texture().get_image().save_png(dir.path_join("level_%s%s.png" % [view, tag]))
 	quit()

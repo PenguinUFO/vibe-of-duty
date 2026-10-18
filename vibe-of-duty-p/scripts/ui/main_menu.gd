@@ -1,5 +1,5 @@
 extends Control
-## Main menu: host a game, join by IP, or quit.
+## Main menu: host a game (HostPanel: map, rules, port), join by IP (the server sends its map and rules), or quit.
 
 @onready var _name_edit: LineEdit = %NameEdit
 @onready var _ip_edit: LineEdit = %IpEdit
@@ -21,7 +21,8 @@ func _ready() -> void:
 	for button in [_host_button, _join_button, _quit_button, _settings_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
-	Net.connected_to_server.connect(_start_game)
+	Net.connected_to_server.connect(func() -> void: _status.text = "Connected, loading the map...")
+	Net.map_received.connect(func(_path: String) -> void: _start_game())
 	Net.connection_failed.connect(_on_connection_failed)
 	if Game.auto_join != "":
 		_connect(Game.auto_join)
@@ -36,9 +37,22 @@ func _apply_name() -> void:
 
 func _on_host() -> void:
 	_apply_name()
+	_center.visible = false
+	var panel := HostPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_center.visible = true)
+	panel.start_requested.connect(func() -> void:
+		panel.queue_free()
+		_center.visible = true
+		_start_server())
+	add_child(panel)
+
+
+func _start_server() -> void:
 	var err := Net.host(Game.launch_port)
 	if err != OK:
-		_status.text = "Could not host: %s" % error_string(err)
+		_status.text = "Could not host on port %d: %s" % [Game.launch_port, error_string(err)]
 		return
 	_start_game()
 
@@ -67,7 +81,7 @@ func _set_buttons_disabled(disabled: bool) -> void:
 
 
 func _start_game() -> void:
-	get_tree().change_scene_to_file(Game.LEVEL_SCENE)
+	get_tree().change_scene_to_file(Game.map_scene)
 
 
 func _open_settings() -> void:

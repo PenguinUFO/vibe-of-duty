@@ -15,7 +15,7 @@ var _viewport: Viewport
 func _initialize() -> void:
 	await process_frame  # autoloads (Settings applies vsync) are ready after the first frame
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	_level = load("res://prefabs/levels/test_level.tscn").instantiate()
+	_level = load("res://prefabs/levels/train.tscn").instantiate()
 	root.add_child(_level)
 	await process_frame
 	await process_frame
@@ -66,9 +66,9 @@ func _initialize() -> void:
 func _setup_scene() -> void:
 	var world = _level.get_node("World")
 	var me = world.players[1]
-	me.teleport(Transform3D(Basis.IDENTITY, Vector3(0, 0.05, -34)))
+	me.teleport(Transform3D(Basis.IDENTITY, Vector3(0.3, 1.0, -40)))  # car A, lower deck, looking down the car
 	var scene: PackedScene = load("res://prefabs/player/player.tscn")
-	var spots := [Vector3(-8, 0.05, -20), Vector3(6, 0.05, -14), Vector3(0, 0.05, -8)]
+	var spots := [Vector3(0.5, 0.05, -30), Vector3(-0.5, 3.35, -18), Vector3(-1.0, 0.05, 2.0)]
 	for i in 3:
 		var p = scene.instantiate()
 		p.control = 2  # puppet

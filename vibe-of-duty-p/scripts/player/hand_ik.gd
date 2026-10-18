@@ -21,17 +21,19 @@ var straighten: Array[String] = []  # bones reset to their rest rotation first (
 var hidden: Array[String] = []      # bones shrunk to nothing (first person: the head, which would block the camera)
 var max_stretch := 1.0              # an arm may be lengthened up to this factor to reach its target
 
+var _bones := {}  # bone name -> index, filled on first use
+
 
 func _process_modification() -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null:
 		return
 	for bone_name in straighten:
-		var bone := skeleton.find_bone(bone_name)
+		var bone := _bone(skeleton, bone_name)
 		if bone >= 0:
 			skeleton.set_bone_pose_rotation(bone, skeleton.get_bone_rest(bone).basis.get_rotation_quaternion())
 	for bone_name in hidden:
-		var bone := skeleton.find_bone(bone_name)
+		var bone := _bone(skeleton, bone_name)
 		if bone >= 0:
 			skeleton.set_bone_pose_scale(bone, Vector3.ONE * 0.001)
 	if not place_weapon.is_valid():
@@ -48,9 +50,9 @@ func _process_modification() -> void:
 
 ## Two-bone IK in skeleton space; the elbow keeps bending the way the animation bends it.
 func _solve_arm(skeleton: Skeleton3D, arm: Array, wrist_target: Vector3) -> void:
-	var root_bone := skeleton.find_bone(arm[0])
-	var mid_bone := skeleton.find_bone(arm[1])
-	var end_bone := skeleton.find_bone(arm[2])
+	var root_bone := _bone(skeleton, arm[0])
+	var mid_bone := _bone(skeleton, arm[1])
+	var end_bone := _bone(skeleton, arm[2])
 	if root_bone < 0 or mid_bone < 0 or end_bone < 0:
 		return
 	var root_pose := skeleton.get_bone_global_pose(root_bone)
@@ -91,9 +93,9 @@ func _solve_arm(skeleton: Skeleton3D, arm: Array, wrist_target: Vector3) -> void
 ## Fingers along `fingers`, then rolled about them so the palm faces `palm_dir` (skeleton space). The palm side is
 ## where the (animated, slightly curled) fingers bend to.
 func _orient_hand(skeleton: Skeleton3D, arm: Array, fingers: Vector3, palm_dir: Vector3) -> void:
-	var hand := skeleton.find_bone(arm[2])
-	var knuckle := skeleton.find_bone(arm[3])
-	var tip := skeleton.find_bone(arm[4])
+	var hand := _bone(skeleton, arm[2])
+	var knuckle := _bone(skeleton, arm[3])
+	var tip := _bone(skeleton, arm[4])
 	if hand < 0 or knuckle < 0:
 		return
 	var pose := skeleton.get_bone_global_pose(hand)
@@ -111,7 +113,7 @@ func _orient_hand(skeleton: Skeleton3D, arm: Array, fingers: Vector3, palm_dir: 
 		return
 	pose.basis = Basis(Quaternion(now_palm.normalized(), want.normalized())) * pose.basis
 	skeleton.set_bone_global_pose(hand, pose)
-	_share_twist(skeleton, skeleton.find_bone(arm[1]), hand, before)
+	_share_twist(skeleton, _bone(skeleton, arm[1]), hand, before)
 
 
 ## Moves part of the hand's roll about the forearm axis (relative to `before`, its pose as the IK left it) into the
@@ -135,3 +137,9 @@ func _share_twist(skeleton: Skeleton3D, elbow: int, hand: int, before: Basis) ->
 	elbow_pose.basis = Basis(share) * elbow_pose.basis
 	skeleton.set_bone_global_pose(elbow, elbow_pose)
 	skeleton.set_bone_global_pose(hand, hand_pose)  # back to the wanted hand pose
+
+
+func _bone(skeleton: Skeleton3D, bone_name: String) -> int:
+	if not _bones.has(bone_name):
+		_bones[bone_name] = skeleton.find_bone(bone_name)
+	return _bones[bone_name]

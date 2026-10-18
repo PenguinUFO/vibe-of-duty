@@ -7,13 +7,16 @@ signal state_changed(new_state: State)
 signal score_changed(peer_id: int)
 
 const MENU_SCENE := "res://prefabs/ui/main_menu.tscn"
-const LEVEL_SCENE := "res://prefabs/levels/test_level.tscn"
+const MAPS_DIR := "res://prefabs/levels"
+const DEFAULT_MAP := "res://prefabs/levels/train.tscn"
+const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are building blocks, not maps
 const SCORE_LIMIT := 20
 const MATCH_TIME := 600.0  # seconds
 const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the next one
 
 # Launch arguments (pass after "--"): --server (dedicated, no local player), --port=N,
-# --join=IP (skip the menu), --name=Name, --bot (scripted input for tests), --netlog (periodic net debug prints),
+# --join=IP (skip the menu), --name=Name, --map=file_name (map of a dedicated server, e.g. --map=train),
+# --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules).
 var dedicated := false
 var bot_mode := false
@@ -27,6 +30,7 @@ var net_perturb := false  # --perturb: client injects fake prediction errors (re
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var launch_port := Net.DEFAULT_PORT
+var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
 var intermission_time := INTERMISSION_TIME
@@ -72,6 +76,12 @@ func _ready() -> void:
 			launch_port = int(arg.trim_prefix("--port="))
 		elif arg.begins_with("--name="):
 			Settings.player_name = arg.trim_prefix("--name=")
+		elif arg.begins_with("--map="):
+			var path := MAPS_DIR.path_join(arg.trim_prefix("--map=") + ".tscn")
+			if is_map(path):
+				map_scene = path
+			else:
+				push_error("Unknown map %s; maps: %s" % [path, ", ".join(list_maps())])
 	if dedicated:
 		var err := Net.host(launch_port)
 		if err != OK:
@@ -79,7 +89,28 @@ func _ready() -> void:
 			get_tree().quit(1)
 			return
 		print("Dedicated server listening on port %d" % launch_port)
-		get_tree().change_scene_to_file.call_deferred(LEVEL_SCENE)
+		print("Map: %s" % map_scene)
+		get_tree().change_scene_to_file.call_deferred(map_scene)
+
+
+## Every map: the scenes in MAPS_DIR except the building blocks. Dropping a new level scene there adds a map.
+static func list_maps() -> Array[String]:
+	var maps: Array[String] = []
+	for file in DirAccess.get_files_at(MAPS_DIR):
+		file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
+		if file.get_extension() == "tscn" and not NOT_MAPS.has(file.get_basename()):
+			maps.append(MAPS_DIR.path_join(file))
+	maps.sort()
+	return maps
+
+
+static func is_map(path: String) -> bool:
+	return list_maps().has(path)
+
+
+## "res://prefabs/levels/train.tscn" -> "Train".
+static func map_name(path: String) -> String:
+	return path.get_file().get_basename().capitalize()
 
 
 func set_state(new_state: State) -> void:

@@ -1,11 +1,28 @@
-[gd_scene format=3 uid="uid://dkums48nem5br"]
+[gd_scene format=3 uid="uid://dmq6b8n6g8g0x"]
 
-[ext_resource type="Script" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="Script" uid="uid://cpr1l748quiwk" path="res://scripts/net/world.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
-[ext_resource type="Shader" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
+[ext_resource type="Shader" uid="uid://kb4cbwsy0nk3" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("3_sky")
+shader_parameter/zenith_color = Color(0.24, 0.47, 0.8, 1)
+shader_parameter/horizon_color = Color(0.74, 0.8, 0.87, 1)
+shader_parameter/ground_color = Color(0.6, 0.63, 0.67, 1)
+shader_parameter/horizon_curve = 0.35
+shader_parameter/sun_size = 1.2
+shader_parameter/sun_glow = 0.6
+shader_parameter/sun_glow_size = 10.0
+shader_parameter/cloud_coverage = 0.5
+shader_parameter/cloud_softness = 0.09
+shader_parameter/cloud_scale = 1.1
+shader_parameter/cloud_detail = 0.8
+shader_parameter/cloud_light = Color(1, 0.98, 0.95, 1)
+shader_parameter/cloud_shadow = Color(0.52, 0.58, 0.68, 1)
+shader_parameter/cloud_shading = 9.0
+shader_parameter/cloud_thickness_dark = 0.35
+shader_parameter/cloud_horizon_fade = 0.18
+shader_parameter/cloud_offset = Vector2(0, 0)
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")
@@ -35,7 +52,7 @@ adjustment_saturation = 1.15
 environment = SubResource("env")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=300336447]
-transform = Transform3D(-0.7660, -0.3957, 0.5065, 0.0000, 0.7880, 0.6157, -0.6428, 0.4716, -0.6037, 0, 12, 0)
+transform = Transform3D(-0.766, -0.3957, 0.5065, 0, 0.788, 0.6157, -0.6428, 0.4716, -0.6037, 0, 12, 0)
 light_color = Color(1, 0.92, 0.8, 1)
 light_energy = 2.2
 shadow_enabled = true
@@ -186,7 +203,7 @@ transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -30, 0.05, 5)
 [node name="Spawn5" type="Marker3D" parent="SpawnPoints" unique_id=1680589791]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 5, 0.05, 15)
 
-[node name="Players" type="Node3D" parent="."]
+[node name="Players" type="Node3D" parent="." unique_id=1231167548]
 
-[node name="World" type="Node" parent="."]
+[node name="World" type="Node" parent="." unique_id=162360737]
 script = ExtResource("1_world")

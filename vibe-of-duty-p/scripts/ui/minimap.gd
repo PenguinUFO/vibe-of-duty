@@ -5,9 +5,11 @@ extends Control
 ## fired from and fade out; they do not follow the shooter.
 
 const SIDE := 200.0         # screen size (px)
-const HALF_RANGE := 40.0    # world half-width shown (m)
+const HALF_RANGE := 18.0    # world half-width shown (m): the train is 6 m wide, so it fills a sixth of the map
 const SHOT_SHOW_TIME := 3.0 # seconds a shot mark stays on the map
 const WALL_MIN_TOP := 0.4   # blocks lower than this (the floor) are not drawn as structure
+const MIN_HEIGHT := 0.4     # thinner blocks are floors / slabs / ramps, not walls
+const ROOF_BOTTOM := 4.5    # blocks starting this high are roofs
 
 var world: NetWorld
 
@@ -24,7 +26,9 @@ func _ready() -> void:
 	var level: Node = world.get_parent() if world != null else get_tree().current_scene
 	for node in level.find_children("*", "Block", true, false):
 		var block := node as Block
-		if block.global_position.y + block.size.y * 0.5 > WALL_MIN_TOP:
+		var bottom := block.global_position.y - block.size.y * 0.5
+		# Plan view: walls and cover. Floors, slabs and ramps (thin) and roofs (high up) would hide the layout.
+		if block.global_position.y + block.size.y * 0.5 > WALL_MIN_TOP and block.size.y >= MIN_HEIGHT and bottom < ROOF_BOTTOM:
 			_blocks.append(block)
 
 

@@ -12,6 +12,10 @@ extends Node
 const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
 const SNAPSHOT_INTERVAL := 2  # physics ticks between snapshots (60 Hz / 2 = 30 Hz)
 const KILL_HEIGHT := -20.0
+
+## Below this height a living player dies (fell off the map). Maps may raise it: on the train the ground beside the
+## track is deadly (it rushes past at 80 km/h).
+@export var kill_height := KILL_HEIGHT
 const RESPAWN_DELAY := 3.0
 const SPAWN_PROTECTION_TICKS := 120
 const HEAD_DAMAGE_MULT := 2.0
@@ -77,7 +81,7 @@ func _physics_process(delta: float) -> void:
 	for id in players.keys():
 		var player: Player = players[id]
 		player.spawn_protect = maxi(player.spawn_protect - 1, 0)
-		if player.alive and player.global_position.y < KILL_HEIGHT:
+		if player.alive and player.global_position.y < kill_height:
 			_server_suicide(player)
 	lag_comp.record(server_tick, players)
 	if server_tick % SNAPSHOT_INTERVAL == 0:
@@ -94,9 +98,9 @@ func _process(_delta: float) -> void:
 	var parts: PackedStringArray = []
 	for id in players:
 		var p: Player = players[id]
-		parts.append("%d(%s)=(%.1f, %.1f, %.1f) hp=%d %s srv_shots=%d srv_hits=%d" % [id, Player.Mode.keys()[p.control],
+		parts.append("%d(%s)=(%.1f, %.1f, %.1f) hp=%d %s srv_shots=%d srv_hits=%d heads=%d" % [id, Player.Mode.keys()[p.control],
 				p.global_position.x, p.global_position.y, p.global_position.z, p.health, p.debug_weapon_string(),
-				p.shots_total, p.hits_total])
+				p.shots_total, p.hits_total, p.head_hits_total])
 	var role := "SERVER" if multiplayer.is_server() else "CLIENT %d" % multiplayer.get_unique_id()
 	var scores := " scores=%s" % str(Game.scores) if multiplayer.is_server() else ""
 	print("[%s] t=%.1f state=%d left=%.0f %s%s" % [role, Time.get_ticks_msec() / 1000.0, Game.state,
@@ -139,7 +143,7 @@ func _server_add_player(id: int, player_name: String) -> void:
 		_spawn_player.rpc_id(id, id, player_name, xform)
 		_ready_peers.append(id)
 		_sync_scores.rpc_id(id, Game.scores)
-		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.winners)
+		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	_broadcast_scores()
 
 
@@ -283,7 +287,7 @@ func _broadcast_scores() -> void:
 
 func _broadcast_match() -> void:
 	for peer in _ready_peers:
-		_sync_match.rpc_id(peer, Game.state, Game.time_left, Game.winners)
+		_sync_match.rpc_id(peer, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 
 
 ## Lets the HUD on this machine (host or client) know that scores/state changed.
@@ -364,9 +368,10 @@ func _sync_scores(scores: Dictionary) -> void:
 
 
 @rpc("authority", "reliable")
-func _sync_match(state: int, time_left: float, winners: Array) -> void:
+func _sync_match(state: int, time_left: float, intermission_left: float, winners: Array) -> void:
 	var was_ended := Game.state == Game.State.ENDED
 	Game.time_left = time_left
+	Game.intermission_left = intermission_left
 	Game.winners = winners
 	Game.set_state(state as Game.State)
 	if state == Game.State.PLAYING and was_ended:

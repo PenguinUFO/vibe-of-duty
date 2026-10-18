@@ -6,6 +6,7 @@ const MAX_PLAYERS := 4
 
 signal hosted
 signal connected_to_server
+signal map_received(path: String)  # client: the server told us its map and rules; load the map and join
 signal connection_failed
 signal disconnected
 signal peer_joined(id: int)
@@ -13,7 +14,7 @@ signal peer_left(id: int)
 
 
 func _ready() -> void:
-	multiplayer.peer_connected.connect(func(id: int) -> void: peer_joined.emit(id))
+	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(func(id: int) -> void: peer_left.emit(id))
 	multiplayer.connected_to_server.connect(func() -> void: connected_to_server.emit())
 	multiplayer.connection_failed.connect(_on_connection_failed)
@@ -22,6 +23,27 @@ func _ready() -> void:
 
 func is_server() -> bool:
 	return multiplayer.has_multiplayer_peer() and multiplayer.is_server()
+
+
+func _on_peer_connected(id: int) -> void:
+	if multiplayer.is_server():
+		# The newcomer takes our map and match rules, loads the map, then reports ready to NetWorld.
+		_receive_map.rpc_id(id, Game.map_scene, {"score_limit": Game.score_limit, "match_time": Game.match_time})
+	peer_joined.emit(id)
+
+
+## Client: which map the server plays, and its match rules. Only maps this build has are accepted (never load an
+## arbitrary path).
+@rpc("authority", "reliable")
+func _receive_map(path: String, rules: Dictionary) -> void:
+	if not Game.is_map(path):
+		push_error("Server plays a map this build does not have: %s" % path)
+		leave()
+		return
+	Game.map_scene = path
+	Game.score_limit = int(rules.get("score_limit", Game.SCORE_LIMIT))
+	Game.match_time = float(rules.get("match_time", Game.MATCH_TIME))
+	map_received.emit(path)
 
 
 func host(port: int = DEFAULT_PORT) -> Error:

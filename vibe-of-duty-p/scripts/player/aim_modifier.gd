@@ -12,14 +12,19 @@ const MAX_TURN := deg_to_rad(70.0)
 
 var pitch := 0.0                # radians, positive = looking up
 var ads := 0.0                  # 0..1
+var hips_yaw := 0.0             # radians: turns the whole body about the vertical first (squares up a clip that stands turned)
 var forward := Vector3(0, 0, 1) # where the player looks, in skeleton space (horizontal)
 var barrel: Callable            # () -> Vector3: barrel direction in skeleton space, or Vector3.ZERO if unknown
+
+var _bones := {}                # bone name -> index, filled on first use
 
 
 func _process_modification() -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null:
 		return
+	if not is_zero_approx(hips_yaw):
+		_rotate(skeleton, {"Hips": 1.0}, Vector3.UP, hips_yaw)
 	var tilt := pitch
 	if ads > 0.001 and barrel.is_valid():
 		var dir: Vector3 = barrel.call()
@@ -37,7 +42,9 @@ func _process_modification() -> void:
 
 func _rotate(skeleton: Skeleton3D, weights: Dictionary, axis: Vector3, angle: float) -> void:
 	for bone_name in weights:
-		var bone := skeleton.find_bone(bone_name)
+		if not _bones.has(bone_name):
+			_bones[bone_name] = skeleton.find_bone(bone_name)
+		var bone: int = _bones[bone_name]
 		if bone < 0:
 			continue
 		var pose := skeleton.get_bone_global_pose(bone)
