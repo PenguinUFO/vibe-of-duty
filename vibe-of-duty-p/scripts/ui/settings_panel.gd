@@ -43,6 +43,8 @@ func _init() -> void:
 
 	_add_slider(box, "Mouse sensitivity", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
 			func(v: float) -> void: Settings.mouse_sensitivity = v * SENSITIVITY_UNIT, "%.2f")
+	_add_slider(box, "Stick sensitivity", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
+			func(v: float) -> void: Settings.stick_sensitivity = v, "%.2f")
 	_add_slider(box, "Field of view", 60.0, 120.0, 1.0, Settings.fov,
 			func(v: float) -> void: Settings.fov = v, "%d")
 
@@ -74,6 +76,19 @@ func _init() -> void:
 	back.text = "Back"
 	back.pressed.connect(_on_back)
 	box.add_child(back)
+
+
+func _ready() -> void:
+	if Settings.has_gamepad():  # d-pad / stick navigation needs a focused control
+		for child in find_children("*", "Range", true, false):
+			(child as Control).grab_focus.call_deferred()
+			break
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel"):  # Esc / B
+		get_viewport().set_input_as_handled()
+		_on_back()
 
 
 func _on_back() -> void:

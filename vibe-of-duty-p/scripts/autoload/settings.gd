@@ -11,6 +11,7 @@ signal changed
 signal graphics_changed  # shadow / AA / scale / vsync settings were applied
 
 var mouse_sensitivity := 0.0025  # radians per pixel
+var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STICK_LOOK_SPEED)
 var fov := 90.0
 var player_name := "Player"
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
@@ -31,6 +32,59 @@ func _ready() -> void:
 	load_settings()
 	apply_audio()
 	apply_graphics()
+	_bind_gamepad()
+
+
+## Gamepad bindings (Xbox layout names; other pads map to the same positions). Added here rather than in the project's
+## input map so the whole layout is readable in one place:
+##   left stick move, right stick look, A jump, B crouch, Y or L3 sprint (latches until you stop), RT fire, LT aim,
+##   X reload, d-pad right next weapon, Back scoreboard, Start pause menu. Menus: d-pad / left stick, A accept, B back.
+func _bind_gamepad() -> void:
+	var axes := {
+		"move_left": [JOY_AXIS_LEFT_X, -1.0], "move_right": [JOY_AXIS_LEFT_X, 1.0],
+		"move_forward": [JOY_AXIS_LEFT_Y, -1.0], "move_back": [JOY_AXIS_LEFT_Y, 1.0],
+		"look_left": [JOY_AXIS_RIGHT_X, -1.0], "look_right": [JOY_AXIS_RIGHT_X, 1.0],
+		"look_up": [JOY_AXIS_RIGHT_Y, -1.0], "look_down": [JOY_AXIS_RIGHT_Y, 1.0],
+		"fire": [JOY_AXIS_TRIGGER_RIGHT, 1.0], "aim": [JOY_AXIS_TRIGGER_LEFT, 1.0],
+	}
+	for action in axes:
+		_ensure_action(action, 0.25 if action.begins_with("look") or action.begins_with("move") else 0.4)
+		var event := InputEventJoypadMotion.new()
+		event.axis = axes[action][0]
+		event.axis_value = axes[action][1]
+		InputMap.action_add_event(action, event)
+	var buttons := {
+		"jump": [JOY_BUTTON_A], "crouch": [JOY_BUTTON_B], "sprint_toggle": [JOY_BUTTON_Y, JOY_BUTTON_LEFT_STICK],
+		"reload": [JOY_BUTTON_X], "weapon_next": [JOY_BUTTON_DPAD_RIGHT], "scoreboard": [JOY_BUTTON_BACK],
+		"pause": [JOY_BUTTON_START],
+	}
+	for action in buttons:
+		_ensure_action(action)
+		for button in buttons[action]:
+			var event := InputEventJoypadButton.new()
+			event.button_index = button
+			InputMap.action_add_event(action, event)
+	# Menus: A accepts, B goes back (Godot's ui_accept / ui_cancel come without gamepad buttons). The pause menu opens
+	# on its own action (Esc / Start), because B is crouch in game.
+	for pair in [["ui_accept", JOY_BUTTON_A], ["ui_cancel", JOY_BUTTON_B]]:
+		var ui_event := InputEventJoypadButton.new()
+		ui_event.button_index = pair[1]
+		InputMap.action_add_event(pair[0], ui_event)
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	InputMap.action_add_event("pause", escape)
+
+
+func _ensure_action(action: String, deadzone: float = 0.5) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action, deadzone)
+	else:
+		InputMap.action_set_deadzone(action, deadzone)
+
+
+## True when a gamepad is connected (menus then put the focus on a button, so the d-pad can navigate).
+func has_gamepad() -> bool:
+	return not Input.get_connected_joypads().is_empty()
 
 
 func set_volume(bus: StringName, linear: float) -> void:
@@ -69,6 +123,7 @@ func apply_sun(light: DirectionalLight3D) -> void:
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
+	cfg.set_value("input", "stick_sensitivity", stick_sensitivity)
 	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "antialiasing", antialiasing)
 	cfg.set_value("video", "shadow_quality", shadow_quality)
@@ -89,6 +144,7 @@ func load_settings() -> void:
 	if cfg.load(SAVE_PATH) != OK:
 		return
 	mouse_sensitivity = cfg.get_value("input", "mouse_sensitivity", mouse_sensitivity)
+	stick_sensitivity = clampf(cfg.get_value("input", "stick_sensitivity", stick_sensitivity), 0.2, 3.0)
 	fov = cfg.get_value("video", "fov", fov)
 	antialiasing = clampi(cfg.get_value("video", "antialiasing", antialiasing), 0, 1)
 	shadow_quality = clampi(cfg.get_value("video", "shadow_quality", shadow_quality), 0, 2)

@@ -38,6 +38,8 @@ const MANTLE_EXIT_SPEED := 2.5
 const LAND_SOUND_MIN_SPEED := 4.0
 const STEP_STRIDE := 2.4
 const MAX_PITCH := deg_to_rad(89.0)
+const STICK_LOOK_SPEED := Vector2(3.2, 2.2)  # rad/s at full right-stick deflection (yaw, pitch), stick sensitivity 1
+const STICK_CURVE := 2.0                      # response curve: small deflections turn slowly for fine aim
 
 enum Mode {
 	LOCAL,          # this machine's own player: gathers input, predicts
@@ -83,6 +85,7 @@ var is_local: bool:
 		return control == Mode.LOCAL
 
 var look_yaw := 0.0
+var _sprint_latched := false  # gamepad sprint (Y / L3) stays on until the player stops moving forward
 var look_pitch := 0.0
 
 var is_sliding := false
@@ -282,6 +285,7 @@ func _process(delta: float) -> void:
 	var speed := Vector2(velocity.x, velocity.z).length()
 	var def := weapons.current()
 	if is_local:
+		_stick_look(delta)
 		_view_recoil = _view_recoil.lerp(weapons.recoil, 1.0 - exp(-25.0 * delta))
 		_correction *= exp(-CORRECTION_DECAY * delta)
 		var pos := _prev_pos.lerp(_curr_pos, Engine.get_physics_interpolation_fraction()) + _correction
@@ -303,6 +307,19 @@ func _process(delta: float) -> void:
 		_update_hud(speed, delta)
 
 
+## Right-stick look (the mouse turns the view in _unhandled_input). Slower while aiming, like the mouse.
+func _stick_look(delta: float) -> void:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or Game.bot_mode:
+		return
+	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	if stick == Vector2.ZERO:
+		return
+	stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
+	var speed := STICK_LOOK_SPEED * Settings.stick_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
+	look_yaw -= stick.x * speed.x * delta
+	look_pitch = clampf(look_pitch - stick.y * speed.y * delta, -MAX_PITCH, MAX_PITCH)
+
+
 func _gather_cmd(delta: float) -> PlayerCmd:
 	if Game.bot_mode:
 		return _bot_cmd(delta)
@@ -312,7 +329,11 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 	_jump_buffer = maxf(_jump_buffer - delta, 0.0)
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		cmd.move = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-		cmd.sprint = Input.is_action_pressed("sprint")
+		# Gamepad: a press of Y (or L3) sprints until you stop pushing forward, so the thumb is free for the look stick.
+		if Input.is_action_just_pressed("sprint_toggle"):
+			_sprint_latched = true
+		if cmd.move.y > -0.3:
+			_sprint_latched = false
 		cmd.crouch = Input.is_action_pressed("crouch")
 		cmd.jump_held = Input.is_action_pressed("jump")
 		cmd.fire = Input.is_action_pressed("fire")
@@ -328,6 +349,11 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 			cmd.select = (weapons.index + 1) % count
 		elif Input.is_action_just_pressed("weapon_prev"):
 			cmd.select = (weapons.index + count - 1) % count
+		# Any other action ends a latched sprint; press Y / L3 again to sprint on.
+		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("crouch") or cmd.fire or cmd.aim \
+				or cmd.reload or cmd.select >= 0:
+			_sprint_latched = false
+		cmd.sprint = Input.is_action_pressed("sprint") or _sprint_latched
 	cmd.jump = _jump_buffer > 0.0
 	return cmd
 

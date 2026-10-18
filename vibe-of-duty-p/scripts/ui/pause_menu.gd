@@ -54,6 +54,7 @@ func is_open() -> bool:
 func open() -> void:
 	_root.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_focus_first(_menu_box)
 
 
 func close() -> void:
@@ -63,7 +64,8 @@ func close() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_cancel"):
+	# Opens on "pause" (Esc / Start); while open, "ui_cancel" (Esc / B) also goes back. B alone is crouch in game.
+	if not (event.is_action_pressed("pause") or (is_open() and event.is_action_pressed("ui_cancel"))):
 		return
 	get_viewport().set_input_as_handled()
 	if _settings.visible:
@@ -87,11 +89,23 @@ func _add_button(text: String, action: Callable) -> void:
 func _open_settings() -> void:
 	_menu_box.get_parent().visible = false
 	_settings.visible = true
+	_focus_first(_settings)
 
 
 func _close_settings() -> void:
 	_settings.visible = false
 	_menu_box.get_parent().visible = true
+	if is_open():
+		_focus_first(_menu_box)
+
+
+## With a gamepad, put the focus on the first button so the d-pad / stick can move through the menu.
+func _focus_first(container: Control) -> void:
+	if not Settings.has_gamepad():
+		return
+	for child in container.find_children("*", "BaseButton", true, false):
+		(child as Control).grab_focus.call_deferred()
+		return
 
 
 func _leave() -> void:

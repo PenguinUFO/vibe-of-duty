@@ -21,6 +21,8 @@ func _ready() -> void:
 	for button in [_host_button, _join_button, _quit_button, _settings_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
+	if Settings.has_gamepad():
+		_host_button.grab_focus.call_deferred()  # d-pad / stick navigation needs a focused control
 	Net.connected_to_server.connect(func() -> void: _status.text = "Connected, loading the map...")
 	Net.map_received.connect(func(_path: String) -> void: _start_game())
 	Net.connection_failed.connect(_on_connection_failed)
@@ -41,7 +43,9 @@ func _on_host() -> void:
 	var panel := HostPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true)
+		_center.visible = true
+		if Settings.has_gamepad():
+			_host_button.grab_focus.call_deferred())
 	panel.start_requested.connect(func() -> void:
 		panel.queue_free()
 		_center.visible = true

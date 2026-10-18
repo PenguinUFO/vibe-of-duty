@@ -61,6 +61,14 @@ func _init() -> void:
 	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start.pressed.connect(_on_start)
 	buttons.add_child(start)
+	if Settings.has_gamepad():
+		start.grab_focus.call_deferred()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):  # Esc / B: back to the main menu
+		get_viewport().set_input_as_handled()
+		closed.emit()
 
 
 func _on_start() -> void:
