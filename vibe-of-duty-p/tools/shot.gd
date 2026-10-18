@@ -22,7 +22,7 @@ func _initialize() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	vis.set_aim_pitch(float(OS.get_environment("SHOT_PITCH")) if OS.has_environment("SHOT_PITCH") else 0.0)
-	var views := {"front": Vector3(1.6, 1.4, -2.6), "side": Vector3(3.0, 1.3, 0.0), "back": Vector3(-1.2, 1.6, 2.6)}
+	var views := {"front": Vector3(1.6, 1.4, -2.6), "side": Vector3(3.0, 1.3, 0.0), "back": Vector3(-1.2, 1.6, 2.6), "left": Vector3(-1.8, 1.5, -1.8)}
 	for view in views:
 		cam.look_at_from_position(views[view], Vector3(0, 1.0, 0))
 		for i in 30:

@@ -17,14 +17,15 @@ const IDLE_CLIP := &"mixamo/rifle_idle_hip"
 
 ## How the weapon sits in the hands. Exported so they can be tuned live: run the game, open Remote in the editor's
 ## Scene dock, select Players/<id>/Visual and edit them in the Inspector; then copy the values here.
-@export var grip := Vector3(0.0, 0.02, 0.0)       # point of the weapon (view space: x right, y up, -z forward) that sits in the right palm
-@export var model_yaw := 0.0:  # extra turn of the whole body in degrees (+ = to the left), e.g. when a clip stands turned
+@export var grip := Vector3(0.0, -0.08, 0.0)       # point of the weapon (view space: x right, y up, -z forward) that sits in the right palm
+@export var model_yaw := 10.0:  # extra turn of the whole body in degrees (+ = to the left), e.g. when a clip stands turned
 	set(value):
 		model_yaw = value
 		if _model:
 			_model.rotation.y = MODEL_YAW_OFFSET + deg_to_rad(model_yaw)
 @export var aim_pitch_scale := 1.0  # how much of the look pitch the spine follows (1 = all of it)
-@export var weapon_rotation := Vector3(0.0, 0.0, 0.0)  # extra turn of the weapon in degrees: x = muzzle up/down, y = left/right, z = roll
+@export var foregrip := Vector3(0.0, 0.03, -0.3)  # point of the weapon (view space) that the left palm holds; the left arm is bent to it (IK)
+@export var weapon_rotation := Vector3(0.0, -20.0, 0.0)  # extra turn of the weapon in degrees: x = muzzle up/down, y = left/right, z = roll
 
 var _model: Node3D
 var _weapon := WeaponView.new()
@@ -33,6 +34,7 @@ var _dead := false
 var _skeleton: Skeleton3D
 var _player: AnimationPlayer
 var _aim := AimModifier.new()
+var _ik := HandIK.new()
 var _hand_r := -1
 var _hand_l := -1
 var _finger_r := -1
@@ -101,10 +103,12 @@ func _setup_animation() -> void:
 	_finger_l = _skeleton.find_bone("Finger_01_L")
 	_weapon.top_level = true
 	_skeleton.add_child(_aim)
-	_skeleton.skeleton_updated.connect(_place_weapon)
+	_ik.place_weapon = _place_weapon
+	_skeleton.add_child(_ik)  # after _aim: sees the bent spine
 
 
 func _place_weapon() -> void:
+	_ik.target = Vector3.INF
 	if _dead or _hand_r < 0 or _hand_l < 0:
 		return
 	var right := _palm(_hand_r, _finger_r)
@@ -112,6 +116,9 @@ func _place_weapon() -> void:
 	var forward := (left - right).normalized()
 	var basis := Basis.looking_at(forward, Vector3.UP) * Basis.from_euler(weapon_rotation * (PI / 180.0))
 	_weapon.global_transform = Transform3D(basis, right - basis * grip)
+	_ik.target = _weapon.global_transform * foregrip
+	_ik.forward = -basis.z
+	_ik.palm_up = basis.y
 
 
 ## World position of the middle of the palm: halfway from the wrist to the base of the middle finger.
