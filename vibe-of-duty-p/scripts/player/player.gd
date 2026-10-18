@@ -69,6 +69,7 @@ const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
 const MAX_HEALTH := 100
+const KID_HEALTH_MULT := 2
 const RECONCILE_EPS := 0.02          # m; smaller prediction errors are ignored
 const HISTORY_MAX := 180             # commands kept for replay (3 s)
 const CORRECTION_DECAY := 12.0       # 1/s, how fast the visual correction offset fades out
@@ -135,6 +136,8 @@ var _replaying := false
 var weapons := WeaponSim.new()
 var world: NetWorld
 var health := MAX_HEALTH
+var max_health := MAX_HEALTH  # kid mode doubles it
+var kid_mode := false
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn
 var killed_by := ""         # local HUD: who killed us
@@ -156,6 +159,7 @@ var _stance_crouched := false
 var _sprint_blend := 0.0
 var _view_recoil := Vector2.ZERO
 var _look_delta := Vector2.ZERO
+var _turn_rate := 0.0  # rad/s the stick (and aim assist) turns the view, smoothed; F3 only
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
 var _bot_select := 0
@@ -326,7 +330,8 @@ func _stick_look(delta: float) -> void:
 	var turn := Vector2.ZERO
 	if _pad_look:
 		turn = _aim_assist.update(_head.global_position, look_yaw, look_pitch, weapons.ads,
-				stick != Vector2.ZERO or move != Vector2.ZERO, Settings.aim_assist, _assist_targets(), _assist_visible)
+				stick != Vector2.ZERO or move != Vector2.ZERO, Settings.effective_aim_assist(), _assist_targets(), _assist_visible,
+				Settings.aim_assist_reach())
 	if stick != Vector2.ZERO:
 		stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
 		var speed := STICK_LOOK_SPEED * Settings.stick_sensitivity * _aim_assist.slowdown \
@@ -334,6 +339,7 @@ func _stick_look(delta: float) -> void:
 		turn -= stick * speed * delta
 	look_yaw += turn.x
 	look_pitch = clampf(look_pitch + turn.y, -MAX_PITCH, MAX_PITCH)
+	_turn_rate = lerpf(_turn_rate, turn.length() / maxf(delta, 0.0001), 1.0 - exp(-8.0 * delta))
 
 
 ## Aim assist targets: every other living player, as a line from mid-torso to the head centre (the hitboxes).
@@ -1065,7 +1071,7 @@ func _update_hud(speed: float, delta: float) -> void:
 	_health_label.text = "HP %d" % health
 	_health_label.modulate = Color.WHITE if health > 30 else Color(1.0, 0.35, 0.3)
 	if health < _last_health:
-		_hurt_alpha = minf(0.55, 0.2 + float(_last_health - health) / MAX_HEALTH)
+		_hurt_alpha = minf(0.55, 0.2 + float(_last_health - health) / max_health)
 		if alive:
 			Audio.play("hurt")
 	_last_health = health
@@ -1088,6 +1094,8 @@ func _update_hud(speed: float, delta: float) -> void:
 		"slide " if is_sliding else "", "crouch " if is_crouched else "",
 		"sprint " if is_sprinting else ""]
 	_debug.text += vault_line
+	_debug.text += "\nsens: mouse x%.2f  stick x%.2f  view turn %.0f deg/s" % [
+			Settings.mouse_sensitivity / 0.0025, Settings.stick_sensitivity, rad_to_deg(_turn_rate)]
 	for device in Input.get_connected_joypads():
 		# Raw stick values next to what the actions see: tells an engine / driver problem from a game one.
 		_debug.text += "\npad%d L(%.2f %.2f) R(%.2f %.2f)  move(%.2f %.2f) look(%.2f %.2f)  %s" % [device,
@@ -1143,10 +1151,18 @@ func die(by: String, respawn_delay: float) -> void:
 	Audio.play("death", null if is_local else global_position)
 
 
+## Kid mode (chosen by the player, sent to the server on join): more health. Call before the first respawn / snapshot.
+func set_kid_mode(on: bool) -> void:
+	kid_mode = on
+	max_health = MAX_HEALTH * (KID_HEALTH_MULT if on else 1)
+	health = max_health
+	_last_health = max_health
+
+
 func respawn(xform: Transform3D) -> void:
 	alive = true
-	health = MAX_HEALTH
-	_last_health = MAX_HEALTH
+	health = max_health
+	_last_health = max_health
 	killed_by = ""
 	death_time_left = 0.0
 	weapons.reset()

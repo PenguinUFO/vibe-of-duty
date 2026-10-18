@@ -6,6 +6,10 @@ const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
 const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
 const SHADOW_MAX_DISTANCES := [0.0, 40.0, 70.0]
+const WINDOW_SIZES: Array[Vector2i] = [
+	Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1600, 900), Vector2i(1920, 1080),
+	Vector2i(2560, 1440), Vector2i(3840, 2160),
+]
 
 signal changed
 signal graphics_changed  # shadow / AA / scale / vsync settings were applied
@@ -15,12 +19,16 @@ var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STI
 var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
 var player_name := "Player"
+var server_address := "127.0.0.1"  # last address typed in the main menu
+var kid_mode := false  # unlocked with a code in the main menu; more health, stronger and wider aim assist
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
 
 var antialiasing := 1    # 0 = off, 1 = FXAA
 var shadow_quality := 2  # 0 = off, 1 = medium (1024 px, 40 m), 2 = high (2048 px, 70 m)
 var render_scale := 1.0  # 3D resolution scale; below 1.0 uses FSR 1
 var vsync := true
+var fullscreen := false
+var window_size := Vector2i(1280, 720)  # windowed resolution (one of WINDOW_SIZES)
 
 # Last host settings (HostPanel).
 var host_map := "res://prefabs/levels/train.tscn"
@@ -33,6 +41,7 @@ func _ready() -> void:
 	load_settings()
 	apply_audio()
 	apply_graphics()
+	apply_display()
 	_bind_gamepad()
 
 
@@ -92,7 +101,9 @@ var _focus_lost_at := -1.0
 
 func _notification(what: int) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		save_settings()  # settings changed since the last Back press survive closing the window
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		focus_losses += 1
 		_focus_lost_at = now
 		print("[focus] lost at %.2f s" % now)
@@ -110,6 +121,16 @@ func focus_debug() -> String:
 ## True when a gamepad is connected (menus then put the focus on a button, so the d-pad can navigate).
 func has_gamepad() -> bool:
 	return not Input.get_connected_joypads().is_empty()
+
+
+## Aim assist strength actually used: kid mode doubles it (AimAssist keeps the resulting effect in sane bounds).
+func effective_aim_assist() -> float:
+	return aim_assist * (2.0 if kid_mode else 1.0)
+
+
+## Aim assist range and cone width multiplier: kid mode reaches twice as far and works twice as wide.
+func aim_assist_reach() -> float:
+	return 2.0 if kid_mode else 1.0
 
 
 func set_volume(bus: StringName, linear: float) -> void:
@@ -138,6 +159,20 @@ func apply_graphics() -> void:
 	graphics_changed.emit()
 
 
+## Fullscreen (borderless, at the desktop resolution) or a window of window_size, centered on its screen.
+func apply_display() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(window_size)
+	var screen := DisplayServer.window_get_current_screen()
+	var area := DisplayServer.screen_get_usable_rect(screen)
+	DisplayServer.window_set_position(area.position + (area.size - window_size) / 2)
+
+
 ## Gives a level's directional light the shadow settings of the chosen quality.
 func apply_sun(light: DirectionalLight3D) -> void:
 	light.shadow_enabled = shadow_quality > 0
@@ -155,7 +190,11 @@ func save_settings() -> void:
 	cfg.set_value("video", "shadow_quality", shadow_quality)
 	cfg.set_value("video", "render_scale", render_scale)
 	cfg.set_value("video", "vsync", vsync)
+	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "window_size", window_size)
 	cfg.set_value("player", "name", player_name)
+	cfg.set_value("player", "server_address", server_address)
+	cfg.set_value("player", "kid_mode", kid_mode)
 	cfg.set_value("host", "map", host_map)
 	cfg.set_value("host", "score_limit", host_score_limit)
 	cfg.set_value("host", "match_minutes", host_match_minutes)
@@ -177,7 +216,13 @@ func load_settings() -> void:
 	shadow_quality = clampi(cfg.get_value("video", "shadow_quality", shadow_quality), 0, 2)
 	render_scale = clampf(cfg.get_value("video", "render_scale", render_scale), 0.5, 1.0)
 	vsync = cfg.get_value("video", "vsync", vsync)
+	fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
+	var saved_size = cfg.get_value("video", "window_size", window_size)
+	if saved_size is Vector2i and WINDOW_SIZES.has(saved_size):
+		window_size = saved_size
 	player_name = cfg.get_value("player", "name", player_name)
+	server_address = cfg.get_value("player", "server_address", server_address)
+	kid_mode = cfg.get_value("player", "kid_mode", kid_mode)
 	host_map = cfg.get_value("host", "map", host_map)
 	host_score_limit = clampi(cfg.get_value("host", "score_limit", host_score_limit), 1, 100)
 	host_match_minutes = clampi(cfg.get_value("host", "match_minutes", host_match_minutes), 1, 60)

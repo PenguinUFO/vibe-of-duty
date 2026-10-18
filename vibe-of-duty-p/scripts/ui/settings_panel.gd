@@ -51,6 +51,22 @@ func _init() -> void:
 			func(v: float) -> void: Settings.fov = v, "%d")
 
 	_add_heading(box, "Graphics")
+	var sizes: Array = []
+	for size in Settings.WINDOW_SIZES:
+		sizes.append("%d x %d" % [size.x, size.y])
+	var resolution := _add_option(box, "Resolution", sizes, maxi(Settings.WINDOW_SIZES.find(Settings.window_size), 0),
+			func(i: int) -> void:
+				Settings.window_size = Settings.WINDOW_SIZES[i]
+				Settings.apply_display())
+	resolution.disabled = Settings.fullscreen  # fullscreen uses the desktop resolution
+	var fullscreen := CheckBox.new()
+	fullscreen.text = "Fullscreen"
+	fullscreen.button_pressed = Settings.fullscreen
+	fullscreen.toggled.connect(func(on: bool) -> void:
+		Settings.fullscreen = on
+		resolution.disabled = on
+		Settings.apply_display())
+	box.add_child(fullscreen)
 	_preset = _add_option(box, "Preset", PRESET_NAMES, _current_preset(), _on_preset)
 	_aa = _add_option(box, "Anti-aliasing", ["Off", "FXAA"], Settings.antialiasing, func(i: int) -> void:
 		Settings.antialiasing = i

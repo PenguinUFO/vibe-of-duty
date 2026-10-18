@@ -34,9 +34,10 @@ var _last_dir := Vector3.ZERO    # direction from the eye to that point last fra
 
 
 ## targets: [{id, a, b}] - each target's line in world space (a torso, b head). `visible` is called as
-## visible(eye, point) -> bool for the best candidate only. Returns the tracking turn (yaw, pitch) to add this frame.
+## visible(eye, point) -> bool for the best candidate only. `reach` scales the range and the cone (kid mode: 2).
+## Returns the tracking turn (yaw, pitch) to add this frame.
 func update(eye: Vector3, yaw: float, pitch: float, ads: float, steering: bool, amount: float, targets: Array,
-		visible: Callable) -> Vector2:
+		visible: Callable, reach: float = 1.0) -> Vector2:
 	slowdown = 1.0
 	strength = 0.0
 	if amount <= 0.0:
@@ -51,9 +52,9 @@ func update(eye: Vector3, yaw: float, pitch: float, ads: float, steering: bool, 
 		var t := closest_t(eye, forward, target["a"], target["b"])
 		var to: Vector3 = (target["a"] as Vector3).lerp(target["b"], t) - eye
 		var dist := to.length()
-		if dist > RANGE or dist < 0.5:
+		if dist > RANGE * reach or dist < 0.5:
 			continue
-		var cone := minf(atan(RADIUS * lerpf(1.0, ADS_RADIUS_MULT, ads) / dist), MAX_ANGLE)
+		var cone := minf(atan(RADIUS * reach * lerpf(1.0, ADS_RADIUS_MULT, ads) / dist), MAX_ANGLE * reach)
 		var score := forward.angle_to(to) / cone
 		if target["id"] == target_id:
 			score *= STICKY
@@ -66,14 +67,14 @@ func update(eye: Vector3, yaw: float, pitch: float, ads: float, steering: bool, 
 		return Vector2.ZERO
 
 	strength = 1.0 - best_score * best_score  # full over most of the cone, fading out at its edge
-	slowdown = lerpf(1.0, lerpf(SLOWDOWN, ADS_SLOWDOWN, ads), strength * amount)
+	slowdown = lerpf(1.0, lerpf(SLOWDOWN, ADS_SLOWDOWN, ads), minf(strength * amount, 1.0))  # amount > 1 (kid mode) must not overshoot
 	var turn := Vector2.ZERO
 	if best["id"] == target_id and steering:
 		# Where the point we were on has moved to, as seen from the eye (our own turning does not count).
 		var dir := ((best["a"] as Vector3).lerp(best["b"], _t) - eye).normalized()
 		var step := Vector2(angle_difference(yaw_of(_last_dir), yaw_of(dir)), pitch_of(dir) - pitch_of(_last_dir))
 		if step.length() < MAX_TRACK_STEP:
-			turn = step * lerpf(TRACKING, ADS_TRACKING, ads) * strength * amount
+			turn = step * minf(lerpf(TRACKING, ADS_TRACKING, ads) * strength * amount, 1.0)
 	target_id = best["id"]
 	_t = best_t
 	_last_dir = ((best["a"] as Vector3).lerp(best["b"], best_t) - eye).normalized()

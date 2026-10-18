@@ -55,9 +55,9 @@ func _ready() -> void:
 	Net.disconnected.connect(_on_disconnected)
 	if multiplayer.is_server():
 		if not Game.dedicated:
-			_server_add_player(1, Settings.player_name)
+			_server_add_player(1, Settings.player_name, Settings.kid_mode)
 	else:
-		_client_ready.rpc_id(1, Settings.player_name)
+		_client_ready.rpc_id(1, Settings.player_name, Settings.kid_mode)
 
 
 ## Gives the level's sun the shadow settings of the current graphics quality.
@@ -119,28 +119,28 @@ func get_view_tick() -> float:
 # --- Server --------------------------------------------------------------------------------------
 
 @rpc("any_peer", "reliable")
-func _client_ready(player_name: String) -> void:
+func _client_ready(player_name: String, kid_mode: bool = false) -> void:
 	if not multiplayer.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
 		return
-	_server_add_player(id, player_name.left(24))
+	_server_add_player(id, player_name.left(24), kid_mode)
 
 
-func _server_add_player(id: int, player_name: String) -> void:
+func _server_add_player(id: int, player_name: String, kid_mode: bool) -> void:
 	var xform := _pick_spawn(-1)
 	# Tell the newcomer about everyone already here (their current position), then add the newcomer.
 	if id != 1:
 		for other_id in players:
 			var other: Player = players[other_id]
-			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform)
-	_spawn_player(id, player_name, xform)
+			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform, other.kid_mode)
+	_spawn_player(id, player_name, xform, kid_mode)
 	Game.ensure_player(id)
 	for peer in _ready_peers:
-		_spawn_player.rpc_id(peer, id, player_name, xform)
+		_spawn_player.rpc_id(peer, id, player_name, xform, kid_mode)
 	if id != 1:
-		_spawn_player.rpc_id(id, id, player_name, xform)
+		_spawn_player.rpc_id(id, id, player_name, xform, kid_mode)
 		_ready_peers.append(id)
 		_sync_scores.rpc_id(id, Game.scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
@@ -299,13 +299,14 @@ func _apply_match_state() -> void:
 # --- Client (also called locally on the server) ---------------------------------------------------
 
 @rpc("authority", "reliable")
-func _spawn_player(id: int, player_name: String, xform: Transform3D) -> void:
+func _spawn_player(id: int, player_name: String, xform: Transform3D, kid_mode: bool = false) -> void:
 	if players.has(id):
 		return
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.name = str(id)
 	player.peer_id = id
 	player.player_name = player_name
+	player.set_kid_mode(kid_mode)
 	player.world = self
 	if id == multiplayer.get_unique_id():
 		player.control = Player.Mode.LOCAL

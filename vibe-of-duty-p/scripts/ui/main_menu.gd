@@ -1,12 +1,15 @@
 extends Control
 ## Main menu: host a game (HostPanel: map, rules, port), join by IP (the server sends its map and rules), or quit.
 
+const KID_MODE_CODE := "0451"
+
 @onready var _name_edit: LineEdit = %NameEdit
 @onready var _ip_edit: LineEdit = %IpEdit
 @onready var _host_button: Button = %HostButton
 @onready var _join_button: Button = %JoinButton
 @onready var _quit_button: Button = %QuitButton
 @onready var _settings_button: Button = %SettingsButton
+@onready var _kid_mode_check: CheckButton = %KidModeCheck
 @onready var _center: Control = $Center
 @onready var _status: Label = %Status
 
@@ -14,6 +17,9 @@ extends Control
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_name_edit.text = Settings.player_name
+	_ip_edit.text = Settings.server_address
+	_kid_mode_check.set_pressed_no_signal(Settings.kid_mode)
+	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
 	_host_button.pressed.connect(_on_host)
 	_join_button.pressed.connect(_on_join)
 	_quit_button.pressed.connect(get_tree().quit)
@@ -34,7 +40,29 @@ func _apply_name() -> void:
 	var entered := _name_edit.text.strip_edges()
 	if entered != "":
 		Settings.player_name = entered
+	var address := _ip_edit.text.strip_edges()
+	if address != "":
+		Settings.server_address = address
+	Settings.save_settings()
+
+
+## Turning kid mode on needs the code; a wrong code (or cancel) closes the dialog and leaves it off. Turning it off is free.
+func _on_kid_mode_toggled(on: bool) -> void:
+	if not on:
+		Settings.kid_mode = false
 		Settings.save_settings()
+		return
+	_kid_mode_check.set_pressed_no_signal(false)
+	_center.process_mode = Node.PROCESS_MODE_DISABLED  # keeps the menu from taking input behind the dialog
+	var dialog := PinDialog.new(KID_MODE_CODE)
+	dialog.finished.connect(func(ok: bool) -> void:
+		_center.process_mode = Node.PROCESS_MODE_INHERIT
+		if ok:
+			Settings.kid_mode = true
+			Settings.save_settings()
+			_kid_mode_check.set_pressed_no_signal(true)
+		_kid_mode_check.grab_focus.call_deferred())
+	add_child(dialog)
 
 
 func _on_host() -> void:
