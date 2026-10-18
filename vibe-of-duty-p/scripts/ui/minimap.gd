@@ -21,7 +21,8 @@ func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The level is static: collect its blocks once.
-	for node in get_tree().current_scene.find_children("*", "Block", true, false):
+	var level: Node = world.get_parent() if world != null else get_tree().current_scene
+	for node in level.find_children("*", "Block", true, false):
 		var block := node as Block
 		if block.global_position.y + block.size.y * 0.5 > WALL_MIN_TOP:
 			_blocks.append(block)

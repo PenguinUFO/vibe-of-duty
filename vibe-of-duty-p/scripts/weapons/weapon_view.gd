@@ -66,6 +66,13 @@ func set_weapon(index: int) -> void:
 		_mag = node
 		_mag_rest = node.position
 	_pivot.add_child(_model)
+	if is_viewmodel:
+		# First person: the gun hangs in front of the camera, its shadow would float on the ground.
+		var meshes := _model.find_children("*", "GeometryInstance3D", true, false)
+		if _model is GeometryInstance3D:
+			meshes.append(_model)  # the prefab root is itself the gun mesh
+		for mesh in meshes:
+			(mesh as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The pivot is turned 180 degrees around Y: prefab (x, y, z) shows up at (-x, y, -z).
 	var scale_factor := VIEWMODEL_SCALE if is_viewmodel else 1.0
 	_pivot.scale = Vector3.ONE * scale_factor

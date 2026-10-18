@@ -109,4 +109,5 @@ static func _build() -> void:
 	pistol.recoil_recover = 1.5
 	pistol.sound_shot = "shot_pistol"
 	pistol.hip_offset = Vector3(0.15, -0.16, -0.28)
+	pistol.foregrip = Vector3(-0.03, -0.09, 0.0)  # two-handed hold: the left hand cups the right one under the grip
 	_defs.append(pistol)

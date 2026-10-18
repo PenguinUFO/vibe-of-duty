@@ -2,11 +2,10 @@
 
 [ext_resource type="Script" path="res://scripts/net/world.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+[ext_resource type="Shader" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
 
-[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
-sky_top_color = Color(0.35, 0.55, 0.85, 1)
-sky_horizon_color = Color(0.7, 0.78, 0.88, 1)
-ground_horizon_color = Color(0.7, 0.78, 0.88, 1)
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_sky")
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")
@@ -15,7 +14,20 @@ sky_material = SubResource("sky_mat")
 background_mode = 2
 sky = SubResource("sky")
 ambient_light_source = 3
-tonemap_mode = 2
+ambient_light_color = Color(0.62, 0.6, 0.57, 1)
+ambient_light_sky_contribution = 0.45
+ambient_light_energy = 0.75
+tonemap_mode = 4
+tonemap_exposure = 1.15
+tonemap_white = 8.0
+fog_enabled = true
+fog_light_color = Color(0.72, 0.77, 0.83, 1)
+fog_density = 0.0035
+fog_aerial_perspective = 0.6
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 1.15
 
 [node name="TestLevel" type="Node3D" unique_id=1240588564]
 
@@ -23,8 +35,12 @@ tonemap_mode = 2
 environment = SubResource("env")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=300336447]
-transform = Transform3D(0.866, -0.3536, 0.3536, 0, 0.7071, 0.7071, -0.5, -0.6124, 0.6124, 0, 10, 0)
+transform = Transform3D(-0.7660, -0.3957, 0.5065, 0.0000, 0.7880, 0.6157, -0.6428, 0.4716, -0.6037, 0, 12, 0)
+light_color = Color(1, 0.92, 0.8, 1)
+light_energy = 2.2
 shadow_enabled = true
+shadow_bias = 0.05
+shadow_blur = 1.5
 directional_shadow_mode = 1
 directional_shadow_max_distance = 70.0
 

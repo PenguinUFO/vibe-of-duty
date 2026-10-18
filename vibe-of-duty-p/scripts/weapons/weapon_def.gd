@@ -10,6 +10,7 @@ var muzzle := Vector3.ZERO    # muzzle position in prefab space (before the 180 
 var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab space (ADS alignment)
 var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel end in prefab space
 var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
+var foregrip := Vector3.INF  # where the left palm holds this gun (view space, full size); INF = PlayerVisual.foregrip
 
 var damage := 25.0
 var pellets := 1

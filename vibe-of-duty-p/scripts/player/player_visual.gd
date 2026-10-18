@@ -48,7 +48,7 @@ const RUN_CLIP_SPEED := 5.25  # m/s the run clips look right at (Player.WALK_SPE
 			_model.rotation.y = MODEL_YAW_OFFSET + deg_to_rad(model_yaw)
 @export var aim_pitch_scale := 1.0  # how much of the look pitch the spine follows (1 = all of it)
 @export var ads_weapon_rotation := Vector3.ZERO  # degrees, like weapon_rotation, but while aiming (barrel follows the palms line)
-@export var foregrip := Vector3(0.0, 0.03, -0.3)  # point of the weapon (view space) that the left palm holds; the left arm is bent to it (IK)
+@export var foregrip := Vector3(0.0, -0.04, -0.22)  # point of the weapon (view space) that the left palm holds; the left arm is bent to it (IK)
 @export var weapon_rotation := Vector3(0.0, -20.0, 0.0):  # extra turn of the weapon in degrees: x = muzzle up/down, y = left/right, z = roll
 	set(value):
 		weapon_rotation = value
@@ -82,23 +82,30 @@ static func preload_scenes() -> void:
 		load(ANIM_LIBRARY)
 
 
-func setup(peer_id: int, display_name: String) -> void:
+## The Synty character of a player, ready to animate (also used for the first-person arms).
+static func make_character(peer_id: int) -> Node3D:
 	var scene: PackedScene = load(CHARACTER_SCENES[peer_id % CHARACTER_SCENES.size()])
-	_model = scene.instantiate()
+	var model: Node3D = scene.instantiate()
 	# The prefab root is a physics body with its own collider; the player already has one.
-	if _model is CollisionObject3D:
-		_model.collision_layer = 0
-		_model.collision_mask = 0
-	for shape in _model.find_children("*", "CollisionShape3D", true, false):
+	if model is CollisionObject3D:
+		model.collision_layer = 0
+		model.collision_mask = 0
+	for shape in model.find_children("*", "CollisionShape3D", true, false):
 		shape.queue_free()
 	# The prefab carries every character variant and attachment as hidden meshes; drop what is never shown.
-	for mesh in _model.find_children("*", "MeshInstance3D", true, false):
+	for mesh in model.find_children("*", "MeshInstance3D", true, false):
 		if not (mesh as MeshInstance3D).visible:
 			mesh.get_parent().remove_child(mesh)
 			mesh.queue_free()
-	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0]
-	for mesh in _skeleton.find_children("*", "MeshInstance3D", false, false):
+	var skeleton: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	for mesh in skeleton.find_children("*", "MeshInstance3D", false, false):
 		(mesh as MeshInstance3D).skeleton = NodePath("..")  # the prefab saved an empty path: skinning was off
+	return model
+
+
+func setup(peer_id: int, display_name: String) -> void:
+	_model = make_character(peer_id)
+	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_model.rotation.y = MODEL_YAW_OFFSET + deg_to_rad(model_yaw)
 	add_child(_model)
 
@@ -223,7 +230,7 @@ func update_motion(delta: float, local_velocity: Vector3) -> void:
 ## (`_socket`); the socket is measured in the idle pose from grip / weapon_rotation: grip in the right palm, barrel
 ## along the line to the left palm, turned by weapon_rotation.
 func _place_weapon() -> void:
-	_ik.target = Vector3.INF
+	_ik.targets = {}
 	if _dead or _hand_r < 0 or _hand_l < 0:
 		return
 	var hand := _skeleton.global_transform * _skeleton.get_bone_global_pose(_hand_r)
@@ -244,9 +251,8 @@ func _place_weapon() -> void:
 		var basis := Basis.looking_at((left - right).normalized(), Vector3.UP) * Basis.from_euler(ads_weapon_rotation * (PI / 180.0))
 		weapon = weapon.interpolate_with(Transform3D(basis, right - basis * grip), _ads)
 	_weapon.global_transform = weapon
-	_ik.target = weapon * foregrip
-	_ik.forward = -weapon.basis.z
-	_ik.palm_up = weapon.basis.y
+	_ik.targets = {"L": {"point": weapon * foregrip_for(_weapon.weapon_index), "fingers": weapon.basis * FirstPersonArms.LEFT_FINGERS,
+			"palm": weapon.basis * FirstPersonArms.LEFT_PALM}}
 
 
 ## Barrel direction while aiming, in skeleton space: the line between the palms turned by ads_weapon_rotation
@@ -295,6 +301,12 @@ func show_shot() -> void:
 
 func muzzle_global_position() -> Vector3:
 	return _weapon.muzzle_global_position()
+
+
+## Where the left palm holds weapon `index` (view space, full size).
+func foregrip_for(index: int) -> Vector3:
+	var own := WeaponDB.get_def(index).foregrip if index >= 0 else Vector3.INF
+	return foregrip if own == Vector3.INF else own
 
 
 ## Placeholder death pose: the body falls over backwards; no ragdoll yet.

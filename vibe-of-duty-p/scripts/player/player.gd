@@ -135,6 +135,7 @@ var death_time_left := 0.0  # local HUD: respawn countdown
 var shots_total := 0   # server stats (for tests / netlog)
 var hits_total := 0
 var _view: WeaponView
+var _arms: FirstPersonArms
 var _crosshair: Crosshair
 var _ammo_label: Label
 var _health_label: Label
@@ -205,6 +206,10 @@ func _ready() -> void:
 		_view.is_viewmodel = true
 		_camera.add_child(_view)
 		_view.set_weapon(weapons.index)
+		# First-person arms made from the same character as the body other players see.
+		_arms = FirstPersonArms.new()
+		_camera.add_child(_arms)
+		_arms.setup(peer_id, _view, _visual)
 		_build_hud()
 		_prev_look = Vector2(look_yaw, look_pitch)
 
@@ -941,6 +946,8 @@ func _make_hud_label(font_size: int) -> Label:
 func _update_viewmodel(delta: float, speed: float) -> void:
 	_view.set_weapon(weapons.index)
 	_view.visible = alive
+	_arms.visible = alive
+	_arms.set_ads(weapons.ads > 0.5)
 	var look := Vector2(look_yaw, look_pitch)
 	_look_delta = (look - _prev_look) / maxf(delta, 0.0001) * delta
 	_look_delta.x = wrapf(_look_delta.x, -PI, PI)
