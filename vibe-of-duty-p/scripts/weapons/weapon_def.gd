@@ -5,12 +5,13 @@ extends RefCounted
 
 var id := ""
 var display_name := ""
-var scene_path := ""          # Synty prefab; its barrel points to +Z
+var scene_path := ""          # model scene (prefabs/weapons); its barrel points to +Z
 var muzzle := Vector3.ZERO    # muzzle position in prefab space (before the 180 deg turn to face -Z)
 var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab space (ADS alignment)
 var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel end in prefab space
 var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
-var foregrip := Vector3.INF  # where the left palm holds this gun (view space, full size); INF = PlayerVisual.foregrip
+var right_hand := Vector3(0.0, -0.055, -0.045)  # prefab space: middle of the right palm on the pistol grip
+var left_hand := Vector3(0.0, 0.0, 0.35)        # prefab space: middle of the left palm under the handguard
 
 var damage := 25.0
 var pellets := 1

@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3 uid="uid://cnuc18l8ap1hr"]
-
-[ext_resource type="ArrayMesh" uid="uid://c2hq6rewesbeu" path="res://assets/models/extracted/SM_Generic_Small_Rocks_02.res" id="1_l1npv"]
-[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_fx5mg"]
-
-[node name="SM_Generic_Small_Rocks_02" type="MeshInstance3D"]
-gi_mode = 2
-mesh = ExtResource("1_l1npv")
-surface_material_override/0 = ExtResource("2_fx5mg")

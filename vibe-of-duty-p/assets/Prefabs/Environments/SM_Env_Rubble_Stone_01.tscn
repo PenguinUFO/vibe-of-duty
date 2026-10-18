@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3 uid="uid://hxuyaq0h5x61"]
-
-[ext_resource type="ArrayMesh" uid="uid://bxek5eru8tu87" path="res://assets/models/extracted/SM_Env_Rubble_Stone_01.res" id="1_1137e"]
-[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_i0ad8"]
-
-[node name="SM_Env_Rubble_Stone_01" type="MeshInstance3D"]
-gi_mode = 2
-mesh = ExtResource("1_1137e")
-surface_material_override/0 = ExtResource("2_i0ad8")

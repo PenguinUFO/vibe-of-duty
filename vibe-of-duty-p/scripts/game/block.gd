@@ -1,7 +1,7 @@
 @tool
 class_name Block
 extends StaticBody3D
-## Blockout box: visual mesh + matching collision. Swap for Synty meshes when building the real level.
+## Blockout box: visual mesh + matching collision. Swap for real meshes when building the final level.
 
 const GRID_TEXTURE_PATH := "res://assets/placeholder/grid.png"
 

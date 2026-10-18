@@ -5,20 +5,9 @@ extends Node3D
 ## (the train "runs" towards -Z). Purely visual: every machine animates its own copy, so the phase of the forest and
 ## the tunnels differs between players; nothing gameplay-related depends on it. Not built on a dedicated server.
 ##
-## Cost: the forest is a few MultiMesh chunks of the Synty trees (one draw call per tree type per chunk) that wrap
-## around from the back to the front; the ground and track scroll in a shader.
-
-const TREES: Array[String] = [
-	"res://assets/Prefabs/Generic/SM_Generic_Tree_01.tscn",
-	"res://assets/Prefabs/Generic/SM_Generic_Tree_02.tscn",
-	"res://assets/Prefabs/Generic/SM_Generic_Tree_03.tscn",
-	"res://assets/Prefabs/Generic/SM_Generic_Tree_04.tscn",
-]
-const BUSHES: Array[String] = [
-	"res://assets/Prefabs/Generic/SM_Env_Bush_01.tscn",
-	"res://assets/Prefabs/Generic/SM_Env_Bush_03.tscn",
-]
-const ROCK := "res://assets/Prefabs/Environments/SM_Env_Rock_01.tscn"
+## Cost: the forest is a few MultiMesh chunks of low-poly blockout trees built from primitives (one draw call per
+## tree type and surface per chunk) that wrap around from the back to the front; the ground and track scroll in a
+## shader.
 
 const GROUND_Y := -1.45         # top of the ground and the track bed (the car floors are at 0)
 const CHUNK_LEN := 80.0         # forest chunk length (m)
@@ -154,24 +143,18 @@ func _scroll_material(code: String) -> ShaderMaterial:
 # --- forest -----------------------------------------------------------------------------------------------------------
 
 func _build_forest() -> void:
-	var kinds: Array[Dictionary] = []
-	for path in TREES:
-		kinds.append({"path": path, "count": TREES_PER_CHUNK / TREES.size(), "scale": Vector2(2.6, 4.6), "shadow": true})
-	for path in BUSHES:
-		kinds.append({"path": path, "count": BUSHES_PER_CHUNK / BUSHES.size(), "scale": Vector2(1.4, 2.6), "shadow": false})
-	kinds.append({"path": ROCK, "count": ROCKS_PER_CHUNK, "scale": Vector2(0.8, 2.2), "shadow": false})
-	for kind in kinds:
-		var source := _prefab_mesh(kind["path"])
-		kind["mesh"] = source[0]
-		kind["material"] = source[1]
+	var kinds: Array[Dictionary] = [
+		{"mesh": _pine(), "count": TREES_PER_CHUNK / 2, "scale": Vector2(0.8, 1.35), "shadow": true},
+		{"mesh": _broadleaf(), "count": TREES_PER_CHUNK / 2, "scale": Vector2(0.8, 1.3), "shadow": true},
+		{"mesh": _bush(), "count": BUSHES_PER_CHUNK, "scale": Vector2(0.7, 1.5), "shadow": false},
+		{"mesh": _rock(), "count": ROCKS_PER_CHUNK, "scale": Vector2(0.6, 1.8), "shadow": false},
+	]
 	for c in CHUNKS:
 		var chunk := Node3D.new()
 		chunk.position.z = FRONT + c * CHUNK_LEN
 		add_child(chunk)
 		_chunks.append(chunk)
 		for kind in kinds:
-			if kind["mesh"] == null:
-				continue
 			var multimesh := MultiMesh.new()
 			multimesh.transform_format = MultiMesh.TRANSFORM_3D
 			multimesh.mesh = kind["mesh"]
@@ -186,7 +169,6 @@ func _build_forest() -> void:
 				multimesh.set_instance_transform(i, Transform3D(basis, Vector3(x, GROUND_Y, _rng.randf() * CHUNK_LEN)))
 			var instance := MultiMeshInstance3D.new()
 			instance.multimesh = multimesh
-			instance.material_override = kind["material"]
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if kind["shadow"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			instance.visibility_range_end = FOREST_VISIBLE + CHUNK_LEN  # measured to the chunk's centre
 			instance.visibility_range_end_margin = 20.0
@@ -194,16 +176,85 @@ func _build_forest() -> void:
 			chunk.add_child(instance)
 
 
-## [mesh, material] of a Synty prefab whose root is the mesh instance (the material is an instance override there).
-func _prefab_mesh(path: String) -> Array:
-	var scene := load(path) as PackedScene
-	if scene == null:
-		return [null, null]
-	var node := scene.instantiate()
-	var mesh_instance: MeshInstance3D = node if node is MeshInstance3D else node.find_children("*", "MeshInstance3D", true, false)[0]
-	var result := [mesh_instance.mesh, mesh_instance.get_surface_override_material(0)]
-	node.free()
-	return result
+# Blockout vegetation: primitives merged into one mesh per kind, one surface per colour, flat shaded (low-poly look).
+
+const TRUNK := Color(0.33, 0.22, 0.14)
+const PINE := Color(0.15, 0.29, 0.15)
+const LEAVES := Color(0.29, 0.41, 0.15)
+const BUSH := Color(0.24, 0.37, 0.14)
+const STONE := Color(0.45, 0.44, 0.42)
+
+
+func _pine() -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	_surface(mesh, TRUNK, [[_cone(0.28, 0.18, 3.2, 6), Transform3D(Basis.IDENTITY, Vector3(0, 1.6, 0))]])
+	_surface(mesh, PINE, [
+		[_cone(2.6, 0.0, 4.2, 7), Transform3D(Basis.IDENTITY, Vector3(0, 4.0, 0))],
+		[_cone(2.0, 0.0, 3.6, 7), Transform3D(Basis(Vector3.UP, 0.4), Vector3(0, 6.0, 0))],
+		[_cone(1.3, 0.0, 3.0, 7), Transform3D(Basis(Vector3.UP, 0.8), Vector3(0, 7.9, 0))],
+	])
+	return mesh
+
+
+func _broadleaf() -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	_surface(mesh, TRUNK, [[_cone(0.32, 0.2, 4.4, 6), Transform3D(Basis.IDENTITY, Vector3(0, 2.2, 0))]])
+	_surface(mesh, LEAVES, [
+		[_ball(2.6), Transform3D(Basis.IDENTITY, Vector3(0, 5.8, 0))],
+		[_ball(1.9), Transform3D(Basis(Vector3.UP, 1.0), Vector3(1.5, 5.0, 0.6))],
+		[_ball(1.7), Transform3D(Basis(Vector3.UP, 2.0), Vector3(-1.3, 5.3, -0.7))],
+	])
+	return mesh
+
+
+func _bush() -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	_surface(mesh, BUSH, [
+		[_ball(0.9), Transform3D(Basis.IDENTITY, Vector3(0, 0.55, 0))],
+		[_ball(0.7), Transform3D(Basis.IDENTITY, Vector3(0.7, 0.45, 0.2))],
+		[_ball(0.6), Transform3D(Basis.IDENTITY, Vector3(-0.6, 0.4, -0.3))],
+	])
+	return mesh
+
+
+func _rock() -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	_surface(mesh, STONE, [[_ball(1.0), Transform3D(Basis.IDENTITY.scaled(Vector3(1.4, 0.7, 1.0)), Vector3(0, 0.3, 0))]])
+	return mesh
+
+
+## Merges primitives [[mesh, transform], ...] into one flat-shaded surface of `color`.
+func _surface(target: ArrayMesh, color: Color, pieces: Array) -> void:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for piece in pieces:
+		tool.append_from(piece[0], 0, piece[1])
+	tool.deindex()          # every face gets its own vertices...
+	tool.generate_normals()  # ...so the normals are per face: faceted, low-poly shading
+	tool.commit(target)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 1.0
+	target.surface_set_material(target.get_surface_count() - 1, material)
+
+
+func _cone(bottom: float, top: float, height: float, sides: int) -> CylinderMesh:
+	var mesh := CylinderMesh.new()
+	mesh.bottom_radius = bottom
+	mesh.top_radius = top
+	mesh.height = height
+	mesh.radial_segments = sides
+	mesh.rings = 1
+	return mesh
+
+
+func _ball(radius: float) -> SphereMesh:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 1.8
+	mesh.radial_segments = 7
+	mesh.rings = 4
+	return mesh
 
 
 # --- tunnel -----------------------------------------------------------------------------------------------------------

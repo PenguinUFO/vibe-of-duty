@@ -1,17 +1,17 @@
 class_name WeaponView
 extends Node3D
 ## Visual of a held weapon: used as the first-person viewmodel (child of the camera) and as the
-## third-person weapon of other players. The Synty prefab points its barrel to +Z, so it sits in a
+## third-person weapon of other players. The model scene points its barrel to +Z, so it sits in a
 ## pivot turned 180 degrees and the view's own forward is -Z like everything else in the game.
 ##
-## Poses are purely procedural (no arms, no animations in the pack): hip/ADS blend, bob, sway,
+## Poses are purely procedural: hip/ADS blend, bob, sway,
 ## recoil kick, reload dip, equip raise and sprint lowering.
 
 const FLASH_TIME := 0.04
 const KICK_DECAY := 14.0
 const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
 const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
-const VIEWMODEL_SCALE := 0.7  # the pack's guns are big; shrink them in first person only
+const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
 
 var weapon_index := -1
 var is_viewmodel := false

@@ -214,7 +214,7 @@ func _ready() -> void:
 		# First-person arms made from the same character as the body other players see.
 		_arms = FirstPersonArms.new()
 		_camera.add_child(_arms)
-		_arms.setup(peer_id, _view, _visual)
+		_arms.setup(peer_id, _view)
 		_build_hud()
 		_prev_look = Vector2(look_yaw, look_pitch)
 
@@ -972,7 +972,6 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_view.set_weapon(weapons.index)
 	_view.visible = alive
 	_arms.visible = alive
-	_arms.set_ads(weapons.ads > 0.5)
 	var look := Vector2(look_yaw, look_pitch)
 	_look_delta = (look - _prev_look) / maxf(delta, 0.0001) * delta
 	_look_delta.x = wrapf(_look_delta.x, -PI, PI)
@@ -989,6 +988,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_retract = lerpf(_retract, wanted, 1.0 - exp(-18.0 * delta))
 	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
+	_arms.pose()  # the hands follow the gun
 
 
 func _update_hud(speed: float, delta: float) -> void:

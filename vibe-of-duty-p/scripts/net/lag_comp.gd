@@ -2,9 +2,8 @@ class_name LagComp
 extends RefCounted
 ## Server-side lag compensation. Keeps a short history of every player's hitbox state per server
 ## tick, and hit-tests rays against analytic hitboxes (a vertical capsule for the body, a sphere
-## for the head). The hitboxes follow the third-person body as PlayerVisual animates it: the head
-## leans with the run direction and speed, sits lower and further forward while aiming, swings
-## with the aim pitch (the spine bend) and drops with crouching. To judge a shot, the server samples every target at the tick the shooter
+## for the head). The head sphere sits where the third-person mannequin's head is (it follows the
+## aim pitch, aiming and crouching). To judge a shot, the server samples every target at the tick the shooter
 ## was actually looking at (Player's `view_tick`), so players hit what they saw on screen.
 ##
 ## The same hitbox geometry is used by clients for their own predicted tracers, with the targets'
@@ -15,22 +14,7 @@ const MAX_REWIND_TICKS := 60
 const BODY_RADIUS := 0.38
 const HEAD_RADIUS := 0.17
 
-## Head centre over the feet in the player's frame (x right, y up, -z forward), measured on the animated body
-## (tools: head bone + eyes, after all skeleton modifiers): standing still, and the extra offset at full run speed
-## (RUN_SPEED) in each direction. The clips do not mirror, so every direction has its own lean.
-const HEAD_HIP := Vector3(0.06, 1.57, -0.09)
-const LEAN_HIP := {"f": Vector3(0.07, -0.12, -0.19), "b": Vector3(0.02, -0.03, 0.03),
-		"r": Vector3(0.20, -0.09, -0.05), "l": Vector3(0.15, -0.05, -0.11)}
-const HEAD_ADS := Vector3(0.17, 1.47, -0.22)
-const LEAN_ADS := {"f": Vector3(-0.18, -0.05, -0.12), "b": Vector3(0.0, 0.01, 0.04),
-		"r": Vector3(0.13, -0.02, 0.12), "l": Vector3(0.04, 0.04, 0.08)}
-const RUN_SPEED := 5.25        # speed the run clips are made for (Player.WALK_SPEED)
-const SPINE_PIVOT := 1.0       # height the spine bends about for the aim pitch (AimModifier)
-const SPINE_PITCH_SHARE := 0.6 # effective share of the pitch that moves the head (measured)
 const NECK_GAP := 0.15         # head centre to the top of the body capsule
-
-## Crouching squashes the body (no crouch clip yet) so the head ends up where the crouched eye is.
-const CROUCH_SCALE := 0.98 / 1.57  # (Player.CROUCH_EYE + 0.03) / HEAD_HIP.y; literal so LagComp needs no Player
 
 var _history := {}  # peer_id -> Array of hitbox states (see Player.hitbox_state) with a "tick" key
 
@@ -80,29 +64,11 @@ func sample(peer_id: int, tick: float) -> Dictionary:
 
 # --- Hitbox geometry ----------------------------------------------------------------------------
 
-## Head offset over the feet in the player's frame for a hitbox state (see Player.hitbox_state).
+## Head offset over the feet in the player's frame for a hitbox state: exactly where the mannequin's head is
+## (Mannequin.head_offset; the visual blends crouch / ADS over a fraction of a second, the hitbox switches at once).
+## (Leaning with movement comes with the procedural locomotion.)
 static func head_offset(state: Dictionary) -> Vector3:
-	var ads: bool = state["ads"]
-	var local: Vector3 = Basis(Vector3.UP, state["yaw"]).inverse() * (state["vel"] as Vector3)
-	var move := Vector2(local.x, -local.z) / RUN_SPEED  # x right, y forward; 1 = full run speed
-	# Blend the four direction leans like the blend space does: by direction, scaled by speed.
-	var weights := {"f": maxf(move.y, 0.0), "b": maxf(-move.y, 0.0), "r": maxf(move.x, 0.0), "l": maxf(-move.x, 0.0)}
-	var total := 0.0
-	for key in weights:
-		total += weights[key]
-	var leans: Dictionary = LEAN_ADS if ads else LEAN_HIP
-	var lean := Vector3.ZERO
-	if total > 0.0:
-		for key in weights:
-			lean += (leans[key] as Vector3) * (weights[key] / total)
-		lean *= minf(move.length(), 1.0)
-	var offset := (HEAD_ADS if ads else HEAD_HIP) + lean
-	# The spine bends with the aim pitch: the head swings about the pivot (up = backwards).
-	var pivot := Vector3(0.0, SPINE_PIVOT, 0.0)
-	offset = pivot + Basis(Vector3.RIGHT, (state["pitch"] as float) * SPINE_PITCH_SHARE) * (offset - pivot)
-	if state["crouched"]:
-		offset.y *= CROUCH_SCALE
-	return offset
+	return Mannequin.head_offset(state["pitch"], 1.0 if state["ads"] else 0.0, 1.0 if state["crouched"] else 0.0)
 
 
 static func head_center(state: Dictionary) -> Vector3:
@@ -114,7 +80,7 @@ static func head_center(state: Dictionary) -> Vector3:
 ## centre) so the head sphere is never buried in it.
 static func body_segment(state: Dictionary) -> Array[Vector3]:
 	var head := head_offset(state)
-	var lean := head - HEAD_HIP
+	var lean := head - Mannequin.head_offset(0.0, 0.0, 0.0)
 	var shift: Vector3 = Basis(Vector3.UP, state["yaw"]) * Vector3(lean.x, 0.0, lean.z) * 0.5
 	var pos: Vector3 = state["pos"] + shift
 	var bottom := 0.05 + BODY_RADIUS

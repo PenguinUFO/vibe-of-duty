@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3 uid="uid://8m14kt0ki802"]
-
-[ext_resource type="ArrayMesh" uid="uid://c0m5sh8rvp7d4" path="res://assets/models/extracted/SM_Prop_Rubbish_Papers_03.res" id="1_ilxji"]
-[ext_resource type="Material" uid="uid://cwexdugll1jdc" path="res://assets/materials/PolygonBattleRoyale_01_A_mat.tres" id="2_b212p"]
-
-[node name="SM_Prop_Rubbish_Papers_03" type="MeshInstance3D"]
-gi_mode = 2
-mesh = ExtResource("1_ilxji")
-surface_material_override/0 = ExtResource("2_b212p")

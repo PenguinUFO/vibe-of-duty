@@ -78,7 +78,7 @@ func _setup_scene() -> void:
 		_level.get_node("Players").add_child(p)
 		world.players[p.peer_id] = p
 		p.teleport(Transform3D(Basis.IDENTITY, spots[i]))
-		p.weapons.index = i
+		p.weapons.index = 0
 	_sun = _level.get_node("Sun")
 
 

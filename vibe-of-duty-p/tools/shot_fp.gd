@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_fp.gd
 
-const CASES := {"hip": [0, 0.0], "ads": [0, 1.0], "shotgun": [1, 0.0], "pistol": [2, 0.0], "pistol_ads": [2, 1.0]}
+const CASES := {"hip": [0, 0.0], "ads": [0, 1.0]}
 
 
 func _initialize() -> void:
@@ -18,8 +18,6 @@ func _initialize() -> void:
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color(0.5, 0.5, 0.5)
 	root3d.add_child(env)
-	var visual := PlayerVisual.new()  # only for the grip / foregrip tuning
-	root3d.add_child(visual)
 	var cam := Camera3D.new()
 	cam.fov = 75
 	cam.position = Vector3(0, 1.65, 0)
@@ -34,14 +32,14 @@ func _initialize() -> void:
 	cam.add_child(view)
 	var arms := FirstPersonArms.new()
 	cam.add_child(arms)
-	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view, visual)
+	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
 		view.set_weapon(CASES[c][0])
-		arms.set_ads(CASES[c][1] > 0.5)
 		for i in 30:
 			view.update_pose(1.0 / 60.0, CASES[c][1], -1.0, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
+			arms.pose()
 			await process_frame
 		get_root().get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))
 		# Inspection view: the same pose from the left and below, close up.
