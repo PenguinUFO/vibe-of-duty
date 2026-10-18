@@ -1,10 +1,10 @@
 extends Control
-## Main menu: host a game (HostPanel: map, rules, port), join by IP (the server sends its map and rules), or quit.
+## Main menu: host a game (HostPanel: map, rules, port), join one (JoinPanel: address or a recent server; the server
+## sends its map and rules), or quit.
 
 const KID_MODE_CODE := "0451"
 
 @onready var _name_edit: LineEdit = %NameEdit
-@onready var _ip_edit: LineEdit = %IpEdit
 @onready var _host_button: Button = %HostButton
 @onready var _join_button: Button = %JoinButton
 @onready var _quit_button: Button = %QuitButton
@@ -13,11 +13,12 @@ const KID_MODE_CODE := "0451"
 @onready var _center: Control = $Center
 @onready var _status: Label = %Status
 
+var _joining := ""  # address being connected to; remembered in Settings.recent_servers once it works
+
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_name_edit.text = Settings.player_name
-	_ip_edit.text = Settings.server_address
 	_kid_mode_check.set_pressed_no_signal(Settings.kid_mode)
 	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
 	_host_button.pressed.connect(_on_host)
@@ -29,20 +30,23 @@ func _ready() -> void:
 	Audio.play_music_id("menu")
 	if Settings.has_gamepad():
 		_host_button.grab_focus.call_deferred()  # d-pad / stick navigation needs a focused control
-	Net.connected_to_server.connect(func() -> void: _status.text = "Подключено, загрузка карты...")
+	Net.connected_to_server.connect(_on_connected)
 	Net.map_received.connect(func(_path: String) -> void: _start_game())
 	Net.connection_failed.connect(_on_connection_failed)
 	if Game.auto_join != "":
 		_connect(Game.auto_join)
 
 
+func _on_connected() -> void:
+	_status.text = "Подключено, загрузка карты..."
+	if _joining != "" and Game.auto_join == "":  # test launches (--join) do not fill the player's list
+		Settings.remember_server(_joining)
+
+
 func _apply_name() -> void:
 	var entered := _name_edit.text.strip_edges()
 	if entered != "":
 		Settings.player_name = entered
-	var address := _ip_edit.text.strip_edges()
-	if address != "":
-		Settings.server_address = address
 	Settings.save_settings()
 
 
@@ -91,10 +95,22 @@ func _start_server() -> void:
 
 func _on_join() -> void:
 	_apply_name()
-	_connect(_ip_edit.text.strip_edges())
+	_center.visible = false
+	var panel := JoinPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_center.visible = true
+		if Settings.has_gamepad():
+			_join_button.grab_focus.call_deferred())
+	panel.join_requested.connect(func(address: String) -> void:
+		panel.queue_free()
+		_center.visible = true
+		_connect(address))
+	add_child(panel)
 
 
 func _connect(address: String) -> void:
+	_joining = address
 	_set_buttons_disabled(true)
 	_status.text = "Подключение к %s..." % address
 	var err := Net.join(address, Game.launch_port)

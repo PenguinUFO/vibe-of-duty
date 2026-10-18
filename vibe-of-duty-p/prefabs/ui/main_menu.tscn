@@ -48,15 +48,6 @@ unique_name_in_owner = true
 layout_mode = 2
 max_length = 24
 
-[node name="IpLabel" type="Label" parent="Center/Box"]
-layout_mode = 2
-text = "Адрес сервера"
-
-[node name="IpEdit" type="LineEdit" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "127.0.0.1"
-
 [node name="Buttons" type="HBoxContainer" parent="Center/Box"]
 layout_mode = 2
 theme_override_constants/separation = 10

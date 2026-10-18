@@ -16,7 +16,6 @@ var _feed: VBoxContainer
 var _board_panel: PanelContainer
 var _board_grid: GridContainer
 var _banner: Label
-var _minimap: Minimap
 var _board_timer := 0.0
 
 
@@ -40,18 +39,9 @@ func _ready() -> void:
 	_feed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_feed.offset_right = -16.0
-	_feed.offset_top = 16.0 + Minimap.SIDE + 12.0  # below the minimap
+	_feed.offset_top = 16.0
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_feed)
-
-	_minimap = Minimap.new()
-	_minimap.world = world
-	_minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_minimap.offset_left = -16.0 - Minimap.SIDE
-	_minimap.offset_right = -16.0
-	_minimap.offset_top = 16.0
-	_minimap.offset_bottom = 16.0 + Minimap.SIDE
-	add_child(_minimap)
 
 	_banner = _make_label(40)
 	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -122,12 +112,6 @@ func add_kill(killer: String, victim: String, weapon: String, headshot: bool, in
 	get_tree().create_timer(FEED_TIME).timeout.connect(func() -> void:
 		if is_instance_valid(label):
 			label.queue_free())
-
-
-## Puts a shot on the minimap at the spot it was fired from.
-func mark_shot(origin: Vector3) -> void:
-	if _minimap:
-		_minimap.add_shot(origin)
 
 
 func clear_feed() -> void:

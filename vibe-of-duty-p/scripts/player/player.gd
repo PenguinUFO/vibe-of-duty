@@ -35,6 +35,9 @@ const MANTLE_RISE_SPEED := 5.5        # m/s while pulling up
 const MANTLE_FORWARD_TICKS := 14      # ticks to step onto the ledge
 const MANTLE_COOLDOWN_TICKS := 18
 const MANTLE_EXIT_SPEED := 2.5
+const MANTLE_MIN_TOP := 0.15          # m; a thinner wall top (a railing) cannot be stood on
+const MANTLE_NARROW_TOP := 0.9        # m; a narrower top is stood on in its middle (see _try_start_mantle)
+const MANTLE_MAX_DROP := 1.5          # m; a railing is vaulted over if there is floor at most this far below its top
 const LAND_SOUND_MIN_SPEED := 4.0
 const STEP_STRIDE := 2.4
 const MAX_PITCH := deg_to_rad(89.0)
@@ -183,6 +186,8 @@ var _mantle_up := Vector3.ZERO
 var _mantle_to := Vector3.ZERO
 var _mantle_dir := Vector3.ZERO
 var _probe_shape := CapsuleShape3D.new()
+var _probe_crouch_shape := CapsuleShape3D.new()
+var _mantle_low := false  # the vault being started ends crouched (set by _try_start_mantle, used the same tick)
 var _vault_note := ""        # local debug: why the last vault attempt failed
 var _vault_note_until := 0
 var _puppet_on_floor := true
@@ -204,6 +209,8 @@ func _ready() -> void:
 	_shape.radius = RADIUS
 	_probe_shape.radius = RADIUS - 0.03
 	_probe_shape.height = STAND_HEIGHT - 0.06
+	_probe_crouch_shape.radius = RADIUS - 0.03
+	_probe_crouch_shape.height = CROUCH_HEIGHT - 0.06
 	_collision.shape = _shape
 	_apply_stance()
 	_head.position.y = STAND_EYE
@@ -477,7 +484,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	if wants_vault and not cmd.crouch and _mantle_cooldown <= 0 and _try_start_mantle(cmd):
 		_jumped_this_step = true
 		_end_slide()
-		is_crouched = false
+		is_crouched = _mantle_low
 		_apply_stance()
 		_sfx("jump")
 		_weapon_step(_mantle_weapon_cmd(cmd), dt)
@@ -1047,8 +1054,6 @@ func hitbox_state() -> Dictionary:
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
 func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
 	var def := WeaponDB.get_def(weapon)
-	if world.hud:
-		world.hud.mark_shot(origin)
 	_visual.set_weapon(weapon)
 	_visual.show_shot()
 	Audio.play(def.sound_shot, origin)
@@ -1154,10 +1159,10 @@ func _update_hud(speed: float, delta: float) -> void:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
 	if not _debug_shown:
-		_debug.text = "Esc меню   Tab счёт   F хрю   F10 выйти   F3 инфо"
+		_debug.text = "Esc меню   Tab счёт   F10 выйти   F3 инфо"
 		return
 	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
-	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт   F хрю   F10 выйти   F3 инфо" % [
+	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт   F10 выйти   F3 инфо" % [
 		Engine.get_frames_per_second(), speed,
 		"подкат " if is_sliding else "", "присед " if is_crouched else "",
 		"бег " if is_sprinting else ""]
@@ -1312,8 +1317,9 @@ func _try_start_mantle(cmd: PlayerCmd) -> bool:
 	var wall_normal: Vector3 = wall["normal"]
 	var inward := -Vector3(wall_normal.x, 0.0, wall_normal.z).normalized()
 
-	# 2. The top surface of the obstacle, probed from above a little way into it.
-	var probe: Vector3 = wall["position"] + inward * 0.25
+	# 2. The top surface of the obstacle, probed from above just inside its face (not deeper: a railing is 8 cm, and
+	# probing past it would find the floor behind it instead of its top).
+	var probe: Vector3 = wall["position"] + inward * 0.03
 	var top_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
 			Vector3(probe.x, feet.y + MANTLE_MAX_HEIGHT + 0.4, probe.z), Vector3(probe.x, feet.y, probe.z), Layers.WORLD))
 	if top_hit.is_empty() or top_hit["normal"].y < 0.7:
@@ -1323,32 +1329,70 @@ func _try_start_mantle(cmd: PlayerCmd) -> bool:
 	var ledge_height := top_y - _floor_y
 	if ledge_height > MANTLE_MAX_HEIGHT:
 		return _vault_fail("too high (%.1f m, max %.1f)" % [ledge_height, MANTLE_MAX_HEIGHT])
-	if ledge_height < MANTLE_MIN_HEIGHT or top_y - feet.y < 0.3:
+	if top_y - feet.y < 0.3:
+		return _vault_fail("low ledge (%.1f m): just jump" % ledge_height)
+	# A low ledge standing on the ground is simply jumped onto. One hanging in the air (a catwalk above a crate)
+	# is not: the body hits its edge on the way up, so it is vaulted whatever its height.
+	if ledge_height < MANTLE_MIN_HEIGHT and not _open_below(space, feet, facing, wall["position"]):
 		return _vault_fail("low ledge (%.1f m): just jump" % ledge_height)
 
-	# 3. Where we end up: on top of the ledge, a body radius behind its edge.
-	var target: Vector3 = wall["position"] + inward * (RADIUS + 0.2)
-	var target_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
-			Vector3(target.x, top_y + 0.4, target.z), Vector3(target.x, top_y - 0.3, target.z), Layers.WORLD))
-	if target_hit.is_empty():
-		return _vault_fail("top is too thin to stand on")
-	target.y = target_hit["position"].y
+	# 3. Where we end up: on top of the ledge, a body radius behind its edge, stepping on with a little speed. On a
+	# narrow top (a partition, a carriage side, a cover wall) on the middle of it instead, standing still, so the
+	# step does not carry us off the far side.
+	var width := 0.0  # how far the top reaches in from the wall face
+	while width < MANTLE_NARROW_TOP and not _top_at(space, wall["position"] + inward * (width + 0.03), top_y).is_empty():
+		width += 0.03
+	var narrow := width < MANTLE_NARROW_TOP
+	var exit_dir := Vector3.ZERO if narrow else inward
+	var target: Vector3 = wall["position"] + inward * (width * 0.5 if narrow else RADIUS + 0.2)
+	var over := width < MANTLE_MIN_TOP
+	if over:
+		# Too thin to stand on (a railing): vault over it onto whatever is right behind it, at most MANTLE_MAX_DROP
+		# below its top. The vault carries us over at the railing's height; we then drop onto the floor behind.
+		target = wall["position"] + inward * (width + RADIUS + 0.15)
+		var land := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(target.x, top_y, target.z),
+				Vector3(target.x, top_y - MANTLE_MAX_DROP, target.z), Layers.WORLD))
+		if land.is_empty() or land["normal"].y < 0.7:
+			return _vault_fail("top is too thin to stand on (%.2f m), nothing to land on behind it" % width)
+		exit_dir = inward
+		target.y = top_y  # carried over the top; the drop to the floor behind is an ordinary fall
+	else:
+		var target_hit := _top_at(space, target, top_y)
+		if target_hit.is_empty():
+			return _vault_fail("top is too thin to stand on")
+		target.y = target_hit["position"].y
 
-	# 4. Head room: along the pull-up column and at the destination.
+	# 4. Head room: along the pull-up column and at the destination. Where there is only room to crouch (a wall
+	# under a catwalk), the vault ends crouched; the player stands up by themselves once there is room again.
 	var up_point := Vector3(feet.x, top_y + 0.02, feet.z)
-	if not _capsule_clear(up_point) or not _capsule_clear(target + Vector3.UP * 0.02):
-		return _vault_fail("no head room")
+	_mantle_low = not _capsule_clear(up_point) or not _capsule_clear(target + Vector3.UP * 0.02)
+	if _mantle_low and (not _capsule_clear(up_point, true) or not _capsule_clear(target + Vector3.UP * 0.02, true)):
+		return _vault_fail("no head room, not even crouched")
 
 	is_mantling = true
 	mantle_count += 1
 	_mantle_from = feet
 	_mantle_up = up_point
 	_mantle_to = target + Vector3.UP * 0.02
-	_mantle_dir = inward
+	_mantle_dir = exit_dir
 	_mantle_tick = 0
 	_mantle_rise = clampi(ceili((up_point.y - feet.y) / MANTLE_RISE_SPEED * 60.0), 8, 40)
 	_mantle_total = _mantle_rise + MANTLE_FORWARD_TICKS
 	return true
+
+
+## True when the obstacle whose face is at `face` does not reach down to knee height in front of the feet: there
+## is open space under its edge (it overhangs).
+func _open_below(space: PhysicsDirectSpaceState3D, feet: Vector3, facing: Vector3, face: Vector3) -> bool:
+	var reach := Vector2(face.x - feet.x, face.z - feet.z).length() + 0.1
+	var knee := feet + Vector3.UP * 0.3
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(knee, knee + facing * reach, Layers.WORLD)).is_empty()
+
+
+## The obstacle's top surface straight below `point` (near `top_y`), or {} if there is none.
+func _top_at(space: PhysicsDirectSpaceState3D, point: Vector3, top_y: float) -> Dictionary:
+	return space.intersect_ray(PhysicsRayQueryParameters3D.create(
+			Vector3(point.x, top_y + 0.4, point.z), Vector3(point.x, top_y - 0.3, point.z), Layers.WORLD))
 
 
 ## Records why a vault was refused (shown in the debug overlay of the local player) and returns false.
@@ -1359,10 +1403,10 @@ func _vault_fail(reason: String) -> bool:
 	return false
 
 
-func _capsule_clear(feet_position: Vector3) -> bool:
+func _capsule_clear(feet_position: Vector3, crouched: bool = false) -> bool:
 	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = _probe_shape
-	params.transform = Transform3D(Basis.IDENTITY, feet_position + Vector3.UP * (STAND_HEIGHT * 0.5))
+	params.shape = _probe_crouch_shape if crouched else _probe_shape
+	params.transform = Transform3D(Basis.IDENTITY, feet_position + Vector3.UP * ((CROUCH_HEIGHT if crouched else STAND_HEIGHT) * 0.5))
 	params.collision_mask = Layers.PLAYER_MOVE_MASK
 	return get_world_3d().direct_space_state.intersect_shape(params, 1).is_empty()
 

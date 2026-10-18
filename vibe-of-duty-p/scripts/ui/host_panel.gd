@@ -1,6 +1,7 @@
 class_name HostPanel
 extends PanelContainer
-## Host settings, opened by the main menu's "Host game": map, match rules (kill limit, match length) and port.
+## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length) and, under
+## the folded "Дополнительно", the port.
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
 ## the menu then opens the server.
 
@@ -44,7 +45,15 @@ func _init() -> void:
 	_add_row(box, "Карта", _map)
 	_score_limit = _add_spin(box, "Лимит убийств", 1, 100, Settings.host_score_limit, "")
 	_match_minutes = _add_spin(box, "Длительность матча", 1, 60, Settings.host_match_minutes, " мин")
-	_port = _add_spin(box, "Порт", 1024, 65535, Settings.host_port, "")
+	# Rarely needed settings, folded away: the port (only when 27015 is taken or a router forwards another one).
+	var advanced := FoldableContainer.new()
+	advanced.title = "Дополнительно"
+	advanced.folded = true
+	box.add_child(advanced)
+	var advanced_box := VBoxContainer.new()
+	advanced_box.add_theme_constant_override("separation", 10)
+	advanced.add_child(advanced_box)
+	_port = _add_spin(advanced_box, "Порт", 1024, 65535, Settings.host_port, "")
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)

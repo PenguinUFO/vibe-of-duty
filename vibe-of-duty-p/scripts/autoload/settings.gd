@@ -22,7 +22,11 @@ var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STI
 var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
 var player_name := "Игрок"
-var server_address := "127.0.0.1"  # last address typed in the main menu
+var server_address := "127.0.0.1"  # last address typed in the join panel
+## Servers connected to successfully, newest first, unique by address: [{"address": String, "name": String}].
+## The name is the player's own label for it (JoinPanel); empty until they type one.
+var recent_servers: Array = []
+const RECENT_SERVERS_MAX := 10
 var kid_mode := false  # unlocked with a code in the main menu; more health, stronger and wider aim assist
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
 
@@ -124,6 +128,30 @@ func focus_debug() -> String:
 	return "focus %s  lost %dx  last %.2f s" % [state, focus_losses, last_focus_loss]
 
 
+## After a successful connection: moves `address` to the top of recent_servers (keeping its name) and saves.
+func remember_server(address: String) -> void:
+	var label := ""
+	for i in range(recent_servers.size() - 1, -1, -1):
+		if recent_servers[i]["address"] == address:
+			label = recent_servers[i]["name"]
+			recent_servers.remove_at(i)
+	recent_servers.push_front({"address": address, "name": label})
+	recent_servers.resize(mini(recent_servers.size(), RECENT_SERVERS_MAX))
+	save_settings()
+
+
+func rename_server(address: String, label: String) -> void:
+	for entry in recent_servers:
+		if entry["address"] == address:
+			entry["name"] = label.strip_edges().left(32)
+	save_settings()
+
+
+func forget_server(address: String) -> void:
+	recent_servers = recent_servers.filter(func(entry: Dictionary) -> bool: return entry["address"] != address)
+	save_settings()
+
+
 ## True when a gamepad is connected (menus then put the focus on a button, so the d-pad can navigate).
 func has_gamepad() -> bool:
 	return not Input.get_connected_joypads().is_empty()
@@ -201,6 +229,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "window_size", window_size)
 	cfg.set_value("player", "name", player_name)
 	cfg.set_value("player", "server_address", server_address)
+	cfg.set_value("player", "recent_servers", recent_servers)
 	cfg.set_value("player", "kid_mode", kid_mode)
 	cfg.set_value("host", "map", host_map)
 	cfg.set_value("host", "score_limit", host_score_limit)
@@ -229,6 +258,13 @@ func load_settings() -> void:
 		window_size = saved_size
 	player_name = cfg.get_value("player", "name", player_name)
 	server_address = cfg.get_value("player", "server_address", server_address)
+	recent_servers = []
+	var saved_servers = cfg.get_value("player", "recent_servers", [])
+	if saved_servers is Array:
+		for entry in saved_servers:
+			if entry is Dictionary and entry.get("address") is String and entry.get("name", "") is String \
+					and recent_servers.size() < RECENT_SERVERS_MAX:
+				recent_servers.append({"address": entry["address"], "name": entry.get("name", "")})
 	kid_mode = cfg.get_value("player", "kid_mode", kid_mode)
 	host_map = cfg.get_value("host", "map", host_map)
 	host_score_limit = clampi(cfg.get_value("host", "score_limit", host_score_limit), 1, 100)
