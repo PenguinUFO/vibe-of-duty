@@ -49,9 +49,8 @@ const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
 const SUIT := Color(0.2, 0.21, 0.17)    # faded olive-grey fatigues
 const SKIN := Color(0.6, 0.45, 0.41)    # weathered, dirty pig skin: head, neck, tail
 const SNOUT := Color(0.5, 0.34, 0.32)   # snout and ears, a shade darker than the skin
-const GLOVE := Color(0.42, 0.36, 0.29)  # worn tan leather: still reads against the dark gun
+const HOOF := Color(0.36, 0.3, 0.26)   # weathered horn: hands and feet are cloven hooves; light enough for the dark gun
 const VISOR := Color(0.03, 0.025, 0.02) # eyes and nostrils
-const BOOT := Color(0.09, 0.075, 0.06)
 const PALETTE: Array[Color] = [
 	Color(0.5, 0.29, 0.17), Color(0.24, 0.34, 0.42), Color(0.36, 0.28, 0.4),
 	Color(0.33, 0.39, 0.22), Color(0.52, 0.44, 0.22), Color(0.45, 0.2, 0.19),
@@ -100,7 +99,12 @@ func build(accent: Color) -> void:
 		_part("Thigh" + side, _limb(0.085, 0.065, THIGH), SUIT)
 		_part("Knee" + side, _sphere(0.066), SUIT)
 		_part("Shin" + side, _limb(0.062, 0.045, SHIN), SUIT)
-		_part("Foot" + side, _box(Vector3(0.1, 0.08, 0.25)), BOOT)
+		# Trotter: bare skin from the trouser leg to the ground, two hoof toes pointing forward (cleft between them).
+		_part("Foot" + side, _limb(0.048, 0.042, ANKLE_H), SKIN)
+		for s in [-1.0, 1.0]:
+			var toe := _attach(_parts["Foot" + side], _limb(0.036, 0.02, 0.12), HOOF, Vector3(0.027 * s, -0.008, -0.055))
+			toe.rotation = Vector3(-PI * 0.5, 0.06 * s, 0.0)  # along -Z (forward), tips slightly apart
+			toe.scale = Vector3(1.0, 1.0, 0.85)  # flatter than round
 	_right_arm = make_arm(self, "R", accent)
 	_left_arm = make_arm(self, "L", accent)
 	(_parts["Torso"] as Node3D).scale = Vector3(1.0, 1.0, 0.7)  # a bit of a belly
@@ -164,7 +168,7 @@ func pose() -> void:
 		_segment(_parts["Thigh" + side], hip, knee)
 		_place(_parts["Knee" + side], Transform3D(Basis.IDENTITY, knee))
 		_segment(_parts["Shin" + side], knee, ankle)
-		_place(_parts["Foot" + side], Transform3D(Basis.IDENTITY, Vector3(ankle.x, ANKLE_H * 0.5, ankle.z - 0.06)))
+		_place(_parts["Foot" + side], Transform3D(Basis.IDENTITY, Vector3(ankle.x, ANKLE_H * 0.5, ankle.z)))
 
 	# Weapon: at the hip, or with the rear sight under the eye; blended by ads.
 	var shoulder_r := chest * Vector3(SHOULDER_X, SHOULDER_UP, 0.0)
@@ -202,13 +206,13 @@ static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: 
 	hand.name = "Hand" + side
 	parent.add_child(hand)
 	arm["hand"] = hand
-	# Hand frame: origin at the wrist, +Y along the fingers, +Z out of the palm.
-	var s := -1.0 if side == "R" else 1.0  # thumb side
-	_attach(hand, _box(Vector3(0.08, 0.085, 0.032)), GLOVE, Vector3(0.0, 0.045, 0.0))
-	var fingers := _attach(hand, _box(Vector3(0.075, 0.06, 0.026)), GLOVE, Vector3(0.0, 0.1, 0.022))
-	fingers.rotation.x = 1.1  # curled towards the palm: a gripping hand
-	var thumb := _attach(hand, _box(Vector3(0.026, 0.06, 0.026)), GLOVE, Vector3(0.045 * s, 0.05, 0.02))
-	thumb.rotation = Vector3(0.6, 0.0, -0.5 * s)
+	# Hand frame: origin at the wrist, +Y along the fingers, +Z out of the palm. A pig's trotter: a bit of bare skin
+	# out of the sleeve, then two hoof toes curled a little towards the palm, round the grip.
+	_attach(hand, _limb(0.036, 0.032, 0.05), SKIN, Vector3(0.0, 0.025, 0.0))
+	for s in [-1.0, 1.0]:
+		var toe := _attach(hand, _limb(0.024, 0.013, 0.07), HOOF, Vector3(0.019 * s, 0.08, 0.008))
+		toe.rotation = Vector3(0.35, 0.0, -0.08 * s)  # curled in, the two toes splayed apart (the cleft)
+		toe.scale = Vector3(1.0, 1.0, 1.3)  # a bit deeper than wide, like a hoof
 	return arm
 
 
