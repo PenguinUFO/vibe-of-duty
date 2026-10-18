@@ -12,6 +12,7 @@ signal graphics_changed  # shadow / AA / scale / vsync settings were applied
 
 var mouse_sensitivity := 0.0025  # radians per pixel
 var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STICK_LOOK_SPEED)
+var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
 var player_name := "Player"
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
@@ -82,6 +83,30 @@ func _ensure_action(action: String, deadzone: float = 0.5) -> void:
 		InputMap.action_set_deadzone(action, deadzone)
 
 
+## Debug (F3): how often the game lost the OS focus. (With input_devices/joypads/ignore_joypad_on_unfocused_application
+## the engine drops all gamepad input while unfocused; that setting is off, the pad froze with it.)
+var focus_losses := 0
+var last_focus_loss := 0.0  # seconds the last loss lasted
+var _focus_lost_at := -1.0
+
+
+func _notification(what: int) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		focus_losses += 1
+		_focus_lost_at = now
+		print("[focus] lost at %.2f s" % now)
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN and _focus_lost_at >= 0.0:
+		last_focus_loss = now - _focus_lost_at
+		_focus_lost_at = -1.0
+		print("[focus] back at %.2f s, after %.2f s" % [now, last_focus_loss])
+
+
+func focus_debug() -> String:
+	var state := "yes" if _focus_lost_at < 0.0 else "NO (%.1f s)" % (Time.get_ticks_msec() / 1000.0 - _focus_lost_at)
+	return "focus %s  lost %dx  last %.2f s" % [state, focus_losses, last_focus_loss]
+
+
 ## True when a gamepad is connected (menus then put the focus on a button, so the d-pad can navigate).
 func has_gamepad() -> bool:
 	return not Input.get_connected_joypads().is_empty()
@@ -124,6 +149,7 @@ func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("input", "stick_sensitivity", stick_sensitivity)
+	cfg.set_value("input", "aim_assist", aim_assist)
 	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "antialiasing", antialiasing)
 	cfg.set_value("video", "shadow_quality", shadow_quality)
@@ -145,6 +171,7 @@ func load_settings() -> void:
 		return
 	mouse_sensitivity = cfg.get_value("input", "mouse_sensitivity", mouse_sensitivity)
 	stick_sensitivity = clampf(cfg.get_value("input", "stick_sensitivity", stick_sensitivity), 0.2, 3.0)
+	aim_assist = clampf(cfg.get_value("input", "aim_assist", aim_assist), 0.0, 1.0)
 	fov = cfg.get_value("video", "fov", fov)
 	antialiasing = clampi(cfg.get_value("video", "antialiasing", antialiasing), 0, 1)
 	shadow_quality = clampi(cfg.get_value("video", "shadow_quality", shadow_quality), 0, 2)

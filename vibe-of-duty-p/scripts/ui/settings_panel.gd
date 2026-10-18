@@ -45,6 +45,8 @@ func _init() -> void:
 			func(v: float) -> void: Settings.mouse_sensitivity = v * SENSITIVITY_UNIT, "%.2f")
 	_add_slider(box, "Stick sensitivity", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
 			func(v: float) -> void: Settings.stick_sensitivity = v, "%.2f")
+	_add_slider(box, "Aim assist (gamepad)", 0.0, 1.0, 0.05, Settings.aim_assist,
+			func(v: float) -> void: Settings.aim_assist = v, "%d%%", true)
 	_add_slider(box, "Field of view", 60.0, 120.0, 1.0, Settings.fov,
 			func(v: float) -> void: Settings.fov = v, "%d")
 

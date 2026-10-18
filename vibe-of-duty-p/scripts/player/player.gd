@@ -86,6 +86,8 @@ var is_local: bool:
 
 var look_yaw := 0.0
 var _sprint_latched := false  # gamepad sprint (Y / L3) stays on until the player stops moving forward
+var _pad_look := false  # the gamepad was used last (not the mouse): aim assist is on
+var _aim_assist := AimAssist.new()
 var look_pitch := 0.0
 
 var is_sliding := false
@@ -252,6 +254,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var sens := Settings.mouse_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
 		look_yaw -= event.relative.x * sens
 		look_pitch = clampf(look_pitch - event.relative.y * sens, -MAX_PITCH, MAX_PITCH)
+		if event.relative.length() > 2.0:
+			_pad_look = false  # aiming with the mouse: no aim assist
+	elif event is InputEventJoypadMotion and absf(event.axis_value) > 0.3:
+		_pad_look = true
 
 
 func _physics_process(delta: float) -> void:
@@ -308,16 +314,46 @@ func _process(delta: float) -> void:
 
 
 ## Right-stick look (the mouse turns the view in _unhandled_input). Slower while aiming, like the mouse.
+## With the stick (not the mouse) the aim assist slows it down over an enemy and follows a moving one.
 func _stick_look(delta: float) -> void:
-	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or Game.bot_mode:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or Game.bot_mode or not alive:
+		_aim_assist.target_id = -1
 		return
 	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")
-	if stick == Vector2.ZERO:
-		return
-	stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
-	var speed := STICK_LOOK_SPEED * Settings.stick_sensitivity * lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
-	look_yaw -= stick.x * speed.x * delta
-	look_pitch = clampf(look_pitch - stick.y * speed.y * delta, -MAX_PITCH, MAX_PITCH)
+	var move := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if stick != Vector2.ZERO:
+		_pad_look = true
+	var turn := Vector2.ZERO
+	if _pad_look:
+		turn = _aim_assist.update(_head.global_position, look_yaw, look_pitch, weapons.ads,
+				stick != Vector2.ZERO or move != Vector2.ZERO, Settings.aim_assist, _assist_targets(), _assist_visible)
+	if stick != Vector2.ZERO:
+		stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
+		var speed := STICK_LOOK_SPEED * Settings.stick_sensitivity * _aim_assist.slowdown \
+				* lerpf(1.0, weapons.current().ads_fov_mult, weapons.ads)
+		turn -= stick * speed * delta
+	look_yaw += turn.x
+	look_pitch = clampf(look_pitch + turn.y, -MAX_PITCH, MAX_PITCH)
+
+
+## Aim assist targets: every other living player, as a line from mid-torso to the head centre (the hitboxes).
+func _assist_targets() -> Array:
+	var targets := []
+	if world == null:
+		return targets
+	for id in world.players:
+		var other = world.players[id]
+		if not is_instance_valid(other) or other == self or not other.alive:
+			continue
+		var state: Dictionary = other.hitbox_state()
+		var body := LagComp.body_segment(state)
+		targets.append({"id": id, "a": body[0].lerp(body[1], 0.6), "b": LagComp.head_center(state)})
+	return targets
+
+
+func _assist_visible(eye: Vector3, point: Vector3) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(eye, point, Layers.WORLD, [get_rid()])
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
 func _gather_cmd(delta: float) -> PlayerCmd:
@@ -328,7 +364,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 	cmd.pitch = look_pitch
 	_jump_buffer = maxf(_jump_buffer - delta, 0.0)
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		cmd.move = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		cmd.move =Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		# Gamepad: a press of Y (or L3) sprints until you stop pushing forward, so the thumb is free for the look stick.
 		if Input.is_action_just_pressed("sprint_toggle"):
 			_sprint_latched = true
@@ -1052,6 +1088,28 @@ func _update_hud(speed: float, delta: float) -> void:
 		"slide " if is_sliding else "", "crouch " if is_crouched else "",
 		"sprint " if is_sprinting else ""]
 	_debug.text += vault_line
+	for device in Input.get_connected_joypads():
+		# Raw stick values next to what the actions see: tells an engine / driver problem from a game one.
+		_debug.text += "\npad%d L(%.2f %.2f) R(%.2f %.2f)  move(%.2f %.2f) look(%.2f %.2f)  %s" % [device,
+				Input.get_joy_axis(device, JOY_AXIS_LEFT_X), Input.get_joy_axis(device, JOY_AXIS_LEFT_Y),
+				Input.get_joy_axis(device, JOY_AXIS_RIGHT_X), Input.get_joy_axis(device, JOY_AXIS_RIGHT_Y),
+				Input.get_vector("move_left", "move_right", "move_forward", "move_back").x,
+				Input.get_vector("move_left", "move_right", "move_forward", "move_back").y,
+				Input.get_vector("look_left", "look_right", "look_up", "look_down").x,
+				Input.get_vector("look_left", "look_right", "look_up", "look_down").y,
+				_assist_debug()]
+		_debug.text += "\n" + Settings.focus_debug()
+
+
+## F3 line: "mouse" (no assist), "pad" (assist ready, no target) or the target it is working on right now.
+func _assist_debug() -> String:
+	if not _pad_look:
+		return "assist off (mouse)"
+	if _aim_assist.target_id < 0:
+		return "assist: no target"
+	var target_name: String = world.players[_aim_assist.target_id].player_name \
+			if world != null and world.players.has(_aim_assist.target_id) else str(_aim_assist.target_id)
+	return "assist: %s  strength %.2f  stick x%.2f" % [target_name, _aim_assist.strength, _aim_assist.slowdown]
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_debug.text += "\nrtt %d ms  recon %d  err %.2f m" % [rtt_ms, recon_count, last_error]
 
