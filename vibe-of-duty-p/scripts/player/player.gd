@@ -276,6 +276,10 @@ func _process(delta: float) -> void:
 		_head.global_transform = Transform3D(Basis.from_euler(view_angles), pos + Vector3.UP * _eye_height)
 	else:
 		_head.position.y = _eye_height
+		# Server-simulated remote player seen on the host: drive its body like a puppet's.
+		_visual.set_aim_pitch(_head.rotation.x)
+		_visual.set_ads(weapons.ads > 0.5)
+		_visual.update_motion(delta, global_transform.basis.inverse() * velocity)
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov
 	_camera.fov = lerpf(_camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
@@ -640,6 +644,7 @@ func push_snapshot(state: Array) -> void:
 	velocity = state[4]
 	weapons.index = (flags >> STATE_WEAPON_SHIFT) & 3
 	_visual.set_weapon(weapons.index)
+	_visual.set_ads(flags & STATE_ADS != 0)
 	health = state[8]
 	if health <= 0 and alive:
 		die("", 0.0)  # missed the death event (e.g. joined late)
@@ -662,6 +667,7 @@ func _update_puppet() -> void:
 	_head.rotation.x = lerpf(a["pitch"], b["pitch"], f)
 	_visual.set_crouched(is_crouched)
 	_visual.set_aim_pitch(_head.rotation.x)
+	_visual.update_motion(get_process_delta_time(), global_transform.basis.inverse() * velocity)
 	# Footsteps of other players, from their displayed movement.
 	var moved := Vector2(global_position.x - previous_pos.x, global_position.z - previous_pos.z).length()
 	if _puppet_on_floor and not is_sliding and moved < 1.0:
