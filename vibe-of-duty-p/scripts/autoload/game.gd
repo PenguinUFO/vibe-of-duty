@@ -12,9 +12,13 @@ const DEFAULT_MAP := "res://prefabs/levels/train.tscn"
 const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are building blocks, not maps
 ## Training maps (main menu -> Тренировка), in menu order. Not offered when creating a game; played alone on a
 ## local-only server (Net.host_training).
-const TRAINING_MAPS: Array[String] = ["range", "test_level"]
+const TRAINING_MAPS: Array[String] = ["range", "course", "test_level"]
+## Developer test maps: never offered in the menus, only reachable with --map= (dedicated server) or --training=.
+## arena: a small walled box with nothing between the spawns, for automated netcode / kill cam / combat tests.
+const TEST_MAPS: Array[String] = ["arena"]
 const TRAINING_INFO := {
 	"range": "Мишени на дистанциях от 5 до 75 м и бегущая мишень",
+	"course": "Площадка по кругу: стены, поручни, туннели, ямы, склоны, брёвна, ступени. На каждом снаряде несколько вариантов рядом — что получается, а что уже нет",
 	"test_level": "Укрытия, уступы и склоны: проверка движения и залезания",
 }
 const SCORE_LIMIT := 20
@@ -33,6 +37,7 @@ var auto_training := ""   # --training=map: skip the menu, start that training m
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
 var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
+var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
@@ -60,6 +65,9 @@ func _ready() -> void:
 			bot_mode = true
 		elif arg == "--netlog":
 			net_log = true
+		elif arg == "--bot-course":
+			bot_mode = true
+			bot_course = true
 		elif arg == "--bot-targets":
 			bot_mode = true
 			bot_targets = true
@@ -113,13 +121,13 @@ func _ready() -> void:
 
 
 ## The maps to play matches on: the scenes in MAPS_DIR except the building blocks and the training maps. Dropping a
-## new level scene there adds a map. `with_training` includes the training maps too.
+## new level scene there adds a map. `with_training` includes the training and test maps too.
 static func list_maps(with_training := false) -> Array[String]:
 	var maps: Array[String] = []
 	for file in DirAccess.get_files_at(MAPS_DIR):
 		file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
 		var base := file.get_basename()
-		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and (with_training or not TRAINING_MAPS.has(base)):
+		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and (with_training or not (TRAINING_MAPS.has(base) or TEST_MAPS.has(base))):
 			maps.append(MAPS_DIR.path_join(file))
 	maps.sort()
 	return maps
@@ -140,7 +148,7 @@ static func is_map(path: String) -> bool:
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон", "range": "Стрельбище"}
+const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()

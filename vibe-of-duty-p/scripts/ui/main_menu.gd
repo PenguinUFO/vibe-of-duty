@@ -132,7 +132,8 @@ func _on_training() -> void:
 
 ## Plays a training map alone: a server only this computer can reach, no match clock (a day-long "match").
 func _start_training(path: String) -> void:
-	if not Game.list_training_maps().has(path):
+	var base := path.get_file().get_basename()
+	if not (Game.list_training_maps().has(path) or (Game.TEST_MAPS.has(base) and Game.is_map(path))):
 		_status.text = "Нет такой тренировки: %s" % path.get_file().get_basename()
 		return
 	Game.training = true

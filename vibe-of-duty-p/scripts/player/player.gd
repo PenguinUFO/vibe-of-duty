@@ -177,6 +177,10 @@ var _turn_rate := 0.0  # rad/s the stick (and aim assist) turns the view, smooth
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
 var _bot_select := 0
+var _bot_corner := 1      # --bot-course: the loop corner it runs to next
+var _bot_stuck := 0.0     # --bot-course: s standing still while trying to run
+## --bot-course: corners of the obstacle course loop (x, z), in running order (prefabs/levels/course.tscn).
+const COURSE_LOOP: Array[Vector2] = [Vector2(-30, 22), Vector2(30, 22), Vector2(30, -22), Vector2(-30, -22)]
 var _mantle_tick := 0
 var _mantle_total := 0
 var _mantle_rise := 0
@@ -587,6 +591,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		return _bot_aim_cmd(t)
 	if Game.bot_targets:
 		return _bot_targets_cmd(t)
+	if Game.bot_course:
+		return _bot_course_cmd(delta)
 	if Game.bot_vault:
 		# Runs back and forth over the test ledges, jumping all the time (vaults whenever one is in reach).
 		look_yaw = PI if fmod(t, 7.0) >= 3.5 else 0.0  # 3.5 s each way (~18 m): crosses the ledges in both directions
@@ -607,6 +613,44 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	if sel != _bot_select:
 		_bot_select = sel
 		cmd.select = sel
+	return cmd
+
+
+## Runs laps of the obstacle course: down the middle lane of each side (COURSE_LOOP corners, in order), jumping at
+## anything knee-high ahead, at edges and when stuck, holding jump in the air (grabs ledges) and crouching under
+## anything head-high (a sprint into it slides).
+func _bot_course_cmd(delta: float) -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var p := global_position
+	var corner: Vector2 = COURSE_LOOP[_bot_corner]
+	if Vector2(p.x, p.z).distance_to(corner) < 2.5:
+		_bot_corner = (_bot_corner + 1) % COURSE_LOOP.size()
+		if _bot_corner == 1 and Game.net_log:
+			print("[COURSE] lap done at %.1f s" % (Time.get_ticks_msec() / 1000.0))
+		corner = COURSE_LOOP[_bot_corner]
+	# Aim at a point 3 m ahead on the side's centre line (not at the corner itself), so it stays in the middle lane.
+	var from: Vector2 = COURSE_LOOP[(_bot_corner + COURSE_LOOP.size() - 1) % COURSE_LOOP.size()]
+	var along := (corner - from).normalized()
+	var here := from + along * clampf((Vector2(p.x, p.z) - from).dot(along), 0.0, from.distance_to(corner))
+	var aim := here + along * minf(3.0, here.distance_to(corner))
+	look_yaw = atan2(-(aim.x - p.x), -(aim.y - p.z))
+	look_pitch = 0.0
+	cmd.yaw = look_yaw
+	cmd.move = Vector2(0.0, -1.0)
+	cmd.sprint = true
+	var fwd := Vector3(-sin(look_yaw), 0.0, -cos(look_yaw))
+	var space := get_world_3d().direct_space_state
+	var ray := func(from: Vector3, to: Vector3) -> bool:
+		return not space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD, [get_rid()])).is_empty()
+	var knee: bool = ray.call(p + Vector3(0, 0.3, 0), p + Vector3(0, 0.3, 0) + fwd)
+	var head: bool = ray.call(p + Vector3(0, 1.3, 0), p + Vector3(0, 1.3, 0) + fwd * 1.8)
+	var roof: bool = ray.call(p + Vector3(0, 0.9, 0), p + Vector3(0, 1.9, 0))
+	var floor_ahead: bool = ray.call(p + Vector3(0, 0.2, 0) + fwd * 0.7, p + Vector3(0, -0.6, 0) + fwd * 0.7)
+	var speed := Vector2(velocity.x, velocity.z).length()
+	_bot_stuck = _bot_stuck + delta if is_on_floor() and speed < 0.5 and not is_mantling else 0.0
+	cmd.crouch = (head and not knee) or roof
+	cmd.jump = is_on_floor() and not cmd.crouch and (knee or not floor_ahead or _bot_stuck > 0.3)
+	cmd.jump_held = not is_on_floor() or cmd.jump
 	return cmd
 
 
