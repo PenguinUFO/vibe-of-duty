@@ -7,8 +7,14 @@ extends Node3D
 ##   - legs: two-bone IK from the hips to feet planted on the ground (crouching lowers the pelvis, the knees bend);
 ##   - torso: bends about the spine pivot with the aim pitch (and leans forward when crouching);
 ##   - weapon: held at the hip or, aiming down sights, with the rear sight under the eye; both arms reach it by IK.
-## The head position is a pure function of (pitch, ads, crouch) - head_offset() - which LagComp uses for the head
-## hitbox, so the hitbox always matches the body exactly.
+## The head position is a pure function of (pitch, ads, crouch, run lean) - head_offset() - which LagComp uses for the
+## head hitbox, so the hitbox matches the body (up to the few centimetres of the walking bob).
+##
+## Locomotion (animate): a gait cycle whose phase advances with the distance travelled, so a planted foot stays put on
+## the ground; the swing foot arcs forward, the pelvis drops at each footfall, sways and twists. Standing, the feet stay
+## planted in the world and step back under the body when it turns or drifts. The torso leans with the speed (the
+## hitbox leans the same way, run_lean) and, through a spring, with the acceleration; ears and tail flop on springs.
+## On death the body becomes a ragdoll (start_ragdoll; the physics is in Ragdoll).
 ##
 ## Facing: the mannequin looks along -Z (the player's forward). Units: metres. First-person arms reuse the arm parts
 ## (make_arm / pose_arm), so the hands look the same in both views.
@@ -44,6 +50,28 @@ const LEFT_PALM := Vector3(0.0, 1.0, 0.0)         # palm up
 const RIGHT_POLE := Vector3(0.9, -1.0, 0.3)       # where the elbows point (mannequin space)
 const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
 
+# --- locomotion ---
+const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
+const STANCE_R := Vector3(0.13, 0.0, 0.1)
+const FOOT_X := 0.12             # feet off the centre line while walking
+const STRIDE_WALK := 1.15        # m the body travels in a full gait cycle (two steps) at a walk...
+const STRIDE_RUN := 2.0          # ... and at a sprint
+const LIFT_WALK := 0.09          # height of the swinging foot
+const LIFT_RUN := 0.2
+const BOB_WALK := 0.025          # pelvis drop at each footfall
+const BOB_RUN := 0.04
+const TWIST := 0.15              # rad the pelvis turns with the forward leg
+const IDLE_STEP := 0.12          # m a planted foot may lag behind its place under the body before it steps
+const IDLE_STEP_TIME := 0.2      # s per idle step
+const IDLE_STEP_LIFT := 0.06
+const LEAN_PER_SPEED := 0.022    # rad of forward lean per m/s (the hitbox leans too: run_lean)
+const LEAN_MAX := 0.16
+const SIDE_LEAN_PER_SPEED := 0.012
+const SIDE_LEAN_MAX := 0.08
+const TUCK_HEIGHT := 0.3         # m the feet draw up in the air (rising; falling, the legs reach down again)
+const LAND_DROP_MAX := 0.06      # m the pelvis may sink on landing (within the head hitbox's spare radius)
+const PELVIS_DROP_MAX := 0.07    # bob + landing together
+
 # --- colours ---
 # Grim, realistic palette: worn fatigues, dirty pig skin, dull leather. Player colours stay distinct but muted.
 const SUIT := Color(0.2, 0.21, 0.17)    # faded olive-grey fatigues
@@ -64,6 +92,10 @@ const FACET_KEY_PROPS := ["radius", "height", "radial_segments", "rings", "top_r
 		"subdivide_width", "subdivide_height", "subdivide_depth"]
 
 var pitch := 0.0      # aim pitch, radians, + = up
+var reload := -1.0    # reload progress 0..1, -1 = not reloading
+var mantle := 0.0     # 0..1: vaulting pose weight
+var mantle_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left and right hand on the ledge
+var mantle_top := 0.0  # world height of the ledge's top
 var ads := 0.0        # 0..1
 var crouch := 0.0     # 0..1
 var weapon: WeaponView
@@ -72,6 +104,42 @@ var def: WeaponDef
 var _parts := {}      # name -> MeshInstance3D / Node3D
 var _right_arm: Dictionary
 var _left_arm: Dictionary
+var _ears: Array[Node3D] = []
+var _reload_hand := Vector3.ZERO     # left hand target during a reload (gun view space)
+
+# Locomotion state (animate), read by pose().
+var _phase := 0.0                 # gait cycle, 0..1 (left foot lands at 0, the right one at 0.5)
+var _move := 0.0                  # 0 = standing (planted feet), 1 = walking (gait)
+var _dir := Vector3.FORWARD       # direction of travel (mannequin space, flat)
+var _feet: Array[Vector3] = [STANCE_L, STANCE_R]  # foot positions on the ground (+ lift in y), mannequin space
+var _foot_pitch: Array[float] = [0.0, 0.0]
+var _plant: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # standing: where each foot stands (world)
+var _step_from: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+var _step_t: Array[float] = [-1.0, -1.0]  # idle step progress 0..1, -1 = planted
+var _planted := false
+var _pelvis_offset := Vector3.ZERO  # bob and sway
+var _twist := 0.0
+var _prev_vel := Vector3.ZERO
+var _lean := Vector2.ZERO           # x: about the right axis (+ = back), y: sideways (+ = to the right)
+var _lean_v := Vector2.ZERO
+var _ear := Vector2.ZERO            # ear flop: x = tips back, y = tips to the left
+var _ear_v := Vector2.ZERO
+var _tail_flop := Vector2.ZERO
+var _tail_flop_v := Vector2.ZERO
+var _last_head := Vector3.INF       # world, at the previous pose (for the ears)
+var _head_vel := Vector3.ZERO       # world
+var _joints := {}                   # joint name -> position (mannequin space) at the last pose; the ragdoll starts there
+var _was_air := false
+var _fall_speed := 0.0              # fastest fall of the current flight (m/s), for the landing
+var _tuck := 0.0                    # 0 = legs on the ground, 1 = drawn up
+var _land := 0.0                    # pelvis offset of the landing squat (m, <= 0)
+var _land_v := 0.0
+var _head_kick := Vector2.ZERO      # head snap of a hit: x = back, y = sideways (rad)
+var _head_kick_v := Vector2.ZERO
+var _jolt := 0.0                    # torso turn of a hit (rad about the vertical: the hit shoulder goes back)
+var _jolt_v := 0.0
+var _ragdoll: Ragdoll
+var _ragdoll_parts: Array = []      # [part, frame index, relative transform] for the rigid parts
 
 
 ## Player colour for a peer (torso and shoulders), so players are easy to tell apart.
@@ -80,16 +148,25 @@ static func color_for(peer_id: int) -> Color:
 
 
 ## Head centre over the feet in the mannequin's frame (x right, y up, -z forward). Used by the pose and by LagComp.
-static func head_offset(aim_pitch: float, ads_amount: float, crouch_amount: float) -> Vector3:
-	var chest := chest_frame(aim_pitch, crouch_amount)
+static func head_offset(aim_pitch: float, ads_amount: float, crouch_amount: float, lean := Vector2.ZERO) -> Vector3:
+	var chest := chest_frame(aim_pitch, crouch_amount, lean)
 	return chest * (Vector3(0.0, HEAD_UP, 0.0) + ADS_HEAD * ads_amount)
 
 
-## The torso's frame: origin at the spine pivot, rotated by the aim pitch and the crouch lean.
-static func chest_frame(aim_pitch: float, crouch_amount: float) -> Transform3D:
+## The torso's frame: origin at the spine pivot, rotated by the aim pitch, the crouch lean and the run lean.
+static func chest_frame(aim_pitch: float, crouch_amount: float, lean := Vector2.ZERO) -> Transform3D:
 	var pelvis_y := lerpf(PELVIS_STAND, PELVIS_CROUCH, crouch_amount)
-	var angle := aim_pitch * SPINE_SHARE - CROUCH_LEAN * crouch_amount  # + tilts back (looking up)
-	return Transform3D(Basis(Vector3.RIGHT, angle), Vector3(0.0, pelvis_y + SPINE_PIVOT, 0.0))
+	var angle := aim_pitch * SPINE_SHARE - CROUCH_LEAN * crouch_amount + lean.x  # + tilts back (looking up)
+	var basis := Basis(Vector3.BACK, -lean.y) * Basis(Vector3.RIGHT, angle)
+	return Transform3D(basis, Vector3(0.0, pelvis_y + SPINE_PIVOT, 0.0))
+
+
+## How far the torso leans when moving at `local_velocity` (x right, z backwards; m/s): forward with the speed,
+## into a strafe. The hitbox (LagComp) leans by this too.
+static func run_lean(local_velocity: Vector3) -> Vector2:
+	var forward := -local_velocity.z
+	return Vector2(-clampf(forward * LEAN_PER_SPEED, -LEAN_MAX * 0.5, LEAN_MAX),
+			clampf(local_velocity.x * SIDE_LEAN_PER_SPEED, -SIDE_LEAN_MAX, SIDE_LEAN_MAX))
 
 
 func build(accent: Color) -> void:
@@ -97,6 +174,7 @@ func build(accent: Color) -> void:
 	_part("Torso", _capsule(0.2, 0.64), accent)
 	_part("Neck", _capsule(0.05, 0.16), SKIN)
 	_parts["Head"] = make_head(self)
+	_ears = [_parts["Head"].get_node("EarL"), _parts["Head"].get_node("EarR")]
 	_part("Tail", _tail(), SKIN)
 	for side in ["L", "R"]:
 		_part("Hip" + side, _sphere(0.085), SUIT)
@@ -138,10 +216,17 @@ static func _build_pig_face(head: Node3D) -> void:
 		var nostril := _attach(head, _sphere(0.011), VISOR, Vector3(0.018 * s, -0.025, -0.153))
 		nostril.scale = Vector3(0.8, 1.3, 0.5)
 		_attach(head, _sphere(0.014), VISOR, Vector3(0.042 * s, 0.035, -0.098))
+		# The ear hangs from a pivot at its base, so it can flop (animate) without leaving the head.
 		var ear := PrismMesh.new()
 		ear.size = Vector3(0.075, 0.09, 0.016)
-		var ear_part := _attach(head, ear, SNOUT, Vector3(0.075 * s, 0.095, -0.02))
-		ear_part.rotation = Vector3(-1.05, 0.3 * s, -0.75 * s)  # tilted out, the tip flopping forward
+		var tilt := Basis.from_euler(Vector3(-1.05, 0.3 * s, -0.75 * s))  # tilted out, the tip flopping forward
+		var base := tilt * Vector3(0.0, -ear.size.y * 0.5, 0.0)
+		var pivot := Node3D.new()
+		pivot.name = "EarL" if s < 0.0 else "EarR"
+		pivot.position = Vector3(0.075 * s, 0.095, -0.02) + base
+		head.add_child(pivot)
+		var ear_part := _attach(pivot, ear, SNOUT, -base)
+		ear_part.basis = tilt
 
 
 ## A small curly tail: a thin torus, placed on the back of the pelvis in pose().
@@ -154,32 +239,221 @@ static func _tail() -> TorusMesh:
 	return mesh
 
 
-## Poses the whole body (call every frame, after the weapon's owner has set pitch / ads / crouch).
+## Advances the locomotion by `delta` (call every frame before pose()). `velocity`: the body's velocity in its own
+## frame (x right, z backwards; m/s). Off the floor or sliding, the legs hold still (the gait phase stops).
+func animate(delta: float, velocity: Vector3, on_floor := true, sliding := false) -> void:
+	if delta <= 0.0 or _ragdoll != null:
+		return
+	delta = minf(delta, 0.05)
+	var flat := Vector3(velocity.x, 0.0, velocity.z)
+	var speed := flat.length()
+	if speed > 0.1:
+		_dir = flat / speed
+	var walking := on_floor and not sliding
+	var target_move := clampf((speed - 0.3) / 1.2, 0.0, 1.0) if walking else (_move if not on_floor else 0.0)
+	_move = move_toward(_move, target_move, delta * 4.0)
+
+	# Gait: the phase runs with the distance travelled, one cycle per stride, so a foot on the ground moves back
+	# exactly as fast as the body moves forward (no sliding). duty = share of the cycle a foot is on the ground.
+	var run := clampf((speed - 3.0) / 4.0, 0.0, 1.0)
+	var stride := lerpf(STRIDE_WALK, STRIDE_RUN, run) * lerpf(1.0, 0.7, crouch)
+	if walking:
+		_phase = fposmod(_phase + speed * delta / stride, 1.0)
+	var duty := lerpf(0.6, 0.42, run)
+	var half := duty * stride * 0.5 * clampf(speed / 1.5, 0.0, 1.0)  # short steps when slow
+	var lift := lerpf(LIFT_WALK, LIFT_RUN, run) * lerpf(1.0, 0.6, crouch) * clampf(speed / 2.0, 0.3, 1.0)
+	var gait: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+	var gait_pitch: Array[float] = [0.0, 0.0]
+	for i in 2:
+		var s := -1.0 if i == 0 else 1.0
+		var p := fposmod(_phase + 0.5 * i, 1.0)
+		var along: float
+		var up := 0.0
+		var out := 0.0
+		if p < duty:
+			along = lerpf(half, -half, p / duty)
+		else:
+			var q := (p - duty) / (1.0 - duty)
+			along = lerpf(-half, half, smoothstep(0.0, 1.0, q))
+			up = sin(q * PI) * lift
+			out = sin(q * PI) * 0.03  # the swinging foot passes wide of the other one
+			gait_pitch[i] = sin(q * TAU) * 0.6 * clampf(speed / 3.0, 0.0, 1.0)  # toes down at push-off, up to land
+		gait[i] = Vector3((FOOT_X + out) * s, up, 0.0) + _dir * along
+
+	# Standing: the feet stay where they stand in the world; one steps back under the body when it has turned or
+	# drifted too far (one foot at a time, the one that lags most).
+	var xf := global_transform
+	var to_local := xf.affine_inverse()
+	var stance: Array[Vector3] = [STANCE_L, STANCE_R]
+	for i in 2:
+		var home := xf * stance[i]
+		if not _planted or _move > 0.95 or not on_floor or _plant[i].distance_to(home) > 1.5:
+			_plant[i] = home
+			_step_t[i] = -1.0
+	_planted = true
+	if _step_t[0] < 0.0 and _step_t[1] < 0.0:
+		var lag := [_flat_distance(_plant[0], xf * stance[0]), _flat_distance(_plant[1], xf * stance[1])]
+		var worst := 0 if lag[0] >= lag[1] else 1
+		if lag[worst] > IDLE_STEP:
+			_step_t[worst] = 0.0
+			_step_from[worst] = _plant[worst]
+	for i in 2:
+		var idle := to_local * _plant[i]
+		idle.y = 0.0
+		if _step_t[i] >= 0.0:
+			_step_t[i] = minf(_step_t[i] + delta / IDLE_STEP_TIME, 1.0)
+			var t := smoothstep(0.0, 1.0, _step_t[i])
+			idle = to_local * _step_from[i].lerp(xf * stance[i], t)
+			idle.y = sin(_step_t[i] * PI) * IDLE_STEP_LIFT
+			if _step_t[i] >= 1.0:
+				_plant[i] = xf * stance[i]
+				_step_t[i] = -1.0
+		_feet[i] = idle.lerp(gait[i], _move)
+		_foot_pitch[i] = gait_pitch[i] * _move
+
+	# Jump and fall: the legs draw up while rising and reach down again for the ground as the fall gets faster; on
+	# landing the pelvis sinks (harder falls deeper) and springs back, the body pitches forward, the ears bounce.
+	var vy := velocity.y
+	if not on_floor:
+		if not _was_air and vy > 1.0:
+			_lean_v.x -= 0.8  # takeoff: a forward pitch
+		_fall_speed = maxf(_fall_speed, -vy)
+		var tuck_target := 1.0 if vy > 0.0 else clampf(1.0 + vy / 6.0, 0.35, 1.0)
+		_tuck = move_toward(_tuck, tuck_target, delta * 5.0)
+	else:
+		if _was_air:
+			var impact := clampf(_fall_speed, 0.0, 12.0)
+			_land_v -= 0.15 + impact * 0.12
+			_lean_v.x -= impact * 0.12
+			_ear_v.x -= impact * 0.6
+			_tail_flop_v.x += impact * 0.5
+			_fall_speed = 0.0
+		_tuck = move_toward(_tuck, 0.0, delta * 10.0)
+	_was_air = not on_floor
+	var land := _spring(Vector2(_land, 0.0), Vector2(_land_v, 0.0), Vector2.ZERO, 3.0, 0.55, delta)
+	_land = clampf(land[0].x, -LAND_DROP_MAX, 0.03)
+	_land_v = land[1].x
+	for i in 2:
+		_feet[i].y += TUCK_HEIGHT * _tuck * (1.0 if i == 0 else 0.8)  # one leg a bit lower: less of a puppet
+		_foot_pitch[i] += 0.5 * _tuck  # toes hang down
+
+	# Pelvis: drops at each footfall, sways over the foot on the ground (walking), turns with the forward leg.
+	var bob := lerpf(BOB_WALK, BOB_RUN, run) * clampf(speed / 2.0, 0.0, 1.0)
+	_pelvis_offset = Vector3(-0.02 * sin(TAU * _phase) * (1.0 - run),
+			-bob * (0.5 + 0.5 * cos(2.0 * TAU * _phase)), 0.0) * _move
+	_pelvis_offset.y = maxf(_pelvis_offset.y + _land, -PELVIS_DROP_MAX)
+	_twist = TWIST * cos(TAU * _phase) * _dir.z * _move
+
+	# Lean with the speed, plus (through a springy follow) with the acceleration: into a start, back when stopping.
+	var accel := (flat - _prev_vel) / delta
+	_prev_vel = flat
+	var lean_target := run_lean(flat) + Vector2(clampf(accel.z * 0.012, -0.1, 0.1), clampf(accel.x * 0.006, -0.05, 0.05))
+	var lean := _spring(_lean, _lean_v, lean_target, 2.6, 0.45, delta)
+	_lean = lean[0]
+	_lean_v = lean[1]
+
+	# Ears and tail lag behind the head's / body's motion on loose springs, so they flop with every step and stop.
+	var head_local := to_local.basis * _head_vel
+	var ear := _spring(_ear, _ear_v, Vector2(clampf(-head_local.z * 0.07 + head_local.y * 0.25, -0.3, 0.6),
+			clampf(head_local.x * 0.08, -0.4, 0.4)), 3.5, 0.18, delta)
+	_ear = ear[0]
+	_ear_v = ear[1]
+	var wag := sin(TAU * _phase * 2.0) * 0.35 * _move
+	var tail := _spring(_tail_flop, _tail_flop_v, Vector2(clampf(-flat.z * 0.06, -0.3, 0.5) + _pelvis_offset.y * 6.0,
+			wag + clampf(flat.x * 0.08, -0.4, 0.4)), 4.0, 0.2, delta)
+	_tail_flop = tail[0]
+	_tail_flop_v = tail[1]
+	var kick := _spring(_head_kick, _head_kick_v, Vector2.ZERO, 4.5, 0.35, delta)
+	_head_kick = kick[0]
+	_head_kick_v = kick[1]
+	var jolt := _spring(Vector2(_jolt, 0.0), Vector2(_jolt_v, 0.0), Vector2.ZERO, 3.2, 0.3, delta)
+	_jolt = clampf(jolt[0].x, -0.5, 0.5)
+	_jolt_v = jolt[1].x
+
+
+## A bullet hit at `at` (world): the body jerks with the shot (`direction`: world direction the bullet flew) - the
+## torso turns away from the hit side and rocks with the push, a head hit snaps the head back. Kicks springs, so
+## several pellets add up but stay bounded. The turn hardly moves the head (it is above the spine's axis).
+func flinch(direction: Vector3, head_hit: bool, at: Vector3) -> void:
+	if _ragdoll != null:
+		return
+	var d := global_basis.inverse() * direction.normalized()
+	var side := (global_transform.affine_inverse() * at).x
+	if absf(side) < 0.05:
+		side = 0.05 * (1.0 if randf() < 0.5 else -1.0)
+	_jolt_v = clampf(_jolt_v - side * d.z * (12.0 if head_hit else 40.0), -9.0, 9.0)
+	_lean_v += Vector2(d.z, d.x) * (1.2 if head_hit else 2.2)
+	_lean_v = _lean_v.limit_length(4.0)
+	_head_kick_v += Vector2(d.z, d.x) * (7.0 if head_hit else 2.0)
+	_head_kick_v = _head_kick_v.limit_length(12.0)
+	_ear_v += Vector2(d.z, -d.x) * 3.0
+
+
+## Which part of the body a point (a shot's end, world) is on: "head", "body" or "" (missed it).
+func hit_zone(world_pos: Vector3) -> String:
+	if _parts["Head"].global_position.distance_to(world_pos) < LagComp.HEAD_RADIUS + 0.06:
+		return "head"
+	var local := global_transform.affine_inverse() * world_pos
+	var axis := Vector2(local.x, local.z).length()
+	if axis < LagComp.BODY_RADIUS + 0.08 and local.y > -0.1 and local.y < 1.6:
+		return "body"
+	return ""
+
+
+## Poses the whole body (call every frame, after the weapon's owner has set pitch / ads / crouch, and animate()).
 func pose() -> void:
-	var chest := chest_frame(pitch, crouch)
-	var pelvis_y := chest.origin.y - SPINE_PIVOT
-	_place(_parts["Pelvis"], Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.0, pelvis_y, 0.0)))
-	# Tail ring faces backwards (+Z), on the back of the pelvis.
-	_place(_parts["Tail"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5).rotated(Vector3.FORWARD, 0.4),
-			Vector3(0.0, pelvis_y + 0.03, 0.135)))
+	if _ragdoll != null:
+		return
+	var chest := chest_frame(pitch, crouch, _lean)
+	chest.basis = Basis(Vector3.UP, _jolt) * Basis(Vector3.RIGHT, -0.15 * mantle) * chest.basis
+	chest.origin += _pelvis_offset
+	var pelvis := chest.origin - Vector3(0.0, SPINE_PIVOT, 0.0)
+	var twist := Basis(Vector3.UP, _twist)
+	_place(_parts["Pelvis"], Transform3D(twist * Basis(Vector3.FORWARD, PI * 0.5), pelvis))
+	# Tail ring faces backwards (+Z), on the back of the pelvis; it flops up / down and wags.
+	_place(_parts["Tail"], Transform3D(Basis(Vector3.UP, _tail_flop.y) * Basis(Vector3.RIGHT, PI * 0.5 + _tail_flop.x)
+			.rotated(Vector3.FORWARD, 0.4), pelvis + twist * Vector3(_tail_flop.y * 0.02, 0.03, 0.135)))
 	_place(_parts["Torso"], chest * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
-	var head := head_offset(pitch, ads, crouch)
+	var head := chest * (Vector3(0.0, HEAD_UP, 0.0) + ADS_HEAD * ads)
 	var neck_base := chest * Vector3(0.0, SHOULDER_UP + 0.02, 0.0)
 	_segment(_parts["Neck"], neck_base, head - Vector3(0.0, HEAD_RADIUS * 0.6, 0.0))
 	# The head looks where the player aims (the torso took only part of the pitch).
-	_place(_parts["Head"], Transform3D(Basis(Vector3.RIGHT, pitch), head))
+	_place(_parts["Head"], Transform3D(Basis(Vector3.BACK, -_head_kick.y) * Basis(Vector3.RIGHT, pitch + _head_kick.x), head))
+	for ear in _ears:
+		ear.rotation = Vector3(_ear.x, 0.0, _ear.y)
+	var head_world := global_transform * head
+	if _last_head != Vector3.INF:
+		var dt := get_process_delta_time()
+		if dt > 0.0:
+			_head_vel = _head_vel.lerp((head_world - _last_head) / dt, 0.5)
+	_last_head = head_world
+	_joints["pelvis"] = pelvis
+	_joints["chest"] = neck_base
+	_joints["head"] = head
 
-	# Legs: feet planted under the hips (a slightly staggered stance), knees bend forward.
-	for side in ["L", "R"]:
-		var s := -1.0 if side == "L" else 1.0
-		var hip := Vector3(HIP_X * s, pelvis_y - 0.05, 0.0)
-		var ankle := Vector3(0.13 * s, ANKLE_H, -0.12 if side == "L" else 0.1)
+	# Legs: two-bone IK from the hips (turned with the pelvis) to the feet; knees bend forward.
+	for i in 2:
+		var side := "L" if i == 0 else "R"
+		var s := -1.0 if i == 0 else 1.0
+		var hip := pelvis + twist * Vector3(HIP_X * s, -0.05, 0.0)
+		var foot := _feet[i]
+		if mantle > 0.0 and i == 0:
+			# Vaulting: near the top the left knee comes up and the foot goes onto the ledge.
+			var below := mantle_top - global_position.y
+			var knee_up := mantle * smoothstep(1.0, 0.35, below)
+			var ledge := global_transform.affine_inverse() * ((mantle_hands[0] + mantle_hands[1]) * 0.5)
+			foot = foot.lerp(Vector3(-0.1, ledge.y, ledge.z + 0.1), knee_up)
+		var ankle := Vector3(foot.x, foot.y + ANKLE_H, foot.z)
 		var knee := two_bone(hip, ankle, THIGH, SHIN, Vector3(0.15 * s, 0.0, -1.0))
 		_place(_parts["Hip" + side], Transform3D(Basis.IDENTITY, hip))
 		_segment(_parts["Thigh" + side], hip, knee)
 		_place(_parts["Knee" + side], Transform3D(Basis.IDENTITY, knee))
 		_segment(_parts["Shin" + side], knee, ankle)
-		_place(_parts["Foot" + side], Transform3D(Basis.IDENTITY, Vector3(ankle.x, ANKLE_H * 0.5, ankle.z)))
+		_place(_parts["Foot" + side], Transform3D(Basis(Vector3.RIGHT, _foot_pitch[i]),
+				Vector3(ankle.x, foot.y + ANKLE_H * 0.5, ankle.z)))
+		_joints["hip" + side] = hip
+		_joints["knee" + side] = knee
+		_joints["ankle" + side] = ankle
 
 	# Weapon: at the hip, or with the rear sight under the eye; blended by ads.
 	var shoulder_r := chest * Vector3(SHOULDER_X, SHOULDER_UP, 0.0)
@@ -193,9 +467,269 @@ func pose() -> void:
 	var rear_view := _view_point(def.rear_sight)
 	var ads_xform := Transform3D(aim, eye + aim * Vector3(0.0, 0.0, -def.eye_relief) - aim * rear_view)
 	var weapon_local := hip_xform.interpolate_with(ads_xform, ads)
+	var left_view := _view_point(def.left_hand)
+	if reload >= 0.0:
+		weapon_local = _reload_pose(weapon_local, right_view, chest)
+		left_view = _reload_hand
+	else:
+		weapon.set_mag_shift(Vector3.ZERO)
+		weapon.bolt_pull = 0.0
+	var right_palm := weapon_local * right_view
+	var left_palm := weapon_local * left_view
+	var right_fingers := weapon_local.basis * RIGHT_FINGERS
+	var right_dir := weapon_local.basis * RIGHT_PALM
+	var left_fingers := weapon_local.basis * LEFT_FINGERS
+	var left_dir := weapon_local.basis * LEFT_PALM
+	if mantle > 0.0:
+		# Vaulting: the gun hangs at the right side, barrel down, both hands on the ledge pulling the body up.
+		var slung := chest * Transform3D(Basis(Vector3.RIGHT, -1.3).rotated(Vector3.UP, 0.25),
+				Vector3(SHOULDER_X + 0.08, -0.15, 0.02))
+		slung = slung * Transform3D(Basis.IDENTITY, -right_view)
+		weapon_local = weapon_local.interpolate_with(slung, mantle)
+		var to_local := global_transform.affine_inverse()
+		var ledge_dir := Vector3.FORWARD
+		right_palm = right_palm.lerp(to_local * mantle_hands[1], mantle)
+		left_palm = left_palm.lerp(to_local * mantle_hands[0], mantle)
+		right_fingers = right_fingers.lerp(ledge_dir, mantle)
+		left_fingers = left_fingers.lerp(ledge_dir, mantle)
+		right_dir = right_dir.lerp(Vector3.DOWN, mantle)
+		left_dir = left_dir.lerp(Vector3.DOWN, mantle)
 	weapon.global_transform = global_transform * weapon_local
-	pose_arm(_right_arm, shoulder_r, weapon_local * right_view, aim * RIGHT_FINGERS, aim * RIGHT_PALM, RIGHT_POLE)
-	pose_arm(_left_arm, shoulder_l, weapon_local * _view_point(def.left_hand), aim * LEFT_FINGERS, aim * LEFT_PALM, LEFT_POLE)
+	pose_arm(_right_arm, shoulder_r, right_palm, right_fingers, right_dir, RIGHT_POLE)
+	pose_arm(_left_arm, shoulder_l, left_palm, left_fingers, left_dir, LEFT_POLE)
+	var butt := weapon_local * _view_point(BUTT)
+	_joints["gun_butt"] = butt
+	_joints["gun_muzzle"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.0, -0.55))
+	_joints["gun_top"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.1, 0.0))
+
+
+# --- death ------------------------------------------------------------------------------------------------------------
+
+## Turns the body into a ragdoll from its current pose. `body_velocity`: the body's world velocity at death; `from`:
+## the killer's position (world; INF if unknown - the body then just slumps backwards); `head_hit`: the head takes
+## the blow.
+func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := false) -> void:
+	if _joints.is_empty():
+		pose()
+	var local := _ragdoll_rest_points()
+	var xf := global_transform
+	var points := PackedVector3Array()
+	for p in local:
+		points.append(xf * p)
+
+	var back := xf.basis.z.normalized()
+	var push := back
+	var strength := 1.4
+	if from.is_finite():
+		var away := points[Ragdoll.CHEST] - from
+		away.y = 0.0
+		if away.length() > 0.01:
+			push = away.normalized()
+			strength = 3.2
+	push = (push + Vector3.UP * 0.15).normalized() * strength
+	var side := back.cross(Vector3.UP).normalized() * randf_range(-0.6, 0.6)  # a bit of a turn as it falls
+	# How much of the blow each point takes: the upper body is thrown back, the knees buckle the other way, the feet
+	# stay put - so it folds at the knees and falls away from the shooter.
+	var share := {Ragdoll.HEAD: 1.7 if head_hit else 1.0, Ragdoll.CHEST: 1.0, Ragdoll.SHOULDER_L: 0.9,
+			Ragdoll.SHOULDER_R: 0.9, Ragdoll.ELBOW_L: 0.7, Ragdoll.ELBOW_R: 0.7, Ragdoll.WRIST_L: 0.6,
+			Ragdoll.WRIST_R: 0.6, Ragdoll.PELVIS: 0.4, Ragdoll.HIP_L: 0.35, Ragdoll.HIP_R: 0.35,
+			Ragdoll.KNEE_L: -0.2, Ragdoll.KNEE_R: -0.2, Ragdoll.GUN_BUTT: 0.6, Ragdoll.GUN_MUZZLE: 0.6,
+			Ragdoll.GUN_TOP: 0.6}
+	var velocities := PackedVector3Array()
+	for i in Ragdoll.COUNT:
+		var v := body_velocity + push * float(share.get(i, 0.0))
+		if i in [Ragdoll.HEAD, Ragdoll.CHEST, Ragdoll.SHOULDER_L, Ragdoll.SHOULDER_R]:
+			v += side
+		if i in [Ragdoll.KNEE_L, Ragdoll.KNEE_R]:
+			v -= back * 0.9
+		if i >= Ragdoll.GUN_BUTT:
+			v += Vector3.UP * 0.5  # the gun drops out of the hands
+		velocities.append(v)
+	_ragdoll = Ragdoll.new(points, velocities, get_world_3d())
+
+	# Rigid parts ride on the frame of the points they belong to (as they were placed at death).
+	var frames := _ragdoll_frames(local)
+	_ragdoll_parts = []
+	var rigid := [[_parts["Pelvis"], 0], [_parts["Torso"], 0], [_parts["Tail"], 0], [_parts["HipL"], 0],
+			[_parts["HipR"], 0], [_right_arm["shoulder"], 0], [_left_arm["shoulder"], 0], [_parts["Head"], 1],
+			[_parts["FootL"], 2], [_parts["FootR"], 3], [_left_arm["hand"], 4], [_right_arm["hand"], 5]]
+	for entry in rigid:
+		var part: Node3D = entry[0]
+		_ragdoll_parts.append([part, entry[1], frames[entry[1]].affine_inverse() * part.transform])
+	if weapon != null:
+		var weapon_local := xf.affine_inverse() * weapon.global_transform
+		_ragdoll_parts.append([weapon, 6, frames[6].affine_inverse() * weapon_local])
+	_pose_ragdoll()
+
+
+func step_ragdoll(delta: float) -> void:
+	if _ragdoll == null or _ragdoll.asleep:
+		return
+	_ragdoll.step(delta)
+	for point in _ragdoll.impacts:
+		Dust.burst(self, point, 0.4)
+	_ragdoll.impacts.clear()
+	_pose_ragdoll()
+
+
+func stop_ragdoll() -> void:
+	_ragdoll = null
+	_ragdoll_parts = []
+	_planted = false
+	_last_head = Vector3.INF
+	_head_vel = Vector3.ZERO
+
+
+func is_ragdoll() -> bool:
+	return _ragdoll != null
+
+
+## The visible part closest to `world_pos` (to stick something on the body so it falls with it).
+func part_near(world_pos: Vector3) -> Node3D:
+	var best: Node3D = self
+	var best_distance := INF
+	for part in [_parts["Head"], _parts["Torso"], _parts["Pelvis"], _parts["ThighL"], _parts["ThighR"],
+			_parts["ShinL"], _parts["ShinR"], _right_arm["upper_mesh"], _left_arm["upper_mesh"],
+			_right_arm["fore_mesh"], _left_arm["fore_mesh"]]:
+		var distance := (part as Node3D).global_position.distance_to(world_pos)
+		if distance < best_distance:
+			best_distance = distance
+			best = part
+	return best
+
+
+## The joints of the last pose (mannequin space), in Ragdoll's point order.
+func _ragdoll_rest_points() -> PackedVector3Array:
+	var chest: Vector3 = _joints["chest"]
+	var points := PackedVector3Array([_joints["pelvis"], chest, _joints["head"], _joints["hipL"], _joints["kneeL"],
+			_joints["ankleL"], _joints["hipR"], _joints["kneeR"], _joints["ankleR"]])
+	for arm in [_left_arm, _right_arm]:
+		points.append((arm["shoulder"] as Node3D).position)
+		points.append((arm["elbow"] as Node3D).position)
+		points.append((arm["hand"] as Node3D).position)
+	var front := Vector3(0.15, -0.2, -0.3)  # no gun held (not posed yet): one in front of the chest
+	points.append(_joints.get("gun_butt", chest + front))
+	points.append(_joints.get("gun_muzzle", chest + front + Vector3(0.0, 0.0, -0.55)))
+	points.append(_joints.get("gun_top", chest + front + Vector3.UP * 0.1))
+	return points
+
+
+## Frames the rigid parts ride on: torso, head, feet, hands, gun (built from the points; any space).
+static func _ragdoll_frames(p: PackedVector3Array) -> Array[Transform3D]:
+	var across := p[Ragdoll.SHOULDER_R] - p[Ragdoll.SHOULDER_L]
+	var hips := p[Ragdoll.HIP_R] - p[Ragdoll.HIP_L]
+	return [
+		_frame(p[Ragdoll.PELVIS], p[Ragdoll.PELVIS], p[Ragdoll.CHEST], across),
+		_frame(p[Ragdoll.HEAD], p[Ragdoll.CHEST], p[Ragdoll.HEAD], across),
+		_frame(p[Ragdoll.ANKLE_L], p[Ragdoll.ANKLE_L], p[Ragdoll.KNEE_L], hips),
+		_frame(p[Ragdoll.ANKLE_R], p[Ragdoll.ANKLE_R], p[Ragdoll.KNEE_R], hips),
+		_frame(p[Ragdoll.WRIST_L], p[Ragdoll.ELBOW_L], p[Ragdoll.WRIST_L], across),
+		_frame(p[Ragdoll.WRIST_R], p[Ragdoll.ELBOW_R], p[Ragdoll.WRIST_R], across),
+		_frame(p[Ragdoll.GUN_BUTT], p[Ragdoll.GUN_BUTT], p[Ragdoll.GUN_TOP], p[Ragdoll.GUN_MUZZLE] - p[Ragdoll.GUN_BUTT]),
+	]
+
+
+## A frame at `origin` whose Y runs from `a` to `b`, with X as close to `x_hint` as it can be.
+static func _frame(origin: Vector3, a: Vector3, b: Vector3, x_hint: Vector3) -> Transform3D:
+	var y := (b - a).normalized()
+	var z := x_hint.cross(y)
+	if z.length() < 0.0001:
+		z = Vector3.BACK.cross(y) if absf(y.z) < 0.9 else Vector3.RIGHT.cross(y)
+	z = z.normalized()
+	return Transform3D(Basis(y.cross(z), y, z), origin)
+
+
+## Places every part on the ragdoll's points.
+func _pose_ragdoll() -> void:
+	var to_local := global_transform.affine_inverse()
+	var p := PackedVector3Array()
+	for point in _ragdoll.pos:
+		p.append(to_local * point)
+	var frames := _ragdoll_frames(p)
+	for entry in _ragdoll_parts:
+		var xform: Transform3D = frames[entry[1]] * entry[2]
+		if entry[0] == weapon:
+			weapon.global_transform = global_transform * xform
+		else:
+			(entry[0] as Node3D).transform = xform
+	var head_dir := (p[Ragdoll.HEAD] - p[Ragdoll.CHEST]).normalized()
+	_segment(_parts["Neck"], p[Ragdoll.CHEST], p[Ragdoll.HEAD] - head_dir * HEAD_RADIUS * 0.6)
+	for leg in [["L", Ragdoll.HIP_L, Ragdoll.KNEE_L, Ragdoll.ANKLE_L], ["R", Ragdoll.HIP_R, Ragdoll.KNEE_R, Ragdoll.ANKLE_R]]:
+		_segment(_parts["Thigh" + leg[0]], p[leg[1]], p[leg[2]])
+		_place(_parts["Knee" + leg[0]], Transform3D(Basis.IDENTITY, p[leg[2]]))
+		_segment(_parts["Shin" + leg[0]], p[leg[2]], p[leg[3]])
+	for arm in [[_left_arm, Ragdoll.SHOULDER_L, Ragdoll.ELBOW_L, Ragdoll.WRIST_L],
+			[_right_arm, Ragdoll.SHOULDER_R, Ragdoll.ELBOW_R, Ragdoll.WRIST_R]]:
+		var parts: Dictionary = arm[0]
+		_segment(parts["upper_mesh"], p[arm[1]], p[arm[2]])
+		_place(parts["elbow"], Transform3D(Basis.IDENTITY, p[arm[2]]))
+		_segment(parts["fore_mesh"], p[arm[2]], p[arm[3]])
+
+
+## Reload (`reload` 0..1): the gun cants and dips about the right hand; the left hand goes to the magazine, pulls it
+## out, takes it down to a pouch on the belt and back (the "new" one), seats it and returns to the handguard. The
+## magazine rides the hand while it is held. Returns the gun's pose; the left hand's target (gun view space) is left
+## in _reload_hand. Guns without a magazine just cant and dip.
+func _reload_pose(weapon_local: Transform3D, grip: Vector3, chest: Transform3D) -> Transform3D:
+	var r := reload
+	var env := smoothstep(0.0, 0.12, r) * (1.0 - smoothstep(0.86, 1.0, r))
+	weapon.bolt_pull = reload_bolt_pull(r)
+	var tilt := Transform3D(Basis.from_euler(Vector3(-0.3 * env, 0.0, 0.6 * env)), Vector3(-0.03, -0.06, 0.08) * env)
+	weapon_local = weapon_local * Transform3D(Basis.IDENTITY, grip) * tilt * Transform3D(Basis.IDENTITY, -grip)
+	var handguard := _view_point(def.left_hand)
+	_reload_hand = handguard
+	var mag_grip := weapon.mag_grip_point()
+	if not mag_grip.is_finite():
+		return weapon_local
+	var seated := _view_point(mag_grip)
+	var pouch := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
+	var handle := _view_point(def.charging_handle) if def.charging_handle.is_finite() else Vector3.INF
+	var path := reload_hand(r, handguard, seated, pouch, handle, 1.0)
+	_reload_hand = path[0]
+	weapon.set_mag_shift(_view_point(_reload_hand - seated) if path[1] else Vector3.ZERO)
+	return weapon_local
+
+
+## The left hand's path through a reload (`r` 0..1), in gun view space - shared by the third-person body and the
+## first-person arms: grab the magazine, pull it out, take it down to the pouch and come back with the "new" one,
+## seat it, reach over to rack the charging handle (if the gun has one), back to the handguard. `scale`: the gun's
+## drawn scale (first-person guns are smaller). Returns [hand position, whether it holds the magazine].
+static func reload_hand(r: float, handguard: Vector3, seated: Vector3, pouch: Vector3, handle: Vector3,
+		scale: float) -> Array:
+	var pulled := seated + Vector3(0.0, -0.22, 0.04) * scale
+	var keys := [[0.0, handguard], [0.12, seated], [0.28, pulled], [0.4, pouch], [0.52, pouch], [0.64, pulled],
+			[0.74, seated]]
+	if handle.is_finite():
+		var grab := handle + Vector3(0.0, 0.02, 0.0) * scale  # fingers over the handle from above
+		keys.append_array([[0.8, grab], [0.88, grab + Vector3(0.0, 0.0, 0.07) * scale], [0.97, handguard]])
+	else:
+		keys.append([0.9, handguard])
+	var hand: Vector3 = handguard
+	for i in keys.size() - 1:
+		if r >= keys[i][0] and r < keys[i + 1][0]:
+			var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
+			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
+			break
+	return [hand, r >= 0.12 and r < 0.74]
+
+
+## How far the charging handle is held back at reload progress `r` (the hand racks it in reload_hand, 0.8-0.88).
+static func reload_bolt_pull(r: float) -> float:
+	if r < 0.0:
+		return 0.0
+	return smoothstep(0.8, 0.88, r) * (1.0 - smoothstep(0.88, 0.9, r))
+
+
+## Damped spring step (semi-implicit Euler): `x` follows `target` with natural frequency `freq` (Hz) and damping
+## ratio `damping` (< 1 overshoots and wobbles). Returns [x, velocity].
+static func _spring(x: Vector2, v: Vector2, target: Vector2, freq: float, damping: float, dt: float) -> Array:
+	var w := TAU * freq
+	v += (w * w * (target - x) - 2.0 * damping * w * v) * dt
+	return [x + v * dt, v]
+
+
+static func _flat_distance(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
 ## Prefab space (barrel +Z) -> weapon view space (barrel -Z), as WeaponView turns the model.

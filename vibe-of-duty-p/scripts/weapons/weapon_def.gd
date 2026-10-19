@@ -12,6 +12,9 @@ var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel en
 var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
 var right_hand := Vector3(0.0, -0.055, -0.045)  # prefab space: middle of the right palm on the pistol grip
 var left_hand := Vector3(0.0, 0.0, 0.35)        # prefab space: middle of the left palm under the handguard
+var ejection_port := Vector3.INF     # prefab space: where spent casings fly out (INF: none)
+var charging_handle := Vector3.INF   # prefab space: a charging handle added to the model, cycling with each shot
+var bolt_travel := 0.07              # how far the handle goes back (m)
 
 var damage := 25.0
 var pellets := 1

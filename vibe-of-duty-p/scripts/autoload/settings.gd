@@ -28,6 +28,7 @@ var mouse_sensitivity := 0.0025  # radians per pixel
 var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STICK_LOOK_SPEED)
 var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
+var view_bob := 1.0              # first-person camera bob strength, 0 = off (Player._update_camera_fx)
 var player_name := "Игрок"
 ## The name is the player's: loaded from settings.cfg, or used to start / join a game. Until then it is a random
 ## nickname, picked anew every launch and not saved.
@@ -251,6 +252,7 @@ func save_settings() -> void:
 	cfg.set_value("input", "stick_sensitivity", stick_sensitivity)
 	cfg.set_value("input", "aim_assist", aim_assist)
 	cfg.set_value("video", "fov", fov)
+	cfg.set_value("video", "view_bob", view_bob)
 	cfg.set_value("video", "antialiasing", antialiasing)
 	cfg.set_value("video", "shadow_quality", shadow_quality)
 	cfg.set_value("video", "render_scale", render_scale)
@@ -279,6 +281,7 @@ func load_settings() -> void:
 	stick_sensitivity = clampf(cfg.get_value("input", "stick_sensitivity", stick_sensitivity), 0.2, 3.0)
 	aim_assist = clampf(cfg.get_value("input", "aim_assist", aim_assist), 0.0, 1.0)
 	fov = cfg.get_value("video", "fov", fov)
+	view_bob = clampf(cfg.get_value("video", "view_bob", view_bob), 0.0, 1.0)
 	antialiasing = clampi(cfg.get_value("video", "antialiasing", antialiasing), 0, 1)
 	shadow_quality = clampi(cfg.get_value("video", "shadow_quality", shadow_quality), 0, 2)
 	render_scale = clampf(cfg.get_value("video", "render_scale", render_scale), 0.5, 1.0)

@@ -26,6 +26,12 @@ var _flash_timer := 0.0
 var _bob_time := 0.0
 var _sway := Vector2.ZERO
 var _kick := 0.0
+var _drop := 0.0          # landing jolt, decays
+var _handle: MeshInstance3D   # charging handle (WeaponDef.charging_handle), rides the bolt
+var _handle_rest := Vector3.ZERO
+var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
+var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
+var lowered := 0.0        # 0..1: the gun is lowered out of view (first person, vaulting)
 var _hip_pos := Vector3.ZERO
 var _ads_pos := Vector3.ZERO
 
@@ -66,6 +72,22 @@ func set_weapon(index: int) -> void:
 		_mag = node
 		_mag_rest = node.position
 	_pivot.add_child(_model)
+	_handle = null
+	if def.charging_handle.is_finite():
+		# The blockout model has no moving parts: a small charging handle on the receiver's right side cycles with
+		# every shot and is pulled by hand at the end of a reload.
+		var handle_mesh := BoxMesh.new()
+		handle_mesh.size = Vector3(0.022, 0.012, 0.02)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.32, 0.32, 0.34)
+		material.metallic = 0.7
+		material.roughness = 0.4
+		handle_mesh.material = material
+		_handle = MeshInstance3D.new()
+		_handle.mesh = handle_mesh
+		_handle_rest = def.charging_handle
+		_handle.position = _handle_rest
+		_model.add_child(_handle)
 	if is_viewmodel:
 		# First person: the gun hangs in front of the camera, its shadow would float on the ground.
 		var meshes := _model.find_children("*", "GeometryInstance3D", true, false)
@@ -88,6 +110,12 @@ func set_weapon(index: int) -> void:
 
 
 func _process(delta: float) -> void:
+	_cycle += delta
+	if _handle:
+		# Bolt: slams back at once on a shot and runs forward again within 70 ms.
+		var back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull
+		var def := WeaponDB.get_def(weapon_index)
+		_handle.position = _handle_rest + Vector3(0.0, 0.0, -def.bolt_travel * back)
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
@@ -103,6 +131,29 @@ func flash() -> void:
 	_flash.visible = true
 	_flash.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 	_flash.scale = Vector3.ONE * randf_range(0.7, 1.4)
+	_cycle = 0.0
+	var def := WeaponDB.get_def(weapon_index)
+	if def.ejection_port.is_finite() and is_visible_in_tree():
+		var port := _pivot.global_transform * def.ejection_port
+		var basis := _pivot.global_basis.orthonormalized()
+		# Prefab axes: -x is the shooter's right, +z the muzzle.
+		Casings.eject(self, port, -basis.x, basis.y, -basis.z)
+
+
+## Where a hand holds the magazine (prefab space), or INF when the gun has none.
+func mag_grip_point() -> Vector3:
+	return _mag_rest + Vector3(0.0, -0.11, 0.015) if _mag else Vector3.INF
+
+
+## Moves the magazine off its seat by `shift` (prefab space); third-person reloads (Mannequin).
+func set_mag_shift(shift: Vector3) -> void:
+	if _mag:
+		_mag.position = _mag_rest + shift
+
+
+## Landing: the gun dips and tips forward, then settles (`strength` ~ 1 for a normal jump).
+func land_jolt(strength: float) -> void:
+	_drop = minf(_drop + strength, 1.8)
 
 
 ## Recoil kick of the weapon model itself (not the camera).
@@ -139,25 +190,27 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	rot.y += deg_to_rad(18.0) * sprint_blend
 	rot.x -= deg_to_rad(6.0) * sprint_blend
 
-	# Reload: dip and tilt, magazine drops out and comes back.
+	# Reload: the gun dips and cants (magazine well towards the left hand); the hand itself takes the magazine out
+	# and racks the handle (FirstPersonArms, Mannequin.reload_hand).
 	if reload_p >= 0.0:
-		var dip := sin(reload_p * PI)
-		pos.y -= dip * 0.1
-		rot.x -= dip * deg_to_rad(22.0)
-		rot.z += dip * deg_to_rad(18.0)
-		if _mag:
-			var mag_offset := 0.0
-			if reload_p > 0.2 and reload_p < 0.8:
-				mag_offset = sin((reload_p - 0.2) / 0.6 * PI) * 0.25
-			_mag.position = _mag_rest + Vector3(0.0, -mag_offset, 0.0)
-	elif _mag:
-		_mag.position = _mag_rest
+		var dip := smoothstep(0.0, 0.12, reload_p) * (1.0 - smoothstep(0.88, 1.0, reload_p))
+		pos += Vector3(-0.07, 0.05, 0.03) * dip  # up and in, so the magazine well comes into view
+		rot.x += dip * deg_to_rad(8.0)
+		rot.z -= dip * deg_to_rad(32.0)  # canted, the magazine towards the left hand and the middle of the screen
+	bolt_pull = Mannequin.reload_bolt_pull(reload_p)
 
 	# Equip: raise from below.
 	if equip_p >= 0.0:
 		var lower := 1.0 - equip_p
 		pos.y -= lower * 0.3
 		rot.x -= lower * deg_to_rad(35.0)
+
+	# Landing jolt, and lowered out of view (vaulting).
+	_drop = lerpf(_drop, 0.0, 1.0 - exp(-7.0 * dt))
+	pos.y -= _drop * 0.035 * (1.0 - ads * 0.6)
+	rot.x -= _drop * deg_to_rad(4.0)
+	pos += Vector3(0.02, -0.55, 0.1) * lowered
+	rot.x -= deg_to_rad(50.0) * lowered
 
 	# Wall avoidance: pull the weapon back when something is right in front of the camera.
 	pos.z += retract

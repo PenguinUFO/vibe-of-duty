@@ -45,6 +45,8 @@ func _init() -> void:
 			func(v: float) -> void: Settings.aim_assist = v, "%d%%", true)
 	_add_slider(box, "Поле зрения", 60.0, 120.0, 1.0, Settings.fov,
 			func(v: float) -> void: Settings.fov = v, "%d")
+	_add_slider(box, "Покачивание камеры", 0.0, 1.0, 0.05, Settings.view_bob,
+			func(v: float) -> void: Settings.view_bob = v, "%d%%", true)
 
 	_add_heading(box, "Графика")
 	var sizes: Array = []

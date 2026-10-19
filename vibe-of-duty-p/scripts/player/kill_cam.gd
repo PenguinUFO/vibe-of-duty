@@ -221,7 +221,7 @@ func _play(delta: float) -> void:
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6])
 		if ghost._dead == pose[5]:
-			ghost.set_dead(not pose[5])
+			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
 
 	var killer := _pose_at(_killer_id, _replay_t)
@@ -314,6 +314,9 @@ func _replay_shot(shot: Dictionary) -> void:
 	for i in ends.size():
 		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
+		for id in _ghosts:
+			if id != shot["id"]:
+				(_ghosts[id] as PlayerVisual).react_to_shot(shot["origin"], ends[i])
 
 
 ## A player's recorded pose at time `t` (Player.drawn_pose, positions and angles interpolated), or [] when they

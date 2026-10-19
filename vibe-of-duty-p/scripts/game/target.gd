@@ -59,6 +59,11 @@ func _process(delta: float) -> void:
 	_visual.update_motion(delta, Vector3.ZERO)
 
 
+## A shot that ended at `end` (world) jerks the body if it ended on it (cosmetic).
+func react_to_shot(origin: Vector3, end: Vector3) -> void:
+	_visual.react_to_shot(origin, end)
+
+
 ## The hitboxes, like Player.hitbox_state.
 func hitbox_state() -> Dictionary:
 	return {"pos": global_position, "crouched": false, "yaw": global_rotation.y, "pitch": 0.0,
@@ -86,8 +91,7 @@ func add_mark(pos: Vector3, head: bool) -> void:
 	mark.fixed_size = true
 	mark.pixel_size = MARK_PIXEL_SIZE
 	mark.shaded = false
-	_visual.body().add_child(mark)  # falls over with the body
-	mark.global_position = surface
+	_visual.attach_to_body(mark, surface)  # falls with the body
 	_marks.append(mark)
 	if _marks.size() > MARKS_MAX:
 		_marks.pop_front().queue_free()

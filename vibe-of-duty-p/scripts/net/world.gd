@@ -428,7 +428,10 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	var killer_name := ""
 	if killer_id != victim_id and players.has(killer_id):
 		killer_name = (players[killer_id] as Player).player_name
-	victim.die(killer_name, delay)
+	var from := Vector3.INF
+	if killer_name != "":
+		from = (players[killer_id] as Player).global_position + Vector3.UP * Player.STAND_EYE
+	victim.die(killer_name, delay, from, head)
 	if kill_cam != null and victim.is_local and killer_name != "":
 		kill_cam.start(killer_id)
 	if hud:

@@ -35,6 +35,8 @@ static func _build() -> void:
 	rifle.eye_relief = 0.46  # eye over the stock comb, behind the receiver
 	rifle.right_hand = Vector3(0.0, -0.055, -0.045)
 	rifle.left_hand = Vector3(0.0, 0.0, 0.35)
+	rifle.ejection_port = Vector3(-0.027, 0.058, 0.07)  # right side of the receiver (prefab -x = the shooter's right)
+	rifle.charging_handle = Vector3(-0.036, 0.062, 0.13)
 	rifle.damage = 28.0
 	rifle.fire_interval = 0.1
 	rifle.automatic = true

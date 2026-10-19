@@ -178,6 +178,18 @@ var _look_delta := Vector2.ZERO
 var _turn_rate := 0.0  # rad/s the stick (and aim assist) turns the view, smoothed; F3 only
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
+# First-person camera effects (_update_camera_fx; cosmetic: shots go where the look angles point, not the camera).
+var _cam_roll := 0.0             # death tilt / slide lean
+var _cam_land := 0.0             # landing dip (m) and its spring velocity
+var _cam_land_v := 0.0
+var _land_impact := 0.0          # fall speed of a landing not yet shown (set by the simulation)
+var _bob_amount := 0.0
+var _bob_side := 1.0             # which foot the current step is on
+var _punch := Vector2.ZERO       # damage jolt: x = pitch, y = roll (rad)
+var _punch_v := Vector2.ZERO
+var _mantle_view := 0.0          # vaulting: gun lowered, hands on the ledge, view pitched down
+var _ledge_set := false
+var _dust_t := 0.0               # to the next slide dust puff (s)
 var _bot_select := 0
 var _bot_corner := 1      # --bot-course: the loop corner it runs to next
 var _bot_stuck := 0.0     # --bot-course: s standing still while trying to run
@@ -348,12 +360,17 @@ func _process(delta: float) -> void:
 		_visual.set_aim_pitch(_shown_pitch)
 		_visual.set_ads(aiming)
 		_visual.set_crouched(is_crouched)
+		_visual.set_sliding(is_sliding)
+		_visual.set_reloading(weapons.is_reloading())
+		_visual.set_mantling(is_mantling, _mantle_up.y)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov
 	_camera.fov = lerpf(_camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
-	_camera.rotation.z = lerpf(_camera.rotation.z, 0.7 if not alive else (-0.05 if is_sliding else 0.0), 1.0 - exp(-10.0 * delta))
+	_cam_roll = lerpf(_cam_roll, 0.7 if not alive else (-0.05 if is_sliding else 0.0), 1.0 - exp(-10.0 * delta))
+	_camera.rotation.z = _cam_roll
 	if is_local:
+		_update_camera_fx(delta, speed)
 		_update_viewmodel(delta, speed)
 		_update_hud(speed, delta)
 
@@ -548,6 +565,8 @@ func _post_move(dt: float) -> void:
 	var on_floor := is_on_floor()
 	if on_floor and not _prev_on_floor and _prev_vy < -LAND_SOUND_MIN_SPEED:
 		_sfx("land")
+	if on_floor and not _prev_on_floor and is_local and not _replaying:
+		_land_impact = maxf(_land_impact, -_prev_vy)
 	_prev_on_floor = on_floor
 	if on_floor:
 		_floor_y = global_position.y
@@ -556,6 +575,8 @@ func _post_move(dt: float) -> void:
 		if _step_distance >= STEP_STRIDE:
 			_step_distance = 0.0
 			_sfx("step", -8.0 if is_crouched else 0.0)
+			if not _replaying:
+				_bob_side = -_bob_side
 
 
 func _end_slide() -> void:
@@ -804,6 +825,13 @@ func _pop_server_cmd() -> PlayerCmd:
 	return _last_cmd
 
 
+## The ledge height of a vault in a snapshot entry (get_net_state: extra -> mantle -> the pull-up point).
+static func _snapshot_mantle_top(state: Array) -> float:
+	var extra: Array = state[7]
+	var mantle: Array = extra[6]
+	return (mantle[5] as Vector3).y
+
+
 ## Server: compact per-player state for snapshots.
 func get_net_state() -> Array:
 	var flags := 0
@@ -837,6 +865,7 @@ func push_snapshot(state: Array, tick: int) -> void:
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0
 	is_mantling = flags & STATE_MANTLING != 0
+	_visual.set_mantling(is_mantling, _snapshot_mantle_top(state))
 	velocity = state[4]
 	weapons.index = (flags >> STATE_WEAPON_SHIFT) & 3
 	_visual.set_weapon(weapons.index)
@@ -862,6 +891,7 @@ func _update_puppet() -> void:
 		var drawn_vel := (global_position - previous_pos) / delta
 		_puppet_velocity = _puppet_velocity.lerp(Vector3(drawn_vel.x, 0.0, drawn_vel.z), 1.0 - exp(-12.0 * delta))
 	_visual.set_crouched(is_crouched)
+	_visual.set_sliding(is_sliding)
 	_visual.set_aim_pitch(_head.rotation.x)
 	_visual.update_motion(delta, global_transform.basis.inverse() * _puppet_velocity, _puppet_on_floor)
 	# Footsteps of other players, from their displayed movement.
@@ -1083,6 +1113,10 @@ func _on_shot(event: Dictionary) -> void:
 		var scene_root := get_tree().current_scene
 		for r in results:
 			ShotEffects.spawn_tracer(scene_root, muzzle, r["pos"])
+			if r["player"] != null:
+				(r["player"] as Player).react_to_shot(origin, r["pos"])
+			elif r.get("target") != null:
+				(r["target"] as Target).react_to_shot(origin, r["pos"])
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
@@ -1168,6 +1202,12 @@ func hitbox_state() -> Dictionary:
 			"vel": Vector3(vel.x, 0.0, vel.z), "ads": aiming}
 
 
+## A shot that ended at `end` (world) jerks this player's body if it ended on it (cosmetic).
+func react_to_shot(origin: Vector3, end: Vector3) -> void:
+	if not is_local:
+		_visual.react_to_shot(origin, end)
+
+
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
 func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
 	var def := WeaponDB.get_def(weapon)
@@ -1181,6 +1221,10 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) ->
 	for i in ends.size():
 		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
+		if world != null:
+			for id in world.players:
+				if id != peer_id:
+					(world.players[id] as Player).react_to_shot(origin, ends[i])
 		if i < 2:  # a shotgun blast would otherwise play eight impacts at once
 			Audio.play("impact", ends[i])
 
@@ -1233,6 +1277,51 @@ func _make_hud_label(font_size: int) -> Label:
 	return label
 
 
+## Local player's view: a dip on landing (deeper for a harder fall; the gun jolts too), a light bob in step with
+## the footsteps (Settings.view_bob; almost none while aiming), a short jolt when hit, and the vault (gun lowered,
+## both hands on the ledge, view pitched down). Only the camera moves: aim and shots stay on the look angles.
+func _update_camera_fx(delta: float, speed: float) -> void:
+	var dt := minf(delta, 0.05)
+	if _land_impact > 0.0:
+		var impact := clampf(_land_impact, 0.0, 14.0)
+		_cam_land_v -= impact * 0.045
+		_view.land_jolt(impact / 8.0)
+		if impact > 3.0:
+			Dust.burst(self, global_position, (impact - 3.0) / 4.0)
+		_land_impact = 0.0
+	_dust_t -= dt
+	if is_sliding and is_on_floor() and _dust_t <= 0.0:
+		_dust_t = 0.05
+		Dust.trail(self, global_position, Vector3(velocity.x, 0.0, velocity.z))
+	var w := TAU * 3.5
+	_cam_land_v += (w * w * -_cam_land - 2.0 * 0.55 * w * _cam_land_v) * dt
+	_cam_land = clampf(_cam_land + _cam_land_v * dt, -0.12, 0.05)
+
+	var walking := alive and is_on_floor() and not is_sliding and not is_mantling
+	var bob_target := Settings.view_bob * clampf(speed / WALK_SPEED, 0.0, 1.3) * (1.0 - 0.85 * weapons.ads) if walking else 0.0
+	_bob_amount = move_toward(_bob_amount, bob_target, dt * 4.0)
+	var step := _step_distance / STEP_STRIDE  # 0 at each footfall (the step sound)
+	var sway := sin(PI * step) * _bob_side * _bob_amount
+	var bob := Vector3(0.008 * sway, -0.014 * _bob_amount * (0.5 + 0.5 * cos(TAU * step)), 0.0)
+
+	var pw := TAU * 5.0
+	_punch_v += (pw * pw * -_punch - 2.0 * 0.4 * pw * _punch_v) * dt
+	_punch += _punch_v * dt
+
+	if is_mantling and not _ledge_set:
+		var forward := Vector3(-sin(look_yaw), 0.0, -cos(look_yaw))
+		var right := forward.cross(Vector3.UP)
+		var center := _mantle_up + forward * 0.45
+		_arms.ledge_hands = [center - right * 0.22, center + right * 0.22]
+	_ledge_set = is_mantling
+	_mantle_view = move_toward(_mantle_view, 1.0 if is_mantling and alive else 0.0, dt * 8.0)
+	_view.lowered = _mantle_view
+	_arms.ledge_weight = _mantle_view
+
+	_camera.position = bob + Vector3(0.0, _cam_land - 0.04 * _mantle_view, 0.0)
+	_camera.rotation = Vector3(_punch.x - 0.12 * _mantle_view, 0.0, _cam_roll + _punch.y + 0.004 * sway)
+
+
 func _update_viewmodel(delta: float, speed: float) -> void:
 	_view.set_weapon(weapons.index)
 	_view.visible = alive
@@ -1253,6 +1342,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_retract = lerpf(_retract, wanted, 1.0 - exp(-18.0 * delta))
 	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
+	_arms.reload = weapons.reload_progress() if alive else -1.0
 	_arms.pose()  # the hands follow the gun
 
 
@@ -1345,14 +1435,15 @@ func server_damage(amount: float) -> bool:
 	return false
 
 
-func die(by: String, respawn_delay: float) -> void:
+## `from`: the killer's position (world; INF if unknown) and `head_hit` - which way and how hard the body falls.
+func die(by: String, respawn_delay: float, from := Vector3.INF, head_hit := false) -> void:
 	if not alive and respawn_delay <= 0.0:
 		return
 	alive = false
 	health = 0
 	killed_by = by
 	death_time_left = respawn_delay
-	_visual.set_dead(true)
+	_visual.set_dead(true, from, head_hit)
 	Audio.play("death", null if is_local else global_position)
 
 
@@ -1412,6 +1503,14 @@ func set_kill_cam(on: bool) -> void:
 func on_damaged_from(from: Vector3) -> void:
 	if _damage_dirs:
 		_damage_dirs.add(from)
+	if alive and _camera:
+		# The view jolts away from the shooter: pitches up for a hit from the front, rolls for one from the side.
+		var local := _camera.global_basis.inverse() * (from - _camera.global_position)
+		var flat := Vector2(local.x, local.z)
+		if flat.length() > 0.01:
+			flat = flat.normalized()
+			_punch_v += Vector2(-flat.y * 0.7, flat.x * 0.9)
+			_punch_v = _punch_v.limit_length(2.0)
 
 
 ## Local player: the server confirmed that one of our shots damaged somebody.
@@ -1459,6 +1558,7 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	if reloading and not _puppet_reloading:
 		Audio.play("reload", global_position)
 	_puppet_reloading = reloading
+	_visual.set_reloading(reloading)
 
 
 # --- Vaulting ------------------------------------------------------------------------------------------
