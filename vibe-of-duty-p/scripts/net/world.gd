@@ -19,6 +19,7 @@ const KILL_HEIGHT := -20.0
 const RESPAWN_DELAY := 3.0
 const SPAWN_PROTECTION_TICKS := 120
 const HEAD_DAMAGE_MULT := 2.0
+const NAME_MAX := 24  # characters, like the main menu's name field
 const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
 
 var players: Dictionary = {}  # peer_id -> Player
@@ -61,7 +62,7 @@ func _ready() -> void:
 	Net.disconnected.connect(_on_disconnected)
 	if multiplayer.is_server():
 		if not Game.dedicated:
-			_server_add_player(1, Settings.player_name, Settings.kid_mode)
+			_server_add_player(1, _unique_name(Settings.player_name), Settings.kid_mode)
 	else:
 		_client_ready.rpc_id(1, Settings.player_name, Settings.kid_mode)
 
@@ -136,10 +137,33 @@ func _client_ready(player_name: String, kid_mode: bool = false) -> void:
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
 		return
-	_server_add_player(id, player_name.left(24), kid_mode)
+	_server_add_player(id, _unique_name(player_name), kid_mode)
+
+
+## Server: the name a joining player gets: as sent, or with "_2", "_3"... when someone here already has it (any
+## letter case), shortened to fit the 24 characters of the name field.
+func _unique_name(wanted: String) -> String:
+	var base := wanted.strip_edges().left(NAME_MAX)
+	if base == "":
+		base = "Игрок"
+	var taken := {}
+	for other_id in players:
+		taken[(players[other_id] as Player).player_name.to_lower()] = true
+	if not taken.has(base.to_lower()):
+		return base
+	var n := 2
+	while true:
+		var suffix := "_%d" % n
+		var candidate := base.left(NAME_MAX - suffix.length()) + suffix
+		if not taken.has(candidate.to_lower()):
+			return candidate
+		n += 1
+	return base
 
 
 func _server_add_player(id: int, player_name: String, kid_mode: bool) -> void:
+	if Game.net_log:
+		print("[SERVER] player %d joined as %s" % [id, player_name])
 	var xform := _pick_spawn(-1)
 	# Tell the newcomer about everyone already here (their current position), then add the newcomer.
 	if id != 1:

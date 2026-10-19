@@ -31,7 +31,7 @@ window/stretch/aspect="expand"
 
 [gui]
 
-theme/custom_font="res://assets/fonts/science-gothic/Science-Gothic-Variable.ttf"
+theme/custom_font="res://assets/fonts/science-gothic/Science-Gothic-Variable-Fixed.ttf"
 
 [input]
 

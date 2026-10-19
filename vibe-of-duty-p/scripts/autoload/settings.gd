@@ -2,13 +2,16 @@ extends Node
 ## Player-facing settings, persisted to user://settings.cfg.
 
 const SAVE_PATH := "user://settings.cfg"
+## Funny nicknames, one per line: a player who never entered a name gets a random one (pick_nickname). A plain text
+## file, so the export preset includes assets/data/*.txt.
+const NICKNAMES_PATH := "res://assets/data/nicknames.txt"
 ## Shown in the window title and the main menu. Set at runtime rather than as application/config/name, which also
 ## names the user:// folder (renaming it would lose the saved settings).
 const GAME_TITLE := "Press F to Хрючево"
 ## The game's font, for every text: menus and HUD take it from the project theme (project.godot gui/theme/custom_font);
 ## it is also made the engine's fallback font, which Label3D (name tags, damage numbers, signs) and anything else
 ## without a theme uses.
-const GAME_FONT := "res://assets/fonts/science-gothic/Science-Gothic-Variable.ttf"
+const GAME_FONT := "res://assets/fonts/science-gothic/Science-Gothic-Variable-Fixed.ttf"
 const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
 const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
@@ -26,6 +29,9 @@ var stick_sensitivity := 1.0     # gamepad look speed multiplier (1 = Player.STI
 var aim_assist := 1.0            # gamepad aim assist strength, 0 = off (AimAssist)
 var fov := 90.0
 var player_name := "Игрок"
+## The name is the player's: loaded from settings.cfg, or used to start / join a game. Until then it is a random
+## nickname, picked anew every launch and not saved.
+var name_chosen := false
 var server_address := "127.0.0.1"  # last address typed in the join panel
 ## Servers connected to successfully, newest first, unique by address: [{"address": String, "name": String}].
 ## The name is the player's own label for it (JoinPanel); empty until they type one.
@@ -53,10 +59,24 @@ func _ready() -> void:
 	if font:
 		ThemeDB.fallback_font = font
 	load_settings()
+	if not name_chosen:
+		player_name = pick_nickname()
 	apply_audio()
 	apply_graphics()
 	apply_display()
 	_bind_gamepad()
+
+
+## A random nickname from NICKNAMES_PATH ("Игрок" if the list is missing).
+func pick_nickname() -> String:
+	var file := FileAccess.open(NICKNAMES_PATH, FileAccess.READ)
+	if file == null:
+		return "Игрок"
+	var names: Array[String] = []
+	for line in file.get_as_text().split("\n", false):
+		if line.strip_edges() != "":
+			names.append(line.strip_edges())
+	return names.pick_random() if not names.is_empty() else "Игрок"
 
 
 ## Gamepad bindings (Xbox layout names; other pads map to the same positions). Added here rather than in the project's
@@ -223,6 +243,8 @@ func apply_sun(light: DirectionalLight3D) -> void:
 
 
 func save_settings() -> void:
+	if Game.is_test_launch():
+		return  # automated test runs (bots, --join, --training, servers) share the player's profile: never write it
 	var cfg := ConfigFile.new()
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("input", "stick_sensitivity", stick_sensitivity)
@@ -234,7 +256,8 @@ func save_settings() -> void:
 	cfg.set_value("video", "vsync", vsync)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "window_size", window_size)
-	cfg.set_value("player", "name", player_name)
+	if name_chosen:
+		cfg.set_value("player", "name", player_name)
 	cfg.set_value("player", "server_address", server_address)
 	cfg.set_value("player", "recent_servers", recent_servers)
 	cfg.set_value("player", "kid_mode", kid_mode)
@@ -263,7 +286,10 @@ func load_settings() -> void:
 	var saved_size = cfg.get_value("video", "window_size", window_size)
 	if saved_size is Vector2i and WINDOW_SIZES.has(saved_size):
 		window_size = saved_size
-	player_name = cfg.get_value("player", "name", player_name)
+	var saved_name := str(cfg.get_value("player", "name", "")).strip_edges()
+	if saved_name != "":
+		player_name = saved_name
+		name_chosen = true
 	server_address = cfg.get_value("player", "server_address", server_address)
 	recent_servers = []
 	var saved_servers = cfg.get_value("player", "recent_servers", [])

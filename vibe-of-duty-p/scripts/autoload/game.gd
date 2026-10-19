@@ -143,6 +143,12 @@ static func list_training_maps() -> Array[String]:
 	return maps
 
 
+## Started by a test command line (bots, a dedicated server, --join / --training): nothing is saved to the player's
+## profile then (Settings.save_settings).
+func is_test_launch() -> bool:
+	return bot_mode or dedicated or auto_join != "" or auto_training != ""
+
+
 static func is_map(path: String) -> bool:
 	return list_maps(true).has(path)
 

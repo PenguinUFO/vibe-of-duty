@@ -5,6 +5,7 @@ extends Control
 const KID_MODE_CODE := "0451"
 
 @onready var _name_edit: LineEdit = %NameEdit
+@onready var _random_name_button: Button = %RandomNameButton
 @onready var _host_button: Button = %HostButton
 @onready var _join_button: Button = %JoinButton
 @onready var _training_button: Button = %TrainingButton
@@ -24,11 +25,12 @@ func _ready() -> void:
 	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
 	_host_button.pressed.connect(_on_host)
 	_join_button.pressed.connect(_on_join)
+	_random_name_button.pressed.connect(_on_random_name)
 	_training_button.pressed.connect(_on_training)
 	_quit_button.pressed.connect(get_tree().quit)
 	_settings_button.pressed.connect(_open_settings)
 	Game.training = false
-	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button]:
+	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button, _random_name_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
 	if Settings.has_gamepad():
@@ -48,10 +50,20 @@ func _on_connected() -> void:
 		Settings.remember_server(_joining)
 
 
+## Puts another random nickname into the name field (saved like a typed name, when a game starts).
+func _on_random_name() -> void:
+	var current := _name_edit.text
+	for i in 5:  # a different one than shown
+		_name_edit.text = Settings.pick_nickname()
+		if _name_edit.text != current:
+			break
+
+
 func _apply_name() -> void:
 	var entered := _name_edit.text.strip_edges()
 	if entered != "":
 		Settings.player_name = entered
+	Settings.name_chosen = true  # the name played with, typed or the random one, is kept from now on
 	Settings.save_settings()
 
 
