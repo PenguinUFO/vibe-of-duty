@@ -3,10 +3,10 @@ extends RefCounted
 ## Gamepad aim assist for the local player. Player only uses it while the view is turned with the stick; the mouse
 ## gets none. Two parts, both only near a visible enemy and fading out towards the edge of a small cone around it:
 ##  - slowdown: the stick turns slower over a target, so it is easier to stop on it;
-##  - tracking: while the player is steering (look stick or movement), the view follows part of the target's motion
-##    across the screen (its strafing and our own movement), so a moving target stays under the crosshair.
-## No snapping, and nothing at all without input. It only moves the client's camera; the server traces the shot from
-## the view the client sends, exactly as for a player who aims well.
+##  - tracking: the view follows part of the target's motion across the screen (its strafing and our own movement),
+##    so a moving target stays under the crosshair - standing still and with the stick released too.
+## No snapping onto a target. It only moves the client's camera; the server traces the shot from the view the client
+## sends, exactly as for a player who aims well.
 ##
 ## A target is a line from mid-torso to the head centre (the hitboxes): the assist works on whichever point of it the
 ## crosshair is nearest, so it holds the head as well as the body and never drags the aim between them.
@@ -36,7 +36,7 @@ var _last_dir := Vector3.ZERO    # direction from the eye to that point last fra
 ## targets: [{id, a, b}] - each target's line in world space (a torso, b head). `visible` is called as
 ## visible(eye, point) -> bool for the best candidate only. `reach` scales the range and the cone (kid mode: 2).
 ## Returns the tracking turn (yaw, pitch) to add this frame.
-func update(eye: Vector3, yaw: float, pitch: float, ads: float, steering: bool, amount: float, targets: Array,
+func update(eye: Vector3, yaw: float, pitch: float, ads: float, amount: float, targets: Array,
 		visible: Callable, reach: float = 1.0) -> Vector2:
 	slowdown = 1.0
 	strength = 0.0
@@ -66,10 +66,10 @@ func update(eye: Vector3, yaw: float, pitch: float, ads: float, steering: bool, 
 		target_id = -1
 		return Vector2.ZERO
 
-	strength = 1.0 - best_score * best_score  # full over most of the cone, fading out at its edge
+	strength = 1.0 - pow(best_score, 4.0)  # full over most of the cone, fading out only near its edge
 	slowdown = lerpf(1.0, lerpf(SLOWDOWN, ADS_SLOWDOWN, ads), minf(strength * amount, 1.0))  # amount > 1 (kid mode) must not overshoot
 	var turn := Vector2.ZERO
-	if best["id"] == target_id and steering:
+	if best["id"] == target_id:
 		# Where the point we were on has moved to, as seen from the eye (our own turning does not count).
 		var dir := ((best["a"] as Vector3).lerp(best["b"], _t) - eye).normalized()
 		var step := Vector2(angle_difference(yaw_of(_last_dir), yaw_of(dir)), pitch_of(dir) - pitch_of(_last_dir))

@@ -390,13 +390,12 @@ func _stick_look(delta: float) -> void:
 		_aim_assist.target_id = -1
 		return
 	var stick := Input.get_vector("look_left", "look_right", "look_up", "look_down")
-	var move := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if stick != Vector2.ZERO:
 		_pad_look = true
 	var turn := Vector2.ZERO
 	if _pad_look:
 		turn = _aim_assist.update(_head.global_position, look_yaw, look_pitch, weapons.ads,
-				stick != Vector2.ZERO or move != Vector2.ZERO, Settings.effective_aim_assist(), _assist_targets(), _assist_visible,
+				Settings.effective_aim_assist(), _assist_targets(), _assist_visible,
 				Settings.aim_assist_reach())
 	if stick != Vector2.ZERO:
 		stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
