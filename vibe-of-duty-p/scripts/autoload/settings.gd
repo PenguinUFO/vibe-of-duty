@@ -5,6 +5,10 @@ const SAVE_PATH := "user://settings.cfg"
 ## Shown in the window title and the main menu. Set at runtime rather than as application/config/name, which also
 ## names the user:// folder (renaming it would lose the saved settings).
 const GAME_TITLE := "Press F to Хрючево"
+## The game's font, for every text: menus and HUD take it from the project theme (project.godot gui/theme/custom_font);
+## it is also made the engine's fallback font, which Label3D (name tags, damage numbers, signs) and anything else
+## without a theme uses.
+const GAME_FONT := "res://assets/fonts/science-gothic/Science-Gothic-Variable.ttf"
 const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
 const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
@@ -45,6 +49,9 @@ var host_port := 27015
 
 
 func _ready() -> void:
+	var font := load(GAME_FONT) as Font
+	if font:
+		ThemeDB.fallback_font = font
 	load_settings()
 	apply_audio()
 	apply_graphics()

@@ -29,6 +29,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom_font="res://assets/fonts/science-gothic/Science-Gothic-Variable.ttf"
+
 [input]
 
 move_forward={
