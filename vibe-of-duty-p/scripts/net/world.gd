@@ -31,6 +31,7 @@ var _last_oink := {}               # server: peer_id -> time (s) of their last o
 var _last_snap_tick := 0           # client: tick of the most recent snapshot...
 var _last_snap_time := 0.0         # ...and when it arrived (seconds)
 var hud: GameHud
+var kill_cam: KillCam
 var pause_menu: PauseMenu
 var _log_timer := 0.0
 
@@ -47,6 +48,9 @@ func _ready() -> void:
 		add_child(hud)
 		pause_menu = PauseMenu.new()
 		add_child(pause_menu)
+		kill_cam = KillCam.new()
+		kill_cam.world = self
+		add_child(kill_cam)
 		Audio.play_music_id("game")
 		# Load everything the first shot / first opponent would otherwise load mid-match (a hitch).
 		WeaponDB.preload_scenes()
@@ -323,6 +327,8 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, kid_mode: b
 		player.control = Player.Mode.PUPPET
 	_players_root.add_child(player)
 	player.teleport(xform)
+	if kill_cam != null and kill_cam.is_playing():
+		player.set_kill_cam(true)
 	players[id] = player
 	if multiplayer.is_server():
 		player.server_shot.connect(_on_server_shot)
@@ -392,6 +398,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	if killer_id != victim_id and players.has(killer_id):
 		killer_name = (players[killer_id] as Player).player_name
 	victim.die(killer_name, delay)
+	if kill_cam != null and victim.is_local and killer_name != "":
+		kill_cam.start(killer_id)
 	if hud:
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else ""

@@ -158,6 +158,7 @@ var death_time_left := 0.0  # local HUD: respawn countdown
 var shots_total := 0   # server stats (for tests / netlog)
 var hits_total := 0
 var head_hits_total := 0
+var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
 var _view: WeaponView
 var _arms: FirstPersonArms
 var _crosshair: Crosshair
@@ -337,7 +338,8 @@ func _process(delta: float) -> void:
 			_visual.position = global_transform.basis.inverse() * (shown["pos"] - global_position)
 			_visual.rotation.y = angle_difference(rotation.y, shown["yaw"])
 			shown_tick = shown["tick"]
-		_visual.set_aim_pitch(shown.get("pitch", _head.rotation.x))
+		_shown_pitch = shown.get("pitch", _head.rotation.x)
+		_visual.set_aim_pitch(_shown_pitch)
 		_visual.set_ads(aiming)
 		_visual.set_crouched(is_crouched)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
@@ -984,6 +986,8 @@ func _on_shot(event: Dictionary) -> void:
 		_view.kick(1.0 if def.pellets == 1 else 2.0)
 		Audio.play(def.sound_shot)
 		var muzzle := _view.muzzle_global_position()
+		if world != null and world.kill_cam != null:
+			world.kill_cam.record_shot(peer_id, event["weapon"], muzzle, ends)
 		var scene_root := get_tree().current_scene
 		for r in results:
 			ShotEffects.spawn_tracer(scene_root, muzzle, r["pos"])
@@ -1054,6 +1058,8 @@ func hitbox_state() -> Dictionary:
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
 func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
 	var def := WeaponDB.get_def(weapon)
+	if world != null and world.kill_cam != null:
+		world.kill_cam.record_shot(peer_id, weapon, origin, ends)
 	_visual.set_weapon(weapon)
 	_visual.show_shot()
 	Audio.play(def.sound_shot, origin)
@@ -1243,7 +1249,35 @@ func respawn(xform: Transform3D) -> void:
 	_visual.set_dead(false)
 	if _view:
 		_view.set_weapon(weapons.index)
+	if is_local and world != null and world.kill_cam != null:
+		world.kill_cam.stop()
 	Audio.play("spawn", null if is_local else global_position)
+
+
+## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
+## alive, weapon index].
+func drawn_pose() -> Array:
+	var pos := global_position
+	var yaw := rotation.y
+	var pitch := _head.rotation.x
+	if is_local:
+		pos = _head.global_position - Vector3.UP * _eye_height
+		yaw = look_yaw
+		pitch = look_pitch
+	elif control == Mode.REMOTE_SERVER:
+		pos = _visual.global_position
+		yaw = rotation.y + _visual.rotation.y
+		pitch = _shown_pitch
+	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index]
+
+
+## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.
+func set_kill_cam(on: bool) -> void:
+	_visual.visible = not on
+	if is_local:
+		_hud.visible = not on
+		if not on:
+			_camera.make_current()
 
 
 ## Local player: the server confirmed that one of our shots damaged somebody.

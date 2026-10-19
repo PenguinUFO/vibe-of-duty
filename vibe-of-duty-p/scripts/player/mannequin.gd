@@ -57,6 +57,11 @@ const PALETTE: Array[Color] = [
 ]
 
 static var _materials := {}
+static var _faceted := {}  # shape key -> flat-shaded ArrayMesh (_facet)
+## What tells the primitive shapes apart (a missing property reads as null), for the _facet cache key.
+const FACET_KEY_PROPS := ["radius", "height", "radial_segments", "rings", "top_radius", "bottom_radius", "size",
+		"inner_radius", "outer_radius", "ring_segments", "left_to_right", "cap_top", "cap_bottom", "is_hemisphere",
+		"subdivide_width", "subdivide_height", "subdivide_depth"]
 
 var pitch := 0.0      # aim pitch, radians, + = up
 var ads := 0.0        # 0..1
@@ -318,8 +323,18 @@ static func _sphere(radius: float) -> SphereMesh:
 
 
 ## SUPERHOT-style low poly: the primitives above have few segments, and every face gets its own normal (flat
-## shading), so the body reads as crisp facets instead of smooth capsules.
+## shading), so the body reads as crisp facets instead of smooth capsules. Every body is built from the same few
+## shapes, so the results are shared (_faceted): rebuilding them made each new body cost tens of ms (a hitch).
 static func _facet(mesh: Mesh) -> Mesh:
+	var key := mesh.get_class()
+	for prop in FACET_KEY_PROPS:
+		key += "|%s" % str(mesh.get(prop))
+	if not _faceted.has(key):
+		_faceted[key] = _build_facets(mesh)
+	return _faceted[key]
+
+
+static func _build_facets(mesh: Mesh) -> Mesh:
 	var arrays := mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
