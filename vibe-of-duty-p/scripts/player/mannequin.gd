@@ -96,8 +96,7 @@ func build(accent: Color) -> void:
 	_part("Pelvis", _capsule(0.14, 0.36), SUIT)
 	_part("Torso", _capsule(0.2, 0.64), accent)
 	_part("Neck", _capsule(0.05, 0.16), SKIN)
-	_part("Head", _sphere(HEAD_RADIUS), SKIN)
-	_build_pig_face(_parts["Head"])
+	_parts["Head"] = make_head(self)
 	_part("Tail", _tail(), SKIN)
 	for side in ["L", "R"]:
 		_part("Hip" + side, _sphere(0.085), SUIT)
@@ -114,6 +113,13 @@ func build(accent: Color) -> void:
 	_left_arm = make_arm(self, "L", accent)
 	(_parts["Torso"] as Node3D).scale = Vector3(1.0, 1.0, 0.7)  # a bit of a belly
 	(_parts["Pelvis"] as Node3D).scale = Vector3(1.0, 1.0, 0.75)
+
+
+## The head on its own (the sphere and the pig face), as every body has it; also the main menu's portrait (PigPortrait).
+static func make_head(parent: Node3D) -> MeshInstance3D:
+	var head := _new_part(parent, "Head", _sphere(HEAD_RADIUS), SKIN)
+	_build_pig_face(head)
+	return head
 
 
 ## Anthropomorphic pig, mostly human: the head gets a snout, small dark eyes and floppy ears (cosmetic only - the head

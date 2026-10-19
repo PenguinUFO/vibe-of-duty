@@ -12,11 +12,6 @@ func _init() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
 	custom_minimum_size = Vector2(520, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.1, 0.13, 0.95)
-	style.set_content_margin_all(22.0)
-	style.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", style)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -25,21 +20,22 @@ func _init() -> void:
 	var title := Label.new()
 	title.text = "ТРЕНИРОВКА"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
+	title.theme_type_variation = "PanelTitle"
 	box.add_child(title)
 
 	var first: Button = null
 	for path in Game.list_training_maps():
 		var button := Button.new()
 		button.text = Game.map_name(path)
-		button.add_theme_font_size_override("font_size", 22)
+		button.theme_type_variation = "BigButton"
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(func() -> void:
 			Audio.play("ui_click")
 			start_requested.emit(path))
 		box.add_child(button)
 		var info := Label.new()
 		info.text = Game.TRAINING_INFO.get(path.get_file().get_basename(), "")
-		info.add_theme_color_override("font_color", Color(0.7, 0.74, 0.8))
+		info.theme_type_variation = "Hint"
 		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(info)
 		if first == null:

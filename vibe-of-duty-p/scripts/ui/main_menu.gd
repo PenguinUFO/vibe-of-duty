@@ -3,6 +3,7 @@ extends Control
 ## sends its map and rules), train alone (TrainingPanel: the training maps), or quit.
 
 const KID_MODE_CODE := "0451"
+const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 
 @onready var _name_edit: LineEdit = %NameEdit
 @onready var _random_name_button: Button = %RandomNameButton
@@ -12,7 +13,8 @@ const KID_MODE_CODE := "0451"
 @onready var _quit_button: Button = %QuitButton
 @onready var _settings_button: Button = %SettingsButton
 @onready var _kid_mode_check: CheckButton = %KidModeCheck
-@onready var _center: Control = $Center
+@onready var _column: Control = $Column
+@onready var _pig: Control = $Pig  # hidden with the column while a panel is open
 @onready var _status: Label = %Status
 
 var _joining := ""  # address being connected to; remembered in Settings.recent_servers once it works
@@ -33,6 +35,7 @@ func _ready() -> void:
 	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button, _random_name_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
+	_show_menu()
 	if Settings.has_gamepad():
 		_host_button.grab_focus.call_deferred()  # d-pad / stick navigation needs a focused control
 	Net.connected_to_server.connect(_on_connected)
@@ -42,6 +45,16 @@ func _ready() -> void:
 		_connect(Game.auto_join)
 	elif Game.auto_training != "":
 		_start_training.call_deferred(Game.MAPS_DIR.path_join(Game.auto_training + ".tscn"))
+
+
+## Shows the menu column again (at start and back from a panel), sliding in from the left.
+func _show_menu() -> void:
+	_column.visible = true
+	_pig.visible = true
+	_column.position.x = MENU_LEFT - 40.0
+	var tween := _column.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_column, "position:x", MENU_LEFT, 0.3)
+	UiTheme.stagger_in(_column)
 
 
 func _on_connected() -> void:
@@ -74,10 +87,10 @@ func _on_kid_mode_toggled(on: bool) -> void:
 		Settings.save_settings()
 		return
 	_kid_mode_check.set_pressed_no_signal(false)
-	_center.process_mode = Node.PROCESS_MODE_DISABLED  # keeps the menu from taking input behind the dialog
+	_column.process_mode = Node.PROCESS_MODE_DISABLED  # keeps the menu from taking input behind the dialog
 	var dialog := PinDialog.new(KID_MODE_CODE)
 	dialog.finished.connect(func(ok: bool) -> void:
-		_center.process_mode = Node.PROCESS_MODE_INHERIT
+		_column.process_mode = Node.PROCESS_MODE_INHERIT
 		if ok:
 			Settings.kid_mode = true
 			Settings.save_settings()
@@ -88,18 +101,20 @@ func _on_kid_mode_toggled(on: bool) -> void:
 
 func _on_host() -> void:
 	_apply_name()
-	_center.visible = false
+	_column.visible = false
+	_pig.visible = false
 	var panel := HostPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		if Settings.has_gamepad():
 			_host_button.grab_focus.call_deferred())
 	panel.start_requested.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		_start_server())
 	add_child(panel)
+	UiTheme.pop_in(panel)
 
 
 func _start_server() -> void:
@@ -112,34 +127,38 @@ func _start_server() -> void:
 
 func _on_join() -> void:
 	_apply_name()
-	_center.visible = false
+	_column.visible = false
+	_pig.visible = false
 	var panel := JoinPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		if Settings.has_gamepad():
 			_join_button.grab_focus.call_deferred())
 	panel.join_requested.connect(func(address: String) -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		_connect(address))
 	add_child(panel)
+	UiTheme.pop_in(panel)
 
 
 func _on_training() -> void:
 	_apply_name()
-	_center.visible = false
+	_column.visible = false
+	_pig.visible = false
 	var panel := TrainingPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		if Settings.has_gamepad():
 			_training_button.grab_focus.call_deferred())
 	panel.start_requested.connect(func(path: String) -> void:
 		panel.queue_free()
-		_center.visible = true
+		_show_menu()
 		_start_training(path))
 	add_child(panel)
+	UiTheme.pop_in(panel)
 
 
 ## Plays a training map alone: a server only this computer can reach, no match clock (a day-long "match").
@@ -184,9 +203,11 @@ func _start_game() -> void:
 
 
 func _open_settings() -> void:
-	_center.visible = false
+	_column.visible = false
+	_pig.visible = false
 	var panel := SettingsPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
-		_center.visible = true)
+		_show_menu())
 	add_child(panel)
+	UiTheme.pop_in(panel)

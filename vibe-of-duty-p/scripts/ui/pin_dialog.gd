@@ -26,11 +26,6 @@ func _init(code: String = "") -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.1, 0.13, 0.98)
-	style.set_content_margin_all(22.0)
-	style.set_corner_radius_all(8)
-	panel.add_theme_stylebox_override("panel", style)
 	panel.custom_minimum_size = Vector2(320, 0)
 	center.add_child(panel)
 
@@ -41,7 +36,7 @@ func _init(code: String = "") -> void:
 	var title := Label.new()
 	title.text = "Введите код из 4 цифр"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 20)
+	title.theme_type_variation = "Heading"
 	box.add_child(title)
 
 	_edit = LineEdit.new()

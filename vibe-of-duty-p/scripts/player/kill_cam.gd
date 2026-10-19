@@ -15,6 +15,7 @@ const KEEP := 6.0            # s of history kept
 const REPLAY_BEFORE := 2.4   # s replayed before the kill...
 const REPLAY_AFTER := 0.5    # ...and after it
 const BAR_HEIGHT := 0.08     # letterbox bars, share of the screen height
+const REPLAY_SHADER := preload("res://assets/shaders/replay_screen.gdshader")
 
 var world: NetWorld
 
@@ -56,6 +57,13 @@ func _ready() -> void:
 	_ui.layer = 6
 	_ui.visible = false
 	add_child(_ui)
+	var look := ColorRect.new()  # the replay look (REPLAY_SHADER) over the replayed view
+	look.set_anchors_preset(Control.PRESET_FULL_RECT)
+	look.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var look_material := ShaderMaterial.new()
+	look_material.shader = REPLAY_SHADER
+	look.material = look_material
+	_ui.add_child(look)
 	for top in [true, false]:
 		var bar := ColorRect.new()
 		bar.color = Color.BLACK
@@ -64,9 +72,19 @@ func _ready() -> void:
 		bar.anchor_top = 0.0 if top else 1.0 - BAR_HEIGHT
 		bar.anchor_bottom = BAR_HEIGHT if top else 1.0
 		_ui.add_child(bar)
+		var edge := ColorRect.new()  # a thin red line along the bar's inner edge
+		edge.color = Color(UiTheme.DANGER, 0.7)
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		edge.anchor_right = 1.0
+		edge.anchor_top = BAR_HEIGHT if top else 1.0 - BAR_HEIGHT
+		edge.anchor_bottom = edge.anchor_top
+		edge.offset_top = 0.0 if top else -2.0
+		edge.offset_bottom = 2.0 if top else 0.0
+		_ui.add_child(edge)
 	_title = _make_label(30)
 	_title.text = "ВЫ ПОГИБЛИ"
-	_title.add_theme_color_override("font_color", Color(0.85, 0.25, 0.2))
+	_title.add_theme_font_override("font", UiTheme.heavy_font())
+	_title.add_theme_color_override("font_color", UiTheme.DANGER)
 	_title.anchor_right = 1.0
 	_title.anchor_bottom = BAR_HEIGHT
 	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -324,9 +342,8 @@ func _pose_at(id: int, t: float) -> Array:
 
 func _make_label(font_size: int) -> Label:
 	var label := Label.new()
+	label.theme_type_variation = "HudLabel"
 	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 6)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

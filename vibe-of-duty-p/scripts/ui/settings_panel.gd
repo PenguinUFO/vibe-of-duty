@@ -26,11 +26,6 @@ func _init() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
 	custom_minimum_size = Vector2(540, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.1, 0.13, 0.95)
-	style.set_content_margin_all(22.0)
-	style.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", style)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -39,7 +34,7 @@ func _init() -> void:
 	var title := Label.new()
 	title.text = "НАСТРОЙКИ"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
+	title.theme_type_variation = "PanelTitle"
 	box.add_child(title)
 
 	_add_slider(box, "Чувствительность мыши", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
@@ -142,8 +137,7 @@ func _current_preset() -> int:
 func _add_heading(parent: Container, text: String) -> void:
 	var heading := Label.new()
 	heading.text = text
-	heading.add_theme_font_size_override("font_size", 20)
-	heading.add_theme_color_override("font_color", Color(0.6, 0.75, 1.0))
+	heading.theme_type_variation = "Heading"
 	parent.add_child(heading)
 
 
@@ -152,7 +146,7 @@ func _add_option(parent: Container, label_text: String, items: Array, selected: 
 	row.add_theme_constant_override("separation", 12)
 	var label := Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(190, 0)
+	label.custom_minimum_size = Vector2(230, 0)
 	row.add_child(label)
 	var option := OptionButton.new()
 	for item in items:
@@ -171,7 +165,7 @@ func _add_slider(parent: Container, label_text: String, min_value: float, max_va
 	row.add_theme_constant_override("separation", 12)
 	var label := Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(190, 0)
+	label.custom_minimum_size = Vector2(230, 0)
 	row.add_child(label)
 	var slider := HSlider.new()
 	slider.min_value = min_value

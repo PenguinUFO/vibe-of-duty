@@ -11,7 +11,7 @@ const GAME_TITLE := "Press F to Хрючево"
 ## The game's font, for every text: menus and HUD take it from the project theme (project.godot gui/theme/custom_font);
 ## it is also made the engine's fallback font, which Label3D (name tags, damage numbers, signs) and anything else
 ## without a theme uses.
-const GAME_FONT := "res://assets/fonts/science-gothic/Science-Gothic-Variable-Fixed.ttf"
+const GAME_FONT := UiTheme.GAME_FONT
 const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
 const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
@@ -58,6 +58,7 @@ func _ready() -> void:
 	var font := load(GAME_FONT) as Font
 	if font:
 		ThemeDB.fallback_font = font
+	ThemeDB.get_default_theme().merge_with(UiTheme.build())  # every control, CanvasLayers included, falls back to it
 	load_settings()
 	if not name_chosen:
 		player_name = pick_nickname()

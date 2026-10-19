@@ -76,6 +76,7 @@ const STATE_ADS := 128
 const STATE_MANTLING := 256
 const MAX_HEALTH := 100
 const KID_HEALTH_MULT := 2
+const HURT_SHADER := preload("res://assets/shaders/hurt_vignette.gdshader")  # local HUD: hit flash and low health
 const RECONCILE_EPS := 0.02          # m; smaller prediction errors are ignored
 const HISTORY_MAX := 180             # commands kept for replay (3 s)
 const CORRECTION_DECAY := 12.0       # 1/s, how fast the visual correction offset fades out
@@ -162,9 +163,10 @@ var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffere
 var _view: WeaponView
 var _arms: FirstPersonArms
 var _crosshair: Crosshair
-var _ammo_label: Label
-var _health_label: Label
-var _hurt_rect: ColorRect
+var _ammo_hud: HudAmmo
+var _health_hud: HudHealth
+var _damage_dirs: DamageIndicator
+var _hurt_rect: ColorRect  # HURT_SHADER vignette
 var _death_label: Label
 var _hurt_alpha := 0.0
 var _last_health := MAX_HEALTH
@@ -1187,27 +1189,33 @@ func _build_hud() -> void:
 	_hurt_rect = ColorRect.new()
 	_hurt_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_hurt_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hurt_rect.color = Color(0.8, 0.0, 0.0, 0.0)
+	var vignette := ShaderMaterial.new()
+	vignette.shader = HURT_SHADER
+	_hurt_rect.material = vignette
+	_hurt_rect.visible = false
 	_hud.add_child(_hurt_rect)
 	_crosshair = Crosshair.new()
 	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
 	_hud.add_child(_crosshair)
+	_damage_dirs = DamageIndicator.new()
+	_damage_dirs.camera = _camera
+	_hud.add_child(_damage_dirs)
 
-	_ammo_label = _make_hud_label(28)
-	_ammo_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_ammo_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_ammo_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_ammo_label.offset_right = -32.0
-	_ammo_label.offset_bottom = -24.0
-	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hud.add_child(_ammo_label)
+	_ammo_hud = HudAmmo.new()
+	_ammo_hud.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_ammo_hud.offset_left = -HudAmmo.SIZE.x - 24.0
+	_ammo_hud.offset_top = -HudAmmo.SIZE.y - 20.0
+	_ammo_hud.offset_right = -24.0
+	_ammo_hud.offset_bottom = -20.0
+	_hud.add_child(_ammo_hud)
 
-	_health_label = _make_hud_label(34)
-	_health_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_health_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_health_label.offset_left = 32.0
-	_health_label.offset_bottom = -24.0
-	_hud.add_child(_health_label)
+	_health_hud = HudHealth.new()
+	_health_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_health_hud.offset_left = 24.0
+	_health_hud.offset_top = -HudHealth.SIZE.y - 20.0
+	_health_hud.offset_right = 24.0 + HudHealth.SIZE.x
+	_health_hud.offset_bottom = -20.0
+	_hud.add_child(_health_hud)
 
 	_death_label = _make_hud_label(40)
 	_death_label.set_anchors_preset(Control.PRESET_CENTER)
@@ -1220,9 +1228,8 @@ func _build_hud() -> void:
 
 func _make_hud_label(font_size: int) -> Label:
 	var label := Label.new()
+	label.theme_type_variation = "HudLabel"
 	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 6)
 	return label
 
 
@@ -1251,22 +1258,30 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 
 func _update_hud(speed: float, delta: float) -> void:
 	var def := weapons.current()
-	_ammo_label.text = "%s\n%d / %d%s" % [def.display_name, weapons.mags[weapons.index], weapons.reserves[weapons.index],
-			"   ПЕРЕЗАРЯДКА" if weapons.is_reloading() else ""]
+	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size, weapons.reserves[weapons.index],
+			weapons.is_reloading())
 	var spread := weapons.spread_angle(speed, is_crouched, not is_on_floor())
 	var fov_rad := deg_to_rad(_camera.fov)
 	var px := tan(spread) / tan(fov_rad * 0.5) * get_viewport().get_visible_rect().size.y * 0.5
-	_crosshair.update_state(px if alive else 0.0, weapons.ads if alive else 1.0)
-	_ammo_label.visible = alive
-	_health_label.text = "ЗДОРОВЬЕ %d" % health
-	_health_label.modulate = Color.WHITE if health > 30 else Color(1.0, 0.35, 0.3)
+	_crosshair.update_state(px if alive else 0.0, weapons.ads if alive else 1.0,
+			weapons.reload_progress() if alive else -1.0)
+	_ammo_hud.visible = alive
+	_health_hud.set_health(health, max_health)
 	if health < _last_health:
-		_hurt_alpha = minf(0.55, 0.2 + float(_last_health - health) / max_health)
+		_hurt_alpha = minf(1.0, 0.45 + 2.0 * float(_last_health - health) / max_health)
 		if alive:
 			Audio.play("hurt")
 	_last_health = health
-	_hurt_alpha = maxf(_hurt_alpha - delta * 1.2, 0.0)
-	_hurt_rect.color.a = _hurt_alpha if alive else 0.35
+	_hurt_alpha = maxf(_hurt_alpha - delta * 1.6, 0.0)
+	# Low health holds the vignette in, pulsing; dead (no kill cam) keeps it fully in.
+	var low := clampf(1.0 - float(health) / (max_health * HudHealth.LOW), 0.0, 1.0)
+	low *= 0.75 + 0.25 * sin(Time.get_ticks_msec() / 1000.0 * 7.0)
+	if not alive:
+		low = 1.0
+	_hurt_rect.visible = _hurt_alpha > 0.0 or low > 0.0
+	var vignette := _hurt_rect.material as ShaderMaterial
+	vignette.set_shader_parameter("hurt", _hurt_alpha)
+	vignette.set_shader_parameter("low", low)
 	death_time_left = maxf(death_time_left - delta, 0.0)
 	_death_label.visible = not alive
 	if not alive:
@@ -1276,10 +1291,10 @@ func _update_hud(speed: float, delta: float) -> void:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
 	if not _debug_shown:
-		_debug.text = "Esc меню   Tab счёт   F10 выйти   F3 инфо"
+		_debug.text = "Esc меню   Tab счёт"  # F3 (debug overlay) works, but is not advertised
 		return
 	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
-	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт   F10 выйти   F3 инфо" % [
+	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт" % [
 		Engine.get_frames_per_second(), speed,
 		"подкат " if is_sliding else "", "присед " if is_crouched else "",
 		"бег " if is_sprinting else ""]
@@ -1355,6 +1370,8 @@ func respawn(xform: Transform3D) -> void:
 	_last_health = max_health
 	killed_by = ""
 	death_time_left = 0.0
+	if _damage_dirs:
+		_damage_dirs.clear()
 	weapons.reset()
 	teleport(xform)
 	_visual.set_dead(false)
@@ -1391,10 +1408,16 @@ func set_kill_cam(on: bool) -> void:
 			_camera.make_current()
 
 
+## Local player: the server says we were just hit by a shooter standing at `from` (for the damage direction arcs).
+func on_damaged_from(from: Vector3) -> void:
+	if _damage_dirs:
+		_damage_dirs.add(from)
+
+
 ## Local player: the server confirmed that one of our shots damaged somebody.
 func on_hit_confirmed(killed: bool, head: bool) -> void:
 	if _crosshair:
-		_crosshair.show_hit(killed or head)
+		_crosshair.show_hit(killed, head)
 	Audio.play("kill" if killed else "hit")
 
 

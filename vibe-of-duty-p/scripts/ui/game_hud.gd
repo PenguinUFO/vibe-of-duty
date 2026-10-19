@@ -10,6 +10,7 @@ const BOARD_REFRESH := 0.25
 
 var world: NetWorld
 
+var _top: PanelContainer  # plate with the clock and the own score
 var _timer_label: Label
 var _score_label: Label
 var _feed: VBoxContainer
@@ -21,19 +22,24 @@ var _board_timer := 0.0
 
 func _ready() -> void:
 	layer = 5
+	_top = PanelContainer.new()
+	_top.theme_type_variation = "HudPlate"
+	_top.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_top.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_top.offset_top = 10.0
+	_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_top)
+	var top_box := VBoxContainer.new()
+	top_box.add_theme_constant_override("separation", 0)
+	_top.add_child(top_box)
 	_timer_label = _make_label(30)
-	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_timer_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_timer_label.offset_top = 10.0
+	_timer_label.add_theme_font_override("font", UiTheme.heavy_font())
 	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_timer_label)
-
-	_score_label = _make_label(18)
-	_score_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_score_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_score_label.offset_top = 48.0
+	top_box.add_child(_timer_label)
+	_score_label = _make_label(14)
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_score_label)
+	_score_label.add_theme_color_override("font_color", UiTheme.TEXT_DIM)
+	top_box.add_child(_score_label)
 
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -41,6 +47,7 @@ func _ready() -> void:
 	_feed.offset_right = -16.0
 	_feed.offset_top = 16.0
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_feed.add_theme_constant_override("separation", 4)
 	add_child(_feed)
 
 	_banner = _make_label(40)
@@ -96,22 +103,49 @@ func refresh() -> void:
 	_rebuild_board()
 
 
+## One kill feed line on a plate: killer, weapon, a headshot mark, victim (or "victim погиб" for a suicide). Lines about
+## the local player get the accent plate and their names highlighted.
 func add_kill(killer: String, victim: String, weapon: String, headshot: bool, involves_me: bool) -> void:
-	var label := _make_label(18)
+	var entry := PanelContainer.new()
+	entry.theme_type_variation = "FeedEntryMine" if involves_me else "FeedEntry"
+	entry.size_flags_horizontal = Control.SIZE_SHRINK_END
+	entry.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	entry.add_child(row)
+	var name_color := UiTheme.HIGHLIGHT if involves_me else UiTheme.TEXT
 	if killer == "":
-		label.text = "%s погиб" % victim
+		row.add_child(_feed_label(victim, name_color))
+		row.add_child(_feed_label("погиб", UiTheme.TEXT_DIM, 13))
 	else:
-		label.text = "%s  [%s]%s  %s" % [killer, weapon, " В ГОЛОВУ" if headshot else "", victim]
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3) if involves_me else Color.WHITE)
-	_feed.add_child(label)
+		row.add_child(_feed_label(killer, name_color))
+		row.add_child(_feed_label(weapon, UiTheme.TEXT_DIM, 13))
+		if headshot:
+			row.add_child(HeadshotMark.new())
+		row.add_child(_feed_label(victim, name_color))
+	_feed.add_child(entry)
+	entry.modulate.a = 0.0
+	entry.create_tween().tween_property(entry, "modulate:a", 1.0, 0.15)
 	while _feed.get_child_count() > FEED_MAX:
 		var oldest := _feed.get_child(0)
 		_feed.remove_child(oldest)
 		oldest.queue_free()
-	get_tree().create_timer(FEED_TIME).timeout.connect(func() -> void:
-		if is_instance_valid(label):
-			label.queue_free())
+	var fade := entry.create_tween()
+	fade.tween_interval(FEED_TIME)
+	fade.tween_property(entry, "modulate:a", 0.0, 0.4)
+	fade.tween_callback(entry.queue_free)
+
+
+func _feed_label(text: String, color: Color, font_size := 16) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_override("font", UiTheme.bold_font())
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_vertical = Control.SIZE_FILL
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 
 func clear_feed() -> void:
@@ -124,9 +158,10 @@ func _update_labels() -> void:
 	var seconds := ceili(Game.time_left)
 	_timer_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
 	var mine: Dictionary = Game.scores.get(multiplayer.get_unique_id(), {"kills": 0, "deaths": 0})
-	_score_label.text = "Убийства %d / %d    Смерти %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
-	_timer_label.visible = not Game.training  # training: no match to count down or score
-	_score_label.visible = not Game.training
+	_score_label.text = "УБИЙСТВА %d / %d    СМЕРТИ %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
+	_top.visible = not Game.training  # training: no match to count down or score
+	# The last half minute in red (the label's own colour is near white, so the tint gives the red).
+	_timer_label.self_modulate = UiTheme.DANGER if Game.state == Game.State.PLAYING and Game.time_left <= 30.0 else Color.WHITE
 	_banner.visible = ended
 	if ended:
 		var names: PackedStringArray = []
@@ -168,8 +203,7 @@ func _player_name(id: int) -> String:
 
 func _make_label(font_size: int) -> Label:
 	var label := Label.new()
+	label.theme_type_variation = "HudLabel"
 	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 6)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

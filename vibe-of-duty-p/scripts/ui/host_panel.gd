@@ -19,11 +19,6 @@ func _init() -> void:
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
 	custom_minimum_size = Vector2(480, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.1, 0.13, 0.95)
-	style.set_content_margin_all(22.0)
-	style.set_corner_radius_all(8)
-	add_theme_stylebox_override("panel", style)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -32,7 +27,7 @@ func _init() -> void:
 	var title := Label.new()
 	title.text = "СОЗДАТЬ ИГРУ"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
+	title.theme_type_variation = "PanelTitle"
 	box.add_child(title)
 
 	_map = OptionButton.new()
@@ -113,7 +108,7 @@ func _add_row(parent: Container, label_text: String, control: Control) -> void:
 	row.add_theme_constant_override("separation", 12)
 	var label := Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(160, 0)
+	label.custom_minimum_size = Vector2(200, 0)
 	row.add_child(label)
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(control)

@@ -27,14 +27,14 @@ func _ready() -> void:
 	_root.add_child(center)
 
 	_menu_box = VBoxContainer.new()
-	_menu_box.custom_minimum_size = Vector2(300, 0)
-	_menu_box.add_theme_constant_override("separation", 10)
+	_menu_box.custom_minimum_size = Vector2(320, 0)
+	_menu_box.add_theme_constant_override("separation", 8)
 	center.add_child(_menu_box)
 
 	var title := Label.new()
 	title.text = "ПАУЗА"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 34)
+	title.theme_type_variation = "PanelTitle"
+	title.add_theme_font_size_override("font_size", 40)
 	_menu_box.add_child(title)
 	_add_button("Продолжить", close)
 	_add_button("Настройки", _open_settings)
@@ -54,6 +54,7 @@ func is_open() -> bool:
 func open() -> void:
 	_root.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	UiTheme.stagger_in(_menu_box, 0.03)
 	_focus_first(_menu_box)
 
 
@@ -80,6 +81,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _add_button(text: String, action: Callable) -> void:
 	var button := Button.new()
 	button.text = text
+	button.theme_type_variation = "BigButton"
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.pressed.connect(func() -> void:
 		Audio.play("ui_click")
 		action.call())
@@ -89,6 +92,7 @@ func _add_button(text: String, action: Callable) -> void:
 func _open_settings() -> void:
 	_menu_box.get_parent().visible = false
 	_settings.visible = true
+	UiTheme.pop_in(_settings)
 	_focus_first(_settings)
 
 

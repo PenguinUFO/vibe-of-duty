@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/ui/pig_portrait.gd" id="2_pig"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -18,84 +19,110 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1, 0.12, 0.14, 1)
+color = Color(0.065, 0.072, 0.09, 1)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Pig" type="TextureRect" parent="."]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = -1
+anchor_left = 0.46
+anchor_top = 0.06
+anchor_right = 0.98
+anchor_bottom = 0.94
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_pig")
 
-[node name="Box" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-theme_override_constants/separation = 10
+[node name="Column" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 96.0
+offset_right = 496.0
+grow_vertical = 2
+theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Center/Box"]
+[node name="Subtitle" type="Label" parent="Column"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 36
-text = "Press F to Хрючево"
-horizontal_alignment = 1
+theme_type_variation = &"Subtitle"
+text = "PRESS F TO"
 
-[node name="NameLabel" type="Label" parent="Center/Box"]
+[node name="Title" type="Label" parent="Column"]
 layout_mode = 2
+theme_type_variation = &"Title"
+text = "ХРЮЧЕВО"
+
+[node name="TitleGap" type="Control" parent="Column"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Column"]
+layout_mode = 2
+theme_type_variation = &"Hint"
 text = "Имя игрока"
 
-[node name="NameRow" type="HBoxContainer" parent="Center/Box"]
+[node name="NameRow" type="HBoxContainer" parent="Column"]
 layout_mode = 2
-theme_override_constants/separation = 10
 
-[node name="NameEdit" type="LineEdit" parent="Center/Box/NameRow"]
+[node name="NameEdit" type="LineEdit" parent="Column/NameRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 max_length = 24
 
-[node name="RandomNameButton" type="Button" parent="Center/Box/NameRow"]
+[node name="RandomNameButton" type="Button" parent="Column/NameRow"]
 unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Случайный ник"
 text = "Случайный"
 
-[node name="Buttons" type="HBoxContainer" parent="Center/Box"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="HostButton" type="Button" parent="Center/Box/Buttons"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Создать игру"
-
-[node name="JoinButton" type="Button" parent="Center/Box/Buttons"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Подключиться"
-
-[node name="TrainingButton" type="Button" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Тренировка"
-
-[node name="SettingsButton" type="Button" parent="Center/Box"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Настройки"
-
-[node name="KidModeCheck" type="CheckButton" parent="Center/Box"]
+[node name="KidModeCheck" type="CheckButton" parent="Column"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Детский режим"
 
-[node name="QuitButton" type="Button" parent="Center/Box"]
-unique_name_in_owner = true
+[node name="ButtonsGap" type="Control" parent="Column"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-text = "Выход"
 
-[node name="Status" type="Label" parent="Center/Box"]
+[node name="HostButton" type="Button" parent="Column"]
 unique_name_in_owner = true
 layout_mode = 2
-horizontal_alignment = 1
+theme_type_variation = &"BigButton"
+text = "Создать игру"
+alignment = 0
+
+[node name="JoinButton" type="Button" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BigButton"
+text = "Подключиться"
+alignment = 0
+
+[node name="TrainingButton" type="Button" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BigButton"
+text = "Тренировка"
+alignment = 0
+
+[node name="SettingsButton" type="Button" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BigButton"
+text = "Настройки"
+alignment = 0
+
+[node name="QuitButton" type="Button" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BigButton"
+text = "Выход"
+alignment = 0
+
+[node name="Status" type="Label" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Hint"
+autowrap_mode = 3

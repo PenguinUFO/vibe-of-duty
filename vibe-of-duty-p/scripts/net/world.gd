@@ -74,11 +74,6 @@ func _apply_sun() -> void:
 		Settings.apply_sun(sun)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("leave"):
-		Net.leave()  # emits Net.disconnected -> back to the menu
-
-
 func _physics_process(delta: float) -> void:
 	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
@@ -238,6 +233,11 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
 		_hit_confirm.rpc_id(attacker.peer_id, killed, head)
+	var from := attacker.global_position + Vector3.UP * Player.STAND_EYE  # for the victim's damage direction arc
+	if victim.control == Player.Mode.LOCAL:
+		victim.on_damaged_from(from)  # the host is the victim
+	elif victim.peer_id in _ready_peers:
+		_damaged_from.rpc_id(victim.peer_id, from)
 	if killed:
 		_server_kill(attacker, victim, weapon, head)
 
@@ -407,6 +407,13 @@ func _hit_confirm(killed: bool, head: bool) -> void:
 	var me := multiplayer.get_unique_id()
 	if players.has(me):
 		(players[me] as Player).on_hit_confirmed(killed, head)
+
+
+@rpc("authority", "unreliable")
+func _damaged_from(from: Vector3) -> void:
+	var me := multiplayer.get_unique_id()
+	if players.has(me):
+		(players[me] as Player).on_damaged_from(from)
 
 
 @rpc("authority", "reliable")
