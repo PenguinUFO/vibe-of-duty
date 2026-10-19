@@ -10,21 +10,30 @@ const MENU_SCENE := "res://prefabs/ui/main_menu.tscn"
 const MAPS_DIR := "res://prefabs/levels"
 const DEFAULT_MAP := "res://prefabs/levels/train.tscn"
 const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are building blocks, not maps
+## Training maps (main menu -> Тренировка), in menu order. Not offered when creating a game; played alone on a
+## local-only server (Net.host_training).
+const TRAINING_MAPS: Array[String] = ["range", "test_level"]
+const TRAINING_INFO := {
+	"range": "Мишени на дистанциях от 5 до 75 м и бегущая мишень",
+	"test_level": "Укрытия, уступы и склоны: проверка движения и залезания",
+}
 const SCORE_LIMIT := 20
 const MATCH_TIME := 600.0  # seconds
 const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the next one
 
 # Launch arguments (pass after "--"): --server (dedicated, no local player), --port=N,
-# --join=IP (skip the menu), --name=Name, --map=file_name (map of a dedicated server, e.g. --map=train),
+# --join=IP (skip the menu), --training=map (skip the menu, train on that map), --name=Name, --map=file_name (map of a dedicated server, e.g. --map=train),
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules).
 var dedicated := false
 var bot_mode := false
 var net_log := false
 var auto_join := ""
+var auto_training := ""   # --training=map: skip the menu, start that training map (e.g. --training=range)
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
 var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
+var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
@@ -32,6 +41,7 @@ var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its comm
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
+var training := false         # playing a training map alone (no match clock or score on the HUD)
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
 var intermission_time := INTERMISSION_TIME
@@ -50,6 +60,9 @@ func _ready() -> void:
 			bot_mode = true
 		elif arg == "--netlog":
 			net_log = true
+		elif arg == "--bot-targets":
+			bot_mode = true
+			bot_targets = true
 		elif arg == "--bot-oink":
 			bot_mode = true
 			bot_oink = true
@@ -74,6 +87,8 @@ func _ready() -> void:
 			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
 		elif arg.begins_with("--intermission="):
 			intermission_time = maxf(0.5, float(arg.trim_prefix("--intermission=")))
+		elif arg.begins_with("--training="):
+			auto_training = arg.trim_prefix("--training=")
 		elif arg.begins_with("--join="):
 			auto_join = arg.trim_prefix("--join=")
 		elif arg.begins_with("--port="):
@@ -97,23 +112,35 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred(map_scene)
 
 
-## Every map: the scenes in MAPS_DIR except the building blocks. Dropping a new level scene there adds a map.
-static func list_maps() -> Array[String]:
+## The maps to play matches on: the scenes in MAPS_DIR except the building blocks and the training maps. Dropping a
+## new level scene there adds a map. `with_training` includes the training maps too.
+static func list_maps(with_training := false) -> Array[String]:
 	var maps: Array[String] = []
 	for file in DirAccess.get_files_at(MAPS_DIR):
 		file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
-		if file.get_extension() == "tscn" and not NOT_MAPS.has(file.get_basename()):
+		var base := file.get_basename()
+		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and (with_training or not TRAINING_MAPS.has(base)):
 			maps.append(MAPS_DIR.path_join(file))
 	maps.sort()
 	return maps
 
 
+## The training maps, in menu order.
+static func list_training_maps() -> Array[String]:
+	var maps: Array[String] = []
+	for base in TRAINING_MAPS:
+		var path := MAPS_DIR.path_join(base + ".tscn")
+		if list_maps(true).has(path):
+			maps.append(path)
+	return maps
+
+
 static func is_map(path: String) -> bool:
-	return list_maps().has(path)
+	return list_maps(true).has(path)
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон"}
+const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон", "range": "Стрельбище"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()

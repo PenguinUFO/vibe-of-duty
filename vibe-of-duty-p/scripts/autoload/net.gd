@@ -3,6 +3,7 @@ extends Node
 
 const DEFAULT_PORT := 27015
 const MAX_PLAYERS := 4
+const TRAINING_PORT := 27120
 
 signal hosted
 signal connected_to_server
@@ -54,6 +55,21 @@ func host(port: int = DEFAULT_PORT) -> Error:
 	multiplayer.multiplayer_peer = peer
 	hosted.emit()
 	return OK
+
+
+## A server for training alone: listens on this computer only (nobody on the network can join), on the first free
+## port from TRAINING_PORT.
+func host_training() -> Error:
+	var err := ERR_CANT_CREATE
+	for port in range(TRAINING_PORT, TRAINING_PORT + 10):
+		var peer := ENetMultiplayerPeer.new()
+		peer.set_bind_ip("127.0.0.1")
+		err = peer.create_server(port, 1)
+		if err == OK:
+			multiplayer.multiplayer_peer = peer
+			hosted.emit()
+			return OK
+	return err
 
 
 func join(address: String, port: int = DEFAULT_PORT) -> Error:

@@ -1,12 +1,13 @@
 extends Control
 ## Main menu: host a game (HostPanel: map, rules, port), join one (JoinPanel: address or a recent server; the server
-## sends its map and rules), or quit.
+## sends its map and rules), train alone (TrainingPanel: the training maps), or quit.
 
 const KID_MODE_CODE := "0451"
 
 @onready var _name_edit: LineEdit = %NameEdit
 @onready var _host_button: Button = %HostButton
 @onready var _join_button: Button = %JoinButton
+@onready var _training_button: Button = %TrainingButton
 @onready var _quit_button: Button = %QuitButton
 @onready var _settings_button: Button = %SettingsButton
 @onready var _kid_mode_check: CheckButton = %KidModeCheck
@@ -23,9 +24,11 @@ func _ready() -> void:
 	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
 	_host_button.pressed.connect(_on_host)
 	_join_button.pressed.connect(_on_join)
+	_training_button.pressed.connect(_on_training)
 	_quit_button.pressed.connect(get_tree().quit)
 	_settings_button.pressed.connect(_open_settings)
-	for button in [_host_button, _join_button, _quit_button, _settings_button]:
+	Game.training = false
+	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
 	if Settings.has_gamepad():
@@ -35,6 +38,8 @@ func _ready() -> void:
 	Net.connection_failed.connect(_on_connection_failed)
 	if Game.auto_join != "":
 		_connect(Game.auto_join)
+	elif Game.auto_training != "":
+		_start_training.call_deferred(Game.MAPS_DIR.path_join(Game.auto_training + ".tscn"))
 
 
 func _on_connected() -> void:
@@ -109,6 +114,38 @@ func _on_join() -> void:
 	add_child(panel)
 
 
+func _on_training() -> void:
+	_apply_name()
+	_center.visible = false
+	var panel := TrainingPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_center.visible = true
+		if Settings.has_gamepad():
+			_training_button.grab_focus.call_deferred())
+	panel.start_requested.connect(func(path: String) -> void:
+		panel.queue_free()
+		_center.visible = true
+		_start_training(path))
+	add_child(panel)
+
+
+## Plays a training map alone: a server only this computer can reach, no match clock (a day-long "match").
+func _start_training(path: String) -> void:
+	if not Game.list_training_maps().has(path):
+		_status.text = "Нет такой тренировки: %s" % path.get_file().get_basename()
+		return
+	Game.training = true
+	Game.map_scene = path
+	Game.match_time = 86400.0
+	var err := Net.host_training()
+	if err != OK:
+		Game.training = false
+		_status.text = "Не удалось запустить тренировку: %s" % error_string(err)
+		return
+	_start_game()
+
+
 func _connect(address: String) -> void:
 	_joining = address
 	_set_buttons_disabled(true)
@@ -126,6 +163,7 @@ func _on_connection_failed() -> void:
 func _set_buttons_disabled(disabled: bool) -> void:
 	_host_button.disabled = disabled
 	_join_button.disabled = disabled
+	_training_button.disabled = disabled
 
 
 func _start_game() -> void:

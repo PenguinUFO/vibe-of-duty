@@ -88,10 +88,11 @@ func _on_start() -> void:
 	Settings.host_match_minutes = int(_match_minutes.value)
 	Settings.host_port = int(_port.value)
 	Settings.save_settings()
-	Game.map_scene = Settings.host_map if Game.is_map(Settings.host_map) else Game.DEFAULT_MAP
+	Game.map_scene = Settings.host_map if Game.list_maps().has(Settings.host_map) else Game.DEFAULT_MAP
 	Game.score_limit = Settings.host_score_limit
 	Game.match_time = Settings.host_match_minutes * 60.0
 	Game.launch_port = Settings.host_port
+	Game.training = false
 	start_requested.emit()
 
 

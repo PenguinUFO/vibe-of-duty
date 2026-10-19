@@ -125,6 +125,8 @@ func _update_labels() -> void:
 	_timer_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
 	var mine: Dictionary = Game.scores.get(multiplayer.get_unique_id(), {"kills": 0, "deaths": 0})
 	_score_label.text = "Убийства %d / %d    Смерти %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
+	_timer_label.visible = not Game.training  # training: no match to count down or score
+	_score_label.visible = not Game.training
 	_banner.visible = ended
 	if ended:
 		var names: PackedStringArray = []

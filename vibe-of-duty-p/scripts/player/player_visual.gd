@@ -42,6 +42,11 @@ func setup(peer_id: int, display_name: String) -> void:
 	add_child(_tag)
 
 
+## The body model (falls over in set_dead): things stuck to it, like a training target's hit marks, go here.
+func body() -> Node3D:
+	return _mannequin
+
+
 func set_weapon(index: int) -> void:
 	_weapon.set_weapon(index)
 	if _mannequin:

@@ -389,6 +389,13 @@ func _assist_targets() -> Array:
 		var state: Dictionary = other.hitbox_state()
 		var body := LagComp.body_segment(state)
 		targets.append({"id": id, "a": body[0].lerp(body[1], 0.6), "b": LagComp.head_center(state)})
+	for node in get_tree().get_nodes_in_group(Target.GROUP):  # training targets
+		var target := node as Target
+		if target.alive:
+			var t_state := target.hitbox_state()
+			var t_body := LagComp.body_segment(t_state)
+			targets.append({"id": 100000 + target.get_instance_id() % 100000, "a": t_body[0].lerp(t_body[1], 0.6),
+					"b": LagComp.head_center(t_state)})
 	return targets
 
 
@@ -578,6 +585,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		_try_oink()
 	if Game.bot_aim and world != null:
 		return _bot_aim_cmd(t)
+	if Game.bot_targets:
+		return _bot_targets_cmd(t)
 	if Game.bot_vault:
 		# Runs back and forth over the test ledges, jumping all the time (vaults whenever one is in reach).
 		look_yaw = PI if fmod(t, 7.0) >= 3.5 else 0.0  # 3.5 s each way (~18 m): crosses the ledges in both directions
@@ -598,6 +607,28 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	if sel != _bot_select:
 		_bot_select = sel
 		cmd.select = sel
+	return cmd
+
+
+## Stands still and shoots the training targets in turn, 4 s each: body, then head every other turn.
+func _bot_targets_cmd(t: float) -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var targets := get_tree().get_nodes_in_group(Target.GROUP)
+	cmd.aim = true
+	if not targets.is_empty() and alive:
+		var turn := int(t / 4.0)
+		var target: Target = targets[turn % targets.size()]
+		var state := target.hitbox_state()
+		var seg := LagComp.body_segment(state)
+		var point := LagComp.head_center(state) if (turn / targets.size()) % 2 == 1 else seg[0].lerp(seg[1], 0.6)
+		var eye := global_position + Vector3.UP * STAND_EYE
+		var dir := (point - eye).normalized()
+		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
+		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
+		cmd.fire = weapons.ads > 0.95 and target.alive
+	cmd.yaw = look_yaw
+	cmd.pitch = look_pitch
+	cmd.reload = weapons.mags[weapons.index] == 0
 	return cmd
 
 
@@ -960,10 +991,18 @@ func _on_shot(event: Dictionary) -> void:
 	var ends := PackedVector3Array()
 	var hits: Array = []
 	var damage_by_victim := {}  # peer_id -> {player, damage, head}
+	var target_hits := {}  # Target -> {damage, head, marks: [[pos, head]]} (training targets)
 	for dir in event["dirs"]:
 		var r := _trace(origin, dir, def.max_range, tick)
 		results.append(r)
 		ends.append(r["pos"])
+		var target: Target = r.get("target")
+		if target != null:
+			var t_head: bool = r["zone"] == "head"
+			var t_entry: Dictionary = target_hits.get_or_add(target, {"damage": 0.0, "head": false, "marks": []})
+			t_entry["damage"] += def.damage * (NetWorld.HEAD_DAMAGE_MULT if t_head else 1.0)
+			t_entry["head"] = t_entry["head"] or t_head
+			t_entry["marks"].append([r["pos"], t_head])
 		var victim: Player = r["player"]
 		if victim != null:
 			var head: bool = r["zone"] == "head"
@@ -981,6 +1020,13 @@ func _on_shot(event: Dictionary) -> void:
 			for victim_id in damage_by_victim:
 				var entry: Dictionary = damage_by_victim[victim_id]
 				world.server_apply_damage(self, entry["player"], entry["damage"], entry["head"], event["weapon"])
+		for target in target_hits:
+			var t_entry: Dictionary = target_hits[target]
+			for mark in t_entry["marks"]:
+				(target as Target).add_mark(mark[0], mark[1])
+			var knocked: bool = (target as Target).take_damage(t_entry["damage"], t_entry["head"])
+			if is_local:
+				on_hit_confirmed(knocked, t_entry["head"])
 	if is_local:
 		_view.flash()
 		_view.kick(1.0 if def.pellets == 1 else 2.0)
@@ -991,7 +1037,7 @@ func _on_shot(event: Dictionary) -> void:
 		var scene_root := get_tree().current_scene
 		for r in results:
 			ShotEffects.spawn_tracer(scene_root, muzzle, r["pos"])
-			if r["hit"] and r["player"] == null:
+			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
 
@@ -1038,6 +1084,27 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 		if t >= 0.0 and t < best:
 			best = t
 			result = {"pos": origin + dir * t, "normal": -dir, "hit": true, "player": other, "zone": zone}
+	# Training targets: the same hitboxes, always at their live position (they are not networked).
+	for node in get_tree().get_nodes_in_group(Target.GROUP):
+		var target := node as Target
+		if not target.alive:
+			continue
+		var t_state := target.hitbox_state()
+		var t_head := LagComp.ray_sphere(origin, dir, LagComp.head_center(t_state), LagComp.HEAD_RADIUS)
+		var t_seg := LagComp.body_segment(t_state)
+		var t_body := LagComp.ray_capsule(origin, dir, t_seg[0], t_seg[1], LagComp.BODY_RADIUS)
+		var t_hit := -1.0
+		var t_zone := ""
+		if t_head >= 0.0 and (t_body < 0.0 or t_head <= t_body + 0.0001):
+			t_hit = t_head
+			t_zone = "head"
+		elif t_body >= 0.0:
+			t_hit = t_body
+			t_zone = "body"
+		if t_hit >= 0.0 and t_hit < best:
+			best = t_hit
+			result = {"pos": origin + dir * t_hit, "normal": -dir, "hit": true, "player": null, "zone": t_zone,
+					"target": target}
 	return result
 
 
