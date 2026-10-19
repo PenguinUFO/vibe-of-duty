@@ -83,6 +83,7 @@ func _physics_process(delta: float) -> void:
 	for id in players.keys():
 		var player: Player = players[id]
 		player.spawn_protect = maxi(player.spawn_protect - 1, 0)
+		player.server_regen(delta)
 		if player.alive and player.global_position.y < kill_height:
 			_server_suicide(player)
 	lag_comp.record(server_tick, players)

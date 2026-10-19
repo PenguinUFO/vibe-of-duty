@@ -76,6 +76,12 @@ const STATE_ADS := 128
 const STATE_MANTLING := 256
 const MAX_HEALTH := 100
 const KID_HEALTH_MULT := 2
+# Health regeneration (server), as in Call of Duty: Modern Warfare III (2023) after its Season 2 patch: it starts 3 s
+# after the last damage and comes back at 75 of 150 HP per second, i.e. half a normal player's health per second (empty
+# to full in 2 s). Kid mode heals at the same HP per second (the same damage takes as long to heal), only starting sooner.
+const REGEN_DELAY := 3.0
+const REGEN_PER_SECOND := MAX_HEALTH * 0.5   # HP per second, the same for everybody
+const KID_REGEN_DELAY := REGEN_DELAY * 2.0 / 3.0  # kid mode: health starts coming back sooner (2 s)
 const HURT_SHADER := preload("res://assets/shaders/hurt_vignette.gdshader")  # local HUD: hit flash and low health
 const RECONCILE_EPS := 0.02          # m; smaller prediction errors are ignored
 const HISTORY_MAX := 180             # commands kept for replay (3 s)
@@ -154,6 +160,8 @@ var max_health := MAX_HEALTH  # kid mode doubles it
 var kid_mode := false
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn
+var _regen_wait := 0.0      # server: seconds until health starts coming back
+var _regen_carry := 0.0     # server: fraction of a health point regenerated but not yet added
 var killed_by := ""         # local HUD: who killed us
 var death_time_left := 0.0  # local HUD: respawn countdown
 var shots_total := 0   # server stats (for tests / netlog)
@@ -1429,6 +1437,8 @@ func server_damage(amount: float) -> bool:
 	if not alive:
 		return false
 	health = maxi(health - roundi(amount), 0)
+	_regen_wait = KID_REGEN_DELAY if kid_mode else REGEN_DELAY
+	_regen_carry = 0.0
 	if health == 0:
 		alive = false
 		return true
@@ -1447,6 +1457,22 @@ func die(by: String, respawn_delay: float, from := Vector3.INF, head_hit := fals
 	Audio.play("death", null if is_local else global_position)
 
 
+## Server, every tick: health comes back REGEN_DELAY s (kid mode: KID_REGEN_DELAY) after the last damage, REGEN_PER_SECOND HP per second.
+## Clients see it in the snapshots (health is part of every player's state).
+func server_regen(delta: float) -> void:
+	if not alive or health >= max_health:
+		_regen_carry = 0.0
+		return
+	if _regen_wait > 0.0:
+		_regen_wait -= delta
+		return
+	_regen_carry += REGEN_PER_SECOND * delta
+	var whole := int(_regen_carry)
+	if whole > 0:
+		health = mini(health + whole, max_health)
+		_regen_carry -= whole
+
+
 ## Kid mode (chosen by the player, sent to the server on join): more health. Call before the first respawn / snapshot.
 func set_kid_mode(on: bool) -> void:
 	kid_mode = on
@@ -1459,6 +1485,8 @@ func respawn(xform: Transform3D) -> void:
 	alive = true
 	health = max_health
 	_last_health = max_health
+	_regen_wait = 0.0
+	_regen_carry = 0.0
 	killed_by = ""
 	death_time_left = 0.0
 	if _damage_dirs:
