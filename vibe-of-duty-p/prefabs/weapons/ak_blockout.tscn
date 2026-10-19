@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_mag_mesh.tres" id="mag_mesh"]
+
 [sub_resource type="StandardMaterial3D" id="mat_steel"]
 albedo_color = Color(0.13, 0.13, 0.14, 1)
 metallic = 0.55
@@ -124,18 +126,6 @@ size = Vector3(0.046, 0.11, 0.02)
 material = SubResource("mat_wood")
 size = Vector3(0.032, 0.11, 0.035)
 
-[sub_resource type="BoxMesh" id="mesh_24"]
-material = SubResource("mat_mag")
-size = Vector3(0.028, 0.075, 0.062)
-
-[sub_resource type="BoxMesh" id="mesh_25"]
-material = SubResource("mat_mag")
-size = Vector3(0.028, 0.075, 0.062)
-
-[sub_resource type="BoxMesh" id="mesh_26"]
-material = SubResource("mat_mag")
-size = Vector3(0.028, 0.075, 0.062)
-
 [node name="AK47" type="Node3D"]
 
 [node name="Receiver" type="MeshInstance3D" parent="."]
@@ -233,14 +223,7 @@ mesh = SubResource("mesh_22")
 [node name="AK_Mag_01" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0.085)
 
-[node name="Segment0" type="MeshInstance3D" parent="AK_Mag_01"]
-transform = Transform3D(1, 0, 0, 0, 0.99452, -0.10453, 0, 0.10453, 0.99452, 0, -0.035, 0)
-mesh = SubResource("mesh_24")
-
-[node name="Segment1" type="MeshInstance3D" parent="AK_Mag_01"]
-transform = Transform3D(1, 0, 0, 0, 0.96126, -0.27564, 0, 0.27564, 0.96126, 0, -0.105, 0.012)
-mesh = SubResource("mesh_25")
-
-[node name="Segment2" type="MeshInstance3D" parent="AK_Mag_01"]
-transform = Transform3D(1, 0, 0, 0, 0.89101, -0.45399, 0, 0.45399, 0.89101, 0, -0.17, 0.035)
-mesh = SubResource("mesh_26")
+[node name="Body" type="MeshInstance3D" parent="AK_Mag_01"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+mesh = ExtResource("mag_mesh")
+surface_material_override/0 = SubResource("mat_mag")

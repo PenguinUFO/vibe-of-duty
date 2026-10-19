@@ -1,6 +1,7 @@
 """Generates prefabs/weapons/ak_blockout.tscn: a blockout rifle inspired by the AK-47.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_ak_blockout.py   (overwrites the scene)
+The curved magazine's mesh comes from tools/make_ak_mag.gd (prefabs/weapons/ak_mag_mesh.tres).
 
 Conventions (as WeaponView expects): the barrel points to +Z, +Y is up, the origin sits under the receiver at the
 trigger. Units are metres; the rifle is ~0.93 m long. The magazine is a node named "*_Mag_*" (WeaponView slides it
@@ -56,11 +57,11 @@ box("Stock", -0.021, 0.021, -0.045, 0.045, -0.37, -0.1, "wood", rot_x=-7.0)
 box("StockComb", -0.019, 0.019, 0.045, 0.06, -0.3, -0.11, "wood", rot_x=-7.0)
 box("ButtPlate", -0.023, 0.023, -0.06, 0.05, -0.39, -0.37, "steel", rot_x=-7.0)
 box("PistolGrip", -0.016, 0.016, -0.11, 0.0, -0.065, -0.03, "wood", rot_x=-18.0)
-# Curved magazine: three segments, each turned a little more forward.
+# Curved magazine: one smooth swept mesh made by tools/make_ak_mag.gd (run that first if it changes).
 mag = "AK_Mag_01"
+MAG_MESH = "res://prefabs/weapons/ak_mag_mesh.tres"
 parts.append((mag, ".", "node", None, (0.0, 0.0, 0.085), 0.0, None))
-for i, (y0, angle, dz) in enumerate([(0.0, 6.0, 0.0), (-0.07, 16.0, 0.012), (-0.135, 27.0, 0.035)]):
-    parts.append(("Segment%d" % i, mag, "box", (0.028, 0.075, 0.062), (0.0, y0 - 0.035, dz), angle, "mag"))
+parts.append(("Body", mag, "ext_mesh", "mag_mesh", (0.0, 0.0, 0.0), 0.0, "mag"))
 
 f = lambda v: "%g" % round(v, 5)
 res = []
@@ -75,6 +76,10 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     if kind == "node":
         nodes.append('\n[node name="%s" type="Node3D" parent="%s"]\ntransform = %s\n' % (name, parent, xform))
         continue
+    if kind == "ext_mesh":
+        nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = ExtResource("%s")\n'
+                     'surface_material_override/0 = SubResource("mat_%s")\n' % (name, parent, xform, params, mat))
+        continue
     if kind == "box":
         res.append('[sub_resource type="BoxMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\nsize = Vector3(%s, %s, %s)\n'
                    % (i, mat, f(params[0]), f(params[1]), f(params[2])))
@@ -84,5 +89,6 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = SubResource("mesh_%d")\n' % (name, parent, xform, i))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8", newline="\n") as out:
-    out.write("[gd_scene format=3]\n\n" + "\n".join(res) + "\n" + "".join(nodes))
+    ext = '[ext_resource type="ArrayMesh" path="%s" id="mag_mesh"]\n\n' % MAG_MESH
+    out.write("[gd_scene format=3]\n\n" + ext + "\n".join(res) + "\n" + "".join(nodes))
 print("wrote %s: %d parts" % (OUT, len(parts)))

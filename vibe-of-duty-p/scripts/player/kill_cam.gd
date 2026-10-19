@@ -218,6 +218,8 @@ func _play(delta: float) -> void:
 		ghost.global_rotation = Vector3(0.0, pose[1], 0.0)
 		ghost.set_aim_pitch(pose[2])
 		ghost.set_crouched(pose[3])
+		ghost.set_sliding(pose[8])
+		ghost.show_reload(pose[7])
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6])
 		if ghost._dead == pose[5]:
@@ -243,7 +245,8 @@ func _play(delta: float) -> void:
 		_view.set_weapon(killer[6])
 		_view.visible = killer[5]
 		_arms.visible = killer[5]
-		_view.update_pose(delta, _ads, -1.0, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+		_arms.reload = killer[7]
 		_arms.pose()
 
 	for shot in _shots:
@@ -340,6 +343,8 @@ func _pose_at(id: int, t: float) -> Array:
 	pose[0] = (pa[0] as Vector3).lerp(pb[0], f)
 	pose[1] = lerp_angle(pa[1], pb[1], f)
 	pose[2] = lerpf(pa[2], pb[2], f)
+	if pa[7] >= 0.0 and pb[7] >= pa[7]:
+		pose[7] = lerpf(pa[7], pb[7], f)  # the reload runs smoothly between recorded frames
 	return pose
 
 

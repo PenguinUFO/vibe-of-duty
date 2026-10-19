@@ -58,6 +58,7 @@ func sample(peer_id: int, tick: float) -> Dictionary:
 	var f := clampf((tick - float(a["tick"])) / maxf(float(b["tick"] - a["tick"]), 1.0), 0.0, 1.0)
 	var near: Dictionary = a if f < 0.5 else b
 	return {"pos": (a["pos"] as Vector3).lerp(b["pos"], f), "crouched": near["crouched"], "ads": near["ads"],
+			"sliding": near.get("sliding", false),
 			"yaw": lerp_angle(a["yaw"], b["yaw"], f), "pitch": lerpf(a["pitch"], b["pitch"], f),
 			"vel": (a["vel"] as Vector3).lerp(b["vel"], f)}
 
@@ -66,11 +67,13 @@ func sample(peer_id: int, tick: float) -> Dictionary:
 
 ## Head offset over the feet in the player's frame for a hitbox state: exactly where the mannequin's head is
 ## (Mannequin.head_offset; the visual blends crouch / ADS over a fraction of a second, the hitbox switches at once).
-## It leans with the movement like the body does (Mannequin.run_lean).
+## It leans with the movement like the body does (Mannequin.run_lean), and back in a slide.
 static func head_offset(state: Dictionary) -> Vector3:
 	var local_velocity := Basis(Vector3.UP, state["yaw"]).inverse() * (state["vel"] as Vector3)
-	return Mannequin.head_offset(state["pitch"], 1.0 if state["ads"] else 0.0, 1.0 if state["crouched"] else 0.0,
-			Mannequin.run_lean(local_velocity))
+	var sliding: bool = state.get("sliding", false)
+	var lean := Vector2(Mannequin.SLIDE_LEAN, 0.0) if sliding else Mannequin.run_lean(local_velocity)
+	var head := Mannequin.head_offset(state["pitch"], 1.0 if state["ads"] else 0.0, 1.0 if state["crouched"] else 0.0, lean)
+	return head - Vector3(0.0, Mannequin.SLIDE_DROP if sliding else 0.0, 0.0)
 
 
 static func head_center(state: Dictionary) -> Vector3:

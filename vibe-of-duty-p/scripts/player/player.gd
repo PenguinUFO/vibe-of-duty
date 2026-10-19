@@ -1199,7 +1199,7 @@ func _target_state(other: Player, tick: float) -> Dictionary:
 func hitbox_state() -> Dictionary:
 	var vel := velocity if control != Mode.PUPPET else _puppet_velocity
 	return {"pos": global_position, "crouched": is_crouched, "yaw": rotation.y, "pitch": _head.rotation.x,
-			"vel": Vector3(vel.x, 0.0, vel.z), "ads": aiming}
+			"vel": Vector3(vel.x, 0.0, vel.z), "ads": aiming, "sliding": is_sliding}
 
 
 ## A shot that ended at `end` (world) jerks this player's body if it ended on it (cosmetic).
@@ -1293,9 +1293,9 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	if is_sliding and is_on_floor() and _dust_t <= 0.0:
 		_dust_t = 0.05
 		Dust.trail(self, global_position, Vector3(velocity.x, 0.0, velocity.z))
-	var w := TAU * 3.5
-	_cam_land_v += (w * w * -_cam_land - 2.0 * 0.55 * w * _cam_land_v) * dt
-	_cam_land = clampf(_cam_land + _cam_land_v * dt, -0.12, 0.05)
+	var land := Mannequin.spring(Vector2(_cam_land, 0.0), Vector2(_cam_land_v, 0.0), Vector2.ZERO, 3.5, 0.55, dt)
+	_cam_land = clampf(land[0].x, -0.12, 0.05)
+	_cam_land_v = land[1].x
 
 	var walking := alive and is_on_floor() and not is_sliding and not is_mantling
 	var bob_target := Settings.view_bob * clampf(speed / WALK_SPEED, 0.0, 1.3) * (1.0 - 0.85 * weapons.ads) if walking else 0.0
@@ -1304,9 +1304,9 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	var sway := sin(PI * step) * _bob_side * _bob_amount
 	var bob := Vector3(0.008 * sway, -0.014 * _bob_amount * (0.5 + 0.5 * cos(TAU * step)), 0.0)
 
-	var pw := TAU * 5.0
-	_punch_v += (pw * pw * -_punch - 2.0 * 0.4 * pw * _punch_v) * dt
-	_punch += _punch_v * dt
+	var punch := Mannequin.spring(_punch, _punch_v, Vector2.ZERO, 5.0, 0.5, dt)
+	_punch = (punch[0] as Vector2).clamp(Vector2(-0.06, -0.06), Vector2(0.06, 0.06))  # 3.4 degrees at most
+	_punch_v = punch[1]
 
 	if is_mantling and not _ledge_set:
 		var forward := Vector3(-sin(look_yaw), 0.0, -cos(look_yaw))
@@ -1463,6 +1463,10 @@ func respawn(xform: Transform3D) -> void:
 	death_time_left = 0.0
 	if _damage_dirs:
 		_damage_dirs.clear()
+	_punch = Vector2.ZERO
+	_punch_v = Vector2.ZERO
+	_cam_land = 0.0
+	_cam_land_v = 0.0
 	weapons.reset()
 	teleport(xform)
 	_visual.set_dead(false)
@@ -1474,7 +1478,7 @@ func respawn(xform: Transform3D) -> void:
 
 
 ## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
-## alive, weapon index].
+## alive, weapon index, reload progress (-1: none), sliding].
 func drawn_pose() -> Array:
 	var pos := global_position
 	var yaw := rotation.y
@@ -1487,7 +1491,9 @@ func drawn_pose() -> Array:
 		pos = _visual.global_position
 		yaw = rotation.y + _visual.rotation.y
 		pitch = _shown_pitch
-	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index]
+	var reload := weapons.reload_progress() if control != Mode.PUPPET else _visual.reload_progress()
+	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index, reload,
+			is_sliding]
 
 
 ## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.
@@ -1509,8 +1515,8 @@ func on_damaged_from(from: Vector3) -> void:
 		var flat := Vector2(local.x, local.z)
 		if flat.length() > 0.01:
 			flat = flat.normalized()
-			_punch_v += Vector2(-flat.y * 0.7, flat.x * 0.9)
-			_punch_v = _punch_v.limit_length(2.0)
+			_punch_v += Vector2(-flat.y * 0.5, flat.x * 0.6)
+			_punch_v = _punch_v.limit_length(1.2)
 
 
 ## Local player: the server confirmed that one of our shots damaged somebody.

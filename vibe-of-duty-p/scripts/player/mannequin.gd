@@ -71,6 +71,10 @@ const SIDE_LEAN_MAX := 0.08
 const TUCK_HEIGHT := 0.3         # m the feet draw up in the air (rising; falling, the legs reach down again)
 const LAND_DROP_MAX := 0.06      # m the pelvis may sink on landing (within the head hitbox's spare radius)
 const PELVIS_DROP_MAX := 0.07    # bob + landing together
+const SLIDE_LEAN := 0.5          # rad the torso leans back in a slide (undoing most of the crouch's forward lean)
+const SLIDE_DROP := 0.15         # m the pelvis sinks below the crouch in a slide (the hitbox too: LagComp.head_offset)
+const SLIDE_LEAD := Vector3(-0.1, 0.0, -0.75)  # sliding: the left leg out in front...
+const SLIDE_TUCK := Vector3(0.16, 0.0, 0.08)   # ...the right one folded under
 
 # --- colours ---
 # Grim, realistic palette: worn fatigues, dirty pig skin, dull leather. Player colours stay distinct but muted.
@@ -132,6 +136,7 @@ var _joints := {}                   # joint name -> position (mannequin space) a
 var _was_air := false
 var _fall_speed := 0.0              # fastest fall of the current flight (m/s), for the landing
 var _tuck := 0.0                    # 0 = legs on the ground, 1 = drawn up
+var _slide := 0.0                   # 0..1: slide pose weight
 var _land := 0.0                    # pelvis offset of the landing squat (m, <= 0)
 var _land_v := 0.0
 var _head_kick := Vector2.ZERO      # head snap of a hit: x = back, y = sideways (rad)
@@ -287,7 +292,7 @@ func animate(delta: float, velocity: Vector3, on_floor := true, sliding := false
 	var stance: Array[Vector3] = [STANCE_L, STANCE_R]
 	for i in 2:
 		var home := xf * stance[i]
-		if not _planted or _move > 0.95 or not on_floor or _plant[i].distance_to(home) > 1.5:
+		if not _planted or _move > 0.95 or not on_floor or _slide > 0.05 or _plant[i].distance_to(home) > 1.5:
 			_plant[i] = home
 			_step_t[i] = -1.0
 	_planted = true
@@ -337,17 +342,27 @@ func animate(delta: float, velocity: Vector3, on_floor := true, sliding := false
 		_feet[i].y += TUCK_HEIGHT * _tuck * (1.0 if i == 0 else 0.8)  # one leg a bit lower: less of a puppet
 		_foot_pitch[i] += 0.5 * _tuck  # toes hang down
 
+	# Slide: one leg out in front (toes up), the other folded under, the body leaning back; the feet ride along
+	# with the body instead of stepping.
+	_slide = move_toward(_slide, 1.0 if sliding and on_floor else 0.0, delta * 8.0)
+	if _slide > 0.0:
+		_feet[0] = _feet[0].lerp(SLIDE_LEAD, _slide)
+		_feet[1] = _feet[1].lerp(SLIDE_TUCK, _slide)
+		_foot_pitch[0] = lerpf(_foot_pitch[0], -0.6, _slide)
+		_foot_pitch[1] = lerpf(_foot_pitch[1], 0.5, _slide)
+
 	# Pelvis: drops at each footfall, sways over the foot on the ground (walking), turns with the forward leg.
 	var bob := lerpf(BOB_WALK, BOB_RUN, run) * clampf(speed / 2.0, 0.0, 1.0)
 	_pelvis_offset = Vector3(-0.02 * sin(TAU * _phase) * (1.0 - run),
 			-bob * (0.5 + 0.5 * cos(2.0 * TAU * _phase)), 0.0) * _move
-	_pelvis_offset.y = maxf(_pelvis_offset.y + _land, -PELVIS_DROP_MAX)
+	_pelvis_offset.y = maxf(_pelvis_offset.y + _land, -PELVIS_DROP_MAX) - SLIDE_DROP * _slide
 	_twist = TWIST * cos(TAU * _phase) * _dir.z * _move
 
 	# Lean with the speed, plus (through a springy follow) with the acceleration: into a start, back when stopping.
 	var accel := (flat - _prev_vel) / delta
 	_prev_vel = flat
 	var lean_target := run_lean(flat) + Vector2(clampf(accel.z * 0.012, -0.1, 0.1), clampf(accel.x * 0.006, -0.05, 0.05))
+	lean_target = lean_target.lerp(Vector2(SLIDE_LEAN, 0.0), _slide)
 	var lean := _spring(_lean, _lean_v, lean_target, 2.6, 0.45, delta)
 	_lean = lean[0]
 	_lean_v = lean[1]
@@ -720,12 +735,17 @@ static func reload_bolt_pull(r: float) -> float:
 	return smoothstep(0.8, 0.88, r) * (1.0 - smoothstep(0.88, 0.9, r))
 
 
-## Damped spring step (semi-implicit Euler): `x` follows `target` with natural frequency `freq` (Hz) and damping
-## ratio `damping` (< 1 overshoots and wobbles). Returns [x, velocity].
-static func _spring(x: Vector2, v: Vector2, target: Vector2, freq: float, damping: float, dt: float) -> Array:
+## Damped spring step: `x` follows `target` with natural frequency `freq` (Hz) and damping ratio `damping` (< 1
+## overshoots and wobbles). Returns [x, velocity]. Implicit (backward) Euler: stable at any frame time - the explicit
+## step blew up on long frames (a hitch), the oscillation growing every frame until the view spun around.
+static func spring(x: Vector2, v: Vector2, target: Vector2, freq: float, damping: float, dt: float) -> Array:
 	var w := TAU * freq
-	v += (w * w * (target - x) - 2.0 * damping * w * v) * dt
+	v = (v + (target - x) * (w * w * dt)) / (1.0 + 2.0 * damping * w * dt + w * w * dt * dt)
 	return [x + v * dt, v]
+
+
+static func _spring(x: Vector2, v: Vector2, target: Vector2, freq: float, damping: float, dt: float) -> Array:
+	return spring(x, v, target, freq, damping, dt)
 
 
 static func _flat_distance(a: Vector3, b: Vector3) -> float:

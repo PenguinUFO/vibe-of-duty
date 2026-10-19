@@ -27,6 +27,7 @@ var _dust_t := 0.0
 var _reloading := false
 var _reload_t := -1.0             # s into the reload being shown, -1 = none
 var _mantling := false
+var _shown_reload := -2.0         # replay: reload progress given directly (show_reload), -2 = not given
 var _ads_target := false
 var _tag_check := 0.0           # seconds to the next occlusion test of the name tag
 
@@ -112,10 +113,11 @@ func update_motion(delta: float, _local_velocity: Vector3, on_floor: bool = true
 		_mannequin.step_ragdoll(delta)
 		return
 	if delta > 0.0:
-		var w := TAU * CROUCH_FREQ
 		var target := 1.0 if _crouch_target else 0.0
-		_crouch_v += (w * w * (target - _mannequin.crouch) - 2.0 * CROUCH_DAMPING * w * _crouch_v) * minf(delta, 0.05)
-		_mannequin.crouch = clampf(_mannequin.crouch + _crouch_v * minf(delta, 0.05), -0.08, 1.08)
+		var crouch := Mannequin.spring(Vector2(_mannequin.crouch, 0.0), Vector2(_crouch_v, 0.0), Vector2(target, 0.0),
+				CROUCH_FREQ, CROUCH_DAMPING, minf(delta, 0.05))
+		_mannequin.crouch = clampf(crouch[0].x, -0.08, 1.08)
+		_crouch_v = crouch[1].x
 	_mannequin.ads = move_toward(_mannequin.ads, 1.0 if _ads_target and not _mantling else 0.0, delta / ADS_BLEND_TIME)
 	_mannequin.pitch = _pitch
 	_mannequin.mantle = move_toward(_mannequin.mantle, 1.0 if _mantling else 0.0, delta * (10.0 if _mantling else 5.0))
@@ -125,7 +127,20 @@ func update_motion(delta: float, _local_velocity: Vector3, on_floor: bool = true
 	_mannequin.pose()
 
 
+## Reload progress as shown (-1: none), e.g. for the kill cam's recording.
+func reload_progress() -> float:
+	return _mannequin.reload if _mannequin else -1.0
+
+
+## Replays (KillCam): shows the reload at exactly this progress (-1: none) instead of timing it here.
+func show_reload(progress: float) -> void:
+	_shown_reload = progress
+
+
 func _update_reload(delta: float) -> void:
+	if _shown_reload > -2.0:
+		_mannequin.reload = _shown_reload
+		return
 	if _reload_t < 0.0:
 		_mannequin.reload = -1.0
 		return
