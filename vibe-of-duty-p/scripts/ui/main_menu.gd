@@ -16,12 +16,14 @@ const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 @onready var _column: Control = $Column
 @onready var _pig: Control = $Pig  # hidden with the column while a panel is open
 @onready var _status: Label = %Status
+@onready var _version: Label = %Version  # bottom right: the build version (raised by addons/version_bump on export)
 
 var _joining := ""  # address being connected to; remembered in Settings.recent_servers once it works
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_version.text = "v" + str(ProjectSettings.get_setting("application/config/version", ""))
 	_name_edit.text = Settings.player_name
 	_kid_mode_check.set_pressed_no_signal(Settings.kid_mode)
 	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
