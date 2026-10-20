@@ -34,10 +34,11 @@ var _last_dir := Vector3.ZERO    # direction from the eye to that point last fra
 
 
 ## targets: [{id, a, b}] - each target's line in world space (a torso, b head). `visible` is called as
-## visible(eye, point) -> bool for the best candidate only. `reach` scales the range and the cone (kid mode: 2).
+## visible(eye, point) -> bool for the best candidate only. `reach` widens the cone (kid mode: 2); `max_range`: how
+## far targets are assisted (kid mode: no limit, INF).
 ## Returns the tracking turn (yaw, pitch) to add this frame.
 func update(eye: Vector3, yaw: float, pitch: float, ads: float, amount: float, targets: Array,
-		visible: Callable, reach: float = 1.0) -> Vector2:
+		visible: Callable, reach: float = 1.0, max_range: float = RANGE) -> Vector2:
 	slowdown = 1.0
 	strength = 0.0
 	if amount <= 0.0:
@@ -52,7 +53,7 @@ func update(eye: Vector3, yaw: float, pitch: float, ads: float, amount: float, t
 		var t := closest_t(eye, forward, target["a"], target["b"])
 		var to: Vector3 = (target["a"] as Vector3).lerp(target["b"], t) - eye
 		var dist := to.length()
-		if dist > RANGE * reach or dist < 0.5:
+		if dist > max_range or dist < 0.5:
 			continue
 		var cone := minf(atan(RADIUS * reach * lerpf(1.0, ADS_RADIUS_MULT, ads) / dist), MAX_ANGLE * reach)
 		var score := forward.angle_to(to) / cone

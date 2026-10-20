@@ -195,9 +195,14 @@ func effective_aim_assist() -> float:
 	return aim_assist * (2.0 if kid_mode else 1.0)
 
 
-## Aim assist range and cone width multiplier: kid mode reaches twice as far and works twice as wide.
+## Aim assist cone width multiplier: kid mode works twice as wide.
 func aim_assist_reach() -> float:
 	return 2.0 if kid_mode else 1.0
+
+
+## How far aim assist reaches (m): kid mode has no limit, anyone in sight is assisted.
+func aim_assist_range() -> float:
+	return INF if kid_mode else AimAssist.RANGE
 
 
 func set_volume(bus: StringName, linear: float) -> void:
