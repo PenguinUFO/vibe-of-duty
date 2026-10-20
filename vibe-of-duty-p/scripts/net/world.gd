@@ -18,7 +18,7 @@ const KILL_HEIGHT := -20.0
 @export var kill_height := KILL_HEIGHT
 const RESPAWN_DELAY := 3.0
 const SPAWN_PROTECTION_TICKS := 120
-const HEAD_DAMAGE_MULT := 2.0
+const HEAD_DAMAGE_MULT := 1.15
 const NAME_MAX := 24  # characters, like the main menu's name field
 const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
 
@@ -73,11 +73,14 @@ func _ready() -> void:
 		_client_ready.rpc_id(1, Settings.player_name, Settings.kid_mode)
 
 
-## Gives the level's sun the shadow settings of the current graphics quality.
+## Gives the level's sun the shadow settings of the current graphics quality, and the level the PSX style's mood
+## (or its own light, with the style off).
 func _apply_sun() -> void:
 	var sun := get_node_or_null("../Sun") as DirectionalLight3D
 	if sun:
 		Settings.apply_sun(sun)
+	var world_env := get_node_or_null("../WorldEnvironment") as WorldEnvironment
+	Mood.apply(world_env.environment if world_env else null, sun, Settings.psx_style)
 
 
 func _physics_process(delta: float) -> void:

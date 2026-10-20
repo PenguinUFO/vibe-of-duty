@@ -72,9 +72,8 @@ func _ready() -> void:
 	var world_env := get_node_or_null("../WorldEnvironment") as WorldEnvironment
 	if world_env:
 		_env = world_env.environment
-		_base_ambient = _env.ambient_light_energy
-		_base_fog = _env.fog_density
-		_base_fog_color = _env.fog_light_color
+		_capture_env.call_deferred()  # after NetWorld has given the level its mood (Mood)
+		Settings.graphics_changed.connect(_capture_env, CONNECT_DEFERRED)
 	for lamp in get_node("../Lamps").get_children() if has_node("../Lamps") else []:
 		_lamps.append(lamp)
 		lamp.visible = false
@@ -86,6 +85,13 @@ func _ready() -> void:
 ## How the ground moves (world, m/s): bodies lying on it ride along.
 func ground_velocity() -> Vector3:
 	return Vector3(0.0, 0.0, speed)
+
+
+## The light outside tunnels: the environment as the level (and the PSX mood) set it.
+func _capture_env() -> void:
+	_base_ambient = _env.ambient_light_energy
+	_base_fog = _env.fog_density
+	_base_fog_color = _env.fog_light_color
 
 
 func _exit_tree() -> void:

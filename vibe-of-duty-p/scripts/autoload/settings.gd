@@ -45,6 +45,7 @@ var antialiasing := 1    # 0 = off, 1 = FXAA
 var shadow_quality := 2  # 0 = off, 1 = medium (1024 px, 40 m), 2 = high (2048 px, 70 m)
 var render_scale := 1.0  # 3D resolution scale; below 1.0 uses FSR 1
 var vsync := true
+var psx_style := true    # PSX look: a darker mood (Mood) and the colour dither over the 3D frame (_psx_layer)
 var fullscreen := false
 var window_size := Vector2i(1280, 720)  # windowed resolution (one of WINDOW_SIZES)
 
@@ -53,6 +54,9 @@ var host_map := "res://prefabs/levels/train.tscn"
 var host_score_limit := 20
 var host_match_minutes := 10
 var host_port := 27015
+
+
+var _psx_layer: CanvasLayer  # full-screen PSX post-process (assets/shaders/psx_post.gdshader), under every UI layer
 
 
 func _ready() -> void:
@@ -217,9 +221,27 @@ func apply_graphics() -> void:
 	window.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if antialiasing == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
 	window.scaling_3d_scale = render_scale
 	window.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if render_scale < 0.99 else Viewport.SCALING_3D_MODE_BILINEAR
+	_update_psx_layer()
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS_SIZES[shadow_quality], true)
 	graphics_changed.emit()
+
+
+## The PSX dither over the 3D frame: a full-screen rect on a CanvasLayer below the menus and the HUD (layer -1), so
+## it reads the frame before any UI is drawn. Full resolution - only the colours are stepped and dithered.
+func _update_psx_layer() -> void:
+	if _psx_layer == null:
+		_psx_layer = CanvasLayer.new()
+		_psx_layer.layer = -1
+		var rect := ColorRect.new()
+		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var material := ShaderMaterial.new()
+		material.shader = load("res://assets/shaders/psx_post.gdshader")
+		rect.material = material
+		_psx_layer.add_child(rect)
+		add_child(_psx_layer)
+	_psx_layer.visible = psx_style
 
 
 ## Fullscreen (borderless, at the desktop resolution) or a window of window_size, centered on its screen.
@@ -257,6 +279,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "shadow_quality", shadow_quality)
 	cfg.set_value("video", "render_scale", render_scale)
 	cfg.set_value("video", "vsync", vsync)
+	cfg.set_value("video", "psx_style", psx_style)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "window_size", window_size)
 	if name_chosen:
@@ -286,6 +309,7 @@ func load_settings() -> void:
 	shadow_quality = clampi(cfg.get_value("video", "shadow_quality", shadow_quality), 0, 2)
 	render_scale = clampf(cfg.get_value("video", "render_scale", render_scale), 0.5, 1.0)
 	vsync = cfg.get_value("video", "vsync", vsync)
+	psx_style = cfg.get_value("video", "psx_style", psx_style)
 	fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
 	var saved_size = cfg.get_value("video", "window_size", window_size)
 	if saved_size is Vector2i and WINDOW_SIZES.has(saved_size):

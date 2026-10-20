@@ -74,7 +74,7 @@ const STATE_WEAPON_SHIFT := 4  # 2 bits: current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
-const MAX_HEALTH := 100
+const MAX_HEALTH := 150  # kid mode: 300 (KID_HEALTH_MULT)
 const KID_HEALTH_MULT := 2
 # Health regeneration (server), as in Call of Duty: Modern Warfare III (2023) after its Season 2 patch: it starts 3 s
 # after the last damage and comes back at 75 of 150 HP per second, i.e. half a normal player's health per second (empty

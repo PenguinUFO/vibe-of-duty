@@ -89,6 +89,8 @@ const PALETTE: Array[Color] = [
 ]
 
 static var _materials := {}
+static var _rim: ShaderMaterial  # readability rim (assets/shaders/player_rim.gdshader), set_rim
+static var _rim_on := false
 static var _faceted := {}  # shape key -> flat-shaded ArrayMesh (_facet)
 ## What tells the primitive shapes apart (a missing property reads as null), for the _facet cache key.
 const FACET_KEY_PROPS := ["radius", "height", "radial_segments", "rings", "top_radius", "bottom_radius", "size",
@@ -936,10 +938,21 @@ static func _box(size: Vector3) -> BoxMesh:
 	return mesh
 
 
+## The PSX mood's readability rim on every body part (Mood): a faint glow on the silhouette's edges.
+static func set_rim(on: bool) -> void:
+	if on and _rim == null:
+		_rim = ShaderMaterial.new()
+		_rim.shader = load("res://assets/shaders/player_rim.gdshader")
+	_rim_on = on
+	for material in _materials.values():
+		(material as StandardMaterial3D).next_pass = _rim if on else null
+
+
 static func _material(color: Color) -> StandardMaterial3D:
 	if not _materials.has(color):
 		var material := StandardMaterial3D.new()
 		material.albedo_color = color
 		material.roughness = 0.92 if color != VISOR else 0.35  # matte cloth and skin, wet-looking eyes
+		material.next_pass = _rim if _rim_on else null
 		_materials[color] = material
 	return _materials[color]

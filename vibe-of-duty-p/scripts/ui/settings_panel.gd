@@ -75,6 +75,13 @@ func _init() -> void:
 	_add_slider(box, "Масштаб рендера", 0.5, 1.0, 0.05, Settings.render_scale, func(v: float) -> void:
 		Settings.render_scale = v
 		Settings.apply_graphics(), "%d%%", true)
+	var psx := CheckBox.new()
+	psx.text = "Стиль PSX (мрачнее, дизеринг)"
+	psx.button_pressed = Settings.psx_style
+	psx.toggled.connect(func(on: bool) -> void:
+		Settings.psx_style = on
+		Settings.apply_graphics())
+	box.add_child(psx)
 	var vsync := CheckBox.new()
 	vsync.text = "Вертикальная синхронизация"
 	vsync.button_pressed = Settings.vsync
