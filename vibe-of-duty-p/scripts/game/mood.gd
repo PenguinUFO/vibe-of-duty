@@ -2,8 +2,9 @@ class_name Mood
 extends RefCounted
 ## The PSX style's mood (Settings.psx_style): dusk. Dark doesn't mean grey: the shade and the sky are cold and dark
 ## blue, and against them stand warm light sources - a low orange sun along the horizon, lamps (MoodLamps here, the
-## train's own lamps) and muzzle flashes (MuzzleLights) - with glow, so bright things bloom (and the PSX dither
-## bands the halos). Players keep a readability rim (Mannequin.set_rim): seeing the enemy comes first.
+## train's own lamps) and muzzle flashes (MuzzleLights) - and bright lamps get a soft halo (halo(): a billboard,
+## far cheaper on integrated graphics than the Environment's glow; the PSX dither bands it). Players keep a
+## readability rim (Mannequin.set_rim): seeing the enemy comes first.
 ## Turned off, everything is as the level was made.
 ##
 ## Applied by NetWorld to its level (at load and whenever the graphics settings change). The level's own values are
@@ -15,7 +16,7 @@ const SUN_ELEVATION := 13.0      # degrees
 const SUN_ENERGY := 1.5
 const SUN_COLOR := Color(1.0, 0.56, 0.32)
 # Shade: cold and dim, but not black - corners stay readable.
-const AMBIENT_ENERGY := 0.65     # x the level's ambient light
+const AMBIENT_ENERGY := 0.82     # x the level's ambient light
 const AMBIENT_COLOR := Color(0.3, 0.35, 0.52)
 const AMBIENT_SKY := 0.3
 const FOG_DENSITY := 0.006
@@ -24,8 +25,6 @@ const FOG_SUN_SCATTER := 0.12    # the haze glows warm towards the sun (more was
 const FOG_SKY_AFFECT := 0.35
 const SATURATION := 1.05
 const CONTRAST := 1.08
-const GLOW_INTENSITY := 0.9
-const GLOW_THRESHOLD := 1.1      # only what is brighter than white blooms: lamps, flashes, the sun
 ## Sky shader (assets/shaders/sky_clouds.gdshader): a deep blue dusk with an orange band along the horizon, clouds
 ## lit warm from below.
 const SKY := {
@@ -35,18 +34,23 @@ const SKY := {
 }
 const ENV_KEYS := ["ambient_light_energy", "ambient_light_color", "ambient_light_sky_contribution", "tonemap_exposure",
 		"fog_density", "fog_light_color", "fog_sun_scatter", "fog_sky_affect", "adjustment_saturation",
-		"adjustment_contrast", "glow_enabled", "glow_intensity", "glow_hdr_threshold", "glow_blend_mode", "glow_bloom"]
+		"adjustment_contrast"]
 
 # Lamps for levels without their own (the train has its Lamps): a few warm, shadowless lights over the play area
-# (where the spawn points are), each with a glowing fixture. Kept few: ~0.4 ms per light on integrated graphics.
+# (where the spawn points are), each with a glowing fixture and a halo. A light costs ~1 ms on integrated graphics
+# when it covers the screen, so only the LAMPS_LIT nearest the camera burn (MoodLampSet); the rest show just their
+# glowing fixture.
+const LAMPS_LIT := 2
+const LAMP_LIT_REACH := 18.0     # m from the camera
 const LAMPS_MAX := 4
 const LAMP_SPACING := 10.0       # m between lamps
 const LAMP_HEIGHT := 4.0         # m above the floor, outdoors (on a pole); indoors it hangs under the ceiling
 const LAMP_ENERGY := 2.4
 const LAMP_RANGE := 12.0
 const LAMP_COLOR := Color(1.0, 0.76, 0.48)
-const GLOW_EMISSION := 6.0       # fixture brightness (HDR: blooms)
+const GLOW_EMISSION := 2.6       # fixture brightness (over white: reads as a light source)
 const GLOW_TINT := Color(1.0, 0.55, 0.22)  # fixtures: saturated, so they stay warm (not white) when this bright
+const HALO_COLOR := Color(1.0, 0.6, 0.3, 0.55)
 const LAMPS_NODE := "MoodLamps"
 
 
@@ -66,11 +70,6 @@ static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bo
 			env.fog_sky_affect = FOG_SKY_AFFECT
 			env.adjustment_saturation = SATURATION
 			env.adjustment_contrast = CONTRAST
-			env.glow_enabled = true
-			env.glow_intensity = GLOW_INTENSITY
-			env.glow_hdr_threshold = GLOW_THRESHOLD
-			env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
-			env.glow_bloom = 0.0
 		var sky_material := env.sky.sky_material as ShaderMaterial if env.sky else null
 		if sky_material != null:
 			var sky_base: Dictionary = _base_params(sky_material, SKY.keys())
@@ -105,21 +104,22 @@ static func _low_sun(basis: Basis) -> Basis:
 ## after load. Skipped if the style was turned off (or the lamps built) meanwhile.
 static func _build_lamps_later(level: Node) -> void:
 	await level.get_tree().physics_frame
-	if is_instance_valid(level) and level.is_inside_tree() and Settings.psx_style 			and level.get_node_or_null(LAMPS_NODE) == null:
+	if is_instance_valid(level) and level.is_inside_tree() and Settings.psx_style and \
+			level.get_node_or_null(LAMPS_NODE) == null:
 		_build_lamps(level)
 
 
 ## Light fixtures: for the train's own lamps just the glowing shades; elsewhere up to LAMPS_MAX lamps of our own,
 ## spread over the spawn points' area.
 static func _build_lamps(level: Node) -> void:
-	var root := Node3D.new()
+	var root := MoodLampSet.new()
 	root.name = LAMPS_NODE
 	level.add_child(root)
 	var own := level.get_node_or_null("Lamps")
 	if own != null:
 		for light in own.get_children():
 			if light is OmniLight3D:
-				_shade(root, (light as Node3D).global_position + Vector3.UP * 0.32, Vector3(0.7, 0.05, 0.3))
+				_shade(root, (light as Node3D).global_position + Vector3.UP * 0.32, Vector3(0.7, 0.05, 0.3), 1.6)
 		return
 	var spawns := level.get_node_or_null("SpawnPoints")
 	if spawns == null or spawns.get_child_count() == 0:
@@ -153,19 +153,21 @@ static func _build_lamps(level: Node) -> void:
 				_pole(root, floor_pos, LAMP_HEIGHT)
 			else:
 				lamp_pos = (up["position"] as Vector3) + Vector3.DOWN * 0.2
-			_shade(root, lamp_pos + Vector3.UP * 0.08, Vector3(0.45, 0.06, 0.45))
+			_shade(root, lamp_pos + Vector3.UP * 0.08, Vector3(0.45, 0.06, 0.45), 2.2)
 			var light := OmniLight3D.new()
 			light.light_color = LAMP_COLOR
 			light.light_energy = LAMP_ENERGY
 			light.omni_range = LAMP_RANGE
 			light.omni_attenuation = 1.3
 			light.shadow_enabled = false
+			light.light_specular = 0.0  # matte surfaces: no highlights to compute
 			root.add_child(light)
 			light.global_position = lamp_pos - Vector3.UP * 0.15
+			root.lights.append(light)
 
 
-## A lamp shade: a dark housing with a glowing underside.
-static func _shade(root: Node3D, pos: Vector3, size: Vector3) -> void:
+## A lamp shade: a dark housing with a glowing underside, and a halo of `halo_size` m around it.
+static func _shade(root: Node3D, pos: Vector3, size: Vector3, halo_size: float) -> void:
 	var housing := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = size + Vector3(0.06, 0.06, 0.06)
@@ -185,6 +187,66 @@ static func _shade(root: Node3D, pos: Vector3, size: Vector3) -> void:
 	bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(bulb)
 	bulb.global_position = pos
+	var glow_halo := halo(halo_size, HALO_COLOR)
+	root.add_child(glow_halo)
+	glow_halo.global_position = pos + Vector3.DOWN * 0.12
+
+
+static var _halo_materials := {}
+
+
+## A soft round glow facing the camera (additive, fades out where it meets walls): the look of bloom around a lamp
+## without a full-screen glow pass.
+static func halo(size: float, color: Color) -> MeshInstance3D:
+	if not _halo_materials.has(color):
+		var gradient := Gradient.new()
+		gradient.set_color(0, Color(1, 1, 1, 1))
+		gradient.set_color(1, Color(1, 1, 1, 0))
+		gradient.add_point(0.25, Color(1, 1, 1, 0.45))
+		var texture := GradientTexture2D.new()
+		texture.gradient = gradient
+		texture.fill = GradientTexture2D.FILL_RADIAL
+		texture.fill_from = Vector2(0.5, 0.5)
+		texture.fill_to = Vector2(1.0, 0.5)
+		texture.width = 64
+		texture.height = 64
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		material.albedo_texture = texture
+		material.albedo_color = color
+		material.proximity_fade_enabled = true
+		material.proximity_fade_distance = 0.4
+		material.no_depth_test = false
+		_halo_materials[color] = material
+	var quad := QuadMesh.new()
+	quad.size = Vector2(size, size)
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = quad
+	mesh.material_override = _halo_materials[color]
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mesh
+
+
+## The lamps of MoodLamps: only the LAMPS_LIT nearest the camera (within LAMP_LIT_REACH) give light.
+class MoodLampSet extends Node3D:
+	var lights: Array[OmniLight3D] = []
+
+	func _process(_delta: float) -> void:
+		if lights.is_empty():
+			return
+		var camera := get_viewport().get_camera_3d()
+		if camera == null:
+			return
+		var eye := camera.global_position
+		var order := lights.duplicate()
+		order.sort_custom(func(a: OmniLight3D, b: OmniLight3D) -> bool:
+			return a.global_position.distance_squared_to(eye) < b.global_position.distance_squared_to(eye))
+		for i in order.size():
+			var light: OmniLight3D = order[i]
+			light.visible = i < LAMPS_LIT and light.global_position.distance_to(eye) < LAMP_LIT_REACH
 
 
 static func _pole(root: Node3D, floor_pos: Vector3, height: float) -> void:

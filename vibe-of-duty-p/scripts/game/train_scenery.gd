@@ -39,6 +39,10 @@ const FOREST_VISIBLE := 260.0   # chunks farther than this (in the haze) are not
 ## light the cars well enough.
 const LAMP_ENERGY := 1.4
 const MOOD_LAMP_BOOST := 1.8    # PSX style's dusk: the lamps are what lights the cars
+## Only the lamp of the camera's car and deck burns (a car is 20 m long, the decks 3.3 m apart): a lamp lighting
+## the whole view costs ~1.5 ms on integrated graphics, and the other cars' and decks' light is barely seen.
+const LAMP_REACH := 13.0
+const LAMP_DECK_REACH := 1.9   # m between the camera's and the lamp's height
 ## Trackside lamps (PSX style's dusk only, see Mood): posts with a sodium lamp rushing past on both sides; each
 ## throws its light (a shadowed spot when shadows are on) through the windows, so warm stripes sweep along the cars.
 const POST_X := 5.5             # beside the track (the cars are 6 m wide)
@@ -89,6 +93,7 @@ func _ready() -> void:
 	for lamp in get_node("../Lamps").get_children() if has_node("../Lamps") else []:
 		_lamps.append(lamp)
 		lamp.visible = false
+		lamp.light_specular = 0.0  # matte cars: no highlights to compute
 	_build_ground()
 	_build_forest()
 	_build_tunnel()
@@ -181,7 +186,7 @@ func _build_posts() -> void:
 	dark.roughness = 0.8
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow.albedo_color = Color(1.0, 0.5, 0.18) * 6.0  # HDR: blooms (Mood's glow)
+	glow.albedo_color = Color(1.0, 0.5, 0.18) * 2.6  # over white: reads as a light source
 	glow.disable_fog = true
 	for side in [-1.0, 1.0]:
 		for k in int(POST_NEAR / POST_SPACING):
@@ -224,6 +229,9 @@ func _build_posts() -> void:
 			head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			head.position = Vector3(-side * 0.95, POST_HEIGHT - 0.08, 0.0)
 			post.add_child(head)
+			var halo := Mood.halo(3.0, Color(1.0, 0.55, 0.25, 0.6))
+			halo.position = head.position + Vector3.DOWN * 0.2
+			post.add_child(halo)
 			_posts.append(post)
 
 
@@ -450,8 +458,12 @@ func _update_tunnel(delta: float, time: float) -> void:
 	# The PSX style's dusk (Mood) keeps the lamps on all the time; otherwise they only burn in tunnels.
 	var lit := maxf(_darkness, 1.0 if Settings.psx_style else 0.0)
 	var energy := LAMP_ENERGY * (MOOD_LAMP_BOOST if Settings.psx_style else 1.0)
+	var camera := get_viewport().get_camera_3d()
+	var camera_z := camera.global_position.z if camera else INF
+	var camera_y := camera.global_position.y if camera else INF
 	for lamp in _lamps:
-		lamp.visible = lit > 0.01
+		lamp.visible = lit > 0.01 and absf(lamp.global_position.z - camera_z) < LAMP_REACH \
+				and absf(lamp.global_position.y - camera_y) < LAMP_DECK_REACH
 		lamp.light_energy = energy * lit
 
 

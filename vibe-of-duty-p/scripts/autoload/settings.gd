@@ -222,7 +222,9 @@ func apply_graphics() -> void:
 	window.scaling_3d_scale = render_scale
 	window.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if render_scale < 0.99 else Viewport.SCALING_3D_MODE_BILINEAR
 	_update_psx_layer()
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
+	# Adaptive: synced while the game keeps up, and a frame that misses the refresh is shown at once (a brief tear)
+	# instead of waiting for the next one - plain vsync drops to 30 FPS whenever 60 is not quite reached.
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ADAPTIVE if vsync else DisplayServer.VSYNC_DISABLED)
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS_SIZES[shadow_quality], true)
 	graphics_changed.emit()
 
