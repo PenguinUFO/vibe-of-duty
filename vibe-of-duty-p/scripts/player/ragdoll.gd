@@ -29,6 +29,12 @@ const INV_MASS: Array[float] = [0.4, 0.4, 0.8, 0.6, 0.9, 1.0, 0.6, 0.9, 1.0, 0.7
 var pos := PackedVector3Array()
 var asleep := false
 var impacts := PackedVector3Array()  # where the torso or head hit the ground hard (dust); the owner clears it
+## Moving ground (the train map, TrainScenery): surfaces at or below `ground_top` run at `ground_velocity`, so a
+## body landing there is dragged along by friction (tumbling at first) and then lies on it, carried away with the
+## scenery. Even asleep it keeps riding along.
+var ground_velocity := Vector3.ZERO
+var ground_top := -INF
+var _on_moving := false  # some point touched the moving ground in the last sub-step
 
 var _prev := PackedVector3Array()
 var _links: Array[PackedFloat32Array] = []  # [a, b, min length, max length]
@@ -82,9 +88,19 @@ func _limit(a: int, b: int, share: float) -> void:
 	_links.append(PackedFloat32Array([a, b, pos[a].distance_to(pos[b]) * share, INF]))
 
 
+## Asleep and not riding on moving ground: nothing to do any more.
+func is_resting() -> bool:
+	return asleep and not _on_moving
+
+
 ## Advances the fall by `delta` seconds (fixed sub-steps).
 func step(delta: float) -> void:
 	if asleep:
+		if _on_moving:
+			var shift := ground_velocity * delta
+			for i in COUNT:
+				pos[i] += shift
+				_prev[i] += shift
 		return
 	_time += delta
 	_accum = minf(_accum + delta, STEP * MAX_STEPS)
@@ -115,11 +131,15 @@ func _substep() -> float:
 		_bend_knee(HIP_L, KNEE_L, ANKLE_L)
 		_bend_knee(HIP_R, KNEE_R, ANKLE_R)
 	var space := _world.direct_space_state if _world else null
-	var fastest := 0.0
+	_on_moving = false
 	for i in COUNT:
 		if space:
 			_collide(space, i, start[i])
-		fastest = maxf(fastest, pos[i].distance_to(start[i]))
+	# Still is still relative to the ground it lies on.
+	var drift := ground_velocity * STEP if _on_moving else Vector3.ZERO
+	var fastest := 0.0
+	for i in COUNT:
+		fastest = maxf(fastest, (pos[i] - start[i] - drift).length())
 	return fastest
 
 
@@ -179,5 +199,10 @@ func _collide(space: PhysicsDirectSpaceState3D, i: int, from: Vector3) -> void:
 	var into := v.dot(normal)
 	if into < 0.0:
 		v -= normal * into
-	v *= 1.0 - FRICTION
+	# Friction against the surface's own motion (zero, or the moving ground's).
+	var under := Vector3.ZERO
+	if (hit["position"] as Vector3).y <= ground_top:
+		under = ground_velocity * STEP
+		_on_moving = true
+	v = under + (v - under) * (1.0 - FRICTION)
 	_prev[i] = pos[i] - v

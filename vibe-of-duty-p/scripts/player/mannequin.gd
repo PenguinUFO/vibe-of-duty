@@ -561,6 +561,10 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 			v += Vector3.UP * 0.5  # the gun drops out of the hands
 		velocities.append(v)
 	_ragdoll = Ragdoll.new(points, velocities, get_world_3d())
+	var scenery := get_tree().get_first_node_in_group(TrainScenery.GROUP) as TrainScenery if is_inside_tree() else null
+	if scenery != null:  # the train map: the ground beside the track rushes past
+		_ragdoll.ground_velocity = scenery.ground_velocity()
+		_ragdoll.ground_top = TrainScenery.GROUND_Y + 0.1
 
 	# Rigid parts ride on the frame of the points they belong to (as they were placed at death).
 	var frames := _ragdoll_frames(local)
@@ -578,7 +582,7 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 
 
 func step_ragdoll(delta: float) -> void:
-	if _ragdoll == null or _ragdoll.asleep:
+	if _ragdoll == null or _ragdoll.is_resting():
 		return
 	_ragdoll.step(delta)
 	for point in _ragdoll.impacts:

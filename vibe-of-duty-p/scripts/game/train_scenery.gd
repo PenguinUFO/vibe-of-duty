@@ -2,14 +2,17 @@ class_name TrainScenery
 extends Node3D
 ## The world rushing past the train map: ground, track bed, forest and, now and then, a tunnel through a hill.
 ## The train itself stands still (physics, netcode and lag compensation stay simple); everything here moves along +Z
-## (the train "runs" towards -Z). Purely visual: every machine animates its own copy, so the phase of the forest and
-## the tunnels differs between players; nothing gameplay-related depends on it. Not built on a dedicated server.
+## (the train "runs" towards -Z). Purely visual and not built on a dedicated server, but every machine draws it from
+## the server's clock (NetWorld.shared_time): the forest and the tunnels are where they are for everybody, so all
+## players drive into a tunnel together. The tunnels come at seeded random gaps (TUNNEL_SEED), a schedule that
+## any machine can work out for any time.
 ##
 ## Cost: the forest is a few MultiMesh chunks of low-poly blockout trees built from primitives (one draw call per
 ## tree type and surface per chunk) that wrap around from the back to the front; the ground and track scroll in a
 ## shader.
 
 const GROUND_Y := -1.45         # top of the ground and the track bed (the car floors are at 0)
+const GROUP := "train_scenery"  # bodies falling off the train find the moving ground through it (Ragdoll)
 const CHUNK_LEN := 80.0         # forest chunk length (m)
 const CHUNKS := 8               # chunks from FRONT backwards; they wrap around
 const FRONT := -380.0           # z of the front edge of the forest strip
@@ -26,7 +29,8 @@ const HILL_H := 26.0
 const TUNNEL_START := -420.0    # where a tunnel appears (its centre)
 const TUNNEL_END := 420.0       # where it is put away
 const TUNNEL_GAP := Vector2(22.0, 45.0)  # seconds between tunnels
-const FIRST_TUNNEL := 12.0
+const FIRST_TUNNEL := 12.0      # s of server time before the first tunnel appears
+const TUNNEL_SEED := 5821       # the gaps between tunnels: the same on every machine
 const TUNNEL_AMBIENT := 0.15    # share of the ambient light left inside a tunnel
 const TUNNEL_FOG_DENSITY := 0.012
 const TUNNEL_FOG_COLOR := Color(0.06, 0.06, 0.07)
@@ -44,8 +48,11 @@ var _scroll_materials: Array[ShaderMaterial] = []
 var _scroll := 0.0
 var _tunnel: Node3D
 var _tunnel_z := 0.0
-var _next_tunnel := FIRST_TUNNEL
+var _tunnel_start := FIRST_TUNNEL  # server time the current (or next) tunnel appears at...
+var _tunnel_rng := RandomNumberGenerator.new()  # ...and the gaps after it, drawn in order
+var _last_time := -INF
 var _rng := RandomNumberGenerator.new()
+var _world: NetWorld
 var _env: Environment
 var _base_ambient := 1.0
 var _base_fog := 0.0
@@ -55,10 +62,13 @@ var _darkness := 0.0
 
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
-	_rng.seed = 7341  # the same forest on every machine (only its phase differs)
+	_rng.seed = 7341  # the same forest on every machine
+	_world = get_node_or_null("../World") as NetWorld
+	_restart_tunnels()
 	var world_env := get_node_or_null("../WorldEnvironment") as WorldEnvironment
 	if world_env:
 		_env = world_env.environment
@@ -73,6 +83,11 @@ func _ready() -> void:
 	_build_tunnel()
 
 
+## How the ground moves (world, m/s): bodies lying on it ride along.
+func ground_velocity() -> Vector3:
+	return Vector3(0.0, 0.0, speed)
+
+
 func _exit_tree() -> void:
 	if _env:  # the Environment resource is shared with the next load of the scene
 		_env.ambient_light_energy = _base_ambient
@@ -81,16 +96,14 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	var step := speed * delta
-	_scroll += step
+	var time := _world.shared_time() if _world else Time.get_ticks_usec() / 1e6
+	_scroll = speed * time
 	for material in _scroll_materials:
 		material.set_shader_parameter("scroll", _scroll)
 	var strip := CHUNKS * CHUNK_LEN
-	for chunk in _chunks:
-		chunk.position.z += step
-		if chunk.position.z > FRONT + strip:
-			chunk.position.z -= strip
-	_update_tunnel(delta, step)
+	for c in _chunks.size():
+		_chunks[c].position.z = FRONT + fposmod(c * CHUNK_LEN + _scroll, strip)
+	_update_tunnel(delta, time)
 
 
 # --- ground and track -------------------------------------------------------------------------------------------------
@@ -319,19 +332,24 @@ func _tunnel_box(center: Vector3, size: Vector3, material: Material) -> void:
 	_tunnel.add_child(mesh_instance)  # casts shadows: the vault darkens the train as it goes in
 
 
-func _update_tunnel(delta: float, step: float) -> void:
-	if _tunnel.visible:
-		_tunnel_z += step
-		_tunnel.position.z = _tunnel_z
-		if _tunnel_z > TUNNEL_END:
-			_tunnel.visible = false
-			_next_tunnel = _rng.randf_range(TUNNEL_GAP.x, TUNNEL_GAP.y)
-	else:
-		_next_tunnel -= delta
-		if _next_tunnel <= 0.0:
-			_tunnel_z = TUNNEL_START
-			_tunnel.position.z = _tunnel_z
-			_tunnel.visible = true
+## The tunnel schedule from the start: the first at FIRST_TUNNEL s, each next a seeded gap after the last one left.
+func _restart_tunnels() -> void:
+	_tunnel_rng.seed = TUNNEL_SEED
+	_tunnel_start = FIRST_TUNNEL
+
+
+## Where the tunnel is at server time `time`: it runs from TUNNEL_START to TUNNEL_END with the scenery, then the
+## next one comes a gap later.
+func _update_tunnel(delta: float, time: float) -> void:
+	if time < _last_time - 0.5:
+		_restart_tunnels()  # the clock went back (a client's first snapshot): work the schedule out again
+	_last_time = time
+	var passing := (TUNNEL_END - TUNNEL_START) / speed
+	while time >= _tunnel_start + passing:
+		_tunnel_start += passing + _tunnel_rng.randf_range(TUNNEL_GAP.x, TUNNEL_GAP.y)
+	_tunnel.visible = time >= _tunnel_start
+	_tunnel_z = TUNNEL_START + (time - _tunnel_start) * speed
+	_tunnel.position.z = _tunnel_z
 	# How much of the train is inside: ambient light and haze follow it (the vault's shadow does the sunlight).
 	var inside := 0.0
 	if _tunnel.visible:

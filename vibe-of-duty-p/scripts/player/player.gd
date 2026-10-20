@@ -188,6 +188,8 @@ var _prev_look := Vector2.ZERO
 var _retract := 0.0
 # First-person camera effects (_update_camera_fx; cosmetic: shots go where the look angles point, not the camera).
 var _cam_roll := 0.0             # death tilt / slide lean
+var _death_drift := Vector3.ZERO    # local, dead beside the train: how far the view has ridden away with the ground...
+var _death_drift_v := Vector3.ZERO  # ...and how fast (catches up with the ground like the body does)
 var _cam_land := 0.0             # landing dip (m) and its spring velocity
 var _cam_land_v := 0.0
 var _land_impact := 0.0          # fall speed of a landing not yet shown (set by the simulation)
@@ -352,7 +354,9 @@ func _process(delta: float) -> void:
 		_stick_look(delta)
 		_view_recoil = _view_recoil.lerp(weapons.recoil, 1.0 - exp(-25.0 * delta))
 		_correction *= exp(-CORRECTION_DECAY * delta)
-		var pos := _prev_pos.lerp(_curr_pos, Engine.get_physics_interpolation_fraction()) + _correction
+		if not alive:
+			_update_death_drift(delta)
+		var pos := _prev_pos.lerp(_curr_pos, Engine.get_physics_interpolation_fraction()) + _correction + _death_drift
 		var view_angles := Vector3(look_pitch + _view_recoil.x, look_yaw + _view_recoil.y, 0.0)
 		_head.global_transform = Transform3D(Basis.from_euler(view_angles), pos + Vector3.UP * _eye_height)
 	else:
@@ -1489,6 +1493,19 @@ func server_take_ammo() -> bool:
 	return took
 
 
+## Local, dead on the train map's moving ground (beside the track): the capsule lies still on the solid plane under
+## it, but the body rides away with the scenery (Ragdoll.ground_velocity), so the death view does too - speeding up
+## over about a second, as the body tumbles before it lies on the ground.
+func _update_death_drift(delta: float) -> void:
+	if global_position.y > TrainScenery.GROUND_Y + 0.3:
+		return
+	var scenery := get_tree().get_first_node_in_group(TrainScenery.GROUP) as TrainScenery
+	if scenery == null:
+		return
+	_death_drift_v = _death_drift_v.lerp(scenery.ground_velocity(), 1.0 - exp(-3.0 * delta))
+	_death_drift += _death_drift_v * delta
+
+
 ## Kid mode (chosen by the player, sent to the server on join): more health. Call before the first respawn / snapshot.
 func set_kid_mode(on: bool) -> void:
 	kid_mode = on
@@ -1511,6 +1528,8 @@ func respawn(xform: Transform3D) -> void:
 	_punch_v = Vector2.ZERO
 	_cam_land = 0.0
 	_cam_land_v = 0.0
+	_death_drift = Vector3.ZERO
+	_death_drift_v = Vector3.ZERO
 	weapons.reset()
 	teleport(xform)
 	_visual.set_dead(false)

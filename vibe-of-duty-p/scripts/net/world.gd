@@ -31,6 +31,7 @@ var _ready_peers: Array[int] = []  # server: peers whose level has finished load
 var _last_oink := {}               # server: peer_id -> time (s) of their last oink
 var _last_snap_tick := 0           # client: tick of the most recent snapshot...
 var _last_snap_time := 0.0         # ...and when it arrived (seconds)
+var _clock_offset := INF           # client: server time minus this machine's clock (s), smoothed (shared_time)
 var hud: GameHud
 var kill_cam: KillCam
 var pause_menu: PauseMenu
@@ -114,6 +115,28 @@ func _process(_delta: float) -> void:
 	var scores := " scores=%s" % str(Game.scores) if multiplayer.is_server() else ""
 	print("[%s] t=%.1f state=%d left=%.0f %s%s" % [role, Time.get_ticks_msec() / 1000.0, Game.state,
 			Game.time_left if Game.state == Game.State.PLAYING else Game.intermission_left, " ".join(parts), scores])
+
+
+## The server's clock: seconds of server ticks since the level started there, the same on every machine to within
+## the network delay (a few ms on a LAN) and smooth at any frame rate. For shared cosmetics that must look the same
+## for everybody (the train's scenery and tunnels). Clients estimate it from the snapshots' ticks; before the first
+## snapshot it is this machine's own clock.
+func shared_time() -> float:
+	var now := Time.get_ticks_usec() / 1e6
+	var rate := float(Engine.physics_ticks_per_second)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		return (server_tick + Engine.get_physics_interpolation_fraction()) / rate
+	return now + _clock_offset if is_finite(_clock_offset) else now
+
+
+## Client: follows the server clock from a snapshot's tick. Averaged slowly so the jitter of arrivals does not show;
+## a big jump (a stall, the first snapshot) is taken at once.
+func _sync_clock(tick: int) -> void:
+	var sample := tick / float(Engine.physics_ticks_per_second) - Time.get_ticks_usec() / 1e6
+	if not is_finite(_clock_offset) or absf(sample - _clock_offset) > 0.5:
+		_clock_offset = sample
+	else:
+		_clock_offset += (sample - _clock_offset) * 0.02
 
 
 ## The server tick the local player sees the others at (they are drawn slightly in the past, Player._buffered_pose):
@@ -496,6 +519,7 @@ func _despawn_player(id: int) -> void:
 func _receive_snapshot(tick: int, states: Array) -> void:
 	_last_snap_tick = tick
 	_last_snap_time = Time.get_ticks_msec() / 1000.0
+	_sync_clock(tick)
 	for state in states:
 		if state is Array and state.size() == 9 and players.has(state[0]):
 			(players[state[0]] as Player).push_snapshot(state, tick)

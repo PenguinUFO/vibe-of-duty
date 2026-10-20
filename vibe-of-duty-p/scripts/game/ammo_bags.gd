@@ -41,8 +41,8 @@ func server_drop(body_pos: Vector3) -> void:
 	var space := get_world_3d().direct_space_state
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, body_pos + Vector3.DOWN * FIND_GROUND,
 			Layers.WORLD))
-	if hit.is_empty():
-		return
+	if hit.is_empty() or (hit["position"] as Vector3).y < world.kill_height:
+		return  # no ground, or the deadly one (beside the train: it rushes past, the bag would stand still on it)
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var fall := sqrt(2.0 * maxf(from.y - (hit["position"] as Vector3).y, 0.05) / GRAVITY)
 	var to: Vector3 = hit["position"] + side * TOSS_SPEED * fall
