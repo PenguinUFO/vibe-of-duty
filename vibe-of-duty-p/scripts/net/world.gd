@@ -80,7 +80,7 @@ func _apply_sun() -> void:
 	if sun:
 		Settings.apply_sun(sun)
 	var world_env := get_node_or_null("../WorldEnvironment") as WorldEnvironment
-	Mood.apply(world_env.environment if world_env else null, sun, Settings.psx_style)
+	Mood.apply(get_parent(), world_env.environment if world_env else null, sun, Settings.psx_style)
 
 
 func _physics_process(delta: float) -> void:

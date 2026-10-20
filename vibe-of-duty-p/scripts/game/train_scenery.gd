@@ -38,6 +38,17 @@ const FOREST_VISIBLE := 260.0   # chunks farther than this (in the haze) are not
 ## The train's lamps (OmniLights, ~0.4 ms each on integrated graphics) only burn in tunnels: in daylight the windows
 ## light the cars well enough.
 const LAMP_ENERGY := 1.4
+const MOOD_LAMP_BOOST := 1.8    # PSX style's dusk: the lamps are what lights the cars
+## Trackside lamps (PSX style's dusk only, see Mood): posts with a sodium lamp rushing past on both sides; each
+## throws its light (a shadowed spot when shadows are on) through the windows, so warm stripes sweep along the cars.
+const POST_X := 5.5             # beside the track (the cars are 6 m wide)
+const POST_HEIGHT := 7.5        # lamp head above the ground
+const POST_SPACING := 150.0     # m between posts on one side; the other side is offset by half
+const POST_NEAR := 300.0        # posts run from POST_FROM over this length, then wrap round (far in the haze)
+const POST_FROM := -160.0
+const POST_LIT_MARGIN := 25.0   # a post's light is on only this close to the train (costs nothing elsewhere)
+const POST_COLOR := Color(1.0, 0.6, 0.28)
+const POST_ENERGY := 7.0
 
 @export var speed := 22.0       # m/s (about 80 km/h)
 @export var train_z0 := -60.0   # train extent along z (set by tools/make_train_map.py)
@@ -58,6 +69,7 @@ var _base_ambient := 1.0
 var _base_fog := 0.0
 var _base_fog_color := Color.WHITE
 var _lamps: Array[OmniLight3D] = []
+var _posts: Array[Node3D] = []      # trackside lamp posts (each has its SpotLight3D as the first child)
 var _darkness := 0.0
 
 
@@ -80,6 +92,7 @@ func _ready() -> void:
 	_build_ground()
 	_build_forest()
 	_build_tunnel()
+	_build_posts()
 
 
 ## How the ground moves (world, m/s): bodies lying on it ride along.
@@ -110,6 +123,7 @@ func _process(delta: float) -> void:
 	for c in _chunks.size():
 		_chunks[c].position.z = FRONT + fposmod(c * CHUNK_LEN + _scroll, strip)
 	_update_tunnel(delta, time)
+	_update_posts()
 
 
 # --- ground and track -------------------------------------------------------------------------------------------------
@@ -157,6 +171,72 @@ func _scroll_material(code: String) -> ShaderMaterial:
 	material.shader = shader
 	_scroll_materials.append(material)
 	return material
+
+
+# --- trackside lamps --------------------------------------------------------------------------------------------------
+
+func _build_posts() -> void:
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.12, 0.12, 0.13)
+	dark.roughness = 0.8
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.albedo_color = Color(1.0, 0.5, 0.18) * 6.0  # HDR: blooms (Mood's glow)
+	glow.disable_fog = true
+	for side in [-1.0, 1.0]:
+		for k in int(POST_NEAR / POST_SPACING):
+			var post := Node3D.new()
+			post.set_meta(&"offset", k * POST_SPACING + (POST_SPACING * 0.5 if side > 0.0 else 0.0))
+			post.position = Vector3(side * POST_X, GROUND_Y, 0.0)
+			add_child(post)
+			var light := SpotLight3D.new()
+			light.light_color = POST_COLOR
+			light.light_energy = POST_ENERGY
+			light.spot_range = 16.0
+			light.spot_angle = 38.0
+			light.spot_attenuation = 1.2
+			light.position = Vector3(-side * 0.9, POST_HEIGHT - 0.2, 0.0)
+			# Towards the train and down: through the windows of both decks.
+			light.basis = Basis.looking_at(Vector3(-side, -0.85, 0.0).normalized(), Vector3.UP)
+			post.add_child(light)
+			var pole := MeshInstance3D.new()
+			var cylinder := CylinderMesh.new()
+			cylinder.top_radius = 0.07
+			cylinder.bottom_radius = 0.1
+			cylinder.height = POST_HEIGHT
+			cylinder.radial_segments = 6
+			pole.mesh = cylinder
+			pole.material_override = dark
+			pole.position.y = POST_HEIGHT * 0.5
+			post.add_child(pole)
+			var arm := MeshInstance3D.new()
+			var arm_box := BoxMesh.new()
+			arm_box.size = Vector3(1.2, 0.1, 0.12)
+			arm.mesh = arm_box
+			arm.material_override = dark
+			arm.position = Vector3(-side * 0.5, POST_HEIGHT, 0.0)
+			post.add_child(arm)
+			var head := MeshInstance3D.new()
+			var head_box := BoxMesh.new()
+			head_box.size = Vector3(0.5, 0.08, 0.3)
+			head.mesh = head_box
+			head.material_override = glow
+			head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			head.position = Vector3(-side * 0.95, POST_HEIGHT - 0.08, 0.0)
+			post.add_child(head)
+			_posts.append(post)
+
+
+func _update_posts() -> void:
+	var on := Settings.psx_style
+	for post in _posts:
+		post.visible = on
+		if not on:
+			continue
+		post.position.z = POST_FROM + fposmod(float(post.get_meta(&"offset")) + _scroll, POST_NEAR)
+		var light := post.get_child(0) as SpotLight3D
+		light.visible = post.position.z > train_z0 - POST_LIT_MARGIN and post.position.z < train_z1 + POST_LIT_MARGIN
+		light.shadow_enabled = Settings.shadow_quality > 0
 
 
 # --- forest -----------------------------------------------------------------------------------------------------------
@@ -367,9 +447,12 @@ func _update_tunnel(delta: float, time: float) -> void:
 		_env.ambient_light_energy = _base_ambient * lerpf(1.0, TUNNEL_AMBIENT, _darkness)
 		_env.fog_density = lerpf(_base_fog, TUNNEL_FOG_DENSITY, _darkness)
 		_env.fog_light_color = _base_fog_color.lerp(TUNNEL_FOG_COLOR, _darkness)
+	# The PSX style's dusk (Mood) keeps the lamps on all the time; otherwise they only burn in tunnels.
+	var lit := maxf(_darkness, 1.0 if Settings.psx_style else 0.0)
+	var energy := LAMP_ENERGY * (MOOD_LAMP_BOOST if Settings.psx_style else 1.0)
 	for lamp in _lamps:
-		lamp.visible = _darkness > 0.01
-		lamp.light_energy = LAMP_ENERGY * _darkness
+		lamp.visible = lit > 0.01
+		lamp.light_energy = energy * lit
 
 
 const GROUND_SHADER := """

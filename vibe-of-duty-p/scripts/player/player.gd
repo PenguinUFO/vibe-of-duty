@@ -1120,6 +1120,7 @@ func _on_shot(event: Dictionary) -> void:
 		_view.kick(1.0 if def.pellets == 1 else 2.0)
 		Audio.play(def.sound_shot)
 		var muzzle := _view.muzzle_global_position()
+		MuzzleLights.flash(self, muzzle)
 		if world != null and world.kill_cam != null:
 			world.kill_cam.record_shot(peer_id, event["weapon"], muzzle, ends)
 		var scene_root := get_tree().current_scene
@@ -1230,6 +1231,7 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) ->
 	Audio.play(def.sound_shot, origin)
 	var scene_root := get_tree().current_scene
 	var muzzle := _visual.muzzle_global_position()
+	MuzzleLights.flash(self, muzzle)
 	for i in ends.size():
 		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
