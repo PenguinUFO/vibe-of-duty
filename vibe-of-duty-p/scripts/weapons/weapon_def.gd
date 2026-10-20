@@ -23,6 +23,7 @@ var fire_interval := 0.1
 var automatic := true
 var mag_size := 30
 var reserve_start := 120
+var reserve_max := 180        # most rounds in reserve: ammo bags (AmmoBags) top it up to this
 var reload_time := 2.0
 var equip_time := 0.4
 

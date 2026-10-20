@@ -16,6 +16,9 @@ var shots := 0          # shots fired so far (seeds spread)
 var ads := 0.0          # 0..1 aim-down-sights blend
 var recoil := Vector2.ZERO  # x: view pitch kick, y: view yaw kick (rad)
 var fire_prev := false
+## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
+## server (training is played alone, both are this machine); not part of to_array.
+var infinite_reserve := false
 
 
 func _init() -> void:
@@ -93,7 +96,8 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		if reload_ticks == 0:
 			var take := mini(def.mag_size - mags[index], reserves[index])
 			mags[index] += take
-			reserves[index] -= take
+			if not infinite_reserve:
+				reserves[index] -= take
 			events.append({"type": "reload_end"})
 
 	# Weapon switch.

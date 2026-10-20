@@ -8,6 +8,7 @@ const SIZE := Vector2(250, 80)
 const LOW := 0.25
 const MAX_TICKS := 40       # bigger magazines get a bar instead of ticks
 const ROW := Rect2(18, 62, 214, 8)
+const INFINITE := -1        # reserve that never runs out (training): shown as "/ ∞"
 
 var _name := ""
 var _mag := 0
@@ -55,7 +56,7 @@ func _draw() -> void:
 		draw_string(small, Vector2(18, 22), _name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiTheme.TEXT_DIM)
 
 	# "30 / 90": the reserve right-aligned, the magazine count in front of it.
-	var reserve_text := "/ %d" % _reserve
+	var reserve_text := "/ ∞" if _reserve == INFINITE else "/ %d" % _reserve
 	var reserve_width := small.get_string_size(reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 	draw_string(small, Vector2(right - reserve_width, 50), reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 			UiTheme.TEXT_DIM)

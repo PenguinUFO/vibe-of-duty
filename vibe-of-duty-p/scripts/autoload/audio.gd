@@ -34,6 +34,7 @@ const PLACEHOLDERS := {
 	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},
 	"spawn": {"kind": "tone", "dur": 0.25, "freq": 400.0, "freq_end": 800.0, "decay": 8.0, "vol": 0.4},
 	"ui_click": {"kind": "tone", "dur": 0.04, "freq": 1200.0, "freq_end": 1200.0, "decay": 50.0, "vol": 0.4},
+	"pickup": {"kind": "tone", "dur": 0.14, "freq": 650.0, "freq_end": 1300.0, "decay": 12.0, "vol": 0.5},
 	# Pig grunt (F), three voices so a crowd does not sound like one recording. See _synth_oink.
 	"oink": {"kind": "oink", "dur": 0.42, "freq": 150.0, "vol": 0.9},
 	"oink2": {"kind": "oink", "dur": 0.36, "freq": 185.0, "vol": 0.9},

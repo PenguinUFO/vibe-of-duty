@@ -246,6 +246,7 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(46.0)
 	floor_stop_on_slope = true
 	look_yaw = rotation.y
+	weapons.infinite_reserve = Game.training  # training maps: ammo never runs out (only reloads)
 	_camera.current = is_local
 	_camera.fov = Settings.fov
 	_hud.visible = is_local
@@ -1355,8 +1356,8 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 
 func _update_hud(speed: float, delta: float) -> void:
 	var def := weapons.current()
-	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size, weapons.reserves[weapons.index],
-			weapons.is_reloading())
+	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size,
+			HudAmmo.INFINITE if weapons.infinite_reserve else weapons.reserves[weapons.index], weapons.is_reloading())
 	var spread := weapons.spread_angle(speed, is_crouched, not is_on_floor())
 	var fov_rad := deg_to_rad(_camera.fov)
 	var px := tan(spread) / tan(fov_rad * 0.5) * get_viewport().get_visible_rect().size.y * 0.5
@@ -1470,6 +1471,22 @@ func server_regen(delta: float) -> void:
 	if whole > 0:
 		health = mini(health + whole, max_health)
 		_regen_carry -= whole
+
+
+## Server: picks up an ammo bag - one magazine more for every weapon, up to its reserve_max. False (the bag stays)
+## when every reserve is already full. The owner's client learns of it through the weapon state in the snapshots
+## (its prediction is corrected, as for any server-side change).
+func server_take_ammo() -> bool:
+	if not alive:
+		return false
+	var took := false
+	for i in WeaponDB.count():
+		var def := WeaponDB.get_def(i)
+		var room := def.reserve_max - weapons.reserves[i]
+		if room > 0:
+			weapons.reserves[i] += mini(def.mag_size, room)
+			took = true
+	return took
 
 
 ## Kid mode (chosen by the player, sent to the server on join): more health. Call before the first respawn / snapshot.

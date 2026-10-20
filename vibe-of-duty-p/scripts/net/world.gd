@@ -34,6 +34,7 @@ var _last_snap_time := 0.0         # ...and when it arrived (seconds)
 var hud: GameHud
 var kill_cam: KillCam
 var pause_menu: PauseMenu
+var ammo_bags: AmmoBags
 var _log_timer := 0.0
 
 @onready var _players_root: Node = $"../Players"
@@ -43,6 +44,10 @@ var _log_timer := 0.0
 func _ready() -> void:
 	lag_comp_enabled = Game.lag_comp_enabled
 	Game.reset_match()
+	ammo_bags = AmmoBags.new()
+	ammo_bags.name = "AmmoBags"  # the same path on every peer (its RPCs)
+	ammo_bags.world = self
+	add_child(ammo_bags)
 	if not Game.dedicated:
 		hud = GameHud.new()
 		hud.world = self
@@ -86,6 +91,7 @@ func _physics_process(delta: float) -> void:
 		player.server_regen(delta)
 		if player.alive and player.global_position.y < kill_height:
 			_server_suicide(player)
+	ammo_bags.server_tick(delta)
 	lag_comp.record(server_tick, players)
 	if server_tick % SNAPSHOT_INTERVAL == 0:
 		_broadcast_snapshot()
@@ -173,6 +179,7 @@ func _server_add_player(id: int, player_name: String, kid_mode: bool) -> void:
 	if id != 1:
 		_spawn_player.rpc_id(id, id, player_name, xform, kid_mode)
 		_ready_peers.append(id)
+		ammo_bags.server_send_all(id)
 		_sync_scores.rpc_id(id, Game.scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	_broadcast_scores()
@@ -251,6 +258,8 @@ func _server_suicide(player: Player) -> void:
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool) -> void:
 	Game.add_kill(killer.peer_id, victim.peer_id)
 	_broadcast_scores()
+	if killer != victim:
+		ammo_bags.server_drop(victim.global_position)  # not for falling off the map
 	_apply_death(victim.peer_id, killer.peer_id, weapon, head, RESPAWN_DELAY)
 	for peer in _ready_peers:
 		_player_died.rpc_id(peer, victim.peer_id, killer.peer_id, weapon, head, RESPAWN_DELAY)
@@ -303,6 +312,7 @@ func _server_end_match(reason: String) -> void:
 
 func _server_start_match() -> void:
 	Game.reset_match()
+	ammo_bags.server_clear()
 	Audio.play("match_start")
 	for id in players.keys():
 		Game.ensure_player(id)
