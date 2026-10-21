@@ -23,7 +23,8 @@ var _joining := ""  # address being connected to; remembered in Settings.recent_
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_version.text = "v" + str(ProjectSettings.get_setting("application/config/version", ""))
+	var tag := str(ProjectSettings.get_setting("application/config/version_tag", ""))
+	_version.text = "v%s%s" % [ProjectSettings.get_setting("application/config/version", ""), "-" + tag if tag != "" else ""]
 	_name_edit.text = Settings.player_name
 	_kid_mode_check.set_pressed_no_signal(Settings.kid_mode)
 	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)

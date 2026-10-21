@@ -105,6 +105,7 @@ func take_damage(amount: float, head: bool) -> bool:
 	var dealt := mini(roundi(amount), health)
 	health -= dealt
 	_float_number(dealt, head)
+	Game.count("target_hits")
 	if Game.net_log:
 		print("[TARGET %s] -%d%s, %d left" % [name, dealt, " head" if head else "", health])
 	_update_health_label()

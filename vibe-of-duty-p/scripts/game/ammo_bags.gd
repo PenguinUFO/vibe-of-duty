@@ -59,6 +59,7 @@ func server_drop(body_pos: Vector3) -> void:
 	var id := _next_id
 	_next_id += 1
 	_bags[id] = {"pos": to, "life": LIFETIME}
+	Game.count("bags_dropped")
 	if Game.net_log:
 		print("[BAG] %d dropped at (%.1f, %.1f, %.1f)" % [id, to.x, to.y, to.z])
 	_dropped(id, from, to, 0.0)
@@ -104,6 +105,8 @@ func server_clear() -> void:
 ## `taker`: the peer that picked it up (0: expired / cleared).
 func _server_remove(id: int, taker: int) -> void:
 	_bags.erase(id)
+	if taker != 0:
+		Game.count("bags_taken")
 	if Game.net_log:
 		print("[BAG] %d %s" % [id, "taken by %d" % taker if taker != 0 else "gone"])
 	_gone(id, taker)

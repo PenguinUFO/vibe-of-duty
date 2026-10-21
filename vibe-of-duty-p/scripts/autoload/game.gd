@@ -28,7 +28,8 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # Launch arguments (pass after "--"): --server (dedicated, no local player), --port=N,
 # --join=IP (skip the menu), --training=map (skip the menu, train on that map), --name=Name, --map=file_name (map of a dedicated server, e.g. --map=train),
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
-# --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules).
+# --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
+# --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests).
 var dedicated := false
 var bot_mode := false
 var net_log := false
@@ -44,6 +45,9 @@ var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positi
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
+var summary_time := 0.0   # --summary=S: seconds after the level starts to print the [SUMMARY] line and quit (NetWorld)
+## Test counters for the [SUMMARY] line (Game.count): laps, target_hits, oinks_heard, kill_cams, bags_dropped, bags_taken.
+var stats := {}
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
 var training := false         # playing a training map alone (no match clock or score on the HUD)
@@ -93,6 +97,8 @@ func _ready() -> void:
 			score_limit = maxi(1, int(arg.trim_prefix("--score-limit=")))
 		elif arg.begins_with("--match-time="):
 			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
+		elif arg.begins_with("--summary="):
+			summary_time = maxf(1.0, float(arg.trim_prefix("--summary=")))
 		elif arg.begins_with("--intermission="):
 			intermission_time = maxf(0.5, float(arg.trim_prefix("--intermission=")))
 		elif arg.begins_with("--training="):
@@ -146,7 +152,12 @@ static func list_training_maps() -> Array[String]:
 ## Started by a test command line (bots, a dedicated server, --join / --training): nothing is saved to the player's
 ## profile then (Settings.save_settings).
 func is_test_launch() -> bool:
-	return bot_mode or dedicated or auto_join != "" or auto_training != ""
+	return bot_mode or dedicated or auto_join != "" or auto_training != "" or summary_time > 0.0
+
+
+## Adds to a test counter (stats), printed by --summary.
+func count(key: String, amount := 1) -> void:
+	stats[key] = int(stats.get(key, 0)) + amount
 
 
 static func is_map(path: String) -> bool:

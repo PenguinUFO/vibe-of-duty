@@ -1,5 +1,5 @@
 extends Node
-## Connection management (ENet). Gameplay replication lives elsewhere (stage 2+).
+## Connection management (ENet). Gameplay replication lives in NetWorld (scripts/net/world.gd) and Player.
 
 const DEFAULT_PORT := 27015
 const MAX_PLAYERS := 4

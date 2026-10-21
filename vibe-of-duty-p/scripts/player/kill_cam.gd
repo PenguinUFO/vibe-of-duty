@@ -129,6 +129,7 @@ func stop() -> void:
 	_ui.visible = false
 	if world.hud:
 		world.hud.visible = true
+	Game.count("kill_cams")
 	if Game.net_log:
 		print("[KILLCAM %d] end %.2f s after the kill (replay reached %+.2f s)" % [multiplayer.get_unique_id(),
 				Time.get_ticks_usec() / 1e6 - _death_t, _replay_t - _death_t])

@@ -21,6 +21,7 @@ const SPAWN_PROTECTION_TICKS := 120
 const HEAD_DAMAGE_MULT := 1.15
 const NAME_MAX := 24  # characters, like the main menu's name field
 const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
+const SUMMARY_QUIT_DELAY := 5.0  # s between the --summary line and quitting
 
 var players: Dictionary = {}  # peer_id -> Player
 var server_tick := 0          # server: number of physics ticks simulated so far
@@ -37,6 +38,7 @@ var kill_cam: KillCam
 var pause_menu: PauseMenu
 var ammo_bags: AmmoBags
 var _log_timer := 0.0
+var _started_at := 0.0  # s (ticks clock) when this level started (--summary)
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
@@ -44,6 +46,8 @@ var _log_timer := 0.0
 
 func _ready() -> void:
 	lag_comp_enabled = Game.lag_comp_enabled
+	_started_at = Time.get_ticks_msec() / 1000.0
+	Game.stats.clear()
 	Game.reset_match()
 	ammo_bags = AmmoBags.new()
 	ammo_bags.name = "AmmoBags"  # the same path on every peer (its RPCs)
@@ -102,6 +106,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	if Game.summary_time > 0.0 and Time.get_ticks_msec() / 1000.0 - _started_at >= Game.summary_time:
+		Game.summary_time = 0.0
+		_print_summary()
+		# Quit a little later, so a server still has its clients' scores when they print theirs (and vice versa).
+		get_tree().create_timer(SUMMARY_QUIT_DELAY).timeout.connect(get_tree().quit)
 	if not Game.net_log:
 		return
 	_log_timer += _delta
@@ -118,6 +127,27 @@ func _process(_delta: float) -> void:
 	var scores := " scores=%s" % str(Game.scores) if multiplayer.is_server() else ""
 	print("[%s] t=%.1f state=%d left=%.0f %s%s" % [role, Time.get_ticks_msec() / 1000.0, Game.state,
 			Game.time_left if Game.state == Game.State.PLAYING else Game.intermission_left, " ".join(parts), scores])
+
+
+## --summary=S: one line with this machine's results for automated tests, instead of reading the --netlog stream.
+## Per player: kills/deaths; on the server their shots, hits, headshots, vaults, filled command gaps and dropped
+## commands; on a client its own reconciliations, round trip and last prediction error. Then the test counters.
+func _print_summary() -> void:
+	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
+	var role := "TRAINING" if Game.training else ("SERVER" if is_server else "CLIENT")
+	var parts: PackedStringArray = []
+	for id in players:
+		var p: Player = players[id]
+		var score: Dictionary = Game.scores.get(id, {"kills": 0, "deaths": 0})
+		var line := "%s%s %d/%d" % [p.player_name, "*" if p.is_local else "", score["kills"], score["deaths"]]
+		if is_server:
+			line += " shots=%d hits=%d head=%d vaults=%d gaps=%d dropped=%d" % [p.shots_total, p.hits_total,
+					p.head_hits_total, p.mantle_count, p.gaps_filled, p.cmds_dropped]
+		elif p.is_local:
+			line += " recon=%d rtt=%dms err=%.2fm" % [p.recon_count, p.rtt_ms, p.last_error]
+		parts.append(line)
+	print("[SUMMARY %s] t=%.0fs map=%s state=%s | %s | %s" % [role, Time.get_ticks_msec() / 1000.0 - _started_at,
+			Game.map_scene.get_file().get_basename(), Game.State.keys()[Game.state], " | ".join(parts), str(Game.stats)])
 
 
 ## The server's clock: seconds of server ticks since the level started there, the same on every machine to within
