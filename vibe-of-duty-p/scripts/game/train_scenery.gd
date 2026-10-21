@@ -92,7 +92,8 @@ func _ready() -> void:
 		_env = world_env.environment
 		_capture_env.call_deferred()  # after NetWorld has given the level its mood (Mood)
 		Settings.graphics_changed.connect(_capture_env, CONNECT_DEFERRED)
-	for lamp in get_node("../Lamps").get_children() if has_node("../Lamps") else []:
+	var lamps := get_parent().find_child("Lamps", true, false)  # in the generated shell: Shell/Lamps
+	for lamp in lamps.get_children() if lamps else []:
 		_lamps.append(lamp)
 		lamp.visible = false
 		lamp.light_specular = 0.0  # matte cars: no highlights to compute

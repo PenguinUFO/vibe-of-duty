@@ -114,7 +114,7 @@ static func _build_lamps(level: Node) -> void:
 	var root := Node3D.new()
 	root.name = LAMPS_NODE
 	level.add_child(root)
-	var own := level.get_node_or_null("Lamps")
+	var own := level.find_child("Lamps", true, false)  # the train's are in its shell (Shell/Lamps)
 	if own != null:
 		for light in own.get_children():
 			if light is OmniLight3D:
