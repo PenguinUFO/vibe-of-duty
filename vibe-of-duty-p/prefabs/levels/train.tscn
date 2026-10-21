@@ -106,14 +106,8 @@ color = Color(0.36, 0.33, 0.29, 1)
 mesh_layers = 8
 
 [node name="Luggage" parent="Props" unique_id=901201559 instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65, 4.1, -38.5)
+transform = Transform3D(1, 0, 0, 0, 1.3622761, 0, 0, 0, 1, -0.5108875, 4.4195857, -25.65419)
 size = Vector3(1, 1.6, 1.2)
-color = Color(0.56, 0.47, 0.36, 1)
-mesh_layers = 8
-
-[node name="Luggage1" parent="Props" unique_id=1093388205 instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.15, 3.9, -26)
-size = Vector3(1.2, 1.2, 1.2)
 color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 8
 
@@ -220,7 +214,7 @@ color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 4
 
 [node name="CorridorWall" parent="Props" unique_id=1743460754 instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.075, 4.8, 30.7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0786192, 4.8, 30.7)
 size = Vector3(0.15, 3, 1.2)
 color = Color(0.66, 0.63, 0.57, 1)
 mesh_layers = 8
@@ -244,7 +238,13 @@ color = Color(0.66, 0.63, 0.57, 1)
 mesh_layers = 8
 
 [node name="Bunk" parent="Props" unique_id=374263270 instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.125, 3.6, 31.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.5852705, 0.125, 3.6, 30.548233)
+size = Vector3(1.85, 0.6, 1)
+color = Color(0.36, 0.33, 0.29, 1)
+mesh_layers = 8
+
+[node name="Bunk2" parent="Props" unique_id=573398614 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.5852705, 0.125, 3.6, 33.182564)
 size = Vector3(1.85, 0.6, 1)
 color = Color(0.36, 0.33, 0.29, 1)
 mesh_layers = 8
@@ -252,22 +252,19 @@ mesh_layers = 8
 [node name="SpawnPoints" type="Node3D" parent="." unique_id=219361715]
 
 [node name="SpawnA_low" type="Marker3D" parent="SpawnPoints" unique_id=1497575358]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.05, -38.6)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -1.868947, 0.05, -38.6)
 
 [node name="SpawnA_up" type="Marker3D" parent="SpawnPoints" unique_id=736314368]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.35, -25.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5596975, 3.35, -25.1)
 
 [node name="SpawnB_up" type="Marker3D" parent="SpawnPoints" unique_id=1577537823]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 3.35, -16.7)
-
-[node name="SpawnC" type="Marker3D" parent="SpawnPoints" unique_id=671578958]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 1.5, 0.05, 1.7)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 1.7029659, 3.35, -16.7)
 
 [node name="SpawnD_low" type="Marker3D" parent="SpawnPoints" unique_id=1209629234]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 38.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3438934, 0.05, 38.6)
 
 [node name="SpawnD_up" type="Marker3D" parent="SpawnPoints" unique_id=1002759626]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 1, 3.35, 25.6)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 1.5166285, 3.35, 25.6)
 
 [node name="Scenery" type="Node3D" parent="." unique_id=126988762]
 script = ExtResource("4_scenery")
