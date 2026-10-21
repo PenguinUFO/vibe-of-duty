@@ -2,7 +2,6 @@ extends Control
 ## Main menu: host a game (HostPanel: map, rules, port), join one (JoinPanel: address or a recent server; the server
 ## sends its map and rules), train alone (TrainingPanel: the training maps), or quit.
 
-const KID_MODE_CODE := "0451"
 const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 
 @onready var _name_edit: LineEdit = %NameEdit
@@ -12,12 +11,12 @@ const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 @onready var _training_button: Button = %TrainingButton
 @onready var _quit_button: Button = %QuitButton
 @onready var _settings_button: Button = %SettingsButton
-@onready var _kid_mode_check: CheckButton = %KidModeCheck
 @onready var _column: Control = $Column
 @onready var _pig: Control = $Pig  # hidden with the column while a panel is open
 @onready var _status: Label = %Status
 @onready var _version: Label = %Version  # bottom right: the build version (raised by addons/version_bump on export)
 
+var _kid_entry := KidModeEntry.new()  # under Settings
 var _joining := ""  # address being connected to; remembered in Settings.recent_servers once it works
 
 
@@ -26,8 +25,9 @@ func _ready() -> void:
 	var tag := str(ProjectSettings.get_setting("application/config/version_tag", ""))
 	_version.text = "v%s%s" % [ProjectSettings.get_setting("application/config/version", ""), "-" + tag if tag != "" else ""]
 	_name_edit.text = Settings.player_name
-	_kid_mode_check.set_pressed_no_signal(Settings.kid_mode)
-	_kid_mode_check.toggled.connect(_on_kid_mode_toggled)
+	_column.add_child(_kid_entry)
+	_column.move_child(_kid_entry, _settings_button.get_index() + 1)
+	_kid_entry.open_requested.connect(_open_kid_panel)
 	_host_button.pressed.connect(_on_host)
 	_join_button.pressed.connect(_on_join)
 	_random_name_button.pressed.connect(_on_random_name)
@@ -81,25 +81,6 @@ func _apply_name() -> void:
 		Settings.player_name = entered
 	Settings.name_chosen = true  # the name played with, typed or the random one, is kept from now on
 	Settings.save_settings()
-
-
-## Turning kid mode on needs the code; a wrong code (or cancel) closes the dialog and leaves it off. Turning it off is free.
-func _on_kid_mode_toggled(on: bool) -> void:
-	if not on:
-		Settings.kid_mode = false
-		Settings.save_settings()
-		return
-	_kid_mode_check.set_pressed_no_signal(false)
-	_column.process_mode = Node.PROCESS_MODE_DISABLED  # keeps the menu from taking input behind the dialog
-	var dialog := PinDialog.new(KID_MODE_CODE)
-	dialog.finished.connect(func(ok: bool) -> void:
-		_column.process_mode = Node.PROCESS_MODE_INHERIT
-		if ok:
-			Settings.kid_mode = true
-			Settings.save_settings()
-			_kid_mode_check.set_pressed_no_signal(true)
-		_kid_mode_check.grab_focus.call_deferred())
-	add_child(dialog)
 
 
 func _on_host() -> void:
@@ -211,6 +192,19 @@ func _open_settings() -> void:
 	var panel := SettingsPanel.new()
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
+		_show_menu())
+	add_child(panel)
+	UiTheme.pop_in(panel)
+
+
+## The code was typed beside "Kid mode" (KidModeEntry).
+func _open_kid_panel() -> void:
+	_column.visible = false
+	_pig.visible = false
+	var panel := KidPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_kid_entry.refresh()
 		_show_menu())
 	add_child(panel)
 	UiTheme.pop_in(panel)

@@ -1,11 +1,12 @@
 class_name PauseMenu
 extends CanvasLayer
 ## In-game menu on Esc. It does not stop the game (it is online); it only frees the mouse so the
-## player stops sending input. Resume / Settings / Leave match.
+## player stops sending input. Resume / Settings / Kid mode (with its code, KidModeEntry) / Leave match.
 
 var _root: Control
 var _menu_box: VBoxContainer
-var _settings: SettingsPanel
+var _panel: Control  # the open sub-panel (SettingsPanel or KidPanel; both emit `closed`), or null
+var _kid_entry: KidModeEntry
 
 
 func _ready() -> void:
@@ -37,14 +38,12 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 40)
 	_menu_box.add_child(title)
 	_add_button("Продолжить", close)
-	_add_button("Настройки", _open_settings)
+	_add_button("Настройки", func() -> void: _open_panel(SettingsPanel.new()))
+	_kid_entry = KidModeEntry.new()
+	_kid_entry.open_requested.connect(func() -> void: _open_panel(KidPanel.new()))
+	_menu_box.add_child(_kid_entry)
 	_add_button("Покинуть матч", _leave)
 	_add_button("Выйти из игры", get_tree().quit)
-
-	_settings = SettingsPanel.new()
-	_settings.visible = false
-	_settings.closed.connect(_close_settings)
-	_root.add_child(_settings)
 
 
 func is_open() -> bool:
@@ -59,7 +58,7 @@ func open() -> void:
 
 
 func close() -> void:
-	_close_settings()
+	_close_panel()
 	_root.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -69,9 +68,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event.is_action_pressed("pause") or (is_open() and event.is_action_pressed("ui_cancel"))):
 		return
 	get_viewport().set_input_as_handled()
-	if _settings.visible:
+	if _panel != null:
 		Settings.save_settings()
-		_close_settings()
+		_close_panel()
 	elif is_open():
 		close()
 	else:
@@ -89,15 +88,21 @@ func _add_button(text: String, action: Callable) -> void:
 	_menu_box.add_child(button)
 
 
-func _open_settings() -> void:
+func _open_panel(panel: Control) -> void:
+	_close_panel()
 	_menu_box.get_parent().visible = false
-	_settings.visible = true
-	UiTheme.pop_in(_settings)
-	_focus_first(_settings)
+	_panel = panel
+	panel.connect("closed", _close_panel)
+	_root.add_child(panel)
+	UiTheme.pop_in(panel)
+	_focus_first(panel)
 
 
-func _close_settings() -> void:
-	_settings.visible = false
+func _close_panel() -> void:
+	if _panel != null:
+		_panel.queue_free()
+		_panel = null
+	_kid_entry.refresh()
 	_menu_box.get_parent().visible = true
 	if is_open():
 		_focus_first(_menu_box)

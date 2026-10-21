@@ -62,14 +62,15 @@ const STATE_WEAPON_SHIFT := 4  # 2 bits: current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
-const MAX_HEALTH := 150  # kid mode: 300 (KID_HEALTH_MULT)
-const KID_HEALTH_MULT := 2
+const MAX_HEALTH := 150  # kid mode: more (Settings.kid_health), up to KID_HEALTH_MAX
+const KID_HEALTH_MAX := 600
+const BACK_FULL_ANGLE := deg_to_rad(135.0)  # kid mode: shots from this far off the view get the full back_damage
 # Health regeneration (server), as in Call of Duty: Modern Warfare III (2023) after its Season 2 patch: it starts 3 s
 # after the last damage and comes back at 75 of 150 HP per second, i.e. half a normal player's health per second (empty
-# to full in 2 s). Kid mode heals at the same HP per second (the same damage takes as long to heal), only starting sooner.
+# to full in 2 s). Kid mode heals at the same HP per second (the same damage takes as long to heal), only starting sooner
+# (Settings.kid_regen_delay).
 const REGEN_DELAY := 3.0
 const REGEN_PER_SECOND := MAX_HEALTH * 0.5   # HP per second, the same for everybody
-const KID_REGEN_DELAY := REGEN_DELAY * 2.0 / 3.0  # kid mode: health starts coming back sooner (2 s)
 const HURT_SHADER := preload("res://assets/shaders/hurt_vignette.gdshader")  # local HUD: hit flash and low health
 const RECONCILE_EPS := 0.02          # m; smaller prediction errors are ignored
 const HISTORY_MAX := 180             # commands kept for replay (3 s)
@@ -144,8 +145,9 @@ var _replaying := false
 var weapons := WeaponSim.new()
 var world: NetWorld
 var health := MAX_HEALTH
-var max_health := MAX_HEALTH  # kid mode doubles it
-var kid_mode := false
+var max_health := MAX_HEALTH  # kid mode: more (set_toughness)
+var regen_delay := REGEN_DELAY  # kid mode: shorter
+var back_damage := 1.0          # kid mode: damage multiplier for shots from behind (damage_mult_from)
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn
 var _regen_wait := 0.0      # server: seconds until health starts coming back

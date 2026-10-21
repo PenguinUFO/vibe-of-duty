@@ -77,11 +77,6 @@ layout_mode = 2
 tooltip_text = "Случайный ник"
 text = "Случайный"
 
-[node name="KidModeCheck" type="CheckButton" parent="Column"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Детский режим"
-
 [node name="ButtonsGap" type="Control" parent="Column"]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2

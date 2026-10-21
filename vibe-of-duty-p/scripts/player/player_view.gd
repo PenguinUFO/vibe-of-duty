@@ -16,7 +16,7 @@ func _stick_look(delta: float) -> void:
 	if _pad_look:
 		turn = _aim_assist.update(_head.global_position, look_yaw, look_pitch, weapons.ads,
 				Settings.effective_aim_assist(), _assist_targets(), _assist_visible,
-				Settings.aim_assist_reach(), Settings.aim_assist_range())
+				Settings.aim_assist_reach(), Settings.aim_assist_range(), Settings.aim_assist_pull(), delta)
 	if stick != Vector2.ZERO:
 		stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
 		var speed := STICK_LOOK_SPEED * Settings.stick_sensitivity * _aim_assist.slowdown \

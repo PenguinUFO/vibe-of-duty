@@ -38,7 +38,19 @@ var server_address := "127.0.0.1"  # last address typed in the join panel
 ## The name is the player's own label for it (JoinPanel); empty until they type one.
 var recent_servers: Array = []
 const RECENT_SERVERS_MAX := 10
-var kid_mode := false  # unlocked with a code in the main menu; more health, stronger and wider aim assist
+var kid_mode := false  # unlocked with a code (KidModeEntry); its parameters below, edited in KidPanel
+var kid_health := 300            # max health (PlayerBase.MAX_HEALTH .. KID_HEALTH_MAX)
+var kid_regen_delay := 2.0       # s after damage before health comes back (0 .. PlayerBase.REGEN_DELAY)
+var kid_assist_mult := 2.0       # aim assist strength multiplier (AimAssist keeps the effect in sane bounds)
+var kid_assist_reach := 2.0      # aim assist cone width multiplier
+var kid_assist_unlimited := true # aim assist has no range limit (otherwise AimAssist.RANGE)
+var kid_ads_pull := 4.0          # 1/s, ADS pull towards the target (AimAssist), 0 = off
+var kid_back_damage := 0.5       # damage multiplier for shots from behind (Player.damage_mult_from), 1 = normal
+const KID_DEFAULTS := {"kid_health": 300, "kid_regen_delay": 2.0, "kid_assist_mult": 2.0, "kid_assist_reach": 2.0,
+		"kid_assist_unlimited": true, "kid_ads_pull": 4.0,
+		"kid_back_damage": 0.5}
+const KID_ASSIST_MULT_MAX := 3.0
+const KID_ADS_PULL_MAX := 10.0
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
 
 var antialiasing := 1    # 0 = off, 1 = FXAA
@@ -190,19 +202,37 @@ func has_gamepad() -> bool:
 	return not Input.get_connected_joypads().is_empty()
 
 
-## Aim assist strength actually used: kid mode doubles it (AimAssist keeps the resulting effect in sane bounds).
+## Aim assist strength actually used: kid mode multiplies it (AimAssist keeps the resulting effect in sane bounds).
 func effective_aim_assist() -> float:
-	return aim_assist * (2.0 if kid_mode else 1.0)
+	return aim_assist * (kid_assist_mult if kid_mode else 1.0)
 
 
-## Aim assist cone width multiplier: kid mode works twice as wide.
+## Aim assist cone width multiplier.
 func aim_assist_reach() -> float:
-	return 2.0 if kid_mode else 1.0
+	return kid_assist_reach if kid_mode else 1.0
 
 
-## How far aim assist reaches (m): kid mode has no limit, anyone in sight is assisted.
+## How far aim assist reaches (m): kid mode may have no limit, anyone in sight is assisted.
 func aim_assist_range() -> float:
-	return INF if kid_mode else AimAssist.RANGE
+	return INF if kid_mode and kid_assist_unlimited else AimAssist.RANGE
+
+
+## ADS pull towards the target, 1/s: kid mode only, scaled by the aim assist setting.
+func aim_assist_pull() -> float:
+	return kid_ads_pull * aim_assist if kid_mode else 0.0
+
+
+## The player's max health, regeneration delay and damage multiplier from behind, as sent to the server (NetWorld;
+## it clamps them).
+func toughness() -> Vector3:
+	if kid_mode:
+		return Vector3(kid_health, kid_regen_delay, kid_back_damage)
+	return Vector3(PlayerBase.MAX_HEALTH, PlayerBase.REGEN_DELAY, 1.0)
+
+
+func reset_kid() -> void:
+	for key in KID_DEFAULTS:
+		set(key, KID_DEFAULTS[key])
 
 
 func set_volume(bus: StringName, linear: float) -> void:
@@ -294,6 +324,8 @@ func save_settings() -> void:
 	cfg.set_value("player", "server_address", server_address)
 	cfg.set_value("player", "recent_servers", recent_servers)
 	cfg.set_value("player", "kid_mode", kid_mode)
+	for key in KID_DEFAULTS:
+		cfg.set_value("kid", key, get(key))
 	cfg.set_value("host", "map", host_map)
 	cfg.set_value("host", "score_limit", host_score_limit)
 	cfg.set_value("host", "match_minutes", host_match_minutes)
@@ -334,6 +366,13 @@ func load_settings() -> void:
 					and recent_servers.size() < RECENT_SERVERS_MAX:
 				recent_servers.append({"address": entry["address"], "name": entry.get("name", "")})
 	kid_mode = cfg.get_value("player", "kid_mode", kid_mode)
+	kid_health = clampi(cfg.get_value("kid", "kid_health", kid_health), PlayerBase.MAX_HEALTH, PlayerBase.KID_HEALTH_MAX)
+	kid_regen_delay = clampf(cfg.get_value("kid", "kid_regen_delay", kid_regen_delay), 0.0, PlayerBase.REGEN_DELAY)
+	kid_assist_mult = clampf(cfg.get_value("kid", "kid_assist_mult", kid_assist_mult), 1.0, KID_ASSIST_MULT_MAX)
+	kid_assist_reach = clampf(cfg.get_value("kid", "kid_assist_reach", kid_assist_reach), 1.0, KID_ASSIST_MULT_MAX)
+	kid_assist_unlimited = cfg.get_value("kid", "kid_assist_unlimited", kid_assist_unlimited)
+	kid_ads_pull = clampf(cfg.get_value("kid", "kid_ads_pull", kid_ads_pull), 0.0, KID_ADS_PULL_MAX)
+	kid_back_damage = clampf(cfg.get_value("kid", "kid_back_damage", kid_back_damage), 0.0, 1.0)
 	host_map = cfg.get_value("host", "map", host_map)
 	host_score_limit = clampi(cfg.get_value("host", "score_limit", host_score_limit), 1, 100)
 	host_match_minutes = clampi(cfg.get_value("host", "match_minutes", host_match_minutes), 1, 60)

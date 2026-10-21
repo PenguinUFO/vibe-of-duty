@@ -22,6 +22,7 @@ const HEAD_DAMAGE_MULT := 1.15
 const NAME_MAX := 24  # characters, like the main menu's name field
 const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
 const SUMMARY_QUIT_DELAY := 5.0  # s between the --summary line and quitting
+const TOUGHNESS_SEND_INTERVAL := 0.25  # s; kid mode sliders dragged mid-match are sent at most this often
 
 var players: Dictionary = {}  # peer_id -> Player
 var server_tick := 0          # server: number of physics ticks simulated so far
@@ -39,6 +40,8 @@ var pause_menu: PauseMenu
 var ammo_bags: AmmoBags
 var _log_timer := 0.0
 var _started_at := 0.0  # s (ticks clock) when this level started (--summary)
+var _toughness_sent := Vector3.ZERO  # local player: Settings.toughness() last sent to the server
+var _toughness_timer := 0.0
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
@@ -70,11 +73,12 @@ func _ready() -> void:
 	_apply_sun()
 	Net.peer_left.connect(_on_peer_left)
 	Net.disconnected.connect(_on_disconnected)
+	_toughness_sent = Settings.toughness()
 	if multiplayer.is_server():
 		if not Game.dedicated:
-			_server_add_player(1, _unique_name(Settings.player_name), Settings.kid_mode)
+			_server_add_player(1, _unique_name(Settings.player_name), _toughness_sent)
 	else:
-		_client_ready.rpc_id(1, Settings.player_name, Settings.kid_mode)
+		_client_ready.rpc_id(1, Settings.player_name, _toughness_sent)
 
 
 ## Gives the level's sun the shadow settings of the current graphics quality, and the level the PSX style's mood
@@ -106,6 +110,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	_send_toughness(_delta)
 	if Game.summary_time > 0.0 and Time.get_ticks_msec() / 1000.0 - _started_at >= Game.summary_time:
 		Game.summary_time = 0.0
 		_print_summary()
@@ -189,13 +194,44 @@ func get_view_tick() -> float:
 # --- Server --------------------------------------------------------------------------------------
 
 @rpc("any_peer", "reliable")
-func _client_ready(player_name: String, kid_mode: bool = false) -> void:
+func _client_ready(player_name: String, toughness: Vector3) -> void:
 	if not multiplayer.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
 		return
-	_server_add_player(id, _unique_name(player_name), kid_mode)
+	_server_add_player(id, _unique_name(player_name), Player.clamp_toughness(toughness))
+
+
+## Local player: kid mode settings changed (KidPanel, even mid-match) -> the server, which applies and relays them.
+func _send_toughness(delta: float) -> void:
+	_toughness_timer -= delta
+	if Game.dedicated or not multiplayer.has_multiplayer_peer() or _toughness_timer > 0.0:
+		return
+	var t := Settings.toughness()
+	if t == _toughness_sent:
+		return
+	_toughness_sent = t
+	_toughness_timer = TOUGHNESS_SEND_INTERVAL
+	if multiplayer.is_server():
+		_server_set_toughness(1, t)
+	else:
+		_request_toughness.rpc_id(1, t)
+
+
+@rpc("any_peer", "reliable")
+func _request_toughness(t: Vector3) -> void:
+	if multiplayer.is_server():
+		_server_set_toughness(multiplayer.get_remote_sender_id(), t)
+
+
+func _server_set_toughness(id: int, t: Vector3) -> void:
+	if not players.has(id):
+		return
+	t = Player.clamp_toughness(t)
+	(players[id] as Player).set_toughness(t)
+	for peer in _ready_peers:
+		_player_toughness.rpc_id(peer, id, t)
 
 
 ## Server: the name a joining player gets: as sent, or with "_2", "_3"... when someone here already has it (any
@@ -219,7 +255,7 @@ func _unique_name(wanted: String) -> String:
 	return base
 
 
-func _server_add_player(id: int, player_name: String, kid_mode: bool) -> void:
+func _server_add_player(id: int, player_name: String, toughness: Vector3) -> void:
 	if Game.net_log:
 		print("[SERVER] player %d joined as %s" % [id, player_name])
 	var xform := _pick_spawn(-1)
@@ -227,13 +263,14 @@ func _server_add_player(id: int, player_name: String, kid_mode: bool) -> void:
 	if id != 1:
 		for other_id in players:
 			var other: Player = players[other_id]
-			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform, other.kid_mode)
-	_spawn_player(id, player_name, xform, kid_mode)
+			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform,
+					Vector3(other.max_health, other.regen_delay, other.back_damage))
+	_spawn_player(id, player_name, xform, toughness)
 	Game.ensure_player(id)
 	for peer in _ready_peers:
-		_spawn_player.rpc_id(peer, id, player_name, xform, kid_mode)
+		_spawn_player.rpc_id(peer, id, player_name, xform, toughness)
 	if id != 1:
-		_spawn_player.rpc_id(id, id, player_name, xform, kid_mode)
+		_spawn_player.rpc_id(id, id, player_name, xform, toughness)
 		_ready_peers.append(id)
 		ammo_bags.server_send_all(id)
 		_sync_scores.rpc_id(id, Game.scores)
@@ -292,7 +329,7 @@ func _pick_spawn(exclude_id: int) -> Transform3D:
 func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
 		return
-	var killed := victim.server_damage(amount)
+	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position))
 	if attacker.control == Player.Mode.LOCAL:
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
@@ -401,14 +438,14 @@ func _apply_match_state() -> void:
 # --- Client (also called locally on the server) ---------------------------------------------------
 
 @rpc("authority", "reliable")
-func _spawn_player(id: int, player_name: String, xform: Transform3D, kid_mode: bool = false) -> void:
+func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: Vector3) -> void:
 	if players.has(id):
 		return
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.name = str(id)
 	player.peer_id = id
 	player.player_name = player_name
-	player.set_kid_mode(kid_mode)
+	player.set_toughness(toughness)
 	player.world = self
 	if id == multiplayer.get_unique_id():
 		player.control = Player.Mode.LOCAL
@@ -505,6 +542,12 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else ""
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
+
+
+@rpc("authority", "reliable")
+func _player_toughness(id: int, t: Vector3) -> void:
+	if players.has(id):
+		(players[id] as Player).set_toughness(t)
 
 
 @rpc("authority", "reliable")

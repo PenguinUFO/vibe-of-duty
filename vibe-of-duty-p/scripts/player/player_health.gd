@@ -8,7 +8,7 @@ func server_damage(amount: float) -> bool:
 	if not alive:
 		return false
 	health = maxi(health - roundi(amount), 0)
-	_regen_wait = KID_REGEN_DELAY if kid_mode else REGEN_DELAY
+	_regen_wait = regen_delay
 	_regen_carry = 0.0
 	if health == 0:
 		alive = false
@@ -28,7 +28,7 @@ func die(by: String, respawn_delay: float, from := Vector3.INF, head_hit := fals
 	Audio.play("death", null if is_local else global_position)
 
 
-## Server, every tick: health comes back REGEN_DELAY s (kid mode: KID_REGEN_DELAY) after the last damage, REGEN_PER_SECOND HP per second.
+## Server, every tick: health comes back regen_delay s (kid mode: shorter) after the last damage, REGEN_PER_SECOND HP per second.
 ## Clients see it in the snapshots (health is part of every player's state).
 func server_regen(delta: float) -> void:
 	if not alive or health >= max_health:
@@ -60,12 +60,36 @@ func server_take_ammo() -> bool:
 	return took
 
 
-## Kid mode (chosen by the player, sent to the server on join): more health. Call before the first respawn / snapshot.
-func set_kid_mode(on: bool) -> void:
-	kid_mode = on
-	max_health = MAX_HEALTH * (KID_HEALTH_MULT if on else 1)
-	health = max_health
-	_last_health = max_health
+## Kid mode (Settings.toughness: sent to the server on join and whenever the player changes it, even mid-match):
+## t = (max health, regeneration delay, damage multiplier from behind). Current health keeps its share of the maximum.
+func set_toughness(t: Vector3) -> void:
+	t = clamp_toughness(t)
+	if health > 0:
+		health = clampi(roundi(health * t.x / max_health), 1, int(t.x))
+	max_health = int(t.x)
+	regen_delay = t.y
+	back_damage = t.z
+	_regen_wait = minf(_regen_wait, regen_delay)
+	_last_health = health
+
+
+## What the server accepts from a player: no less health, no slower regeneration and no more damage than normal.
+static func clamp_toughness(t: Vector3) -> Vector3:
+	return Vector3(clampf(roundf(t.x), MAX_HEALTH, KID_HEALTH_MAX), clampf(t.y, 0.0, REGEN_DELAY), clampf(t.z, 0.0, 1.0))
+
+
+## Server: damage multiplier for a shot fired from `from` (world). Kid mode takes less from behind: none at the
+## sides (90 deg off the view: rotation.y, the yaw of the last command), fading to back_damage at BACK_FULL_ANGLE and
+## beyond.
+func damage_mult_from(from: Vector3) -> float:
+	if back_damage >= 1.0:
+		return 1.0
+	var to := from - global_position
+	if Vector2(to.x, to.z).length() < 0.01:
+		return 1.0
+	var off := absf(angle_difference(rotation.y, AimAssist.yaw_of(Vector3(to.x, 0.0, to.z).normalized())))
+	var behind := clampf((off - PI / 2.0) / (BACK_FULL_ANGLE - PI / 2.0), 0.0, 1.0)
+	return lerpf(1.0, back_damage, behind)
 
 
 func respawn(xform: Transform3D) -> void:

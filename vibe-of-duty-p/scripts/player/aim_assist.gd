@@ -5,6 +5,8 @@ extends RefCounted
 ##  - slowdown: the stick turns slower over a target, so it is easier to stop on it;
 ##  - tracking: the view follows part of the target's motion across the screen (its strafing and our own movement),
 ##    so a moving target stays under the crosshair - standing still and with the stick released too.
+##  - pull (kid mode only, ADS only, rate in Settings.kid_ads_pull): the view is drawn towards the nearest point of the target line, gradually,
+##    so the crosshair settles on the target instead of stopping next to it.
 ## No snapping onto a target. It only moves the client's camera; the server traces the shot from the view the client
 ## sends, exactly as for a player who aims well.
 ##
@@ -35,10 +37,12 @@ var _last_dir := Vector3.ZERO    # direction from the eye to that point last fra
 
 ## targets: [{id, a, b}] - each target's line in world space (a torso, b head). `visible` is called as
 ## visible(eye, point) -> bool for the best candidate only. `reach` widens the cone (kid mode: 2); `max_range`: how
-## far targets are assisted (kid mode: no limit, INF).
+## far targets are assisted (kid mode: no limit, INF); `pull`: the ADS pull rate, 1/s (in full ADS the aim
+## error shrinks by e every 1/pull s; 0 = none).
 ## Returns the tracking turn (yaw, pitch) to add this frame.
 func update(eye: Vector3, yaw: float, pitch: float, ads: float, amount: float, targets: Array,
-		visible: Callable, reach: float = 1.0, max_range: float = RANGE) -> Vector2:
+		visible: Callable, reach: float = 1.0, max_range: float = RANGE, pull: float = 0.0,
+		delta: float = 0.0) -> Vector2:
 	slowdown = 1.0
 	strength = 0.0
 	if amount <= 0.0:
@@ -79,6 +83,9 @@ func update(eye: Vector3, yaw: float, pitch: float, ads: float, amount: float, t
 	target_id = best["id"]
 	_t = best_t
 	_last_dir = ((best["a"] as Vector3).lerp(best["b"], best_t) - eye).normalized()
+	if pull > 0.0 and ads > 0.0:
+		var error := Vector2(angle_difference(yaw, yaw_of(_last_dir)), pitch_of(_last_dir) - pitch)
+		turn += error * (1.0 - exp(-pull * ads * strength * delta))
 	return turn
 
 
