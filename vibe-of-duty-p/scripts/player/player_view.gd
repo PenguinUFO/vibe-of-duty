@@ -206,10 +206,10 @@ func _update_hud(speed: float, delta: float) -> void:
 		return  # the debug overlay changes every frame; 10 Hz is plenty and saves text re-layout
 	_debug_timer = 0.1
 	if not _debug_shown:
-		_debug.text = "Esc меню   Tab счёт"  # F3 (debug overlay) works, but is not advertised
+		_debug.text = ""  # no key hints on screen; F3 (debug overlay) works, but is not advertised
 		return
 	var vault_line := "\nvault: %s" % _vault_note if Time.get_ticks_msec() < _vault_note_until else ""
-	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s\nEsc меню   Tab счёт" % [
+	_debug.text = "%d FPS\nскорость %.1f м/с\n%s%s%s" % [
 		Engine.get_frames_per_second(), speed,
 		"подкат " if is_sliding else "", "присед " if is_crouched else "",
 		"бег " if is_sprinting else ""]

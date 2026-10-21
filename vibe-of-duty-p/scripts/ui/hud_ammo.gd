@@ -1,13 +1,13 @@
 class_name HudAmmo
 extends Control
-## Bottom-right ammo readout: the weapon name, the rounds in the magazine (big) and in reserve (small), and a row of
+## Bottom-right ammo readout: the weapon name (top right), the rounds in the magazine (big) and in reserve (small), and a row of
 ## round ticks that go out as the magazine empties (a plain bar for big magazines). The magazine count turns red when
 ## a quarter or less is left; while reloading the name line says so.
 
-const SIZE := Vector2(250, 80)
+const SIZE := Vector2(160, 80)
 const LOW := 0.25
 const MAX_TICKS := 40       # bigger magazines get a bar instead of ticks
-const ROW := Rect2(18, 62, 214, 8)
+const ROW := Rect2(18, 62, SIZE.x - 36.0, 8)
 const INFINITE := -1        # reserve that never runs out (training): shown as "/ ∞"
 
 var _name := ""
@@ -49,11 +49,10 @@ func _draw() -> void:
 	var mag_color := UiTheme.DANGER if low else UiTheme.TEXT
 
 	var small := UiTheme.bold_font()
-	if _reloading:
-		var blink := 0.55 + 0.45 * absf(sin(_time * 5.0))
-		draw_string(small, Vector2(18, 22), "ПЕРЕЗАРЯДКА", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(UiTheme.ACCENT, blink))
-	else:
-		draw_string(small, Vector2(18, 22), _name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiTheme.TEXT_DIM)
+	var top_text := "ПЕРЕЗАРЯДКА" if _reloading else _name.to_upper()
+	var top_color := Color(UiTheme.ACCENT, 0.55 + 0.45 * absf(sin(_time * 5.0))) if _reloading else UiTheme.TEXT_DIM
+	var top_width := small.get_string_size(top_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	draw_string(small, Vector2(right - top_width, 22), top_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, top_color)
 
 	# "30 / 90": the reserve right-aligned, the magazine count in front of it.
 	var reserve_text := "/ ∞" if _reserve == INFINITE else "/ %d" % _reserve

@@ -1,13 +1,16 @@
 class_name HudHealth
 extends Control
-## Bottom-left health readout: a medical cross, the number and a bar split into 25 HP cells. Damage leaves a light
-## "just lost" stretch on the bar that drains after a moment; at low health the number and bar turn red and pulse.
+## Bottom-left health readout: a medical cross and a solid bar - no number (the owner's call: health is felt, not
+## counted). Damage leaves a light "just lost" stretch on the bar that drains after a moment; at low health the bar
+## turns red and pulses. Everything sits PAD from the plate's edges.
 
-const SIZE := Vector2(300, 58)
-const NUMBER_X := 52.0
-const BAR_Y := 34.0
+const SIZE := Vector2(160, 58)
+const PAD := 18.0
+const CROSS := 22.0         # cross size; the bar starts a gap after it
+const BAR_X := PAD + CROSS + 12.0
 const BAR_HEIGHT := 9.0
-const CELL := 25.0          # HP per bar cell
+const BAR_Y := SIZE.y - PAD - BAR_HEIGHT
+const LABEL_BASELINE := PAD + 8.0  # the label's caps (11 px font) start at PAD
 const LOW := 0.3            # share of max health counted as low
 const TRAIL_HOLD := 0.45    # seconds the lost stretch stays before draining
 const TRAIL_SPEED := 1.4    # share of the bar drained per second
@@ -58,29 +61,16 @@ func _draw() -> void:
 
 	# Medical cross.
 	var cross_color := UiTheme.DANGER if low else UiTheme.ACCENT
-	draw_rect(Rect2(19, 22, 22, 8), cross_color)
-	draw_rect(Rect2(26, 15, 8, 22), cross_color)
+	draw_rect(Rect2(PAD, PAD + (CROSS - 8.0) * 0.5, CROSS, 8), cross_color)
+	draw_rect(Rect2(PAD + (CROSS - 8.0) * 0.5, PAD, 8, CROSS), cross_color)
 
-	# The number, right-aligned in room for the widest one (max health), so the bar does not move as it changes.
-	var font := UiTheme.heavy_font()
-	var text := str(ceili(_health))
-	var room := font.get_string_size(str(ceili(_max)), HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
-	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
-	var pos := Vector2(NUMBER_X + room - width, 44)
-	draw_string_outline(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, 5, Color(0, 0, 0, 0.6))
-	draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, color)
-	var bar_x := NUMBER_X + room + 14.0
-	var bar := Rect2(bar_x, BAR_Y, SIZE.x - bar_x - 18.0, BAR_HEIGHT)
-	draw_string(UiTheme.bold_font(), Vector2(bar.position.x, 26), "ЗДОРОВЬЕ", HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
+	var bar := Rect2(BAR_X, BAR_Y, SIZE.x - BAR_X - PAD, BAR_HEIGHT)
+	draw_string(UiTheme.bold_font(), Vector2(bar.position.x, LABEL_BASELINE), "ЗДОРОВЬЕ", HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
 			UiTheme.TEXT_DIM)
 
-	# Bar: dark track, the lost stretch, the current health; cell gaps cut on top.
+	# Bar: dark track, the lost stretch, the current health.
 	draw_rect(bar, Color(0, 0, 0, 0.45))
 	var trail_share := clampf(_trail / _max, 0.0, 1.0)
 	if trail_share > share:
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * trail_share, bar.size.y)), Color(1.0, 0.9, 0.8, 0.75))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), color)
-	var cells := ceili(_max / CELL)
-	for i in range(1, cells):
-		var x := bar.position.x + bar.size.x * i * CELL / _max
-		draw_rect(Rect2(x - 1.0, bar.position.y, 2.0, bar.size.y), UiTheme.HUD_PLATE)

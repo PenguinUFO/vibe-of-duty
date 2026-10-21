@@ -1,19 +1,18 @@
 class_name PlayerVisual
 extends Node3D
-## Third-person body of another player: a blockout Mannequin (scripts/player/mannequin.gd) holding the weapon, and a
-## name tag. Everything here is cosmetic and fed from data every machine already has (velocity, stance and aiming
+## Third-person body of another player: a blockout Mannequin (scripts/player/mannequin.gd) holding the weapon. No name
+## tag over the head (the owner's call). Everything here is cosmetic and fed from data every machine already has (velocity, stance and aiming
 ## flags, aim pitch, weapon, shot events); gameplay never depends on it. The head hitbox (LagComp) uses the same
 ## Mannequin.head_offset as the pose, so it matches the body. The legs are driven by this node's own movement on
 ## screen (measured each frame), so any mover - a puppet, a replay ghost, a running target - walks right.
 
-const NAME_TAG_HEIGHT := 2.15
+const NAME_TAG_HEIGHT := 2.15  # m: where labels over a body go (shooting range targets' health and damage numbers)
 const CROUCH_FREQ := 3.2      # Hz: going down / up follows a spring, with a little dip past the end
 const CROUCH_DAMPING := 0.6
 const ADS_BLEND_TIME := 0.15  # s to raise / lower the weapon
 
 var _mannequin: Mannequin
 var _weapon := WeaponView.new()
-var _tag: Label3D
 var _dead := false
 var _pitch := 0.0
 var _crouch_target := false
@@ -29,30 +28,19 @@ var _reload_t := -1.0             # s into the reload being shown, -1 = none
 var _mantling := false
 var _shown_reload := -2.0         # replay: reload progress given directly (show_reload), -2 = not given
 var _ads_target := false
-var _tag_check := 0.0           # seconds to the next occlusion test of the name tag
 
 
 static func preload_scenes() -> void:
 	pass  # the mannequin is built from primitives; WeaponDB preloads the weapon scenes
 
 
-func setup(peer_id: int, display_name: String) -> void:
+func setup(peer_id: int, _display_name: String) -> void:
 	_mannequin = Mannequin.new()
 	add_child(_mannequin)
 	_mannequin.build(Mannequin.color_for(peer_id))
 	_weapon.top_level = true  # placed by the mannequin every frame
 	add_child(_weapon)
 	_mannequin.weapon = _weapon
-
-	_tag = Label3D.new()
-	_tag.text = display_name
-	_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_tag.no_depth_test = true
-	_tag.fixed_size = true
-	_tag.pixel_size = 0.0007
-	_tag.outline_size = 8
-	_tag.position.y = NAME_TAG_HEIGHT
-	add_child(_tag)
 
 
 func set_weapon(index: int) -> void:
@@ -197,22 +185,6 @@ func _measure(delta: float) -> void:
 	_last_pos = pos
 
 
-## The name tag is drawn over everything, so it is hidden while a wall is between it and the camera.
-func _process(delta: float) -> void:
-	if _tag == null or _dead:
-		return
-	_tag_check -= delta
-	if _tag_check > 0.0:
-		return
-	_tag_check = 0.12
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return
-	var head := global_position + Vector3.UP * 1.6
-	var query := PhysicsRayQueryParameters3D.create(camera.global_position, head, Layers.WORLD)
-	_tag.visible = get_world_3d().direct_space_state.intersect_ray(query).is_empty()
-
-
 func show_shot() -> void:
 	_weapon.flash()
 
@@ -227,8 +199,6 @@ func set_dead(dead: bool, from := Vector3.INF, head_hit := false) -> void:
 	if dead == _dead:
 		return
 	_dead = dead
-	if _tag:
-		_tag.visible = not dead
 	if _mannequin == null:
 		return
 	if dead:
