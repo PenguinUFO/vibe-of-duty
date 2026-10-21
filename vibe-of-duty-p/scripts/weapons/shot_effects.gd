@@ -14,7 +14,7 @@ static func spawn_tracer(parent: Node, from: Vector3, to: Vector3) -> void:
 	if length < 0.5:
 		return
 	if _tracer_material == null:
-		_tracer_material = _emissive(Color(1.0, 0.85, 0.5))
+		_tracer_material = _emissive(Color(1.0, 0.78, 0.5))  # Palette.EMBER, lightened: a streak of light
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(0.012, 0.012, length)
 	mesh.material = _tracer_material

@@ -64,7 +64,7 @@ func _ready() -> void:
 	_board_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_board_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.06, 0.08, 0.8)
+	style.bg_color = Color(UiTheme.PANEL, 0.8)
 	style.set_content_margin_all(18.0)
 	style.set_corner_radius_all(6)
 	_board_panel.add_theme_stylebox_override("panel", style)
@@ -180,7 +180,7 @@ func _rebuild_board() -> void:
 	for header in ["Игрок", "Убийства", "Смерти"]:
 		var h := _make_label(20)
 		h.text = header
-		h.add_theme_color_override("font_color", Color(0.6, 0.75, 1.0))
+		h.add_theme_color_override("font_color", UiTheme.TEXT_DIM)
 		_board_grid.add_child(h)
 	var rows: Array = []
 	for id in world.players:
@@ -193,7 +193,7 @@ func _rebuild_board() -> void:
 			var cell := _make_label(20)
 			cell.text = text
 			if row["id"] == me:
-				cell.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+				cell.add_theme_color_override("font_color", UiTheme.HIGHLIGHT)
 			_board_grid.add_child(cell)
 
 

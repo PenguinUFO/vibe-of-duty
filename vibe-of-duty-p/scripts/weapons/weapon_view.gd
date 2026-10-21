@@ -45,7 +45,7 @@ func _init() -> void:
 	flash_mesh.height = 0.1
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.8, 0.35)
+	mat.albedo_color = Color(1.0, 0.74, 0.42)
 	flash_mesh.material = mat
 	_flash.mesh = flash_mesh
 	_flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

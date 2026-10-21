@@ -11,6 +11,7 @@ const VIEWS := {  # train.tscn (cars along z, 20 m each: A from -42.1, B -20.7, 
 	"d_upper": [Vector3(2.0, 4.95, 39.0), Vector3(1.5, 4.6, 28.0)],
 	"outside": [Vector3(16.0, 3.5, -20.0), Vector3(0.0, 2.5, 0.0)],
 	"window": [Vector3(2.3, 1.65, 32.0), Vector3(12.0, 0.5, 30.0)],
+	"bot": [Vector3(0.0, 1.65, -24.0), Vector3(0.5, 1.0, -38.0)],  # readability of a player at ~14 m (Bot0)
 }
 const FRAMES := 120
 

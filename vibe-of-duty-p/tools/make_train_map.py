@@ -32,20 +32,24 @@ WIN_W, PILLAR = 1.6, 0.8
 DOOR_W, DOOR_H = 1.4, 2.3
 STAIR_W, STAIR_RUN = 1.6, 6.0
 
-# Colours (Block materials are shared per colour).
-BODY = (0.42, 0.5, 0.58)      # car body, outside
-BODY_B = (0.55, 0.32, 0.28)   # dining car
-FLOOR = (0.36, 0.33, 0.3)
-ROOF_C = (0.3, 0.32, 0.34)
-INNER = (0.72, 0.68, 0.6)     # partitions
-SEAT = (0.28, 0.38, 0.52)
-TABLE = (0.55, 0.4, 0.26)
-CRATE = (0.75, 0.55, 0.35)
-CONTAINER = (0.62, 0.3, 0.22)
-CONTAINER2 = (0.25, 0.45, 0.4)
-STEEL = (0.4, 0.42, 0.44)
-UNDER = (0.18, 0.18, 0.19)
-LOCO = (0.75, 0.62, 0.2)
+# Colours (Block materials are shared per colour). The owner's palette (Docs/AUTHOR.md; scripts/game/palette.gd):
+# warm greys, the cars told apart by lightness and one rust car, not by hue. Olive is kept for pickups (ammo bags).
+# These are albedos: the palette's dark hexes are what the lit frame should look like, not surface colours.
+BODY = (0.48, 0.46, 0.42)     # car body: A passenger
+BODY_B = (0.52, 0.37, 0.3)   # dining car: rust
+BODY_D = (0.58, 0.56, 0.51)   # sleeper: lighter grey
+FLOOR = (0.38, 0.36, 0.33)
+ROOF_C = (0.32, 0.31, 0.3)
+INNER = (0.66, 0.63, 0.57)    # partitions
+SEAT = (0.36, 0.33, 0.29)
+TABLE = (0.48, 0.33, 0.24)    # wood
+CRATE = (0.56, 0.47, 0.36)
+CONTAINER = (0.48, 0.31, 0.24)
+CONTAINER2 = (0.4, 0.41, 0.41)
+STEEL = (0.42, 0.42, 0.41)
+UNDER = (0.16, 0.155, 0.15)
+LOCO = (0.27, 0.27, 0.26)
+LAMP_COLOR = (1.0, 0.72, 0.45)  # Palette.EMBER as light
 
 blocks = []   # (name, center, size, color, rot_x)
 lights = []   # (name, position)
@@ -236,7 +240,7 @@ z += GAP
 
 # D: sleeper + baggage. Lower deck: baggage shelves and crates; upper deck: sleeper compartments off a side corridor.
 d0 = z
-z = closed_car(d0, BODY, back_door=False)
+z = closed_car(d0, BODY_D, back_door=False)
 for i in range(3):
     zz = d0 + 8.0 + i * 1.6
     box("Shelf", HW - 0.9, HW, 0.0, 2.2, zz, zz + 0.8, STEEL)

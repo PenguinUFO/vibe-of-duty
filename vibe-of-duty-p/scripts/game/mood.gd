@@ -1,36 +1,37 @@
 class_name Mood
 extends RefCounted
-## The PSX style's mood (Settings.psx_style): dusk. Dark doesn't mean grey: the shade and the sky are cold and dark
-## blue, and against them stand warm light sources - a low orange sun along the horizon, lamps (MoodLamps here, the
-## train's own lamps) and muzzle flashes (MuzzleLights) - and bright lamps get a soft halo (halo(): a billboard,
-## far cheaper on integrated graphics than the Environment's glow; the PSX dither bands it). Players keep a
-## readability rim (Mannequin.set_rim): seeing the enemy comes first.
+## The PSX style's mood (Settings.psx_style): a cold dusk (Docs/AUTHOR.md: darkness and warm greys, rare accents that
+## mean something). The sun is low, pale and weak; the sky, the shade and the haze are dim, desaturated blue-grey. The
+## only warm things in the frame are light sources - lamps (MoodLamps here, the train's own lamps) and muzzle flashes
+## (MuzzleLights), in Palette.EMBER - so warm light reads as "here", against the cold. Bright lamps get a soft halo
+## (halo(): a billboard, far cheaper on integrated graphics than the Environment's glow; the PSX dither bands it).
+## Players keep a readability rim (Mannequin.set_rim): seeing the enemy comes first.
 ## Turned off, everything is as the level was made.
 ##
 ## Applied by NetWorld to its level (at load and whenever the graphics settings change). The level's own values are
 ## kept as metadata on the resources the first time, so switching back and forth always starts from them (the
 ## Environment is shared with the next load of the same scene).
 
-# Sun: low over the horizon (long shadows, warm streaks of light), its azimuth as the level has it.
-const SUN_ELEVATION := 13.0      # degrees
-const SUN_ENERGY := 1.5
-const SUN_COLOR := Color(1.0, 0.56, 0.32)
+# Sun: low over the horizon (long shadows), pale and cold, its azimuth as the level has it.
+const SUN_ELEVATION := 11.0      # degrees
+const SUN_ENERGY := 1.0
+const SUN_COLOR := Palette.DUSK_SUN
 # Shade: cold and dim, but not black - corners stay readable.
-const AMBIENT_ENERGY := 0.82     # x the level's ambient light
-const AMBIENT_COLOR := Color(0.3, 0.35, 0.52)
-const AMBIENT_SKY := 0.3
-const FOG_DENSITY := 0.006
-const FOG_COLOR := Color(0.12, 0.14, 0.22)
-const FOG_SUN_SCATTER := 0.12    # the haze glows warm towards the sun (more washes the whole view orange)
-const FOG_SKY_AFFECT := 0.35
-const SATURATION := 1.05
-const CONTRAST := 1.08
-## Sky shader (assets/shaders/sky_clouds.gdshader): a deep blue dusk with an orange band along the horizon, clouds
-## lit warm from below.
+const AMBIENT_ENERGY := 1.2      # x the level's ambient light
+const AMBIENT_COLOR := Palette.DUSK_SHADE
+const AMBIENT_SKY := 0.25
+const FOG_DENSITY := 0.007
+const FOG_COLOR := Palette.DUSK_FOG
+const FOG_SUN_SCATTER := 0.0     # no glow towards the sun: the haze stays cold
+const FOG_SKY_AFFECT := 0.4
+const SATURATION := 0.72         # the whole frame leans grey; accents survive it, big areas go muted
+const CONTRAST := 1.12
+## Sky shader (assets/shaders/sky_clouds.gdshader): a dark blue-grey dusk with a narrow pale band along the horizon,
+## clouds barely lit.
 const SKY := {
-	"zenith_color": Color(0.04, 0.06, 0.13), "horizon_color": Color(0.66, 0.36, 0.22), "horizon_curve": 0.16,
-	"ground_color": Color(0.05, 0.06, 0.09), "cloud_coverage": 0.55, "cloud_light": Color(1.0, 0.6, 0.4),
-	"cloud_shadow": Color(0.1, 0.11, 0.18), "sun_glow": 1.1, "sun_glow_size": 5.0,
+	"zenith_color": Palette.DUSK_ZENITH, "horizon_color": Palette.DUSK_HORIZON, "horizon_curve": 0.1,
+	"ground_color": Palette.GREY_0, "cloud_coverage": 0.6, "cloud_light": Color("#5d6670"),
+	"cloud_shadow": Color("#12161c"), "sun_glow": 0.35, "sun_glow_size": 8.0,
 }
 const ENV_KEYS := ["ambient_light_energy", "ambient_light_color", "ambient_light_sky_contribution", "tonemap_exposure",
 		"fog_density", "fog_light_color", "fog_sun_scatter", "fog_sky_affect", "adjustment_saturation",
@@ -47,10 +48,10 @@ const LAMP_SPACING := 10.0       # m between lamps
 const LAMP_HEIGHT := 4.0         # m above the floor, outdoors (on a pole); indoors it hangs under the ceiling
 const LAMP_ENERGY := 2.4
 const LAMP_RANGE := 12.0
-const LAMP_COLOR := Color(1.0, 0.76, 0.48)
+const LAMP_COLOR := Color(1.0, 0.72, 0.45)  # Palette.EMBER, lighter: as light it tints, as a colour it would be muddy
 const GLOW_EMISSION := 2.6       # fixture brightness (over white: reads as a light source)
-const GLOW_TINT := Color(1.0, 0.55, 0.22)  # fixtures: saturated, so they stay warm (not white) when this bright
-const HALO_COLOR := Color(1.0, 0.6, 0.3, 0.55)
+const GLOW_TINT := Palette.EMBER  # fixtures: warm, not white, even this bright
+const HALO_COLOR := Color(Palette.EMBER, 0.5)
 const LAMPS_NODE := "MoodLamps"
 
 
@@ -172,7 +173,7 @@ static func _shade(root: Node3D, pos: Vector3, size: Vector3, halo_size: float) 
 	var box := BoxMesh.new()
 	box.size = size + Vector3(0.06, 0.06, 0.06)
 	housing.mesh = box
-	housing.material_override = _flat(Color(0.08, 0.08, 0.09))
+	housing.material_override = _flat(Palette.GREY_0)
 	root.add_child(housing)
 	housing.global_position = pos + Vector3.UP * 0.04
 	var bulb := MeshInstance3D.new()
@@ -257,7 +258,7 @@ static func _pole(root: Node3D, floor_pos: Vector3, height: float) -> void:
 	cylinder.height = height
 	cylinder.radial_segments = 6
 	pole.mesh = cylinder
-	pole.material_override = _flat(Color(0.1, 0.1, 0.11))
+	pole.material_override = _flat(Palette.GREY_1)
 	root.add_child(pole)
 	pole.global_position = floor_pos + Vector3.UP * height * 0.5
 

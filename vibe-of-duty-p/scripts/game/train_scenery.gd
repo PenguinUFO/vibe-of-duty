@@ -38,7 +38,7 @@ const FOREST_VISIBLE := 260.0   # chunks farther than this (in the haze) are not
 ## The train's lamps (OmniLights, ~0.4 ms each on integrated graphics) only burn in tunnels: in daylight the windows
 ## light the cars well enough.
 const LAMP_ENERGY := 1.4
-const MOOD_LAMP_BOOST := 1.8    # PSX style's dusk: the lamps are what lights the cars
+const MOOD_LAMP_BOOST := 2.6    # PSX style's dusk: the lamps are what lights the cars
 ## Only the lamp of the camera's car and deck burns (a car is 20 m long, the decks 3.3 m apart): a lamp lighting
 ## the whole view costs ~1.5 ms on integrated graphics, and the other cars' and decks' light is barely seen.
 const LAMP_REACH := 13.0
@@ -51,7 +51,7 @@ const POST_SPACING := 150.0     # m between posts on one side; the other side is
 const POST_NEAR := 300.0        # posts run from POST_FROM over this length, then wrap round (far in the haze)
 const POST_FROM := -160.0
 const POST_LIT_MARGIN := 25.0   # a post's light is on only this close to the train (costs nothing elsewhere)
-const POST_COLOR := Color(1.0, 0.6, 0.28)
+const POST_COLOR := Color(1.0, 0.66, 0.38)  # Palette.EMBER as light
 const POST_ENERGY := 7.0
 
 @export var speed := 22.0       # m/s (about 80 km/h)
@@ -182,11 +182,11 @@ func _scroll_material(code: String) -> ShaderMaterial:
 
 func _build_posts() -> void:
 	var dark := StandardMaterial3D.new()
-	dark.albedo_color = Color(0.12, 0.12, 0.13)
+	dark.albedo_color = Palette.GREY_1
 	dark.roughness = 0.8
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow.albedo_color = Color(1.0, 0.5, 0.18) * 2.6  # over white: reads as a light source
+	glow.albedo_color = Palette.EMBER * 2.6  # over white: reads as a light source
 	glow.disable_fog = true
 	for side in [-1.0, 1.0]:
 		for k in int(POST_NEAR / POST_SPACING):
@@ -229,7 +229,7 @@ func _build_posts() -> void:
 			head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			head.position = Vector3(-side * 0.95, POST_HEIGHT - 0.08, 0.0)
 			post.add_child(head)
-			var halo := Mood.halo(3.0, Color(1.0, 0.55, 0.25, 0.6))
+			var halo := Mood.halo(3.0, Mood.HALO_COLOR)
 			halo.position = head.position + Vector3.DOWN * 0.2
 			post.add_child(halo)
 			_posts.append(post)
@@ -284,12 +284,13 @@ func _build_forest() -> void:
 
 
 # Blockout vegetation: primitives merged into one mesh per kind, one surface per colour, flat shaded (low-poly look).
+# Dark, muted olive-greys (Docs/AUTHOR.md): the forest is a backdrop of silhouettes, not a green accent.
 
-const TRUNK := Color(0.33, 0.22, 0.14)
-const PINE := Color(0.15, 0.29, 0.15)
-const LEAVES := Color(0.29, 0.41, 0.15)
-const BUSH := Color(0.24, 0.37, 0.14)
-const STONE := Color(0.45, 0.44, 0.42)
+const TRUNK := Color(0.2, 0.17, 0.14)
+const PINE := Color(0.13, 0.15, 0.12)
+const LEAVES := Color(0.2, 0.22, 0.15)
+const BUSH := Color(0.17, 0.19, 0.13)
+const STONE := Color(0.33, 0.32, 0.3)
 
 
 func _pine() -> ArrayMesh:
@@ -374,7 +375,7 @@ func _build_tunnel() -> void:
 	concrete.albedo_color = Color(0.32, 0.31, 0.3)
 	concrete.roughness = 0.95
 	var hill := StandardMaterial3D.new()
-	hill.albedo_color = Color(0.3, 0.38, 0.24)
+	hill.albedo_color = Color(0.2, 0.22, 0.17)
 	hill.roughness = 1.0
 	var half := TUNNEL_W * 0.5
 	var base := GROUND_Y
@@ -482,8 +483,8 @@ void vertex() { world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz; }
 void fragment() {
 	vec2 p = world_xz - vec2(0.0, scroll);
 	float n = noise(p * 0.08) * 0.6 + noise(p * 0.5) * 0.3 + noise(p * 3.0) * 0.1;
-	vec3 grass = mix(vec3(0.16, 0.25, 0.1), vec3(0.3, 0.38, 0.16), n);
-	vec3 dirt = vec3(0.3, 0.26, 0.2);
+	vec3 grass = mix(vec3(0.12, 0.13, 0.1), vec3(0.2, 0.21, 0.16), n);
+	vec3 dirt = vec3(0.22, 0.2, 0.17);
 	ALBEDO = mix(grass, dirt, smoothstep(0.62, 0.78, noise(p * 0.03 + 7.0)) * 0.6);
 	ROUGHNESS = 1.0;
 }
@@ -500,7 +501,7 @@ void fragment() {
 	vec2 p = world_xz - vec2(0.0, scroll);
 	vec3 gravel = mix(vec3(0.33, 0.32, 0.3), vec3(0.45, 0.43, 0.4), hash(floor(p * 9.0)));
 	float sleeper = step(fract(p.y / 0.65), 0.38) * step(abs(p.x), 1.3);
-	ALBEDO = mix(gravel, vec3(0.28, 0.2, 0.14), sleeper);
+	ALBEDO = mix(gravel, vec3(0.22, 0.17, 0.13), sleeper);
 	ROUGHNESS = 1.0;
 }
 """

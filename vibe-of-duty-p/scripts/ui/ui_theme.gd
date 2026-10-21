@@ -11,20 +11,22 @@ extends RefCounted
 
 const GAME_FONT := "res://assets/fonts/science-gothic/Science-Gothic-Variable-Fixed.ttf"
 
-const BG := Color(0.065, 0.072, 0.09)
-const PANEL := Color(0.08, 0.09, 0.115, 0.95)
-const SURFACE := Color(0.14, 0.155, 0.19, 0.92)
-const SURFACE_HOVER := Color(0.2, 0.215, 0.26, 0.96)
-const SURFACE_PRESSED := Color(0.27, 0.18, 0.1, 0.96)
-const FIELD := Color(0.04, 0.045, 0.06, 0.9)
-const TEXT := Color(0.93, 0.91, 0.87)
-const TEXT_DIM := Color(0.6, 0.62, 0.67)
-const ACCENT := Color(1.0, 0.56, 0.16)
-const ACCENT_DIM := Color(0.62, 0.36, 0.13)
-const DANGER := Color(0.95, 0.27, 0.22)
-const GOOD := Color(0.45, 0.86, 0.48)
-const HIGHLIGHT := Color(1.0, 0.85, 0.3)  # the player's own lines (kill feed, scoreboard)
-const HUD_PLATE := Color(0.03, 0.035, 0.05, 0.62)
+# Black and warm greys; the signal red marks focus, danger and the player's own lines, olive marks "good"
+# (Palette, Docs/AUTHOR.md).
+const BG := Palette.GREY_0
+const PANEL := Color(Palette.GREY_1, 0.95)
+const SURFACE := Color(Palette.GREY_2, 0.92)
+const SURFACE_HOVER := Color(Palette.GREY_3, 0.96)
+const SURFACE_PRESSED := Color(0.3, 0.09, 0.03, 0.96)
+const FIELD := Color(0.03, 0.028, 0.026, 0.9)
+const TEXT := Palette.PALE
+const TEXT_DIM := Palette.GREY_6
+const ACCENT := Palette.SIGNAL
+const ACCENT_DIM := Color(0.5, 0.13, 0.04)
+const DANGER := Palette.SIGNAL
+const GOOD := Color(0.6, 0.67, 0.36)  # Palette.OLIVE, lightened to read as text
+const HIGHLIGHT := Color(1.0, 0.36, 0.2)  # the player's own lines (kill feed, scoreboard): Palette.SIGNAL, lightened for text
+const HUD_PLATE := Color(0.02, 0.018, 0.016, 0.62)
 
 const CHAMFER := 8  # cut-off corners (top-left and bottom-right) of buttons and panels
 const FONT_SIZE := 16
@@ -278,7 +280,7 @@ static func _containers(t: Theme) -> void:
 	t.set_type_variation("FeedEntry", "PanelContainer")
 	t.set_stylebox("panel", "FeedEntry", box(HUD_PLATE, 5, 10.0, 3.0))
 	t.set_type_variation("FeedEntryMine", "PanelContainer")
-	var mine := box(Color(0.16, 0.1, 0.04, 0.72), 5, 10.0, 3.0)
+	var mine := box(Color(0.2, 0.05, 0.02, 0.72), 5, 10.0, 3.0)
 	mine.border_width_left = 3
 	mine.border_color = ACCENT
 	t.set_stylebox("panel", "FeedEntryMine", mine)
@@ -312,7 +314,7 @@ static func _containers(t: Theme) -> void:
 
 
 static func _popups(t: Theme) -> void:
-	var popup := box(Color(0.09, 0.1, 0.13, 0.98), CHAMFER, 6.0, 6.0)
+	var popup := box(Color(PANEL, 0.98), CHAMFER, 6.0, 6.0)
 	popup.set_border_width_all(1)
 	popup.border_color = Color(ACCENT, 0.5)
 	t.set_stylebox("panel", "PopupMenu", popup)
@@ -321,7 +323,7 @@ static func _popups(t: Theme) -> void:
 	t.set_color("font_hover_color", "PopupMenu", Color.WHITE)
 	t.set_constant("v_separation", "PopupMenu", 8)
 	t.set_font("font", "PopupMenu", load(GAME_FONT) as Font)
-	var tip := box(Color(0.09, 0.1, 0.13, 0.97), 4, 10.0, 6.0)
+	var tip := box(Color(PANEL, 0.97), 4, 10.0, 6.0)
 	tip.set_border_width_all(1)
 	tip.border_color = Color(ACCENT, 0.5)
 	t.set_stylebox("panel", "TooltipPanel", tip)
