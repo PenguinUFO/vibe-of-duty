@@ -1,4 +1,5 @@
 """Generates prefabs/levels/train.tscn: a wide double-decker train (FFA, 2-4 players) running through a forest.
+Read Docs/LEVEL_TRAIN.md first (layout, the owner's decisions, how to check); update it with any change here.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_train_map.py
 Re-running overwrites the scene, so tune the layout here, not in the editor.
@@ -9,9 +10,16 @@ move past it (scripts/game/train_scenery.gd, visual only). The train runs along 
 Layout, front to back: locomotive (decor) | A passenger | B dining | C open cargo car | D sleeper + baggage.
 A, B and D are closed double-deckers (~80% of the map) with rows of windows on both decks; C has no roof: a cargo
 pit with containers and crates, and a catwalk at upper-deck height linking B and D. Windows are 0.9 m tall, lower
-than a crouching player (1.1 m), so nobody climbs out through them; the open car and the roofs are the way off the
-train - and the ground beside the track kills on landing (World.kill_height just above a solid ground plane, so the
-body lands instead of falling through the scenery).
+than a crouching player (1.1 m), so nobody climbs out through them.
+
+Doors are on the centre line (DOOR_X = 0): each deck is one sightline through the whole train - the owner's call,
+it has its charm (a zigzag, DOOR_X 1.4, was tried and rejected). B and D are mirrored copies (m = -1): their stairs
+stand the other way round, and with an offset DOOR_X each door stays opposite its stairs.
+
+Nobody falls off by a misstep: every edge a player can walk to is walled or railed (1.1 m, above the jump height,
+and the vault refuses a rail with a drop behind it). Only a deliberate running jump from a container top clears
+the cargo car's sides - and the ground beside the track kills on landing (World.kill_height just above a
+solid ground plane, so the body lands instead of falling through the scenery).
 """
 import math
 import os
@@ -30,7 +38,10 @@ ROOF = 6.3         # roof slab bottom
 WIN_LOW, WIN_HIGH = 1.1, 2.0   # window band (0.9 m: a crouching player is 1.1 m)
 WIN_W, PILLAR = 1.6, 0.8
 DOOR_W, DOOR_H = 1.4, 2.3
+DOOR_X = 0.0       # doors this far off the centre line, at opposite sides of each car (1.4: a zigzag)
 STAIR_W, STAIR_RUN = 1.6, 6.0
+RAIL = 1.1         # guard rail height: above the jump (~1.06 m)
+C_SIDE = 1.5       # cargo car sides and ends, all one height
 
 # Colours (Block materials are shared per colour). The owner's palette (Docs/AUTHOR.md; scripts/game/palette.gd):
 # warm greys, the cars told apart by lightness and one rust car, not by hue. Olive is kept for pickups (ammo bags).
@@ -51,6 +62,11 @@ UNDER = (0.16, 0.155, 0.15)
 LOCO = (0.27, 0.27, 0.26)
 LAMP_COLOR = (1.0, 0.72, 0.45)  # Palette.EMBER as light
 
+# Render layers (project.godot): the lamps cast no shadows, so each lights only its own deck's blocks - plus the
+# world (players, scenery) and the viewmodel. The upper floor slabs, gangway walls and stairs belong to both decks.
+LAYER_WORLD, LAYER_VIEWMODEL, LAYER_LOWER, LAYER_UPPER = 1, 2, 4, 8
+DECK_SPLIT = 3.15  # the middle of the upper floor slab
+
 blocks = []   # (name, center, size, color, rot_x)
 lights = []   # (name, position)
 spawns = []   # (name, position, yaw)
@@ -63,7 +79,10 @@ def uniq(name):
     return name if n == 0 else "%s%d" % (name, n)
 
 
-def box(name, x0, x1, y0, y1, z0, z1, color, rot_x=0.0):
+def box(name, x0, x1, y0, y1, z0, z1, color, rot_x=0.0, m=1):
+    """m = -1 mirrors the box across the centre line (x -> -x)."""
+    if m < 0:
+        x0, x1 = -x1, -x0
     blocks.append((uniq(name), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (x1 - x0, y1 - y0, z1 - z0), color, rot_x))
 
 
@@ -75,6 +94,8 @@ def side_wall(x_inner, outward, z0, z1, deck_y, top_y, color, panoramic=False):
     low, high = (0.9, 2.3) if panoramic else (WIN_LOW, WIN_HIGH)
     box("WallLow", xa, xb, deck_y, deck_y + low, z0, z1, color)
     box("WallHigh", xa, xb, deck_y + high, top_y, z0, z1, color)
+    if panoramic:  # a transom across the tall windows: neither opening fits a crouching player
+        box("Transom", xa, xb, deck_y + 1.5, deck_y + 1.65, z0, z1, color)
     # Pillars between the windows, evenly spread over the length.
     length = z1 - z0
     count = max(1, int((length - PILLAR) // (WIN_W + PILLAR)))
@@ -85,15 +106,15 @@ def side_wall(x_inner, outward, z0, z1, deck_y, top_y, color, panoramic=False):
         z += pillar + WIN_W
 
 
-def end_wall(z_face, inward, deck_y, top_y, color, door=True):
-    """A car end wall (across the car) at z_face, optionally with a centred door."""
+def end_wall(z_face, inward, deck_y, top_y, color, door_x=None):
+    """A car end wall (across the car) at z_face, with a door centred at door_x (None: no door)."""
     za, zb = sorted((z_face, z_face + inward * T))
-    if not door:
+    if door_x is None:
         box("EndWall", -W / 2, W / 2, deck_y, top_y, za, zb, color)
         return
-    box("EndWall", -W / 2, -DOOR_W / 2, deck_y, top_y, za, zb, color)
-    box("EndWall", DOOR_W / 2, W / 2, deck_y, top_y, za, zb, color)
-    box("Lintel", -DOOR_W / 2, DOOR_W / 2, deck_y + DOOR_H, top_y, za, zb, color)
+    box("EndWall", -W / 2, door_x - DOOR_W / 2, deck_y, top_y, za, zb, color)
+    box("EndWall", door_x + DOOR_W / 2, W / 2, deck_y, top_y, za, zb, color)
+    box("Lintel", door_x - DOOR_W / 2, door_x + DOOR_W / 2, deck_y + DOOR_H, top_y, za, zb, color)
 
 
 def ramp(x0, x1, z_low, z_high):
@@ -123,37 +144,42 @@ def upper_floor(z0, z1, holes):
             box("UpperFloor", xa, xb, UPPER - SLAB, UPPER, z, z1, FLOOR)
 
 
-def closed_car(z0, color, front_door=True, back_door=True, panoramic_upper=False):
+def closed_car(z0, color, m=1, front_door=True, back_door=True, panoramic_upper=False):
+    """A double-decker. Written for m = 1 (front stairs right, back stairs left, each door opposite its stairs:
+    front door left, back door right); m = -1 is the mirror image."""
     z1 = z0 + L
     box("Underframe", -W / 2 + 0.5, W / 2 - 0.5, -1.3, -SLAB, z0 + 1.0, z1 - 1.0, UNDER)
     box("Floor", -W / 2, W / 2, -SLAB, 0.0, z0, z1, FLOOR)
     box("Roof", -W / 2, W / 2, ROOF, ROOF + SLAB, z0, z1, ROOF_C)
-    s1 = (HW - STAIR_W, HW, z0 + 1.2, z0 + 1.2 + STAIR_RUN)          # front stairs, right side, rising backwards
-    s2 = (-HW, -HW + STAIR_W, z1 - 1.2 - STAIR_RUN, z1 - 1.2)        # back stairs, left side, rising forwards
+    mx = lambda xa, xb: (xa, xb) if m > 0 else (-xb, -xa)
+    s1 = mx(HW - STAIR_W, HW) + (z0 + 1.2, z0 + 1.2 + STAIR_RUN)      # front stairs, rising backwards
+    s2 = mx(-HW, -HW + STAIR_W) + (z1 - 1.2 - STAIR_RUN, z1 - 1.2)    # back stairs, rising forwards
     upper_floor(z0 + T, z1 - T, [s1, s2])
     ramp(s1[0], s1[1], s1[2], s1[3])
     ramp(s2[0], s2[1], s2[3], s2[2])
     # Guard rails along the stair holes on the upper deck (the open side of each hole).
-    box("Rail", s1[0] - 0.1, s1[0], UPPER, UPPER + 1.0, s1[2], s1[3], STEEL)
-    box("Rail", s2[1], s2[1] + 0.1, UPPER, UPPER + 1.0, s2[2], s2[3], STEEL)
+    box("Rail", HW - STAIR_W - 0.1, HW - STAIR_W, UPPER, UPPER + RAIL, s1[2], s1[3], STEEL, m=m)
+    box("Rail", -HW + STAIR_W, -HW + STAIR_W + 0.1, UPPER, UPPER + RAIL, s2[2], s2[3], STEEL, m=m)
+    front_x = -DOOR_X * m if front_door else None
+    back_x = DOOR_X * m if back_door else None
     for deck_y, top_y, pano in ((0.0, UPPER, False), (UPPER, ROOF + SLAB, panoramic_upper)):
         side_wall(HW, 1, z0, z1, deck_y, top_y, color, pano)
         side_wall(-HW, -1, z0, z1, deck_y, top_y, color, pano)
-        end_wall(z0, 1, deck_y, top_y, color, front_door)
-        end_wall(z1, -1, deck_y, top_y, color, back_door)
+        end_wall(z0, 1, deck_y, top_y, color, front_x)
+        end_wall(z1, -1, deck_y, top_y, color, back_x)
     lights.append((uniq("Lamp"), (0.0, UPPER - SLAB - 0.4, z0 + L / 2)))
     lights.append((uniq("Lamp"), (0.0, ROOF - 0.4, z0 + L / 2)))
     return z1
 
 
-def gangway(z0, z1):
-    """Covered walkway between two cars on both decks."""
+def gangway(z0, z1, x):
+    """Covered walkway between two cars on both decks, centred at x (the doors' x)."""
     hw = DOOR_W / 2 + 0.15
-    box("GangwayFloor", -hw, hw, -SLAB, 0.0, z0, z1, FLOOR)
-    box("GangwayFloor", -hw, hw, UPPER - SLAB, UPPER, z0, z1, FLOOR)
-    box("GangwayRoof", -hw - T, hw + T, ROOF, ROOF + SLAB, z0, z1, ROOF_C)
-    box("GangwayWall", -hw - T, -hw, -SLAB, ROOF, z0, z1, UNDER)
-    box("GangwayWall", hw, hw + T, -SLAB, ROOF, z0, z1, UNDER)
+    box("GangwayFloor", x - hw, x + hw, -SLAB, 0.0, z0, z1, FLOOR)
+    box("GangwayFloor", x - hw, x + hw, UPPER - SLAB, UPPER, z0, z1, FLOOR)
+    box("GangwayRoof", x - hw - T, x + hw + T, ROOF, ROOF + SLAB, z0, z1, ROOF_C)
+    box("GangwayWall", x - hw - T, x - hw, -SLAB, ROOF, z0, z1, UNDER)
+    box("GangwayWall", x + hw, x + hw + T, -SLAB, ROOF, z0, z1, UNDER)
 
 
 # --- the train -------------------------------------------------------------------------------------------------------
@@ -168,39 +194,33 @@ box("LocoCab", -W / 2 + 0.2, W / 2 - 0.2, 5.2, 6.2, z - 6.0, z - 1.5, LOCO)
 # A: passenger car. Lower deck: seat rows on both sides of the aisle; upper deck: rows too, plus luggage stacks.
 a0 = z
 z = closed_car(a0, BODY, front_door=False)
-for i in range(6):
-    zz = a0 + 8.5 + i * 1.8
-    if zz > a0 + L - 8.5:
-        break
+for zz in (a0 + 8.5, a0 + 10.3):
     box("Seat", -HW, -0.8, 0.0, 1.0, zz, zz + 0.45, SEAT)
     box("Seat", 0.8, HW, 0.0, 1.0, zz, zz + 0.45, SEAT)
-for i in range(4):
-    zz = a0 + 8.0 + i * 1.8
-    box("Seat", -HW + STAIR_W, -0.8, UPPER, UPPER + 1.0, zz, zz + 0.45, SEAT)
-    box("Seat", 0.8, HW, UPPER, UPPER + 1.0, zz + 0.9, zz + 1.35, SEAT)
+for zz in (a0 + 8.0, a0 + 9.8):
+    box("Seat", -HW, -0.8, UPPER, UPPER + 1.0, zz, zz + 0.45, SEAT)
+    box("Seat", 0.8, HW, UPPER, UPPER + 1.0, zz, zz + 0.45, SEAT)
 box("Luggage", -HW + STAIR_W, -HW + STAIR_W + 1.0, UPPER, UPPER + 1.6, a0 + 3.0, a0 + 4.2, CRATE)
 box("Luggage", HW - 1.2, HW, UPPER, UPPER + 1.2, a0 + L - 4.5, a0 + L - 3.3, CRATE)
 spawns.append(("SpawnA_low", (0.0, 0.05, a0 + 3.5), math.pi))      # facing back along the car
 spawns.append(("SpawnA_up", (0.0, UPPER + 0.05, a0 + L - 3.0), 0.0))
 
-gangway(z, z + GAP)
+gangway(z, z + GAP, DOOR_X)
 z += GAP
 
-# B: dining car. Lower deck: tables in two rows and a bar counter; upper deck: panoramic lounge with partitions.
+# B: dining car, mirrored. Lower deck: tables in two rows and a bar counter; upper deck: an open panoramic lounge.
 b0 = z
-z = closed_car(b0, BODY_B, panoramic_upper=True)
+z = closed_car(b0, BODY_B, m=-1, panoramic_upper=True)
 for i in range(3):
     zz = b0 + 8.0 + i * 2.6
-    box("Table", -HW + 0.2, -HW + 1.2, 0.0, 0.85, zz, zz + 1.0, TABLE)
-    box("Table", HW - 1.2, HW - 0.2, 0.0, 0.85, zz + 1.3, zz + 2.3, TABLE)
+    box("Table", -HW + 0.2, -HW + 1.2, 0.0, 0.85, zz, zz + 1.0, TABLE, m=-1)
+    box("Table", HW - 1.2, HW - 0.2, 0.0, 0.85, zz + 1.3, zz + 2.3, TABLE, m=-1)
 box("Bar", -0.4, 0.4, 0.0, 1.1, b0 + 3.0, b0 + 6.5, TABLE)
-box("Partition", -HW + STAIR_W, -0.7, UPPER, ROOF, b0 + 9.0, b0 + 9.25, INNER)   # rooms on the upper deck, door in the middle
-box("Partition", 0.7, HW - STAIR_W, UPPER, ROOF, b0 + 11.5, b0 + 11.75, INNER)
-box("Sofa", 0.9, HW - 0.2, UPPER, UPPER + 0.8, b0 + 13.5, b0 + 14.5, SEAT)
-box("Sofa", -HW + STAIR_W + 0.2, -0.9, UPPER, UPPER + 0.8, b0 + 5.5, b0 + 6.5, SEAT)
+box("Sofa", 0.9, HW - 0.2, UPPER, UPPER + 0.8, b0 + 13.5, b0 + 14.5, SEAT, m=-1)
+box("Sofa", -HW + 0.2, -0.9, UPPER, UPPER + 0.8, b0 + 5.5, b0 + 6.5, SEAT, m=-1)
 spawns.append(("SpawnB_up", (0.0, UPPER + 0.05, b0 + 4.0), math.pi))
 
-gangway(z, z + GAP)
+gangway(z, z + GAP, -DOOR_X)
 z += GAP
 
 # C: open cargo car (no roof). A pit with containers and crates; a catwalk at upper-deck height joins B and D.
@@ -208,55 +228,70 @@ c0 = z
 c1 = c0 + L
 box("Underframe", -W / 2 + 0.5, W / 2 - 0.5, -1.3, -SLAB, c0 + 1.0, c1 - 1.0, UNDER)
 box("Floor", -W / 2, W / 2, -SLAB, 0.0, c0, c1, FLOOR)
-box("Side", HW, W / 2, 0.0, 1.4, c0, c1, BODY)
-box("Side", -W / 2, -HW, 0.0, 1.4, c0, c1, BODY)
-box("Container", -HW + 0.1, -HW + 2.6, 0.0, 2.6, c0 + 2.0, c0 + 8.0, CONTAINER)
+# Sides thinner than the vault's MANTLE_MIN_TOP (0.15 m): nobody climbs onto their top and steps off outside.
+box("Side", HW, HW + 0.1, 0.0, C_SIDE, c0, c1, BODY)
+box("Side", -HW - 0.1, -HW, 0.0, C_SIDE, c0, c1, BODY)
+for zf, inward, door_x in ((c0, 1, -DOOR_X), (c1, -1, DOOR_X)):   # ends: a wall below, a rail along the landing
+    za, zb = sorted((zf, zf + inward * 0.1))
+    box("CEnd", -W / 2, door_x - DOOR_W / 2, 0.0, C_SIDE, za, zb, BODY)
+    box("CEnd", door_x + DOOR_W / 2, W / 2, 0.0, C_SIDE, za, zb, BODY)
+    box("CEndRail", -HW, door_x - DOOR_W / 2, UPPER, UPPER + RAIL, za, zb, STEEL)
+    box("CEndRail", door_x + DOOR_W / 2, HW, UPPER, UPPER + RAIL, za, zb, STEEL)
+# Whatever stands taller than the sides keeps CARGO_GAP off them: stepping off its edge drops into the pit, not overboard.
+CARGO_GAP = 1.0
+box("Container", -HW + CARGO_GAP, -HW + CARGO_GAP + 2.5, 0.0, 2.6, c0 + 2.0, c0 + 8.0, CONTAINER)
 box("Container", -0.4, 2.0, 0.0, 2.6, c0 + 11.5, c0 + 17.5, CONTAINER2)
-box("Crate", 0.4, 1.6, 0.0, 1.2, c0 + 4.0, c0 + 5.2, CRATE)
-box("Crate", -HW + 0.1, -HW + 1.3, 0.0, 1.2, c0 + 9.0, c0 + 10.2, CRATE)
-box("Crate", -HW + 0.1, -HW + 1.3, 1.2, 2.4, c0 + 9.0, c0 + 10.2, CRATE)
+box("Crate", 0.4, 1.6, 0.0, 1.2, c0 + 9.0, c0 + 10.2, CRATE)
+box("Crate", -HW + CARGO_GAP, -HW + CARGO_GAP + 1.2, 0.0, 1.2, c0 + 9.0, c0 + 10.2, CRATE)
+box("Crate", -HW + CARGO_GAP, -HW + CARGO_GAP + 1.2, 1.2, 2.4, c0 + 9.0, c0 + 10.2, CRATE)
 box("Crate", 2.2, HW, 0.0, 1.2, c0 + 14.0, c0 + 15.2, CRATE)
-# Catwalk along the right side at upper-deck height, with a low rail on the inner side (players may drop into the pit).
+# Catwalk along the right side at upper-deck height, with a rail on the inner side (players may drop into the pit).
 cw0, cw1 = HW - 1.4, HW
 box("Catwalk", cw0, cw1, UPPER - 0.2, UPPER, c0, c1, STEEL)
-box("CatwalkRail", cw0, cw0 + 0.08, UPPER, UPPER + 1.0, c0 + 1.5, c0 + 8.0, STEEL)
-box("CatwalkRail", cw0, cw0 + 0.08, UPPER, UPPER + 1.0, c0 + 12.0, c1 - 1.5, STEEL)
-box("CatwalkRail", cw1 - 0.08, cw1, UPPER, UPPER + 1.0, c0, c1, STEEL)
+box("CatwalkRail", cw0, cw0 + 0.08, UPPER, UPPER + RAIL, c0 + 1.5, c0 + 8.0, STEEL)
+box("CatwalkRail", cw0, cw0 + 0.08, UPPER, UPPER + RAIL, c0 + 12.0, c1 - 1.5, STEEL)
+box("CatwalkRail", cw1 - 0.08, cw1, UPPER, UPPER + RAIL, c0, c1, STEEL)
 for zz in (c0 + 4.0, c0 + 10.0, c0 + 16.0):
     box("CatwalkPost", cw0 + 0.4, cw0 + 0.7, 0.0, UPPER - 0.2, zz, zz + 0.3, STEEL)
-spawns.append(("SpawnC", (-1.0, 0.05, c0 + 10.5), math.pi / 2))
+# Under the front landing, behind the container: covered from above, not in the open pit.
+spawns.append(("SpawnC", (1.5, 0.05, c0 + 1.0), math.pi))
 
 # Landings across the car at both ends, at upper-deck height: from the upper doors of B and D onto the catwalk.
 box("Landing", -HW, HW, UPPER - 0.2, UPPER, c0, c0 + 1.5, STEEL)
 box("Landing", -HW, HW, UPPER - 0.2, UPPER, c1 - 1.5, c1, STEEL)
-box("LandingRail", -HW, cw0, UPPER, UPPER + 1.0, c0 + 1.42, c0 + 1.5, STEEL)
-box("LandingRail", -HW, cw0, UPPER, UPPER + 1.0, c1 - 1.5, c1 - 1.42, STEEL)
+box("LandingRail", -HW, cw0, UPPER, UPPER + RAIL, c0 + 1.42, c0 + 1.5, STEEL)
+box("LandingRail", -HW, cw0, UPPER, UPPER + RAIL, c1 - 1.5, c1 - 1.42, STEEL)
+box("LandingRail", -HW, -HW + 0.08, UPPER, UPPER + RAIL, c0, c0 + 1.42, STEEL)   # the outer (left) edge
+box("LandingRail", -HW, -HW + 0.08, UPPER, UPPER + RAIL, c1 - 1.42, c1, STEEL)
 z = c1
-# The C->D crossing is an open platform on both decks (no walls: the cargo car feels open).
+# The C->D crossing is an open platform on both decks (railed, no walls: the cargo car feels open).
 hwp = DOOR_W / 2 + 0.15
-box("Platform", -hwp, hwp, -SLAB, 0.0, z, z + GAP, FLOOR)
-box("Platform", -hwp, hwp, UPPER - 0.2, UPPER, z, z + GAP, STEEL)
+for y0, y1, col in ((-SLAB, 0.0, FLOOR), (UPPER - 0.2, UPPER, STEEL)):
+    box("Platform", DOOR_X - hwp, DOOR_X + hwp, y0, y1, z, z + GAP, col)
+    box("PlatformRail", DOOR_X - hwp - 0.08, DOOR_X - hwp, y1, y1 + RAIL, z, z + GAP, STEEL)
+    box("PlatformRail", DOOR_X + hwp, DOOR_X + hwp + 0.08, y1, y1 + RAIL, z, z + GAP, STEEL)
 z += GAP
 
-# D: sleeper + baggage. Lower deck: baggage shelves and crates; upper deck: sleeper compartments off a side corridor.
+# D: sleeper + baggage, mirrored. Lower deck: baggage shelves and crates; upper deck: sleeper compartments off a side
+# corridor.
 d0 = z
-z = closed_car(d0, BODY_D, back_door=False)
+z = closed_car(d0, BODY_D, m=-1, back_door=False)
 for i in range(3):
     zz = d0 + 8.0 + i * 1.6
-    box("Shelf", HW - 0.9, HW, 0.0, 2.2, zz, zz + 0.8, STEEL)
-box("Crate", -HW + 0.2, -HW + 1.4, 0.0, 1.2, d0 + 9.0, d0 + 10.2, CRATE)
-box("Crate", -1.0, 0.2, 0.0, 1.2, d0 + 12.5, d0 + 13.7, CRATE)
-box("Crate", -1.0, 0.2, 1.2, 2.4, d0 + 12.5, d0 + 13.7, CRATE)
-# Compartments: walls across the car from the left wall to the corridor, door gaps on the corridor side.
+    box("Shelf", HW - 0.9, HW, 0.0, 2.2, zz, zz + 0.8, STEEL, m=-1)
+box("Crate", -HW + 0.2, -HW + 1.4, 0.0, 1.2, d0 + 9.0, d0 + 10.2, CRATE, m=-1)
+box("Crate", -1.0, 0.2, 0.0, 1.2, d0 + 12.5, d0 + 13.7, CRATE, m=-1)
+box("Crate", -1.0, 0.2, 1.2, 2.4, d0 + 12.5, d0 + 13.7, CRATE, m=-1)
+# Compartments: walls across the car from the wall to the corridor, door gaps on the corridor side.
 corridor_x = 1.0
-box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 8.0, d0 + 9.2, INNER)
-box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 10.4, d0 + 11.4, INNER)
-box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 12.6, d0 + 13.0, INNER)
+box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 8.0, d0 + 9.2, INNER, m=-1)
+box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 10.4, d0 + 11.4, INNER, m=-1)
+box("CorridorWall", corridor_x, corridor_x + 0.15, UPPER, ROOF, d0 + 12.6, d0 + 13.0, INNER, m=-1)
 for zz in (d0 + 8.0, d0 + 11.4):
-    box("Compartment", -HW + STAIR_W, corridor_x, UPPER, ROOF, zz, zz + 0.15, INNER)
-box("Bunk", -HW + STAIR_W + 0.1, corridor_x - 0.2, UPPER, UPPER + 0.6, d0 + 8.6, d0 + 9.6, SEAT)
+    box("Compartment", -HW + STAIR_W, corridor_x, UPPER, ROOF, zz, zz + 0.15, INNER, m=-1)
+box("Bunk", -HW + STAIR_W + 0.1, corridor_x - 0.2, UPPER, UPPER + 0.6, d0 + 8.6, d0 + 9.6, SEAT, m=-1)
 spawns.append(("SpawnD_low", (0.0, 0.05, d0 + L - 3.5), 0.0))
-spawns.append(("SpawnD_up", (-1.0, UPPER + 0.05, d0 + 3.5), math.pi))  # x clear of the front stair hole (right side)
+spawns.append(("SpawnD_up", (1.0, UPPER + 0.05, d0 + 3.5), math.pi))  # x clear of the front stair hole (left side)
 
 TRAIN_Z0 = a0 - 16.0
 TRAIN_Z1 = z
@@ -332,6 +367,10 @@ for name, c, s, col, rot in blocks:
     out.append("transform = Transform3D(1, 0, 0, 0, %s, %s, 0, %s, %s, %s, %s, %s)\n" % (f(cr), f(-sr), f(sr), f(cr), f(c[0]), f(c[1]), f(c[2])))
     out.append("size = Vector3(%s, %s, %s)\n" % tuple(map(f, s)))
     out.append("color = Color(%s, %s, %s, 1)\n" % tuple(map(f, col)))
+    if rot or abs(c[1] - DECK_SPLIT) < 0.25:
+        out.append("mesh_layers = %d\n" % (LAYER_LOWER | LAYER_UPPER))
+    else:
+        out.append("mesh_layers = %d\n" % (LAYER_LOWER if c[1] < DECK_SPLIT else LAYER_UPPER))
 # Solid ground under the scenery's ground: whoever jumps off lands on it (and dies, see KILL_HEIGHT).
 out.append('\n[node name="Ground" type="StaticBody3D" parent="."]\n')
 out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, %s, 0)\n" % f(GROUND_Y))
@@ -341,6 +380,8 @@ for name, p in lights:
     out.append('\n[node name="%s" type="OmniLight3D" parent="Lamps"]\n' % name)
     out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %s, %s, %s)\n" % tuple(map(f, p)))
     out.append("light_color = Color(1, 0.86, 0.66, 1)\nlight_energy = 1.2\nomni_range = 9.0\nomni_attenuation = 1.4\n")
+    deck = LAYER_LOWER if p[1] < DECK_SPLIT else LAYER_UPPER
+    out.append("light_cull_mask = %d\n" % (LAYER_WORLD | LAYER_VIEWMODEL | deck))
 out.append('\n[node name="SpawnPoints" type="Node3D" parent="."]\n')
 for name, p, yaw in spawns:
     c, s = math.cos(yaw), math.sin(yaw)

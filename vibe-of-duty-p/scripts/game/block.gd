@@ -19,6 +19,12 @@ static var _noise: ImageTexture
 	set(value):
 		color = value
 		_rebuild()
+## Render layers of the mesh: the train's decks have their own, so a deck's lamps don't light the other deck
+## through the floor (the lamps cast no shadows).
+@export_flags_3d_render var mesh_layers := 1:
+	set(value):
+		mesh_layers = value
+		_rebuild()
 
 
 func _ready() -> void:
@@ -32,6 +38,7 @@ func _rebuild() -> void:
 	box.size = size
 	$Mesh.mesh = box
 	box.material = _material_for(color)
+	$Mesh.layers = mesh_layers
 	var shape := BoxShape3D.new()
 	shape.size = size
 	$Collision.shape = shape

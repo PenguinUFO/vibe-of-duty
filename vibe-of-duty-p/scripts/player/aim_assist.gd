@@ -1,5 +1,6 @@
 class_name AimAssist
 extends RefCounted
+## Read Docs/AIM_ASSIST.md first (how it works, where its settings live, pitfalls); update it with any behaviour change.
 ## Gamepad aim assist for the local player. Player only uses it while the view is turned with the stick; the mouse
 ## gets none. Two parts, both only near a visible enemy and fading out towards the edge of a small cone around it:
 ##  - slowdown: the stick turns slower over a target, so it is easier to stop on it;

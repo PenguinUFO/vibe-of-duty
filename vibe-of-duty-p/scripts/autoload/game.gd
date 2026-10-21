@@ -198,6 +198,16 @@ func add_kill(killer_id: int, victim_id: int) -> void:
 	score_changed.emit(victim_id)
 
 
+## Score: +1 per kill, −1 per any death (suicides included).
+func score_of(entry: Dictionary) -> int:
+	return entry["kills"] - entry["deaths"]
+
+
+## K/D ratio; with no deaths it is just the kill count.
+func kd_of(entry: Dictionary) -> float:
+	return float(entry["kills"]) / maxi(entry["deaths"], 1)
+
+
 ## True between matches (the scoreboard is shown and nobody can move or shoot).
 func is_frozen() -> bool:
 	return state == State.ENDED
@@ -212,25 +222,26 @@ func reset_match() -> void:
 	set_state(State.PLAYING)
 
 
-## Ends the running match and picks the winners (most kills; ties broken by fewer deaths, then shared).
+## Ends the running match and picks the winners (most points; ties broken by more kills, then shared).
 func end_match() -> void:
 	winners = leaders()
 	intermission_left = intermission_time
 	set_state(State.ENDED)
 
 
+## Ranking order: points, then kills. Equal points and kills mean equal deaths too — a shared place.
+func ranks_above(a: Dictionary, b: Dictionary) -> bool:
+	var pa := score_of(a)
+	var pb := score_of(b)
+	return pa > pb or (pa == pb and a["kills"] > b["kills"])
+
+
 func leaders() -> Array:
-	var best_kills := -1
-	var best_deaths := 0
 	var result: Array = []
 	for id in scores:
-		var kills: int = scores[id]["kills"]
-		var deaths: int = scores[id]["deaths"]
-		if kills > best_kills or (kills == best_kills and deaths < best_deaths):
-			best_kills = kills
-			best_deaths = deaths
+		if result.is_empty() or ranks_above(scores[id], scores[result[0]]):
 			result = [id]
-		elif kills == best_kills and deaths == best_deaths:
+		elif not ranks_above(scores[result[0]], scores[id]):
 			result.append(id)
 	return result
 

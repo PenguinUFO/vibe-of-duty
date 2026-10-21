@@ -8,9 +8,11 @@ const VIEWS := {  # train.tscn (cars along z, 20 m each: A from -42.1, B -20.7, 
 	"b_lower": [Vector3(-1.0, 1.65, -19.5), Vector3(0.5, 1.0, -8.0)],
 	"b_upper": [Vector3(0.0, 4.95, -19.0), Vector3(0.0, 4.6, -6.0)],
 	"cargo": [Vector3(2.0, 4.95, 2.0), Vector3(-1.0, 1.0, 14.0)],
-	"d_upper": [Vector3(2.0, 4.95, 39.0), Vector3(1.5, 4.6, 28.0)],
+	"d_upper": [Vector3(-2.0, 4.95, 39.0), Vector3(1.5, 4.6, 28.0)],
 	"outside": [Vector3(16.0, 3.5, -20.0), Vector3(0.0, 2.5, 0.0)],
-	"window": [Vector3(2.3, 1.65, 32.0), Vector3(12.0, 0.5, 30.0)],
+	"window": [Vector3(0.5, 1.65, 31.0), Vector3(12.0, 0.5, 30.0)],
+	"axis_up": [Vector3(0.0, 4.95, 21.8), Vector3(0.0, 4.6, -40.0)],  # from D's upper front door back along the train
+	"axis_low": [Vector3(0.0, 1.65, -0.5), Vector3(0.0, 1.2, -40.0)],  # from C's lower front door into B and A
 	"bot": [Vector3(0.0, 1.65, -24.0), Vector3(0.5, 1.0, -38.0)],  # readability of a player at ~14 m (Bot0)
 }
 const FRAMES := 120
@@ -59,10 +61,10 @@ func _initialize() -> void:
 			node.visible = false
 	var scenery := level.get_node_or_null("Scenery")
 	for view in views:
-		if scenery and OS.has_environment("SHOT_TUNNEL"):  # park a tunnel over the train
-			scenery._tunnel.visible = true
-			scenery._tunnel_z = -40.0
-			scenery._next_tunnel = 999.0
+		if scenery and OS.has_environment("SHOT_TUNNEL"):  # a tunnel coming over the train: its centre at z -40 now
+			var now: float = scenery._world.shared_time() if scenery._world else Time.get_ticks_usec() / 1e6
+			scenery._tunnel_start = now - (-40.0 - scenery.TUNNEL_START) / scenery.speed
+			scenery._last_time = now
 		cam.look_at_from_position(views[view][0], views[view][1])
 		for i in 30:
 			await process_frame

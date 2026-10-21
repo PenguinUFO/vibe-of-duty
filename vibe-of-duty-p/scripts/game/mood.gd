@@ -38,11 +38,9 @@ const ENV_KEYS := ["ambient_light_energy", "ambient_light_color", "ambient_light
 		"adjustment_contrast"]
 
 # Lamps for levels without their own (the train has its Lamps): a few warm, shadowless lights over the play area
-# (where the spawn points are), each with a glowing fixture and a halo. A light costs ~1 ms on integrated graphics
-# when it covers the screen, so only the LAMPS_LIT nearest the camera burn (MoodLampSet); the rest show just their
-# glowing fixture.
-const LAMPS_LIT := 2
-const LAMP_LIT_REACH := 18.0     # m from the camera
+# (where the spawn points are), each with a glowing fixture and a halo. All of them burn wherever the camera is: a
+# lamp must read as "here" from anywhere on the map (a light costs ~1 ms on integrated graphics only when it covers
+# the screen; LAMPS_MAX keeps the count low).
 const LAMPS_MAX := 4
 const LAMP_SPACING := 10.0       # m between lamps
 const LAMP_HEIGHT := 4.0         # m above the floor, outdoors (on a pole); indoors it hangs under the ceiling
@@ -113,7 +111,7 @@ static func _build_lamps_later(level: Node) -> void:
 ## Light fixtures: for the train's own lamps just the glowing shades; elsewhere up to LAMPS_MAX lamps of our own,
 ## spread over the spawn points' area.
 static func _build_lamps(level: Node) -> void:
-	var root := MoodLampSet.new()
+	var root := Node3D.new()
 	root.name = LAMPS_NODE
 	level.add_child(root)
 	var own := level.get_node_or_null("Lamps")
@@ -164,7 +162,6 @@ static func _build_lamps(level: Node) -> void:
 			light.light_specular = 0.0  # matte surfaces: no highlights to compute
 			root.add_child(light)
 			light.global_position = lamp_pos - Vector3.UP * 0.15
-			root.lights.append(light)
 
 
 ## A lamp shade: a dark housing with a glowing underside, and a halo of `halo_size` m around it.
@@ -229,25 +226,6 @@ static func halo(size: float, color: Color) -> MeshInstance3D:
 	mesh.material_override = _halo_materials[color]
 	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mesh
-
-
-## The lamps of MoodLamps: only the LAMPS_LIT nearest the camera (within LAMP_LIT_REACH) give light.
-class MoodLampSet extends Node3D:
-	var lights: Array[OmniLight3D] = []
-
-	func _process(_delta: float) -> void:
-		if lights.is_empty():
-			return
-		var camera := get_viewport().get_camera_3d()
-		if camera == null:
-			return
-		var eye := camera.global_position
-		var order := lights.duplicate()
-		order.sort_custom(func(a: OmniLight3D, b: OmniLight3D) -> bool:
-			return a.global_position.distance_squared_to(eye) < b.global_position.distance_squared_to(eye))
-		for i in order.size():
-			var light: OmniLight3D = order[i]
-			light.visible = i < LAMPS_LIT and light.global_position.distance_to(eye) < LAMP_LIT_REACH
 
 
 static func _pole(root: Node3D, floor_pos: Vector3, height: float) -> void:

@@ -1,5 +1,6 @@
 class_name TrainScenery
 extends Node3D
+## Read Docs/LEVEL_TRAIN.md first (the train map: layout, lamps, falling off, how to check); update it with any behaviour change.
 ## The world rushing past the train map: ground, track bed, forest and, now and then, a tunnel through a hill.
 ## The train itself stands still (physics, netcode and lag compensation stay simple); everything here moves along +Z
 ## (the train "runs" towards -Z). Purely visual and not built on a dedicated server, but every machine draws it from
@@ -31,18 +32,19 @@ const TUNNEL_END := 420.0       # where it is put away
 const TUNNEL_GAP := Vector2(22.0, 45.0)  # seconds between tunnels
 const FIRST_TUNNEL := 12.0      # s of server time before the first tunnel appears
 const TUNNEL_SEED := 5821       # the gaps between tunnels: the same on every machine
-const TUNNEL_AMBIENT := 0.15    # share of the ambient light left inside a tunnel
-const TUNNEL_FOG_DENSITY := 0.012
-const TUNNEL_FOG_COLOR := Color(0.06, 0.06, 0.07)
+## Ambient light inside a tunnel, x the outside one. Above 1: with the sun gone, it stands in for the light bouncing
+## off the lining and its lamps (no real GI: SDFGI is too dear here), so the shapes on the open car C still read.
+const TUNNEL_AMBIENT := 0.9
+const TUNNEL_FOG_DENSITY := 0.008
+const TUNNEL_FOG_COLOR := Color(0.11, 0.11, 0.12)
 const FOREST_VISIBLE := 260.0   # chunks farther than this (in the haze) are not drawn
 ## The train's lamps (OmniLights, ~0.4 ms each on integrated graphics) only burn in tunnels: in daylight the windows
 ## light the cars well enough.
 const LAMP_ENERGY := 1.4
 const MOOD_LAMP_BOOST := 2.6    # PSX style's dusk: the lamps are what lights the cars
-## Only the lamp of the camera's car and deck burns (a car is 20 m long, the decks 3.3 m apart): a lamp lighting
-## the whole view costs ~1.5 ms on integrated graphics, and the other cars' and decks' light is barely seen.
-const LAMP_REACH := 13.0
-const LAMP_DECK_REACH := 1.9   # m between the camera's and the lamp's height
+## All of them burn, wherever the camera is: a lamp must read as "here" from anywhere on the map. Each lights only
+## its own deck (render layers train_lower / train_upper, set by tools/make_train_map.py), and a far lamp covers
+## little of the screen, so it costs little.
 ## Trackside lamps (PSX style's dusk only, see Mood): posts with a sodium lamp rushing past on both sides; each
 ## throws its light (a shadowed spot when shadows are on) through the windows, so warm stripes sweep along the cars.
 const POST_X := 5.5             # beside the track (the cars are 6 m wide)
@@ -459,12 +461,8 @@ func _update_tunnel(delta: float, time: float) -> void:
 	# The PSX style's dusk (Mood) keeps the lamps on all the time; otherwise they only burn in tunnels.
 	var lit := maxf(_darkness, 1.0 if Settings.psx_style else 0.0)
 	var energy := LAMP_ENERGY * (MOOD_LAMP_BOOST if Settings.psx_style else 1.0)
-	var camera := get_viewport().get_camera_3d()
-	var camera_z := camera.global_position.z if camera else INF
-	var camera_y := camera.global_position.y if camera else INF
 	for lamp in _lamps:
-		lamp.visible = lit > 0.01 and absf(lamp.global_position.z - camera_z) < LAMP_REACH \
-				and absf(lamp.global_position.y - camera_y) < LAMP_DECK_REACH
+		lamp.visible = lit > 0.01
 		lamp.light_energy = energy * lit
 
 

@@ -69,7 +69,7 @@ func _ready() -> void:
 	style.set_corner_radius_all(6)
 	_board_panel.add_theme_stylebox_override("panel", style)
 	_board_grid = GridContainer.new()
-	_board_grid.columns = 3
+	_board_grid.columns = 5
 	_board_grid.add_theme_constant_override("h_separation", 48)
 	_board_grid.add_theme_constant_override("v_separation", 6)
 	_board_panel.add_child(_board_grid)
@@ -177,7 +177,7 @@ func _rebuild_board() -> void:
 	for child in _board_grid.get_children():
 		_board_grid.remove_child(child)
 		child.queue_free()
-	for header in ["Игрок", "Убийства", "Смерти"]:
+	for header in ["Игрок", "Очки", "Убийства", "Смерти", "К/Д"]:
 		var h := _make_label(20)
 		h.text = header
 		h.add_theme_color_override("font_color", UiTheme.TEXT_DIM)
@@ -185,11 +185,12 @@ func _rebuild_board() -> void:
 	var rows: Array = []
 	for id in world.players:
 		var entry: Dictionary = Game.scores.get(id, {"kills": 0, "deaths": 0})
-		rows.append({"id": id, "name": (world.players[id] as Player).player_name, "kills": entry["kills"], "deaths": entry["deaths"]})
-	rows.sort_custom(func(a, b): return a["kills"] > b["kills"] or (a["kills"] == b["kills"] and a["deaths"] < b["deaths"]))
+		rows.append({"id": id, "name": (world.players[id] as Player).player_name, "kills": entry["kills"], "deaths": entry["deaths"],
+				"score": Game.score_of(entry), "kd": Game.kd_of(entry)})
+	rows.sort_custom(Game.ranks_above)
 	var me := multiplayer.get_unique_id()
 	for row in rows:
-		for text in [row["name"], str(row["kills"]), str(row["deaths"])]:
+		for text in [row["name"], str(row["score"]), str(row["kills"]), str(row["deaths"]), "%.2f" % row["kd"]]:
 			var cell := _make_label(20)
 			cell.text = text
 			if row["id"] == me:
