@@ -37,6 +37,7 @@ var auto_join := ""
 var auto_training := ""   # --training=map: skip the menu, start that training map (e.g. --training=range)
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
 var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
+var test_build: Array = []     # --build=part,part,...: the build bots play (PartDB ids, SLOTS order); native without it
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
@@ -101,6 +102,8 @@ func _ready() -> void:
 			score_limit = maxi(1, int(arg.trim_prefix("--score-limit=")))
 		elif arg.begins_with("--match-time="):
 			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
+		elif arg.begins_with("--build="):
+			test_build = Array(arg.trim_prefix("--build=").split(","))
 		elif arg.begins_with("--summary="):
 			summary_time = maxf(1.0, float(arg.trim_prefix("--summary=")))
 		elif arg.begins_with("--intermission="):

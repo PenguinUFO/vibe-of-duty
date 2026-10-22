@@ -50,6 +50,11 @@ func server_regen(delta: float) -> void:
 func server_take_ammo() -> bool:
 	if not alive:
 		return false
+	if mods["bag_heal"] > 0.0:  # second stomach: the bag is eaten - health, no rounds
+		if health >= max_health:
+			return false
+		health = mini(health + roundi(mods["bag_heal"]), max_health)
+		return true
 	var took := false
 	for i in WeaponDB.count():
 		var def := WeaponDB.get_def(i)
@@ -64,13 +69,39 @@ func server_take_ammo() -> bool:
 ## t = (max health, regeneration delay, damage multiplier from behind). Current health keeps its share of the maximum.
 func set_toughness(t: Vector3) -> void:
 	t = clamp_toughness(t)
-	if health > 0:
-		health = clampi(roundi(health * t.x / max_health), 1, int(t.x))
-	max_health = int(t.x)
-	regen_delay = t.y
+	var old_max := max_health
+	base_max_health = int(t.x)
+	base_regen_delay = t.y
 	back_damage = t.z
-	_regen_wait = minf(_regen_wait, regen_delay)
+	_apply_stats()
+	if health > 0:
+		health = clampi(roundi(health * float(max_health) / old_max), 1, max_health)
 	_last_health = health
+
+
+## The build for this life (PartDB part ids; sanitized here): its numbers go into movement, the weapon, health.
+## Called right before respawn (NetWorld._apply_respawn), the same on every machine.
+func set_build(parts: Array) -> void:
+	build = PartDB.sanitize(parts)
+	mods = PartDB.mods(build)
+	weapons.reload_mult = mods["reload_mult"]
+	weapons.ads_time_mult = mods["ads_time_mult"]
+	weapons.spread_hip_mult = mods["spread_hip_mult"]
+	weapons.spread_ads_mult = mods["spread_ads_mult"]
+	_apply_stats()
+	health = mini(health, max_health)
+
+
+## Max health and regeneration delay: kid mode's plus the build's.
+func _apply_stats() -> void:
+	max_health = maxi(int(base_max_health + mods["health_add"]), 1)
+	regen_delay = maxf(base_regen_delay + mods["regen_delay_add"], 0.0)
+	_regen_wait = minf(_regen_wait, regen_delay)
+
+
+## Server: the build's share of damage taken (all of it, and head hits).
+func damage_taken_mult(head: bool) -> float:
+	return mods["damage_taken_mult"] * (mods["head_taken_mult"] if head else 1.0)
 
 
 ## What the server accepts from a player: no less health, no slower regeneration and no more damage than normal.

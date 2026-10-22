@@ -28,6 +28,12 @@ var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
 ## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
 ## server (training is played alone, both are this machine); not part of to_array.
 var infinite_reserve := false
+## The build's weapon numbers (Player.set_build, PartDB.DEFAULT_MODS): set the same on every machine when the player
+## (re)spawns, constant for a life; not part of to_array.
+var reload_mult := 1.0
+var ads_time_mult := 1.0
+var spread_hip_mult := 1.0
+var spread_ads_mult := 1.0
 
 
 func _init() -> void:
@@ -81,7 +87,7 @@ func melee_progress() -> float:
 
 
 func reload_progress() -> float:
-	return 1.0 - float(reload_ticks) / float(current().reload_ticks()) if reload_ticks > 0 else -1.0
+	return 1.0 - float(reload_ticks) / float(_reload_ticks()) if reload_ticks > 0 else -1.0
 
 
 func equip_progress() -> float:
@@ -100,7 +106,7 @@ func speed_mult() -> float:
 ## Current cone half angle in radians for the HUD crosshair and for shooting.
 func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 	var def := current()
-	var s := lerpf(def.spread_hip, def.spread_ads, ads)
+	var s := lerpf(def.spread_hip * spread_hip_mult, def.spread_ads * spread_ads_mult, ads)
 	s += def.spread_move * clampf(speed / 5.0, 0.0, 1.6) * (1.0 - 0.6 * ads)
 	if airborne:
 		s += def.spread_air
@@ -150,11 +156,11 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 
 	# Aim down sights (not while sprinting, reloading or equipping).
 	var want_ads: bool = cmd.aim and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and not ctx["sprinting"]
-	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / def.ads_time)
+	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / (def.ads_time * ads_time_mult))
 
 	# Manual reload.
 	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and mags[index] < def.mag_size and reserves[index] > 0:
-		reload_ticks = def.reload_ticks()
+		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
 	# Fire.
@@ -179,13 +185,17 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			if not fire_prev:
 				events.append({"type": "dry"})
 			if reserves[index] > 0:  # empty magazine: reload automatically
-				reload_ticks = def.reload_ticks()
+				reload_ticks = _reload_ticks()
 				events.append({"type": "reload_start"})
 	fire_prev = cmd.fire
 
 	if not fired and cooldown == 0:
 		recoil = recoil.move_toward(Vector2.ZERO, def.recoil_recover * dt)
 	return events
+
+
+func _reload_ticks() -> int:
+	return maxi(1, roundi(current().reload_ticks() * reload_mult))
 
 
 ## Direction for view angles (pitch, yaw) with a random offset inside a cone of half angle `angle`.

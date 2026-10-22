@@ -65,6 +65,9 @@ func _ready() -> void:
 		kill_cam = KillCam.new()
 		kill_cam.world = self
 		add_child(kill_cam)
+		var picker := BuildPicker.new()
+		picker.world = self
+		add_child(picker)
 		Audio.play_music_id("game")
 		# Load everything the first shot / first opponent would otherwise load mid-match (a hitch).
 		WeaponDB.preload_scenes()
@@ -76,9 +79,9 @@ func _ready() -> void:
 	_toughness_sent = Settings.toughness()
 	if multiplayer.is_server():
 		if not Game.dedicated:
-			_server_add_player(1, _unique_name(Settings.player_name), _toughness_sent)
+			_server_add_player(1, _unique_name(Settings.player_name), _toughness_sent, Settings.current_build())
 	else:
-		_client_ready.rpc_id(1, Settings.player_name, _toughness_sent)
+		_client_ready.rpc_id(1, Settings.player_name, _toughness_sent, Settings.current_build())
 
 
 ## Gives the level's sun the shadow settings of the current graphics quality, and the level the PSX style's mood
@@ -194,13 +197,35 @@ func get_view_tick() -> float:
 # --- Server --------------------------------------------------------------------------------------
 
 @rpc("any_peer", "reliable")
-func _client_ready(player_name: String, toughness: Vector3) -> void:
+func _client_ready(player_name: String, toughness: Vector3, build: Array) -> void:
 	if not multiplayer.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
 		return
-	_server_add_player(id, _unique_name(player_name), Player.clamp_toughness(toughness))
+	_server_add_player(id, _unique_name(player_name), Player.clamp_toughness(toughness), PartDB.sanitize(build))
+
+
+## Local player: picked another build (BuildPicker, after death or between matches). It is played from the next
+## respawn on; the server checks it (PartDB.sanitize).
+func send_build(build: Array) -> void:
+	if not multiplayer.has_multiplayer_peer():
+		return
+	if multiplayer.is_server():
+		_server_want_build(1, build)
+	else:
+		_request_build.rpc_id(1, build)
+
+
+@rpc("any_peer", "reliable")
+func _request_build(build: Array) -> void:
+	if multiplayer.is_server():
+		_server_want_build(multiplayer.get_remote_sender_id(), build)
+
+
+func _server_want_build(id: int, build: Array) -> void:
+	if players.has(id):
+		(players[id] as Player).wanted_build = PartDB.sanitize(build)
 
 
 ## Local player: kid mode settings changed (KidPanel, even mid-match) -> the server, which applies and relays them.
@@ -255,7 +280,7 @@ func _unique_name(wanted: String) -> String:
 	return base
 
 
-func _server_add_player(id: int, player_name: String, toughness: Vector3) -> void:
+func _server_add_player(id: int, player_name: String, toughness: Vector3, build: Array) -> void:
 	if Game.net_log:
 		print("[SERVER] player %d joined as %s" % [id, player_name])
 	var xform := _pick_spawn(-1)
@@ -264,13 +289,13 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3) -> voi
 		for other_id in players:
 			var other: Player = players[other_id]
 			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform,
-					Vector3(other.max_health, other.regen_delay, other.back_damage))
-	_spawn_player(id, player_name, xform, toughness)
+					Vector3(other.base_max_health, other.base_regen_delay, other.back_damage), other.build)
+	_spawn_player(id, player_name, xform, toughness, build)
 	Game.ensure_player(id)
 	for peer in _ready_peers:
-		_spawn_player.rpc_id(peer, id, player_name, xform, toughness)
+		_spawn_player.rpc_id(peer, id, player_name, xform, toughness, build)
 	if id != 1:
-		_spawn_player.rpc_id(id, id, player_name, xform, toughness)
+		_spawn_player.rpc_id(id, id, player_name, xform, toughness, build)
 		_ready_peers.append(id)
 		ammo_bags.server_send_all(id)
 		_sync_scores.rpc_id(id, Game.scores)
@@ -329,7 +354,8 @@ func _pick_spawn(exclude_id: int) -> Transform3D:
 func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
 		return
-	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position))
+	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
+			* victim.damage_taken_mult(head))
 	if attacker.control == Player.Mode.LOCAL:
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
@@ -374,9 +400,10 @@ func _server_respawn(id: int, force: bool) -> void:
 	player.spawn_protect = SPAWN_PROTECTION_TICKS
 	player.alive = true
 	lag_comp.clear(id)
-	_apply_respawn(id, xform)
+	var build := player.wanted_build
+	_apply_respawn(id, xform, build)
 	for peer in _ready_peers:
-		_player_respawned.rpc_id(peer, id, xform)
+		_player_respawned.rpc_id(peer, id, xform, build)
 
 
 # --- Match flow (server) ----------------------------------------------------------------------------
@@ -438,14 +465,17 @@ func _apply_match_state() -> void:
 # --- Client (also called locally on the server) ---------------------------------------------------
 
 @rpc("authority", "reliable")
-func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: Vector3) -> void:
+func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: Vector3, build: Array) -> void:
 	if players.has(id):
 		return
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.name = str(id)
 	player.peer_id = id
 	player.player_name = player_name
+	player.set_build(build)
+	player.wanted_build = player.build
 	player.set_toughness(toughness)
+	player.health = player.max_health
 	player.world = self
 	if id == multiplayer.get_unique_id():
 		player.control = Player.Mode.LOCAL
@@ -591,13 +621,18 @@ func _sync_match(state: int, time_left: float, intermission_left: float, winners
 
 
 @rpc("authority", "reliable")
-func _player_respawned(id: int, xform: Transform3D) -> void:
-	_apply_respawn(id, xform)
+func _player_respawned(id: int, xform: Transform3D, build: Array) -> void:
+	_apply_respawn(id, xform, build)
 
 
-func _apply_respawn(id: int, xform: Transform3D) -> void:
+## Respawns a player with the build of their new life (the same on every machine, before the first step).
+func _apply_respawn(id: int, xform: Transform3D, build: Array) -> void:
 	if players.has(id):
-		(players[id] as Player).respawn(xform)
+		var player: Player = players[id]
+		player.set_build(build)
+		player.respawn(xform)
+		if multiplayer.is_server():
+			Game.count("build_tokens", PartDB.cost(player.build))  # tests: builds reach the server
 
 
 @rpc("authority", "reliable")

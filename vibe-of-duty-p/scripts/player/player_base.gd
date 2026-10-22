@@ -153,8 +153,15 @@ var _replaying := false
 var weapons := WeaponSim.new()
 var world: NetWorld
 var health := MAX_HEALTH
-var max_health := MAX_HEALTH  # kid mode: more (set_toughness)
-var regen_delay := REGEN_DELAY  # kid mode: shorter
+var max_health := MAX_HEALTH  # kid mode (set_toughness) + build (set_build)
+var regen_delay := REGEN_DELAY  # kid mode + build
+var base_max_health := MAX_HEALTH    # kid mode's, before the build
+var base_regen_delay := REGEN_DELAY  # kid mode's, before the build
+## The build this life is played with (PartDB part ids, SLOTS order) and its numbers (PartDB.mods). Applied at
+## (re)spawn on every machine at once (NetWorld._apply_respawn), so prediction and the server agree.
+var build: Array = PartDB.default_build()
+var mods: Dictionary = PartDB.DEFAULT_MODS.duplicate()
+var wanted_build: Array = PartDB.default_build()  # server: what the player picked for the next life
 var back_damage := 1.0          # kid mode: damage multiplier for shots from behind (damage_mult_from)
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn

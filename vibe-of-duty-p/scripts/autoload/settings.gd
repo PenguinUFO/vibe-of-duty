@@ -2,6 +2,10 @@ extends Node
 ## Player-facing settings, persisted to user://settings.cfg.
 
 const SAVE_PATH := "user://settings.cfg"
+## Saved builds (Docs/LOADOUT.md): edited in BuildPanel, picked in BuildPicker. Their own file, so a broken build list
+## never costs the player their settings.
+const BUILDS_PATH := "user://builds.cfg"
+const BUILD_COUNT := 5
 ## Funny nicknames, one per line: a player who never entered a name gets a random one (pick_nickname). A plain text
 ## file, so the export preset includes assets/data/*.txt.
 const NICKNAMES_PATH := "res://assets/data/nicknames.txt"
@@ -52,6 +56,8 @@ const KID_DEFAULTS := {"kid_health": 300, "kid_regen_delay": 2.0, "kid_assist_mu
 const KID_ASSIST_MULT_MAX := 3.0
 const KID_ADS_PULL_MAX := 10.0
 var volumes := {&"Master": 1.0, &"SFX": 1.0, &"Music": 0.7, &"UI": 1.0}  # linear 0..1
+var builds: Array = []   # BUILD_COUNT x {"name": String, "parts": Array (PartDB ids, sanitized)}
+var build_index := 0     # the build played (sent on join, changed with BuildPicker)
 
 var antialiasing := 1    # 0 = off, 1 = FXAA
 var shadow_quality := 2  # 0 = off, 1 = medium (1024 px, 40 m), 2 = high (2048 px, 70 m)
@@ -77,6 +83,7 @@ func _ready() -> void:
 		ThemeDB.fallback_font = font
 	ThemeDB.get_default_theme().merge_with(UiTheme.build())  # every control, CanvasLayers included, falls back to it
 	load_settings()
+	load_builds()
 	if not name_chosen:
 		player_name = pick_nickname()
 	apply_audio()
@@ -305,6 +312,39 @@ func apply_sun(light: DirectionalLight3D) -> void:
 	light.shadow_enabled = shadow_quality > 0
 	if shadow_quality > 0:
 		light.directional_shadow_max_distance = SHADOW_MAX_DISTANCES[shadow_quality]
+
+
+## The build to play: the picked saved one; in test launches --build=... or the native build (tests never depend on
+## the player's saved builds).
+func current_build() -> Array:
+	if Game.is_test_launch():
+		return PartDB.sanitize(Game.test_build)
+	return builds[build_index]["parts"]
+
+
+func load_builds() -> void:
+	builds.clear()
+	for i in BUILD_COUNT:
+		builds.append({"name": "Сборка %d" % (i + 1), "parts": PartDB.default_build()})
+	var cfg := ConfigFile.new()
+	if cfg.load(BUILDS_PATH) != OK:
+		return
+	for i in BUILD_COUNT:
+		var section := "build_%d" % i
+		builds[i]["name"] = str(cfg.get_value(section, "name", builds[i]["name"])).left(24)
+		builds[i]["parts"] = PartDB.sanitize(cfg.get_value(section, "parts", []))
+	build_index = clampi(int(cfg.get_value("builds", "index", 0)), 0, BUILD_COUNT - 1)
+
+
+func save_builds() -> void:
+	if Game.is_test_launch():
+		return  # as save_settings: test runs never write the player's profile
+	var cfg := ConfigFile.new()
+	cfg.set_value("builds", "index", build_index)
+	for i in BUILD_COUNT:
+		cfg.set_value("build_%d" % i, "name", builds[i]["name"])
+		cfg.set_value("build_%d" % i, "parts", builds[i]["parts"])
+	cfg.save(BUILDS_PATH)
 
 
 func save_settings() -> void:

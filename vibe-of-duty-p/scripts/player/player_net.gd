@@ -310,7 +310,7 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	if _puppet_on_floor and not on_floor and new_velocity.y > 2.0:
 		Audio.play("jump", global_position)
 	elif on_floor and not _puppet_on_floor:
-		Audio.play("land", global_position)
+		Audio.play("land", global_position, mods["land_db"])
 	_puppet_on_floor = on_floor
 	var sliding := flags & STATE_SLIDING != 0
 	if sliding and not _puppet_sliding:

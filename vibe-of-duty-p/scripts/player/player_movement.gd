@@ -90,11 +90,12 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	var firing := weapons.wants_fire(cmd)
 	is_sprinting = cmd.sprint and cmd.move.y < -0.1 and not is_crouched and not cmd.aim and not firing \
 			and not weapons.is_meleeing()
-	var top_speed := SPRINT_SPEED if is_sprinting else WALK_SPEED
+	var top_speed: float = (SPRINT_SPEED * mods["sprint_mult"] if is_sprinting else WALK_SPEED) * mods["speed_mult"]
 	if is_sliding:
 		horiz = _slide_dir * _slide_speed
 	elif on_floor:
-		var ground_speed := (CROUCH_SPEED if is_crouched else top_speed) * wish_len * weapons.speed_mult()
+		var ground_speed: float = (CROUCH_SPEED * mods["speed_mult"] if is_crouched else top_speed) * wish_len \
+				* weapons.speed_mult()
 		var rate := GROUND_ACCEL if wish_len > 0.0 else GROUND_FRICTION
 		horiz = horiz.move_toward(wish * ground_speed, rate * dt)
 	elif wish_len > 0.0:
@@ -107,7 +108,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	if on_floor:
 		velocity.y = 0.0
 		if cmd.jump:
-			velocity.y = JUMP_VELOCITY
+			velocity.y = JUMP_VELOCITY * mods["jump_mult"]
 			_jumped_this_step = true
 			slide_finished = is_sliding or slide_finished
 			_sfx("jump")
@@ -125,7 +126,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 func _post_move(dt: float) -> void:
 	var on_floor := is_on_floor()
 	if on_floor and not _prev_on_floor and _prev_vy < -LAND_SOUND_MIN_SPEED:
-		_sfx("land")
+		_sfx("land", mods["land_db"])
 	if on_floor and not _prev_on_floor and is_local and not _replaying:
 		_land_impact = maxf(_land_impact, -_prev_vy)
 	_prev_on_floor = on_floor

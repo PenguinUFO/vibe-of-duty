@@ -1,6 +1,6 @@
 extends Control
 ## Main menu: host a game (HostPanel: map, rules, port), join one (JoinPanel: address or a recent server; the server
-## sends its map and rules), train alone (TrainingPanel: the training maps), or quit.
+## sends its map and rules), train alone (TrainingPanel: the training maps), edit builds (BuildPanel), or quit.
 
 const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 
@@ -17,6 +17,7 @@ const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
 @onready var _version: Label = %Version  # bottom right: the build version (raised by addons/version_bump on export)
 
 var _kid_entry := KidModeEntry.new()  # under Settings
+var _build_button := Button.new()     # above Settings
 var _joining := ""  # address being connected to; remembered in Settings.recent_servers once it works
 
 
@@ -25,6 +26,11 @@ func _ready() -> void:
 	var tag := str(ProjectSettings.get_setting("application/config/version_tag", ""))
 	_version.text = "v%s%s" % [ProjectSettings.get_setting("application/config/version", ""), "-" + tag if tag != "" else ""]
 	_name_edit.text = Settings.player_name
+	_build_button.text = "Сборка"
+	_build_button.theme_type_variation = "BigButton"
+	_column.add_child(_build_button)
+	_column.move_child(_build_button, _settings_button.get_index())
+	_build_button.pressed.connect(_open_builds)
 	_column.add_child(_kid_entry)
 	_column.move_child(_kid_entry, _settings_button.get_index() + 1)
 	_kid_entry.open_requested.connect(_open_kid_panel)
@@ -35,7 +41,8 @@ func _ready() -> void:
 	_quit_button.pressed.connect(get_tree().quit)
 	_settings_button.pressed.connect(_open_settings)
 	Game.training = false
-	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button, _random_name_button]:
+	for button in [_host_button, _join_button, _training_button, _quit_button, _settings_button, _random_name_button,
+			_build_button]:
 		button.pressed.connect(func() -> void: Audio.play("ui_click"))
 	Audio.play_music_id("menu")
 	_show_menu()
@@ -193,6 +200,19 @@ func _open_settings() -> void:
 	panel.closed.connect(func() -> void:
 		panel.queue_free()
 		_show_menu())
+	add_child(panel)
+	UiTheme.pop_in(panel)
+
+
+func _open_builds() -> void:
+	_column.visible = false
+	_pig.visible = false
+	var panel := BuildPanel.new()
+	panel.closed.connect(func() -> void:
+		panel.queue_free()
+		_show_menu()
+		if Settings.has_gamepad():
+			_build_button.grab_focus.call_deferred())
 	add_child(panel)
 	UiTheme.pop_in(panel)
 

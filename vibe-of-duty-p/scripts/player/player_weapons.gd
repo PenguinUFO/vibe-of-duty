@@ -124,7 +124,7 @@ func _on_melee(event: Dictionary) -> void:
 	if hit.is_empty():
 		return
 	var head: bool = hit["zone"] == "head"
-	var damage := WeaponSim.MELEE_DAMAGE * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
+	var damage: float = WeaponSim.MELEE_DAMAGE * mods["melee_damage_mult"] * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
 	if is_local:
 		Audio.play("punch_hit", hit["pos"])
 		if hit["player"] != null:
