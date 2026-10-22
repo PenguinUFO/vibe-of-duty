@@ -2,7 +2,20 @@ extends SceneTree
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_fp.gd
 
-const CASES := {"hip": [0, 0.0, -1.0], "ads": [0, 1.0, -1.0], "punch": [0, 0.0, 0.27], "punch_back": [0, 0.0, 0.6]}  # [weapon, ads, punch progress]
+const CASES := {  # [weapon, ads, punch progress, modules]
+	"hip": [0, 0.0, -1.0, []], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
+	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
+	"pdw_mods": [1, 0.0, -1.0, ["pdw.mag.20", "pdw.stock.folded", "pdw.muzzle.suppressor"]],
+	"luger_hip": [2, 0.0, -1.0, []], "luger_ads": [2, 1.0, -1.0, []],
+	"luger_mods": [2, 0.0, -1.0, ["luger.mag.32", "luger.stock.board", "luger.barrel.200"]],
+	"luger_mods_ads": [2, 1.0, -1.0, ["luger.mag.32", "luger.stock.board", "luger.barrel.200"]],
+	"pdw_compm": [1, 0.0, -1.0, ["pdw.sight.compm"]], "pdw_compm_ads": [1, 1.0, -1.0, ["pdw.sight.compm"]],
+	"pdw_compm_half": [1, 0.6, -1.0, ["pdw.sight.compm"]], "ak_kobra_ads": [0, 1.0, -1.0, ["ak.sight.kobra"]],
+	"ak_pbs": [0, 0.0, -1.0, ["ak.muzzle.pbs"]], "ak_pbs_ads": [0, 1.0, -1.0, ["ak.muzzle.pbs"]],
+	"acr_hip": [3, 0.0, -1.0, []], "acr_ads": [3, 1.0, -1.0, []],
+	"acr_mods": [3, 0.0, -1.0, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
+	"acr_mods_ads": [3, 1.0, -1.0, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
+}
 
 
 func _initialize() -> void:
@@ -36,7 +49,7 @@ func _initialize() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
-		view.set_weapon(CASES[c][0])
+		view.set_weapon(CASES[c][0], WeaponDB.make_def(CASES[c][0], CASES[c][3]))
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
 		for i in 30:

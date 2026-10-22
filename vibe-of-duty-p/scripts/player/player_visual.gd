@@ -46,10 +46,11 @@ func setup(peer_id: int, _display_name: String) -> void:
 	_mannequin.weapon = _weapon
 
 
-func set_weapon(index: int) -> void:
-	_weapon.set_weapon(index)
+## `def`: the player's weapon with their modules (null: the base one).
+func set_weapon(index: int, def: WeaponDef = null) -> void:
+	_weapon.set_weapon(index, def)
 	if _mannequin:
-		_mannequin.def = WeaponDB.get_def(index)
+		_mannequin.def = _weapon.def
 
 
 ## Aim pitch of the player in radians (positive = up).
@@ -153,7 +154,7 @@ func _update_reload(delta: float) -> void:
 	if _reload_t < 0.0:
 		_mannequin.reload = -1.0
 		return
-	var length := WeaponDB.get_def(_weapon.weapon_index).reload_time
+	var length := _weapon.def.reload_time
 	_reload_t += delta * (1.0 if _reloading else 3.0)
 	if _reload_t >= length:
 		_reload_t = -1.0
@@ -222,8 +223,8 @@ func _measure(delta: float) -> void:
 	_last_pos = pos
 
 
-func show_shot() -> void:
-	_weapon.flash()
+func show_shot(flash := true) -> void:
+	_weapon.flash(flash)
 
 
 func muzzle_global_position() -> Vector3:

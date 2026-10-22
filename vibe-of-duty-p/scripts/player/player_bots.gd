@@ -37,7 +37,7 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	cmd.sprint = fmod(t, 6.0) < 3.0
 	cmd.crouch = fmod(t, 7.0) > 6.0
 	cmd.jump = fmod(t, 2.5) < delta
-	cmd.fire = fmod(t, 4.0) < 2.5
+	cmd.fire = fmod(t, 4.0) < 2.5 and _bot_trigger()
 	cmd.aim = fmod(t, 8.0) > 5.5
 	cmd.reload = fmod(t, 9.0) < delta
 	var sel := int(t / 11.0) % WeaponDB.count()
@@ -45,6 +45,11 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		_bot_select = sel
 		cmd.select = sel
 	return cmd
+
+
+## Whether the trigger may be held this tick: a semi-automatic weapon needs it let go between shots.
+func _bot_trigger() -> bool:
+	return weapons.current().automatic or not weapons.fire_prev
 
 
 ## Runs laps of the obstacle course: down the middle lane of each side (COURSE_LOOP corners, in order), jumping at
@@ -102,7 +107,7 @@ func _bot_targets_cmd(t: float) -> PlayerCmd:
 		var dir := (point - eye).normalized()
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
-		cmd.fire = weapons.ads > 0.95 and target.alive
+		cmd.fire = weapons.ads > 0.95 and target.alive and _bot_trigger()
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	cmd.reload = weapons.mags[weapons.index] == 0
@@ -155,7 +160,7 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
-		cmd.fire = weapons.ads > 0.95
+		cmd.fire = weapons.ads > 0.95 and _bot_trigger()
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd

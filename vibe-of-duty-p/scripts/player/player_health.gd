@@ -57,7 +57,7 @@ func server_take_ammo() -> bool:
 		return true
 	var took := false
 	for i in WeaponDB.count():
-		var def := WeaponDB.get_def(i)
+		var def := weapons.def_at(i)
 		var room := def.reserve_max - weapons.reserves[i]
 		if room > 0:
 			weapons.reserves[i] += mini(def.mag_size, room)
@@ -88,6 +88,11 @@ func set_build(parts: Array) -> void:
 	weapons.ads_time_mult = mods["ads_time_mult"]
 	weapons.spread_hip_mult = mods["spread_hip_mult"]
 	weapons.spread_ads_mult = mods["spread_ads_mult"]
+	weapons.defs.clear()
+	for i in WeaponDB.count():
+		weapons.defs.append(WeaponDB.make_def(i, PartDB.weapon_modules(build)))
+	weapons.build_weapon = WeaponDB.index_of(build[0])
+	weapons.index = weapons.build_weapon  # a first spawn has no respawn (reset) to pick it
 	_apply_stats()
 	health = mini(health, max_health)
 
@@ -143,7 +148,7 @@ func respawn(xform: Transform3D) -> void:
 	teleport(xform)
 	_visual.set_dead(false)
 	if _view:
-		_view.set_weapon(weapons.index)
+		_view.set_weapon(weapons.index, weapons.current())
 	if is_local and world != null and world.kill_cam != null:
 		world.kill_cam.stop()
 	Audio.play("spawn", null if is_local else global_position)

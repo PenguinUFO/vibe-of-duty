@@ -10,6 +10,8 @@ var cost := 0             # tokens (PartDB.BUDGET per build)
 var display_name := ""
 var info := ""            # what it does, plus and minus
 var mods := {}            # PartDB.DEFAULT_MODS key -> value ("_mult" keys multiply, the others add up)
+var requires := ""        # a weapon module: another part id the build must have (weapons.cfg "requires")
+var weapon := ""          # a weapon module: the weapon's id (it fits only that weapon); "" for every other part
 
 
 static func make(p_id: String, p_slot: String, p_cost: int, p_name: String, p_info: String, p_mods := {}) -> PartDef:

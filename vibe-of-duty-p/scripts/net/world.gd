@@ -147,7 +147,8 @@ func _print_summary() -> void:
 	for id in players:
 		var p: Player = players[id]
 		var score: Dictionary = Game.scores.get(id, {"kills": 0, "deaths": 0})
-		var line := "%s%s %d/%d" % [p.player_name, "*" if p.is_local else "", score["kills"], score["deaths"]]
+		var line := "%s%s %d/%d %s" % [p.player_name, "*" if p.is_local else "", score["kills"], score["deaths"],
+				p.weapons.current().id]
 		if is_server:
 			line += " shots=%d hits=%d head=%d vaults=%d gaps=%d dropped=%d" % [p.shots_total, p.hits_total,
 					p.head_hits_total, p.mantle_count, p.gaps_filled, p.cmds_dropped]
@@ -586,7 +587,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		kill_cam.start(killer_id)
 	if hud:
 		var me := multiplayer.get_unique_id()
-		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else 				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else "")
+		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
+				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 
 

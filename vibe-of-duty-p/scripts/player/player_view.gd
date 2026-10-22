@@ -62,6 +62,8 @@ func _build_hud() -> void:
 	vignette.shader = HURT_SHADER
 	_hurt_rect.material = vignette
 	_hurt_rect.visible = false
+	_scope = ScopeOverlay.new()
+	_hud.add_child(_scope)
 	_hud.add_child(_hurt_rect)
 	_crosshair = Crosshair.new()
 	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
@@ -148,9 +150,10 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 
 
 func _update_viewmodel(delta: float, speed: float) -> void:
-	_view.set_weapon(weapons.index)
-	_view.visible = alive
-	_arms.visible = alive
+	_view.set_weapon(weapons.index, weapons.current())
+	_scope.set_amount(ScopeOverlay.amount_at(weapons.ads) if alive and weapons.current().scope else 0.0)
+	_view.visible = alive and not _scope.hides_view()
+	_arms.visible = _view.visible
 	var look := Vector2(look_yaw, look_pitch)
 	_look_delta = (look - _prev_look) / maxf(delta, 0.0001) * delta
 	_look_delta.x = wrapf(_look_delta.x, -PI, PI)

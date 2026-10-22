@@ -54,12 +54,13 @@ const FLAG_AIM := 16
 const FLAG_RELOAD := 32
 const FLAG_JUMP_HELD := 256
 const FLAG_MELEE := 512
-const FLAG_SELECT_SHIFT := 6  # 2 bits: weapon index + 1, 0 = no switch
+const FLAG_SELECT_SHIFT := 10  # 3 bits: weapon index + 1, 0 = no switch (up to 7 weapons)
+const SELECT_MASK := 7
 const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
 const STATE_SPRINTING := 4
 const STATE_ON_FLOOR := 8
-const STATE_WEAPON_SHIFT := 4  # 2 bits: current weapon index
+const STATE_WEAPON_SHIFT := 10  # 3 bits (SELECT_MASK): current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
@@ -176,6 +177,7 @@ var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffere
 var _view: WeaponView
 var _arms: FirstPersonArms
 var _crosshair: Crosshair
+var _scope: ScopeOverlay  # looking through a scope (PSO)
 var _ammo_hud: HudAmmo
 var _health_hud: HudHealth
 var _damage_dirs: DamageIndicator

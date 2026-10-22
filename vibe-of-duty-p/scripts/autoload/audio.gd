@@ -17,6 +17,7 @@ const HEARING_RANGE := 70.0  # positional sounds fade out completely beyond this
 const PLACEHOLDERS := {
 	"shot": {"kind": "noise", "dur": 0.18, "decay": 22.0, "vol": 0.9},
 	"shot_pistol": {"kind": "noise", "dur": 0.14, "decay": 28.0, "vol": 0.8},
+	"shot_suppressed": {"kind": "thump", "dur": 0.12, "freq": 260.0, "freq_end": 110.0, "decay": 30.0, "vol": 0.7},  # dull pop, no crack
 	"shot_shotgun": {"kind": "thump", "dur": 0.3, "freq": 140.0, "freq_end": 50.0, "decay": 12.0, "vol": 1.0},
 	"empty": {"kind": "tone", "dur": 0.05, "freq": 1800.0, "freq_end": 1800.0, "decay": 40.0, "vol": 0.4},
 	"reload": {"kind": "tone", "dur": 0.12, "freq": 500.0, "freq_end": 900.0, "decay": 14.0, "vol": 0.5},

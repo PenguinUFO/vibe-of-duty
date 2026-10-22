@@ -1,13 +1,18 @@
 class_name PartDB
 extends RefCounted
-## The parts a build is made of (Docs/LOADOUT.md) and the rules: one part per body slot, BUDGET tokens per build. A
-## build travels as an Array of part ids in SLOTS order; anything invalid (unknown id, wrong slot, over budget) turns
-## into the native parts (sanitize), so the server never applies a build it did not check.
+## The parts a build is made of (Docs/LOADOUT.md) and the rules: one part per slot - the weapon, its modules
+## (from weapons.cfg, WeaponDB) and the body - and BUDGET tokens per build. A build travels as an Array of part ids in
+## SLOTS order; anything invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into
+## the native parts (sanitize), so the server never applies a build it did not check.
 
-const SLOTS: Array[String] = ["weapon", "hands", "head", "chest", "belly", "legs"]
-const SLOT_NAMES := {"weapon": "Оружие", "hands": "Руки", "head": "Голова", "chest": "Грудь", "belly": "Брюхо",
-		"legs": "Ноги"}
-const BUDGET := 5
+const WEAPON_SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "barrel", "muzzle", "sight", "ammo"]
+const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
+const SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "barrel", "muzzle", "sight", "ammo", "hands",
+		"head", "chest", "belly", "legs"]
+const SLOT_NAMES := {"weapon": "Оружие", "caliber": "Калибр", "mag": "Магазин", "stock": "Приклад",
+		"barrel": "Ствол", "muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
+		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги"}
+const BUDGET := 10
 ## Every number a part can change, at "no change". "_mult" multiply, the rest add up.
 const DEFAULT_MODS := {
 	"health_add": 0.0,          # max health (on top of kid mode's)
@@ -28,6 +33,7 @@ const DEFAULT_MODS := {
 
 static var _parts: Array[PartDef] = []
 static var _by_id := {}
+static var _weapons_version := -1  # WeaponDB.version the module parts were made from
 
 
 static func all() -> Array[PartDef]:
@@ -40,20 +46,29 @@ static func get_part(id: String) -> PartDef:
 	return _by_id.get(id)
 
 
-## The parts that fit `slot`, the native one first.
-static func for_slot(slot: String) -> Array[PartDef]:
+## The parts that fit `slot`, the native one first; a module slot: those of `weapon` (an id).
+static func for_slot(slot: String, weapon := "") -> Array[PartDef]:
 	var list: Array[PartDef] = []
 	for part in all():
-		if part.slot == slot:
+		if part.slot == slot and part.weapon == weapon:
 			list.append(part)
 	return list
 
 
-## The native build: no organs, no implants (0 tokens).
-static func default_build() -> Array:
+## The parts `slot` offers in a build with this weapon (an id): its modules, or the body parts / weapons.
+static func options(slot: String, weapon: String) -> Array[PartDef]:
+	return for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
+
+
+## The native build: no organs, no implants, the first weapon with its base modules (0 tokens), or with `weapon`
+## (an id). "" for a slot weapons.cfg has no modules for.
+static func default_build(weapon := "") -> Array:
+	if weapon == "":
+		weapon = for_slot("weapon")[0].id
 	var parts := []
 	for slot in SLOTS:
-		parts.append(for_slot(slot)[0].id)
+		var list := options(slot, weapon)
+		parts.append(weapon if slot == "weapon" else list[0].id if not list.is_empty() else "")
 	return parts
 
 
@@ -66,16 +81,32 @@ static func cost(parts: Array) -> int:
 	return total
 
 
-## A valid build from anything: wrong or missing parts become native; over budget, the whole build is native.
+## A valid build from anything: wrong or missing parts become native, so do modules of another weapon or whose
+## "requires" is not in the build; over budget, the whole build is native (with its weapon).
+## Each id goes to its part's slot, so the order and missing slots do not matter (--build=pso,lead_heart).
 static func sanitize(parts: Variant) -> Array:
-	var clean := default_build()
 	if not parts is Array:
-		return clean
-	for i in mini((parts as Array).size(), SLOTS.size()):
-		var part := get_part(str(parts[i]))
-		if part != null and part.slot == SLOTS[i]:
-			clean[i] = part.id
-	return clean if cost(clean) <= BUDGET else default_build()
+		return default_build()
+	var weapon := ""
+	for id in parts:
+		var part := get_part(str(id))
+		if part != null and part.slot == "weapon":
+			weapon = part.id
+	var clean := default_build(weapon)
+	for id in parts:
+		var part := get_part(str(id))
+		if part != null and options(part.slot, clean[0]).has(part):
+			clean[SLOTS.find(part.slot)] = part.id
+	for i in SLOTS.size():
+		var part := get_part(clean[i])
+		if part != null and part.requires != "" and not clean.has(part.requires):
+			clean[i] = options(SLOTS[i], clean[0])[0].id
+	return clean if cost(clean) <= BUDGET else default_build(clean[0])
+
+
+## The part ids of the build's weapon modules (for WeaponDB.make_def).
+static func weapon_modules(parts: Array) -> Array:
+	return parts.slice(1, WEAPON_SLOTS.size())
 
 
 ## The combined numbers of a (sanitized) build.
@@ -94,10 +125,11 @@ static func mods(parts: Array) -> Dictionary:
 
 
 static func _build() -> void:
-	if not _parts.is_empty():
+	if not _parts.is_empty() and _weapons_version == WeaponDB.version:
 		return
+	WeaponDB.count()  # loads the config
+	_weapons_version = WeaponDB.version
 	_parts.assign([
-		PartDef.make("ak", "weapon", 0, "АК", "Единственный ствол."),
 		PartDef.make("hoof", "hands", 0, "Копыто", "Родное. Удар — 75 урона."),
 		PartDef.make("sledge_hoof", "hands", 2, "Копыто-кувалда",
 				"Удар убивает сразу. Ходишь на 10% медленнее.", {"melee_damage_mult": 2.0, "speed_mult": 0.9}),
@@ -105,8 +137,6 @@ static func _build() -> void:
 		PartDef.make("lead_brow", "head", 1, "Свинцовый лоб",
 				"В голову бьют как в тело. Прицеливаешься на 40% дольше.",
 				{"head_taken_mult": 1.0 / 1.15, "ads_time_mult": 1.4}),  # 1.15: NetWorld.HEAD_DAMAGE_MULT
-		PartDef.make("scope_eye", "head", 2, "Глаз-прицел",
-				"Разброс в прицеле ×0.4. От бедра ×1.6.", {"spread_ads_mult": 0.4, "spread_hip_mult": 1.6}),
 		PartDef.make("chest", "chest", 0, "Своё сердце", "Родное."),
 		PartDef.make("lead_heart", "chest", 2, "Свинцовое сердце",
 				"+50 здоровья. Лечение начинается на 2 с позже.", {"health_add": 50.0, "regen_delay_add": 2.0}),
@@ -123,5 +153,17 @@ static func _build() -> void:
 		PartDef.make("runner_hams", "legs", 2, "Беговые окорока",
 				"Спринт быстрее на 15%. Перезарядка на 30% дольше.", {"sprint_mult": 1.15, "reload_mult": 1.3}),
 	])
+	# The weapons (WeaponDB order: the first is the native one) and their modules, as weapons.cfg lists them (the
+	# first of a slot is its default).
+	for i in WeaponDB.count():
+		var def := WeaponDB.get_def(i)
+		_parts.append(PartDef.make(def.id, "weapon", 0, def.display_name, def.info))
+		for slot in WEAPON_SLOTS.slice(1):
+			for module: Dictionary in WeaponDB.modules_for(def.id, slot):
+				var part := PartDef.make(module["id"], slot, module["cost"], module["name"], module["info"])
+				part.requires = module["requires"]
+				part.weapon = def.id
+				_parts.append(part)
+	_by_id.clear()
 	for part in _parts:
 		_by_id[part.id] = part

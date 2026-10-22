@@ -28,8 +28,10 @@ func is_server() -> bool:
 
 func _on_peer_connected(id: int) -> void:
 	if multiplayer.is_server():
-		# The newcomer takes our map and match rules, loads the map, then reports ready to NetWorld.
-		_receive_map.rpc_id(id, Game.map_scene, {"score_limit": Game.score_limit, "match_time": Game.match_time})
+		# The newcomer takes our map, match rules and weapon balance (weapons.cfg), loads the map, then reports ready
+		# to NetWorld.
+		_receive_map.rpc_id(id, Game.map_scene, {"score_limit": Game.score_limit, "match_time": Game.match_time,
+				"weapons": WeaponDB.config_text})
 	peer_joined.emit(id)
 
 
@@ -44,6 +46,11 @@ func _receive_map(path: String, rules: Dictionary) -> void:
 	Game.map_scene = path
 	Game.score_limit = int(rules.get("score_limit", Game.SCORE_LIMIT))
 	Game.match_time = float(rules.get("match_time", Game.MATCH_TIME))
+	# The server's weapon numbers and modules: prediction must match its simulation (back to ours on leave()).
+	if not WeaponDB.load_text(str(rules.get("weapons", ""))):
+		push_error("Server sent no usable weapons.cfg")
+		leave()
+		return
 	map_received.emit(path)
 
 
@@ -85,6 +92,7 @@ func leave() -> void:
 	if multiplayer.has_multiplayer_peer():
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = null
+	WeaponDB.load_local()  # a server's weapons.cfg is played only on that server
 	disconnected.emit()
 
 
@@ -95,4 +103,5 @@ func _on_connection_failed() -> void:
 
 func _on_server_disconnected() -> void:
 	multiplayer.multiplayer_peer = null
+	WeaponDB.load_local()
 	disconnected.emit()

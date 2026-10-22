@@ -52,7 +52,7 @@ func _reload_hand(def: WeaponDef, handguard: Vector3, s: float) -> Vector3:
 func pose() -> void:
 	if _weapon == null or _weapon.weapon_index < 0:
 		return
-	var def := WeaponDB.get_def(_weapon.weapon_index)
+	var def := _weapon.def
 	var xform := transform.affine_inverse() * _weapon.transform  # both are children of the camera
 	var s := WeaponView.VIEWMODEL_SCALE
 	var right := Mannequin._view_point(def.right_hand) * s

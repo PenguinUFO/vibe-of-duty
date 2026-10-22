@@ -25,6 +25,9 @@ static var _noise: ImageTexture
 	set(value):
 		mesh_layers = value
 		_rebuild()
+## Thin cover bullets go through, up to the weapon's penetration (WeaponDef.penetration, Player._trace): seats,
+## crates, doors - not the walls, floors and ceilings of the level.
+@export var penetrable := false
 
 
 func _ready() -> void:

@@ -1,0 +1,11 @@
+[gd_resource type="ArrayMesh" format=4]
+
+[resource]
+_surfaces = [{
+"aabb": AABB(-0.022, 0.072, -0.1, 0.044, 0.018000007, 0.335),
+"format": 34359738375,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 72,
+"vertex_data": PackedByteArray("WDm0PLx0kz3NzMy9WDm0PArXoz3Xo3A+WDm0PArXoz3NzMy9WDm0PLx0kz3NzMy9WDm0PLx0kz3Xo3A+WDm0PArXoz3Xo3A+WDm0PArXoz3NzMy9bxKDPA4tsj3Xo3A+bxKDPA4tsj3NzMy9WDm0PArXoz3NzMy9WDm0PArXoz3Xo3A+bxKDPA4tsj3Xo3A+bxKDPA4tsj3NzMy9AAAAAOxRuD3Xo3A+AAAAAOxRuD3NzMy9bxKDPA4tsj3NzMy9bxKDPA4tsj3Xo3A+AAAAAOxRuD3Xo3A+AAAAAOxRuD3NzMy9bxKDvA4tsj3Xo3A+bxKDvA4tsj3NzMy9AAAAAOxRuD3NzMy9AAAAAOxRuD3Xo3A+bxKDvA4tsj3Xo3A+bxKDvA4tsj3NzMy9WDm0vArXoz3Xo3A+WDm0vArXoz3NzMy9bxKDvA4tsj3NzMy9bxKDvA4tsj3Xo3A+WDm0vArXoz3Xo3A+WDm0vArXoz3NzMy9WDm0vLx0kz3Xo3A+WDm0vLx0kz3NzMy9WDm0vArXoz3NzMy9WDm0vArXoz3Xo3A+WDm0vLx0kz3Xo3A+WDm0vLx0kz3NzMy9WDm0PLx0kz3Xo3A+WDm0PLx0kz3NzMy9WDm0vLx0kz3NzMy9WDm0vLx0kz3Xo3A+WDm0PLx0kz3Xo3A+WDm0vLx0kz3NzMy9WDm0PLx0kz3NzMy9WDm0PArXoz3NzMy9WDm0PArXoz3NzMy9bxKDPA4tsj3NzMy9AAAAAOxRuD3NzMy9AAAAAOxRuD3NzMy9bxKDvA4tsj3NzMy9WDm0vArXoz3NzMy9WDm0vArXoz3NzMy9WDm0vLx0kz3NzMy9WDm0PArXoz3NzMy9WDm0PArXoz3NzMy9AAAAAOxRuD3NzMy9WDm0vArXoz3NzMy9WDm0vLx0kz3Xo3A+WDm0PArXoz3Xo3A+WDm0PLx0kz3Xo3A+WDm0PArXoz3Xo3A+AAAAAOxRuD3Xo3A+bxKDPA4tsj3Xo3A+AAAAAOxRuD3Xo3A+WDm0vArXoz3Xo3A+bxKDvA4tsj3Xo3A+WDm0vArXoz3Xo3A+WDm0PArXoz3Xo3A+WDm0vLx0kz3Xo3A+WDm0PArXoz3Xo3A+WDm0vArXoz3Xo3A+AAAAAOxRuD3Xo3A+////f/9//7////9//3//v////3//f/+/////f/9//7////9//3//v////3//f/+/68QSu7dbKdXrxBK7t1sp1evEEru3WynV68QSu7dbKdXrxBK7t1sp1evEEru3WynVNZTJ608Xz8k1lMnrTxfPyTWUyetPF8/JNZTJ608Xz8k1lMnrTxfPyTWUyetPF8/JyWvJ608XLrbJa8nrTxcutslryetPFy62yWvJ608XLrbJa8nrTxcutslryetPFy62EzsSu7db1aoTOxK7t1vVqhM7Eru3W9WqEzsSu7db1aoTOxK7t1vVqhM7Eru3W9WqAAD/f/9//78AAP9//3//vwAA/3//f/+/AAD/f/9//78AAP9//3//vwAA/3//f/+//38AAAAA/7//fwAAAAD/v/9/AAAAAP+//38AAAAA/7//fwAAAAD/v/9/AAAAAP+///////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA//////9/AID//////38AgP//////fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA/3//f/9/AID/f/9//38AgP9//3//fwCA")
+}]

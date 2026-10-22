@@ -14,6 +14,7 @@ const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
 const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
 
 var weapon_index := -1
+var def: WeaponDef  # the weapon shown, with its owner's modules (the sight model and aim line)
 var is_viewmodel := false
 
 var _pivot := Node3D.new()
@@ -29,6 +30,11 @@ var _kick := 0.0
 var _drop := 0.0          # landing jolt, decays
 var _handle: MeshInstance3D   # charging handle (WeaponDef.charging_handle), rides the bolt
 var _handle_rest := Vector3.ZERO
+var _toggle: Node3D       # a toggle lock (Luger): "Toggle" in the model, folded up as the breech goes back
+var _toggle_hinge := Vector3.ZERO  # rest positions: the rear link's hinge, the knee, the breech block's pin
+var _toggle_knee := Vector3.ZERO
+var _toggle_pin := Vector3.ZERO
+var _dot: Node3D          # a red dot sight's dot (SightModels), put on the aim line from the eye every pose
 var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
 var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
 var lowered := 0.0        # 0..1: the gun is lowered out of view (first person, vaulting)
@@ -54,27 +60,51 @@ func _init() -> void:
 	_muzzle.add_child(_flash)
 
 
-func set_weapon(index: int) -> void:
-	if index == weapon_index:
+## `weapon_def`: the owner's weapon with their modules (Player.weapons.def_at); null: the base one.
+func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
+	if weapon_def == null:
+		weapon_def = WeaponDB.get_def(index)
+	if index == weapon_index and weapon_def == def:
 		return
+	var same_model := index == weapon_index and def != null and weapon_def.sight == def.sight \
+			and weapon_def.model_variants == def.model_variants
 	weapon_index = index
+	def = weapon_def
+	if same_model:
+		return  # a new build with the same optic: only the numbers changed
 	if _model:
 		_model.queue_free()
 		_model = null
 		_mag = null
-	var def := WeaponDB.get_def(index)
 	var scene: PackedScene = load(def.scene_path)
 	_model = scene.instantiate()
 	for body in _model.find_children("*", "CollisionObject3D", true, false):
 		body.queue_free()
+	for group: String in def.model_variants:
+		var holder := _model.get_node_or_null(group)
+		for child in holder.get_children() if holder else []:
+			if child.name != def.model_variants[group]:
+				child.free()  # now: the magazine search below must not find the other one
 	for node in _model.find_children("*Flash*", "MeshInstance3D", true, false):
 		node.visible = false
 	for node in _model.find_children("*_Mag_*", "Node3D", true, false):
 		_mag = node
 		_mag_rest = node.position
+	var optic := SightModels.build(def.sight)
+	_dot = null
+	if optic:
+		_model.add_child(optic)
+		_dot = optic.get_node_or_null("Dot")
+		if _dot and not is_viewmodel:
+			_dot.visible = false  # lit only for the eye behind it
 	_pivot.add_child(_model)
 	_handle = null
-	if def.charging_handle.is_finite():
+	_toggle = _model.get_node_or_null("Toggle")
+	if _toggle:
+		_toggle_hinge = _toggle.get_node("LinkRear").position
+		_toggle_knee = _toggle.get_node("LinkFront").position
+		_toggle_pin = _toggle.get_node("Breech").position
+	elif def.charging_handle.is_finite():
 		# The blockout model has no moving parts: a small charging handle on the receiver's right side cycles with
 		# every shot and is pulled by hand at the end of a reload.
 		var handle_mesh := BoxMesh.new()
@@ -114,26 +144,47 @@ func _process(delta: float) -> void:
 	_cycle += delta
 	if _handle:
 		# Bolt: slams back at once on a shot and runs forward again within 70 ms.
-		var back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull
-		var def := WeaponDB.get_def(weapon_index)
+		var back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 and def.handle_reciprocates else bolt_pull
 		_handle.position = _handle_rest + Vector3(0.0, 0.0, -def.bolt_travel * back)
+	elif _toggle:
+		_fold_toggle(maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull)
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
 			_flash.visible = false
 
 
+## The toggle with the breech block `back` (0..1) of bolt_travel back: the knee rises between the hinge and the pin.
+func _fold_toggle(back: float) -> void:
+	var pin := _toggle_pin - Vector3(0.0, 0.0, def.bolt_travel * back)
+	var rear_len := _toggle_hinge.distance_to(_toggle_knee)
+	var front_len := _toggle_knee.distance_to(_toggle_pin)
+	var span := maxf(_toggle_hinge.distance_to(pin), absf(rear_len - front_len) + 0.0001)
+	# The knee: on both links' circles (in the gun's side plane), the upper of the two crossings.
+	var along := (rear_len * rear_len - front_len * front_len + span * span) / (2.0 * span)
+	var up := sqrt(maxf(rear_len * rear_len - along * along, 0.0))
+	var dir := (pin - _toggle_hinge) / span
+	var knee := _toggle_hinge + dir * along + Vector3(0.0, dir.z, -dir.y) * up
+	var rear_link := _toggle.get_node("LinkRear") as Node3D
+	var front_link := _toggle.get_node("LinkFront") as Node3D
+	rear_link.rotation.x = -atan2(knee.y - _toggle_hinge.y, knee.z - _toggle_hinge.z)  # the links lie along +Z
+	front_link.position = knee
+	front_link.rotation.x = -atan2(pin.y - knee.y, pin.z - knee.z)
+	(_toggle.get_node("Breech") as Node3D).position = pin
+
+
 func muzzle_global_position() -> Vector3:
 	return _muzzle.global_position
 
 
-func flash() -> void:
-	_flash_timer = FLASH_TIME
-	_flash.visible = true
-	_flash.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-	_flash.scale = Vector3.ONE * randf_range(0.7, 1.4)
+## A shot: the bolt cycles and a casing flies; `show_flash` false (a suppressor): no flash.
+func flash(show_flash := true) -> void:
+	if show_flash:
+		_flash_timer = FLASH_TIME
+		_flash.visible = true
+		_flash.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+		_flash.scale = Vector3.ONE * randf_range(0.7, 1.4)
 	_cycle = 0.0
-	var def := WeaponDB.get_def(weapon_index)
 	if def.ejection_port.is_finite() and is_visible_in_tree():
 		var port := _pivot.global_transform * def.ejection_port
 		var basis := _pivot.global_basis.orthonormalized()
@@ -224,3 +275,22 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 
 	position = pos
 	rotation = rot
+	_aim_dot()
+
+
+## A red dot is at infinity (a collimator): the eye sees it along the aim line wherever the eye is, so it goes where
+## that line from the eye crosses the sight's glass - on a shot or a sway it shows where the gun points, not where the
+## glass is - and is hidden when that is off the window (from the hip). First person only: others' dots are too small.
+func _aim_dot() -> void:
+	var camera := get_viewport().get_camera_3d() if _dot and is_viewmodel else null
+	if camera == null:
+		return
+	var optic := _dot.get_parent() as Node3D
+	var eye := optic.global_transform.affine_inverse() * camera.global_position
+	var dir := (def.front_sight - def.rear_sight).normalized()
+	var plane: float = optic.get_meta("dot_z")
+	var through := eye + dir * ((plane - eye.z) / dir.z)
+	var off := Vector2(through.x, through.y).distance_to(optic.get_meta("window_center"))
+	_dot.visible = eye.z < plane and off <= float(optic.get_meta("window_radius"))
+	_dot.position = through
+	_dot.scale = Vector3.ONE * (eye.distance_to(through) * float(optic.get_meta("dot_angle")) / SightModels.DOT_RADIUS)

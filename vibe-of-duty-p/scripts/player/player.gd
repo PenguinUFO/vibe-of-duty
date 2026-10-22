@@ -36,7 +36,7 @@ func _ready() -> void:
 	set_physics_process(control != Mode.PUPPET)
 	if not is_local:
 		_visual.setup(peer_id, player_name)
-		_visual.set_weapon(weapons.index)
+		_visual.set_weapon(weapons.index, weapons.current())
 	_prev_pos = global_position
 	_curr_pos = global_position
 	_prev_yaw = rotation.y
@@ -49,7 +49,7 @@ func _ready() -> void:
 		_view = WeaponView.new()
 		_view.is_viewmodel = true
 		_camera.add_child(_view)
-		_view.set_weapon(weapons.index)
+		_view.set_weapon(weapons.index, weapons.current())
 		# First-person arms made from the same character as the body other players see.
 		_arms = FirstPersonArms.new()
 		_camera.add_child(_arms)
@@ -172,7 +172,8 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 			_jump_buffer = JUMP_BUFFER_TIME
 		var count := WeaponDB.count()
 		for i in count:
-			if Input.is_action_just_pressed("weapon_%d" % (i + 1)):
+			var key := "weapon_%d" % (i + 1)
+			if InputMap.has_action(key) and Input.is_action_just_pressed(key):
 				cmd.select = i
 		if Input.is_action_just_pressed("weapon_next"):
 			cmd.select = (weapons.index + 1) % count

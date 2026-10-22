@@ -26,7 +26,7 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 			"equip":
 				_local_sfx("equip")
 				if _view:
-					_view.set_weapon(weapons.index)
+					_view.set_weapon(weapons.index, weapons.current())
 			"melee_start":
 				_sfx("punch")
 			"melee":
@@ -42,7 +42,7 @@ func _local_sfx(id: String) -> void:
 func _on_shot(event: Dictionary) -> void:
 	if _replaying:
 		return
-	var def := WeaponDB.get_def(event["weapon"])
+	var def := weapons.def_at(event["weapon"])
 	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
 	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	var tick := _judge_tick(event["view_tick"], is_server)
@@ -52,14 +52,17 @@ func _on_shot(event: Dictionary) -> void:
 	var damage_by_victim := {}  # peer_id -> {player, damage, head}
 	var target_hits := {}  # Target -> {damage, head, marks: [[pos, head]]} (training targets)
 	for dir in event["dirs"]:
-		var r := _trace(origin, dir, def.max_range, tick)
+		var r := _trace(origin, dir, def.max_range, tick, def.penetration)
+		# Damage by distance (WeaponDef.falloff_*), less after going through cover.
+		var hit_damage := def.damage_at(origin.distance_to(r["pos"])) \
+				* (def.penetration_damage if r["through"] else 1.0)
 		results.append(r)
 		ends.append(r["pos"])
 		var target: Target = r.get("target")
 		if target != null:
 			var t_head: bool = r["zone"] == "head"
 			var t_entry: Dictionary = target_hits.get_or_add(target, {"damage": 0.0, "head": false, "marks": []})
-			t_entry["damage"] += def.damage * (NetWorld.HEAD_DAMAGE_MULT if t_head else 1.0)
+			t_entry["damage"] += hit_damage * (NetWorld.HEAD_DAMAGE_MULT if t_head else 1.0)
 			t_entry["head"] = t_entry["head"] or t_head
 			t_entry["marks"].append([r["pos"], t_head])
 		var victim: Player = r["player"]
@@ -67,7 +70,7 @@ func _on_shot(event: Dictionary) -> void:
 			var head: bool = r["zone"] == "head"
 			hits.append({"player_id": victim.peer_id, "zone": r["zone"], "pos": r["pos"]})
 			var entry: Dictionary = damage_by_victim.get_or_add(victim.peer_id, {"player": victim, "damage": 0.0, "head": false})
-			entry["damage"] += def.damage * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
+			entry["damage"] += hit_damage * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
 			entry["head"] = entry["head"] or head
 	if is_server:
 		shots_total += 1
@@ -87,11 +90,12 @@ func _on_shot(event: Dictionary) -> void:
 			if is_local:
 				on_hit_confirmed(knocked, t_entry["head"])
 	if is_local:
-		_view.flash()
+		_view.flash(def.muzzle_flash)
 		_view.kick(1.0 if def.pellets == 1 else 2.0)
-		Audio.play(def.sound_shot)
+		Audio.play(def.sound_shot, null, def.loudness)
 		var muzzle := _view.muzzle_global_position()
-		MuzzleLights.flash(self, muzzle)
+		if def.muzzle_flash:
+			MuzzleLights.flash(self, muzzle)
 		if world != null and world.kill_cam != null:
 			world.kill_cam.record_shot(peer_id, event["weapon"], muzzle, ends)
 		var scene_root := get_tree().current_scene
@@ -101,6 +105,8 @@ func _on_shot(event: Dictionary) -> void:
 				(r["player"] as Player).react_to_shot(origin, r["pos"])
 			elif r.get("target") != null:
 				(r["target"] as Target).react_to_shot(origin, r["pos"])
+			if r.get("entry", Vector3.INF).is_finite():  # went through cover: a hole where it went in
+				ShotEffects.spawn_impact(scene_root, r["entry"], -(r["pos"] - origin).normalized())
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
@@ -117,7 +123,8 @@ func _on_melee(event: Dictionary) -> void:
 	var tick := _judge_tick(event["view_tick"], is_server)
 	var hit := {}
 	for offset in MELEE_FAN:
-		var r := _trace(origin, Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) 				* Vector3.FORWARD, WeaponSim.MELEE_RANGE, tick)
+		var r := _trace(origin, Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) \
+				* Vector3.FORWARD, WeaponSim.MELEE_RANGE, tick)
 		if r["player"] != null or r.get("target") != null:
 			hit = r
 			break  # the fan goes from the middle outwards: the first body found is the one punched
@@ -170,14 +177,31 @@ func _judge_tick(view_tick: float, is_server: bool) -> float:
 	return clampf(view_tick, now - LagComp.MAX_REWIND_TICKS, now)
 
 
-func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0) -> Dictionary:
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * max_range, Layers.WORLD)
-	var world_hit := get_world_3d().direct_space_state.intersect_ray(query)
+## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. With
+## `penetration` > 0 it goes through one penetrable cover (Block.penetrable) up to that thick: then "through" is true
+## for what it hits behind, and "entry" is where it went in.
+func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0, penetration := 0.0) -> Dictionary:
+	var space := get_world_3d().direct_space_state
+	var end := origin + dir * max_range
+	var world_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, end, Layers.WORLD))
 	var best := max_range
-	var result := {"pos": origin + dir * max_range, "normal": -dir, "hit": false, "player": null, "zone": ""}
+	var pierced_at := INF  # distance where the bullet went into the cover it went through
+	var result := {"pos": end, "normal": -dir, "hit": false, "player": null, "zone": "", "through": false}
 	if not world_hit.is_empty():
-		best = origin.distance_to(world_hit["position"])
-		result = {"pos": world_hit["position"], "normal": world_hit["normal"], "hit": true, "player": null, "zone": ""}
+		var entry: Vector3 = world_hit["position"]
+		var exit := _cover_exit(world_hit["collider"], entry, dir, penetration)
+		if exit.is_finite():
+			pierced_at = origin.distance_to(entry)
+			var behind := space.intersect_ray(PhysicsRayQueryParameters3D.create(exit + dir * 0.01, end, Layers.WORLD))
+			if not behind.is_empty():
+				best = origin.distance_to(behind["position"])
+				result = {"pos": behind["position"], "normal": behind["normal"], "hit": true, "player": null, "zone": ""}
+			result["through"] = true
+			result["entry"] = entry
+		else:
+			best = origin.distance_to(entry)
+			result = {"pos": entry, "normal": world_hit["normal"], "hit": true, "player": null, "zone": "",
+					"through": false}
 	if world == null:
 		return result
 	# Players are hit-tested analytically (see LagComp), at their rewound position when `tick` >= 0.
@@ -201,7 +225,8 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 			zone = "body"
 		if t >= 0.0 and t < best:
 			best = t
-			result = {"pos": origin + dir * t, "normal": -dir, "hit": true, "player": other, "zone": zone}
+			result = {"pos": origin + dir * t, "normal": -dir, "hit": true, "player": other, "zone": zone,
+					"through": t > pierced_at, "entry": result.get("entry", Vector3.INF)}
 	# Training targets: the same hitboxes, always at their live position (they are not networked).
 	for node in get_tree().get_nodes_in_group(Target.GROUP):
 		var target := node as Target
@@ -222,8 +247,21 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 		if t_hit >= 0.0 and t_hit < best:
 			best = t_hit
 			result = {"pos": origin + dir * t_hit, "normal": -dir, "hit": true, "player": null, "zone": t_zone,
-					"target": target}
+					"target": target, "through": t_hit > pierced_at, "entry": result.get("entry", Vector3.INF)}
 	return result
+
+
+## Where a bullet that went into `collider` at `entry` comes out of it, or INF if it does not: the collider is not
+## penetrable cover, or is thicker than `penetration` (found by a ray back from that far inside).
+func _cover_exit(collider: Object, entry: Vector3, dir: Vector3, penetration: float) -> Vector3:
+	if penetration <= 0.0 or not (collider is Block and (collider as Block).penetrable):
+		return Vector3.INF
+	var from := entry + dir * penetration
+	var query := PhysicsRayQueryParameters3D.create(from, entry, Layers.WORLD)
+	var back := get_world_3d().direct_space_state.intersect_ray(query)
+	if back.is_empty() or back["collider"] != collider:
+		return Vector3.INF  # still inside it that far in (a ray started inside a shape does not hit it)
+	return back["position"]
 
 
 func _target_state(other: Player, tick: float) -> Dictionary:
@@ -248,17 +286,19 @@ func react_to_shot(origin: Vector3, end: Vector3) -> void:
 
 ## Cosmetics of somebody else's shot (called by World on clients and on the host).
 func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
-	var def := WeaponDB.get_def(weapon)
+	var def := weapons.def_at(weapon)  # with this player's modules (their build is known everywhere)
 	if world != null and world.kill_cam != null:
 		world.kill_cam.record_shot(peer_id, weapon, origin, ends)
-	_visual.set_weapon(weapon)
-	_visual.show_shot()
-	Audio.play(def.sound_shot, origin)
+	_visual.set_weapon(weapon, def)
+	Audio.play(def.sound_shot, origin, def.loudness)
 	var scene_root := get_tree().current_scene
 	var muzzle := _visual.muzzle_global_position()
-	MuzzleLights.flash(self, muzzle)
+	_visual.show_shot(def.muzzle_flash)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
+	if def.muzzle_flash:
+		MuzzleLights.flash(self, muzzle)
 	for i in ends.size():
-		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
+		if def.tracer:
+			ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
 		if world != null:
 			for id in world.players:

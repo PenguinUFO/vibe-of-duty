@@ -34,6 +34,11 @@ var reload_mult := 1.0
 var ads_time_mult := 1.0
 var spread_hip_mult := 1.0
 var spread_ads_mult := 1.0
+## This player's weapons with the build's modules (WeaponDB.make_def), by weapon index; empty: the base ones.
+var defs: Array[WeaponDef] = []
+## The build's weapon (WeaponDB index): the only one the player holds (one weapon per build, Docs/LOADOUT.md), set
+## with defs. Switching to another is refused; PlayerCmd.select stays for a second weapon some day.
+var build_weapon := 0
 
 
 func _init() -> void:
@@ -41,12 +46,12 @@ func _init() -> void:
 
 
 func reset() -> void:
-	index = 0
+	index = build_weapon
 	mags = PackedInt32Array()
 	reserves = PackedInt32Array()
 	for i in WeaponDB.count():
-		mags.append(WeaponDB.get_def(i).mag_size)
-		reserves.append(WeaponDB.get_def(i).reserve_start)
+		mags.append(def_at(i).mag_size)
+		reserves.append(def_at(i).reserve_start)
 	cooldown = 0
 	reload_ticks = 0
 	switch_ticks = 0
@@ -66,7 +71,11 @@ static func melee_windup_ticks() -> int:
 
 
 func current() -> WeaponDef:
-	return WeaponDB.get_def(index)
+	return def_at(index)
+
+
+func def_at(weapon: int) -> WeaponDef:
+	return defs[weapon] if weapon >= 0 and weapon < defs.size() else WeaponDB.get_def(weapon)
 
 
 func is_reloading() -> bool:
@@ -145,7 +154,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "melee_start"})
 
 	# Weapon switch.
-	if melee_ticks == 0 and cmd.select >= 0 and cmd.select != index and cmd.select < WeaponDB.count():
+	if melee_ticks == 0 and cmd.select >= 0 and cmd.select != index and cmd.select == build_weapon:
 		index = cmd.select
 		def = current()
 		switch_ticks = def.equip_ticks()

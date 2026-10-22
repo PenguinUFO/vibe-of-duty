@@ -34,7 +34,7 @@ func _initialize() -> void:
 	var vis := PlayerVisual.new()
 	root3d.add_child(vis)
 	vis.setup(0, "T")
-	vis.set_weapon(0)
+	vis.set_weapon(int(OS.get_environment("SHOT_WEAPON")) if OS.has_environment("SHOT_WEAPON") else 0)  # WeaponDB index
 	var cam := Camera3D.new()
 	cam.fov = 35
 	root3d.add_child(cam)

@@ -31,7 +31,7 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	cmd.aim = flags & FLAG_AIM != 0
 	cmd.reload = flags & FLAG_RELOAD != 0
 	cmd.melee = flags & FLAG_MELEE != 0
-	cmd.select = ((flags >> FLAG_SELECT_SHIFT) & 3) - 1
+	cmd.select = ((flags >> FLAG_SELECT_SHIFT) & SELECT_MASK) - 1
 	cmd.view_tick = entry[5]
 	return cmd
 
@@ -147,8 +147,8 @@ func push_snapshot(state: Array, tick: int) -> void:
 	is_mantling = flags & STATE_MANTLING != 0
 	_visual.set_mantling(is_mantling, _snapshot_mantle_top(state))
 	velocity = state[4]
-	weapons.index = (flags >> STATE_WEAPON_SHIFT) & 3
-	_visual.set_weapon(weapons.index)
+	weapons.index = (flags >> STATE_WEAPON_SHIFT) & SELECT_MASK
+	_visual.set_weapon(weapons.index, weapons.current())
 	aiming = flags & STATE_ADS != 0
 	_visual.set_ads(aiming)
 	health = state[8]

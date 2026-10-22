@@ -43,6 +43,7 @@ var _camera := Camera3D.new()
 var _view: WeaponView
 var _arms: FirstPersonArms
 var _ui := CanvasLayer.new()
+var _scope := ScopeOverlay.new()  # the killer looking through a scope
 var _title: Label
 var _caption: Label
 
@@ -64,6 +65,7 @@ func _ready() -> void:
 	look_material.shader = REPLAY_SHADER
 	look.material = look_material
 	_ui.add_child(look)
+	_ui.add_child(_scope)
 	for top in [true, false]:
 		var bar := ColorRect.new()
 		bar.color = Color.BLACK
@@ -136,6 +138,7 @@ func stop() -> void:
 	for id in _ghosts:
 		_show_ghost(_ghosts[id], false)
 	_view.visible = false
+	_scope.set_amount(0.0)
 	if _arms:
 		_arms.visible = false
 		_arms = null
@@ -223,7 +226,7 @@ func _play(delta: float) -> void:
 		ghost.show_reload(pose[7])
 		ghost.show_melee(pose[9])
 		ghost.set_ads(pose[4])
-		ghost.set_weapon(pose[6])
+		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -235,7 +238,7 @@ func _play(delta: float) -> void:
 		_ads = move_toward(_ads, 1.0 if killer[4] else 0.0, delta / PlayerVisual.ADS_BLEND_TIME)
 		_camera.global_transform = Transform3D(Basis.from_euler(Vector3(killer[2], killer[1], 0.0)),
 				killer[0] + Vector3.UP * _eye)
-		var def := WeaponDB.get_def(killer[6])
+		var def := _def_for(_killer_id, killer[6])
 		_camera.fov = lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, _ads)
 		var look := Vector2(killer[1], killer[2])
 		var look_delta := look - _prev_look
@@ -244,9 +247,10 @@ func _play(delta: float) -> void:
 		var moved: Vector3 = killer[0] - _prev_pos
 		_prev_pos = killer[0]
 		var speed := Vector2(moved.x, moved.z).length() / dt
-		_view.set_weapon(killer[6])
-		_view.visible = killer[5]
-		_arms.visible = killer[5]
+		_view.set_weapon(killer[6], def)
+		_scope.set_amount(ScopeOverlay.amount_at(_ads) if killer[5] and def.scope else 0.0)
+		_view.visible = killer[5] and not _scope.hides_view()
+		_arms.visible = _view.visible
 		_view.melee = killer[9]
 		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
 		_arms.reload = killer[7]
@@ -287,6 +291,12 @@ func _ghost_for(id: int) -> PlayerVisual:
 	return _ghosts[id]
 
 
+## A player's weapon with their modules as of now (the build they respawned with since may differ), else the base.
+func _def_for(id: int, weapon: int) -> WeaponDef:
+	var player: Player = world.players.get(id)
+	return player.weapons.def_at(weapon) if player != null else WeaponDB.get_def(weapon)
+
+
 func _show_ghost(ghost: PlayerVisual, shown: bool) -> void:
 	ghost.visible = shown
 	ghost.process_mode = Node.PROCESS_MODE_INHERIT if shown else Node.PROCESS_MODE_DISABLED
@@ -310,23 +320,25 @@ func _replay_shot(shot: Dictionary) -> void:
 				if id != shot["id"]:
 					(_ghosts[id] as PlayerVisual).react_to_shot(shot["origin"], end)
 		return
-	var def := WeaponDB.get_def(shot["weapon"])
+	var def := _def_for(shot["id"], shot["weapon"])
 	var muzzle: Vector3 = shot["origin"]
-	if shot["id"] == _killer_id:
-		_view.flash()
+	var own: bool = shot["id"] == _killer_id  # the killer's eyes: their own trail shows, as in play
+	if own:
+		_view.flash(def.muzzle_flash)
 		_view.kick(1.0 if def.pellets == 1 else 2.0)
-		Audio.play(def.sound_shot)
+		Audio.play(def.sound_shot, null, def.loudness)
 		muzzle = _view.muzzle_global_position()
 	elif _ghosts.has(shot["id"]):
 		var ghost: PlayerVisual = _ghosts[shot["id"]]
-		ghost.set_weapon(shot["weapon"])
-		ghost.show_shot()
+		ghost.set_weapon(shot["weapon"], def)
+		ghost.show_shot(def.muzzle_flash)
 		muzzle = ghost.muzzle_global_position()
-		Audio.play(def.sound_shot, muzzle)
+		Audio.play(def.sound_shot, muzzle, def.loudness)
 	var scene_root := get_tree().current_scene
 	var ends: PackedVector3Array = shot["ends"]
 	for i in ends.size():
-		ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
+		if own or def.tracer:
+			ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
 		for id in _ghosts:
 			if id != shot["id"]:
