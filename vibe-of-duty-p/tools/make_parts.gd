@@ -100,9 +100,9 @@ const PARTS := {
 					Vector2(0.13, 0.016)], "width": [Vector2(0.0, 0.03)], "chamfer": 0.007},
 			# The stock, solid: the cheek riser on top, the butt, the bottom slanting up to the hinge. Folded: the same
 			# turned round the hinge (z -0.108).
-			"stock": {"points": [Vector2(-0.112, 0.088), Vector2(-0.255, 0.094), Vector2(-0.262, 0.084),
-					Vector2(-0.29, 0.082), Vector2(-0.307, 0.082), Vector2(-0.307, -0.055), Vector2(-0.29, -0.058),
-					Vector2(-0.279, -0.05), Vector2(-0.17, 0.02), Vector2(-0.112, 0.02)],
+			"stock": {"points": [Vector2(-0.112, 0.02), Vector2(-0.17, 0.02), Vector2(-0.279, -0.05),
+					Vector2(-0.29, -0.058), Vector2(-0.307, -0.055), Vector2(-0.307, 0.082), Vector2(-0.29, 0.082),
+					Vector2(-0.262, 0.084), Vector2(-0.255, 0.094), Vector2(-0.112, 0.088)],
 					"width": [Vector2(0.0, 0.02)], "chamfer": 0.005},
 			"stock_folded": {"points": [Vector2(-0.104, 0.088), Vector2(0.039, 0.094), Vector2(0.046, 0.084),
 					Vector2(0.074, 0.082), Vector2(0.091, 0.082), Vector2(0.091, -0.055), Vector2(0.074, -0.058),

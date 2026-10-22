@@ -1,24 +1,25 @@
-"""Generates prefabs/weapons/acr_blockout.tscn: a blockout of the Magpul Masada / Bushmaster ACR, 5.56 (2007-2010s).
+"""Generates prefabs/weapons/acr_blockout.tscn: a blockout of the Magpul Masada / Bushmaster / Remington ACR, 5.56.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_acr_blockout.py   (overwrites the scene)
-Shaped parts (upper, lower, trigger guard, grip, handguard, stock) are meshes made by tools/make_parts.gd
+Shaped parts (upper, lower, trigger guard, grip, handguards, stock) are meshes made by tools/make_parts.gd
 (prefabs/weapons/acr_<part>_mesh.tres) - run that first if they change.
 
-From memory of the rifle, no photos at hand: a black aluminium upper bevelled at the back, with one long top rail over
-the receiver and the handguard; a polymer (flat dark earth) lower with the flared magazine well, an angular trigger
-guard and an AR grip with a finger bump; the polymer handguard with vent slots, short side rails and the two-position
-gas regulator's knob at its front; flip-up iron sights at both ends of the rail; the non-reciprocating charging
-handle forward on the left (WeaponDef.charging_handle, handle_reciprocates false); a STANAG magazine (PMAG, ridged at
-the bottom); the A2 flash hider with its slots; the Magpul skeleton stock with a triangular hole, folding to the
-right side.
+After the owner's photos (a coyote 14.5" from the right, Remington's catalogue of the four configurations, a black one
+with a red dot and a can): all coyote - the anodised upper and the polymer - with a black barrel, muzzle brake,
+ejection cover and butt pad. The upper and the tall lower meet on a line falling to the front; the deep handguard's
+back edge climbs at a slant to the rail, one row of long slots above and one of short ones below, a short black side
+rail at its front (the 10.5" has a short handguard without it); one rail over all of it with flip-up sights at both
+ends; the long black ejection cover on the right, the non-reciprocating charging handle on the left under the rail
+(WeaponDef.charging_handle, handle_reciprocates false); the big trigger guard, the MOE grip, a PMAG with its window;
+the solid stock with the cheek riser, folding to the right side.
 
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres; prefab +x is the shooter's left. Module variants (model_variants):
-"Barrel" (B105 / B145 / B185: 10.5", 14.5", 18"), each with its own "Muzzle" (Hider / Can) - so the suppressor
-module names all three; "Stock" (Extended / Folded); "Mags" (ACR_Mag_30, a "*_Mag_*" node so reloads slide it out).
-Key points used by WeaponDB (prefab space): bore y 0.05; muzzle with the flash hider z 0.297 / 0.398 / 0.487 + 0.055,
-the suppressor + 0.17 instead; rear sight notch (0, 0.113, -0.12), front post tip (0, 0.113, 0.27); pistol grip
-(0, -0.08, -0.085); handguard bottom (0, -0.012, 0.22); charging handle (0.036, 0.062, 0.13).
+"Barrel" (B105 / B145 / B185: 10.5", 14.5", 18", each with its handguard), each with its own "Muzzle" (Brake / Can) -
+so the suppressor module names all three; "Stock" (Extended / Folded); "Mags" (ACR_Mag_30, a "*_Mag_*" node so
+reloads slide it out). Key points used by WeaponDB (prefab space): bore y 0.05; muzzle with the brake
+z 0.38 / 0.481 / 0.57 + 0.067, the suppressor + 0.17 instead; rear sight's top (0, 0.113, -0.05), front post tip
+(0, 0.113, 0.31); pistol grip (0, -0.04, -0.076); handguard bottom (0, 0.015, 0.29); charging handle (0.03, 0.083, 0.2).
 """
 import math
 import os
@@ -26,20 +27,20 @@ import os
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prefabs", "weapons", "acr_blockout.tscn")
 
 MATERIALS = {
-    "black": ((0.08, 0.08, 0.085), 0.35, 0.5),   # albedo, metallic, roughness: anodised upper
+    "fde": ((0.58, 0.48, 0.33), 0.0, 0.8),      # albedo, metallic, roughness: all the coyote (the Cerakote upper too)
+    "black": ((0.07, 0.07, 0.075), 0.4, 0.5),   # barrel, brake, ejection cover, side rail
     "steel": ((0.13, 0.13, 0.14), 0.55, 0.45),
-    "steel_light": ((0.24, 0.24, 0.25), 0.6, 0.4),
-    "steel_dark": ((0.05, 0.05, 0.055), 0.5, 0.5),  # slots and vents
-    "fde": ((0.5, 0.42, 0.3), 0.0, 0.8),         # polymer, flat dark earth
+    "steel_dark": ((0.04, 0.04, 0.045), 0.5, 0.5),  # slots, ports
     "rubber": ((0.06, 0.06, 0.06), 0.0, 0.9),
-    "mag": ((0.09, 0.09, 0.095), 0.0, 0.7),
+    "mag": ((0.55, 0.46, 0.32), 0.0, 0.75),     # coyote PMAG
+    "window": ((0.12, 0.11, 0.1), 0.0, 0.3),
 }
-MESHES = ["upper", "lower", "guard", "grip", "handguard", "stock_top", "stock_strut", "stock_top_folded",
-          "stock_strut_folded"]
+MESHES = ["upper", "lower", "guard", "grip", "handguard", "handguard_short", "stock", "stock_folded"]
 BORE_Y = 0.05
-CHAMBER_Z = 0.03
-BARRELS = (("B105", 0.267), ("B145", 0.368), ("B185", 0.457))  # 10.5", 14.5", 18" from the chamber
-HIDER_LEN = 0.055
+CHAMBER_Z = 0.113
+BARRELS = (("B105", 0.267, "handguard_short", 0.354), ("B145", 0.368, "handguard", 0.421),
+           ("B185", 0.457, "handguard", 0.421))  # 10.5", 14.5", 18" from the chamber; the handguard and its front
+BRAKE_LEN = 0.067
 CAN_LEN = 0.17
 
 parts = []  # (name, parent, kind, size/params, center, rot_x_deg, material)
@@ -51,6 +52,10 @@ def box(name, x0, x1, y0, y1, z0, z1, mat, rot_x=0.0, parent="."):
 
 def tube(name, radius, z0, z1, y, mat, x=0.0, parent="."):
     parts.append((name, parent, "cyl", (radius, z1 - z0), (x, y, (z0 + z1) / 2), 90.0, mat))
+
+
+def cylx(name, radius, x0, x1, y, z, mat, parent="."):
+    parts.append((name, parent, "cylx", (radius, x1 - x0), ((x0 + x1) / 2, y, z), 0.0, mat))
 
 
 def mesh(name, key, mat, parent=".", pos=(0.0, 0.0, 0.0)):
@@ -66,89 +71,141 @@ def both(x0, x1):
     return (("L", x0, x1), ("R", -x1, -x0))
 
 
-# Upper: the receiver bevelled at the back, one rail from the rear sight to the front sight, the ejection port on the
-# right, the charging handle's track on the left.
-mesh("Upper", "upper", "black")
-box("Rail", -0.011, 0.011, 0.077, 0.086, -0.165, 0.28, "black")
-for i in range(16):  # cross slots along the rail
-    z = -0.15 + i * 0.027
-    box("RailSlot%d" % i, -0.0115, 0.0115, 0.082, 0.0865, z, z + 0.008, "steel")
-box("EjectionPort", -0.0265, -0.0255, 0.035, 0.063, 0.0, 0.07, "steel_dark")
-box("HandleSlot", 0.0255, 0.0265, 0.055, 0.069, 0.04, 0.17, "steel_dark")  # the handle's track (WeaponView adds the handle)
-# Lower: the receiver and the magazine well, the trigger guard, the grip; ambidextrous controls.
+# Upper: coyote, one rail from the hinge to the front sight, the long black ejection cover on the right, the charging
+# handle's slot on the left under the rail (on the upper, then on the wider handguard).
+mesh("Upper", "upper", "fde")
+box("Rail", -0.011, 0.011, 0.086, 0.095, -0.095, 0.345, "fde")
+for i in range(17):  # cross slots along the rail
+    z = -0.088 + i * 0.0254
+    box("RailSlot%d" % i, -0.0115, 0.0115, 0.091, 0.0955, z, z + 0.009, "steel_dark")
+box("EjectionCover", -0.0275, -0.0255, 0.048, 0.071, 0.006, 0.113, "black")
+box("CoverHinge", -0.0285, -0.0265, 0.069, 0.072, 0.008, 0.111, "black")
+box("HandleSlotUpper", 0.0255, 0.0265, 0.077, 0.084, 0.12, 0.175, "steel_dark")
+box("HandleSlotGuard", 0.0295, 0.0305, 0.077, 0.084, 0.175, 0.24, "steel_dark")  # WeaponView adds the handle
+# The hinge coyote, black only on its sides: in the sights the camera's near plane cuts the stock open and its back
+# face fills the bottom of the view (black, it was a wall).
+box("Hinge", -0.021, 0.021, 0.024, 0.074, -0.118, -0.104, "fde")
+for side, x0, x1 in both(0.021, 0.022):
+    box("HingeSide" + side, x0, x1, 0.024, 0.074, -0.118, -0.104, "black")
+for side, x0, x1 in both(0.026, 0.028):  # pins: the hinge's, the barrel's lock, the lower's two
+    cylx("HingePin" + side, 0.004, x0 - 0.006, x1 - 0.006, 0.062, -0.111, "steel")
+    cylx("LockPin" + side, 0.0035, x0, x1, 0.06, 0.1, "steel")
+for side, x0, x1 in both(0.024, 0.0255):
+    cylx("RearPin" + side, 0.0035, x0, x1, 0.03, -0.09, "steel")
+    cylx("FrontPin" + side, 0.0035, x0, x1, 0.012, 0.11, "steel")
+
+# Lower: the tall receiver, the magazine well with its textured patch, the big trigger guard, the MOE grip;
+# ambidextrous selector, magazine release and bolt catch.
 mesh("Lower", "lower", "fde")
 mesh("TriggerGuard", "guard", "fde")
 mesh("PistolGrip", "grip", "fde")
-box("Trigger", -0.004, 0.004, -0.042, -0.03, -0.002, 0.008, "steel_light", rot_x=-10.0)
-for side, x0, x1 in both(0.024, 0.0275):
-    box("Selector" + side, x0, x1, -0.014, 0.002, -0.07, -0.05, "steel_light")
-    box("MagRelease" + side, x0, x1, -0.025, -0.012, 0.015, 0.03, "steel_light")
-    box("BoltCatch" + side, x0, x1, -0.012, 0.008, 0.112, 0.124, "steel_light")
-    box("Pins" + side, x0 - 0.0005, x0 + 0.002, -0.004, 0.004, -0.14, -0.13, "black")  # the takedown pin's head
-# Handguard: polymer under the rail, vent slots and short side rails, the gas regulator's knob above the barrel.
-mesh("Handguard", "handguard", "fde")
-for side, x0, x1 in both(0.0275, 0.0285):
-    for i in range(3):
-        z = 0.19 + i * 0.026
-        box("Vent%s%d" % (side, i), x0, x1, 0.0, 0.016, z, z + 0.016, "steel_dark")
-for side, x0, x1 in both(0.0275, 0.034):
-    box("SideRail" + side, x0, x1, 0.03, 0.044, 0.2, 0.275, "black")
-    for i in range(5):
-        z = 0.205 + i * 0.014
-        box("SideRailSlot%s%d" % (side, i), x1 - 0.0045, x1 + 0.0005, 0.029, 0.045, z, z + 0.006, "steel")
-tube("GasRegulator", 0.009, 0.29, 0.302, 0.067, "steel_light")
-box("RegulatorTab", -0.002, 0.002, 0.067, 0.081, 0.296, 0.302, "steel_light")
-# Flip-up sights on the rail (up): a notch between two ears at the rear, a post between two ears at the front.
-box("RearSightBase", -0.012, 0.012, 0.086, 0.1, -0.13, -0.11, "black")
-box("RearSightEarL", 0.003, 0.011, 0.1, 0.12, -0.125, -0.115, "black")
-box("RearSightEarR", -0.011, -0.003, 0.1, 0.12, -0.125, -0.115, "black")
-box("FrontSightBase", -0.012, 0.012, 0.086, 0.098, 0.26, 0.28, "black")
-box("FrontSightPost", -0.0025, 0.0025, 0.098, 0.113, 0.267, 0.273, "steel_light")
-box("FrontSightEarL", 0.008, 0.012, 0.098, 0.116, 0.262, 0.278, "black")
-box("FrontSightEarR", -0.012, -0.008, 0.098, 0.116, 0.262, 0.278, "black")
-box("StockHinge", -0.028, 0.024, 0.0, 0.07, -0.185, -0.17, "black")
+box("Trigger", -0.0035, 0.0035, -0.02, 0.004, 0.0, 0.007, "black", rot_x=-12.0)
+for side, x0, x1 in both(0.024, 0.0255):
+    box("WellPatch" + side, x0, x1, -0.022, 0.0, 0.07, 0.112, "fde")
+for side, x0, x1 in both(0.024, 0.028):
+    cylx("SelectorHub" + side, 0.006, x0, x1, 0.022, -0.04, "black")
+    box("Selector" + side, x0, x1, 0.019, 0.025, -0.06, -0.04, "black")
+    box("MagRelease" + side, x0, x1, -0.022, -0.006, 0.043, 0.05, "black")
+    box("BoltCatch" + side, x0, x1, 0.008, 0.02, 0.1, 0.112, "black")
 
-# Barrels: each with its own muzzle group, the A2 flash hider (slots round its top) or the suppressor screwed on.
+# Flip-up sights (up), all tops at the sight line (y 0.113): the post stands in the middle of the rear's wide notch, its
+# tip flush with the ears' tops, light on both sides of it; the front's ears (wider than the notch) hide behind the
+# rear's ears.
+box("RearSightBase", -0.012, 0.012, 0.095, 0.099, -0.07, -0.04, "black")
+box("RearSightLeaf", -0.008, 0.008, 0.099, 0.104, -0.056, -0.05, "black")  # the notch's bottom
+for side, x0, x1 in both(0.003, 0.008):
+    box("RearSightEar" + side, x0, x1, 0.104, 0.113, -0.056, -0.05, "black")
+box("FrontSightBase", -0.012, 0.012, 0.095, 0.099, 0.295, 0.335, "black")
+box("FrontSightPost", -0.002, 0.002, 0.099, 0.113, 0.307, 0.313, "black")
+for side, x0, x1 in both(0.008, 0.012):
+    box("FrontSightEar" + side, x0, x1, 0.099, 0.113, 0.303, 0.317, "black")
+
+# Barrels: each with its handguard (slots, the black side rail on the long one, the gas regulator's knob at its front)
+# and its own muzzle group, the brake (ports) or the suppressor (black, gripping rings, as the third photo).
 node("Barrel")
-for name, length in BARRELS:
+for name, length, guard, front in BARRELS:
     p = "Barrel/" + name
     end = CHAMBER_Z + length
     node(name, "Barrel")
-    tube("Tube", 0.009, 0.28, end, BORE_Y, "steel", parent=p)
+    mesh("Handguard", guard, "fde", parent=p)
+    slots_low = 5 if guard == "handguard" else 4
+    for side, x0, x1 in both(0.0295, 0.0305):
+        for i in range(slots_low):
+            z = 0.196 + i * 0.033
+            box("LowSlot%s%d" % (side, i), x0, x1, 0.025, 0.035, z, z + 0.02, "steel_dark", parent=p)
+        for i, z in enumerate((0.25, 0.29, 0.33) if guard == "handguard" else (0.25, 0.29)):
+            box("HighSlot%s%d" % (side, i), x0, x1, 0.052, 0.058, z, z + 0.028, "steel_dark", parent=p)
+    if guard == "handguard":
+        for side, x0, x1 in both(0.0295, 0.035):
+            box("SideRail" + side, x0, x1, 0.045, 0.066, 0.362, 0.408, "black", parent=p)
+            for i in range(3):
+                z = 0.367 + i * 0.013
+                box("SideRailSlot%s%d" % (side, i), x1 - 0.003 if side == "L" else x0 - 0.0005,
+                    x1 + 0.0005 if side == "L" else x0 + 0.003, 0.044, 0.067, z, z + 0.006, "steel_dark", parent=p)
+    tube("GasKnob", 0.008, front, front + 0.012, 0.072, "black", parent=p)
+    box("GasLever", -0.002, 0.002, 0.072, 0.088, front + 0.006, front + 0.012, "black", parent=p)
+    tube("Tube", 0.0095, front - 0.02, end, BORE_Y, "black", parent=p)
     node("Muzzle", p)
-    node("Hider", p + "/Muzzle")
+    node("Brake", p + "/Muzzle")
     node("Can", p + "/Muzzle")
-    tube("Cage", 0.011, end, end + HIDER_LEN, BORE_Y, "steel", parent=p + "/Muzzle/Hider")
-    for i, (x0, x1, y0, y1) in enumerate(((-0.003, 0.003, 0.0105, 0.0115), (0.0095, 0.0115, 0.002, 0.008),
-                                          (-0.0115, -0.0095, 0.002, 0.008))):
-        box("Slot%d" % i, x0, x1, BORE_Y + y0, BORE_Y + y1, end + 0.02, end + 0.048, "steel_dark", parent=p + "/Muzzle/Hider")
-    tube("Can", 0.019, end - 0.01, end + CAN_LEN, BORE_Y, "black", parent=p + "/Muzzle/Can")
-    tube("Cap", 0.015, end + CAN_LEN, end + CAN_LEN + 0.004, BORE_Y, "steel", parent=p + "/Muzzle/Can")
+    b = p + "/Muzzle/Brake"
+    tube("Body", 0.0105, end, end + BRAKE_LEN, BORE_Y, "black", parent=b)
+    for i in range(3):  # rings between the ports
+        z = end + 0.012 + i * 0.019
+        tube("Ring%d" % i, 0.0115, z, z + 0.006, BORE_Y, "black", parent=b)
+    for i in range(2):
+        z = end + 0.021 + i * 0.019
+        for side, x0, x1 in both(0.0098, 0.0112):
+            box("Port%s%d" % (side, i), x0, x1, BORE_Y - 0.004, BORE_Y + 0.004, z, z + 0.008, "steel_dark", parent=b)
+    tube("Crown", 0.009, end + BRAKE_LEN, end + BRAKE_LEN + 0.001, BORE_Y, "steel_dark", parent=b)
+    c = p + "/Muzzle/Can"
+    tube("Mount", 0.012, end, end + 0.025, BORE_Y, "black", parent=c)
+    tube("Can", 0.019, end + 0.025, end + CAN_LEN, BORE_Y, "black", parent=c)
+    for i in range(4):  # the gripping rings round its back half
+        z = end + 0.03 + i * 0.022
+        tube("Grip%d" % i, 0.0198, z, z + 0.014, BORE_Y, "steel", parent=c)
+    tube("Cap", 0.017, end + CAN_LEN, end + CAN_LEN + 0.002, BORE_Y, "steel_dark", parent=c)
 
-# Magazine: a STANAG box, 0.06 m of it in the well, the bottom curving forward (minus: the bottom goes forward); the
-# PMAG's ridges round its lower part and the floor plate's lip.
+# Magazine: a coyote PMAG, the top in the well, tilted (minus: the bottom goes forward); its window on the right,
+# the ribs round the lower part and the floor plate's lip.
 node("Mags")
-node("ACR_Mag_30", "Mags", (0.0, -0.078, 0.0715))  # tilted: its top edge stays inside the well
+node("ACR_Mag_30", "Mags", (0.0, -0.028, 0.085))
 p = "Mags/ACR_Mag_30"
-box("Body", -0.0115, 0.0115, -0.142, 0.068, -0.032, 0.032, "mag", rot_x=-6.0, parent=p)
-tilt_s, tilt_c = math.sin(math.radians(-6.0)), math.cos(math.radians(-6.0))
-for i in range(3):  # each ridge where the tilted body puts that height (the body turns about its middle, y -0.037)
-    h = -0.12 + i * 0.012 + 0.037
-    parts.append(("Ridge%d" % i, p, "box", (0.025, 0.005, 0.066), (0.0, -0.037 + tilt_c * h, tilt_s * h), -6.0, "mag"))
-box("Floor", -0.014, 0.014, -0.154, -0.142, -0.0245, 0.0475, "mag", rot_x=-6.0, parent=p)  # under the tilted body's bottom
+TILT = -6.0
+MAG_Y0, MAG_Y1 = -0.123, 0.06
+mid = (MAG_Y0 + MAG_Y1) / 2
+ts, tc = math.sin(math.radians(TILT)), math.cos(math.radians(TILT))
 
 
-# Stock: the skeleton (comb and butt, the strut down to the hinge, the triangular hole between) with its rubber pad. Folded, it
-# swings round the hinge's vertical axis to lie along the right side (prefab -x), pointing forward.
+def magbox(name, x0, x1, h0, h1, z0, z1, mat):
+    """A box in the tilted body's frame: h along its height from the body's middle, z along its depth."""
+    h, z = (h0 + h1) / 2, (z0 + z1) / 2
+    parts.append((name, p, "box", (x1 - x0, h1 - h0, z1 - z0), ((x0 + x1) / 2, mid + tc * h - ts * z, ts * h + tc * z),
+                  TILT, mat))
+
+
+magbox("Body", -0.0115, 0.0115, MAG_Y0 - mid, MAG_Y1 - mid, -0.032, 0.032, "mag")
+magbox("Window", -0.0122, -0.0112, -0.065, 0.005, -0.026, -0.021, "window")
+for i in range(4):
+    h = MAG_Y0 - mid + 0.012 + i * 0.011
+    magbox("Rib%d" % i, -0.0125, 0.0125, h, h + 0.004, -0.032, 0.032, "mag")
+magbox("Floor", -0.014, 0.014, MAG_Y0 - mid - 0.01, MAG_Y0 - mid, -0.035, 0.036, "mag")
+
+# Stock: solid, the cheek riser on top, the black butt pad, the sling slot and the QD socket near the butt, the
+# length buttons. Folded, it swings round the hinge's vertical axis to lie along the right side (prefab -x).
 node("Stock")
 node("Extended", "Stock")
-mesh("Top", "stock_top", "fde", parent="Stock/Extended")
-mesh("Strut", "stock_strut", "fde", parent="Stock/Extended")
-box("Pad", -0.022, 0.022, -0.077, 0.07, -0.452, -0.44, "rubber", parent="Stock/Extended")
+s = "Stock/Extended"
+mesh("Body", "stock", "fde", parent=s)
+box("Pad", -0.021, 0.021, -0.059, 0.083, -0.321, -0.307, "rubber", parent=s)
+for side, x0, x1 in both(0.0195, 0.0205):
+    box("SlingSlot" + side, x0, x1, -0.035, -0.005, -0.296, -0.29, "steel_dark", parent=s)
+    cylx("QD" + side, 0.005, x0, x1 + 0.0005, 0.06, -0.29, "black", parent=s)
+    box("Button" + side, x0, x1 + 0.001, 0.05, 0.068, -0.2, -0.185, "fde", parent=s)
 node("Folded", "Stock")
-mesh("Top", "stock_top_folded", "fde", parent="Stock/Folded", pos=(-0.048, 0.0, 0.0))
-mesh("Strut", "stock_strut_folded", "fde", parent="Stock/Folded", pos=(-0.048, 0.0, 0.0))
-box("Pad", -0.07, -0.026, -0.077, 0.07, 0.1, 0.112, "rubber", parent="Stock/Folded")
+s = "Stock/Folded"
+mesh("Body", "stock_folded", "fde", parent=s, pos=(-0.048, 0.0, 0.0))
+box("Pad", -0.069, -0.027, -0.059, 0.083, 0.091, 0.105, "rubber", parent=s)
 
 f = lambda v: "%g" % round(v, 5)
 res = []
@@ -171,8 +228,10 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
         res.append('[sub_resource type="BoxMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\nsize = Vector3(%s, %s, %s)\n'
                    % (i, mat, f(params[0]), f(params[1]), f(params[2])))
     else:
-        res.append('[sub_resource type="CylinderMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\ntop_radius = %s\nbottom_radius = %s\nheight = %s\nradial_segments = 10\nrings = 1\n'
-                   % (i, mat, f(params[0]), f(params[0]), f(params[1])))
+        res.append('[sub_resource type="CylinderMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\ntop_radius = %s\nbottom_radius = %s\nheight = %s\nradial_segments = %d\nrings = 1\n'
+                   % (i, mat, f(params[0]), f(params[0]), f(params[1]), 8 if kind == "cylx" else 12))
+    if kind == "cylx":  # the cylinder's axis (local Y) across the gun
+        xform = "Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, %s, %s, %s)" % (f(c[0]), f(c[1]), f(c[2]))
     nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = SubResource("mesh_%d")\n' % (name, parent, xform, i))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8", newline="\n") as out:

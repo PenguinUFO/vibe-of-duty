@@ -61,6 +61,7 @@ func _ready() -> void:
 		hud.world = self
 		add_child(hud)
 		pause_menu = PauseMenu.new()
+		pause_menu.world = self
 		add_child(pause_menu)
 		kill_cam = KillCam.new()
 		kill_cam.world = self
@@ -207,8 +208,8 @@ func _client_ready(player_name: String, toughness: Vector3, build: Array) -> voi
 	_server_add_player(id, _unique_name(player_name), Player.clamp_toughness(toughness), PartDB.sanitize(build))
 
 
-## Local player: picked another build (BuildPicker, after death or between matches). It is played from the next
-## respawn on; the server checks it (PartDB.sanitize).
+## Local player: picked another build (BuildPicker after death or between matches, BuildMenu in the pause menu). It
+## is played from the next respawn on, on a training map at once; the server checks it (PartDB.sanitize).
 func send_build(build: Array) -> void:
 	if not multiplayer.has_multiplayer_peer():
 		return
@@ -225,8 +226,18 @@ func _request_build(build: Array) -> void:
 
 
 func _server_want_build(id: int, build: Array) -> void:
-	if players.has(id):
-		(players[id] as Player).wanted_build = PartDB.sanitize(build)
+	if not players.has(id):
+		return
+	var player: Player = players[id]
+	player.wanted_build = PartDB.sanitize(build)
+	if Game.training and player.alive and player.wanted_build != player.build:
+		# Training: no one to wait for - a new life with it where they stand, looking where they looked.
+		var pitch := player.look_pitch
+		var xform := Transform3D(Basis(Vector3.UP, player.look_yaw), player.global_position)
+		_apply_respawn(id, xform, player.wanted_build)
+		for peer in _ready_peers:
+			_player_respawned.rpc_id(peer, id, xform, player.wanted_build)
+		player.look_pitch = pitch
 
 
 ## Local player: kid mode settings changed (KidPanel, even mid-match) -> the server, which applies and relays them.

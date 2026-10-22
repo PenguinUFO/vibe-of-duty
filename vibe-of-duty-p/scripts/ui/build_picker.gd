@@ -2,7 +2,8 @@ class_name BuildPicker
 extends CanvasLayer
 ## In a match: while the local player is dead (over the kill cam) or between matches, a line at the bottom shows the
 ## build of the next life; keys 1-5 or d-pad left / right pick another saved one (Settings.builds). The server gets it
-## at once (NetWorld.send_build) and applies it at the respawn. Editing builds is the main menu's (BuildPanel).
+## at once (NetWorld.send_build) and applies it at the respawn (on a training map at once). The pause menu picks too
+## (BuildMenu). Editing builds is the main menu's (BuildPanel).
 ## Created by NetWorld; not on a dedicated server.
 
 var world: NetWorld
@@ -30,14 +31,29 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_plate.visible = _shown()
 	if _plate.visible:
-		var build: Dictionary = Settings.builds[Settings.build_index]
-		var names: PackedStringArray = []
-		for id in build["parts"]:
-			var part := PartDB.get_part(id)
-			if part != null and part.cost > 0:
-				names.append(part.display_name)
-		_label.text = "Сборка %d/%d: %s   [%s]   1–5 / ◀ ▶ — сменить" % [Settings.build_index + 1,
-				Settings.BUILD_COUNT, build["name"], ", ".join(names) if not names.is_empty() else "родная туша"]
+		_label.text = "Сборка %d/%d: %s   1–5 / ◀ ▶ — сменить" % [Settings.build_index + 1, Settings.BUILD_COUNT,
+				describe(Settings.build_index)]
+
+
+## "Name: weapon   [paid parts]" of a saved build.
+static func describe(index: int) -> String:
+	var build: Dictionary = Settings.builds[index]
+	var weapon := PartDB.get_part(build["parts"][0])
+	var names: PackedStringArray = []
+	for id in build["parts"]:
+		var part := PartDB.get_part(id)
+		if part != null and part.cost > 0:
+			names.append(part.display_name)
+	return "%s: %s   [%s]" % [build["name"], weapon.display_name if weapon != null else "?",
+			", ".join(names) if not names.is_empty() else "родная туша"]
+
+
+## Makes the saved build `index` the played one: saved, sent to the server (played from the next life, on a training
+## map at once).
+static func pick(world: NetWorld, index: int) -> void:
+	Settings.build_index = index
+	Settings.save_builds()
+	world.send_build(Settings.current_build())
 
 
 func _shown() -> bool:
@@ -64,7 +80,5 @@ func _unhandled_input(event: InputEvent) -> void:
 	if index < 0 or index == Settings.build_index:
 		return
 	get_viewport().set_input_as_handled()
-	Settings.build_index = index
-	Settings.save_builds()
 	Audio.play("ui_click")
-	world.send_build(Settings.current_build())
+	pick(world, index)

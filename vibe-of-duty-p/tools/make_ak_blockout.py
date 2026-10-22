@@ -8,8 +8,8 @@ Shaped parts are meshes made by Godot tools - run those first if they change:
 Conventions (as WeaponView expects): the barrel points to +Z, +Y is up, the origin sits under the receiver at the
 trigger; prefab +x is the shooter's left. Units are metres; the rifle is ~0.96 m long. Module variants: group
 "Muzzle" (Slant / Brake / PBS). The magazine is a node named "*_Mag_*" (WeaponView slides it out during reloads).
-Key points used by WeaponDef (prefab space): muzzle (0, 0.045, 0.565), rear sight top (0, 0.112, 0.28), front sight
-top (0, 0.11, 0.50), pistol grip (0, -0.055, -0.062), handguard bottom (0, 0.0, 0.35).
+Key points used by WeaponDef (prefab space): muzzle (0, 0.045, 0.565), rear sight top (0, 0.118, 0.28), front sight
+top (0, 0.118, 0.50), pistol grip (0, -0.055, -0.062), handguard bottom (0, 0.0, 0.35).
 """
 import math
 import os
@@ -63,6 +63,8 @@ for side, x0, x1 in (("L", 0.025, 0.027), ("R", -0.027, -0.025)):
 # Ejection port on the right, under the cover's edge.
 box("EjectionPort", -0.0262, -0.0248, 0.042, 0.068, 0.07, 0.17, "steel_dark")
 # Rear sight: the block on the trunnion and the leaf with its slider; the U notch is between the leaf's two halves.
+# The sight line runs over the halves' tops and the front post's tip (y 0.118): in the sights the post stands in the
+# middle of the notch, flush with its top, and the hood's ears hide behind the leaf.
 box("RearSightBase", -0.016, 0.016, 0.072, 0.1, 0.25, 0.3, "steel")
 box("RearSightLeafL", -0.014, -0.004, 0.1, 0.118, 0.27, 0.282, "steel_light")   # leaf with a U notch in the middle
 box("RearSightLeafR", 0.004, 0.014, 0.1, 0.118, 0.27, 0.282, "steel_light")
@@ -96,9 +98,9 @@ tube("GasTube", 0.014, 0.29, 0.44, 0.078, "steel")
 box("FrontSightBase", -0.012, 0.012, 0.045, 0.09, 0.49, 0.51, "steel")
 tube("FrontSightCollar", 0.015, 0.488, 0.512, 0.045, "steel")
 box("BayonetLug", -0.005, 0.005, 0.016, 0.03, 0.49, 0.512, "steel")
-box("FrontSightPost", -0.0025, 0.0025, 0.09, 0.11, 0.497, 0.503, "steel_light")
-box("FrontSightEarL", -0.013, -0.009, 0.085, 0.112, 0.494, 0.506, "steel")
-box("FrontSightEarR", 0.009, 0.013, 0.085, 0.112, 0.494, 0.506, "steel")
+box("FrontSightPost", -0.0025, 0.0025, 0.09, 0.118, 0.497, 0.503, "steel_light")
+box("FrontSightEarL", -0.013, -0.009, 0.085, 0.118, 0.494, 0.506, "steel")
+box("FrontSightEarR", 0.009, 0.013, 0.085, 0.118, 0.494, 0.506, "steel")
 tube("CleaningRod", 0.003, 0.4, 0.515, 0.024, "steel_light")
 # Wood: handguards (held by steel ferrules), stock with its butt plate, pistol grip; a sling loop on the stock's left.
 mesh("HandguardLower", "handguard_lower", "wood")

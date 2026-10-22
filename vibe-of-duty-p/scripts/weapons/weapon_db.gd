@@ -29,16 +29,16 @@ const MODULE_GEOMETRY := {
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3},  # the cheek on the board
 	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.155),
-			"front_sight": Vector3(0.0, 0.05, 0.147)},
+			"front_sight": Vector3(0.0, 0.056, 0.147)},
 	"luger.barrel.200": {"model_variants": {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain"},
-			"muzzle": Vector3(0.0, 0.03, 0.205), "rear_sight": Vector3(0.0, 0.049, 0.0905),
-			"front_sight": Vector3(0.0, 0.05, 0.197), "eye_relief_add": 0.1885},  # the notch moved 0.19 m forward
-	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.352)},
-	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.542)},
+			"muzzle": Vector3(0.0, 0.03, 0.205), "rear_sight": Vector3(0.0, 0.056, 0.0905),
+			"front_sight": Vector3(0.0, 0.056, 0.197), "eye_relief_add": 0.1885},  # the notch moved 0.19 m forward
+	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.447)},
+	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.637)},
 	"acr.stock.folded": {"model_variants": {"Stock": "Folded"}},
-	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.115 m longer than the hider.
+	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.103 m longer than the brake.
 	"acr.muzzle.suppressor": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
-			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.115), "sound_shot": "shot_suppressed"},
+			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.103), "sound_shot": "shot_suppressed"},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
@@ -244,8 +244,8 @@ static func _build_geometry() -> void:
 	rifle.scene_path = "res://prefabs/weapons/ak_blockout.tscn"  # tools/make_ak_blockout.py
 	rifle.model_variants = {"Muzzle": "Slant"}
 	rifle.muzzle = Vector3(0.0, 0.045, 0.565)
-	rifle.rear_sight = Vector3(0.0, 0.112, 0.28)   # bottom of the rear notch
-	rifle.front_sight = Vector3(0.0, 0.11, 0.5)    # tip of the front post
+	rifle.rear_sight = Vector3(0.0, 0.118, 0.28)   # top of the rear leaf (the post's tip flush with it)
+	rifle.front_sight = Vector3(0.0, 0.118, 0.5)   # tip of the front post
 	rifle.eye_relief = 0.46  # eye over the stock comb, behind the receiver
 	rifle.right_hand = Vector3(0.0, -0.055, -0.062)
 	rifle.left_hand = Vector3(0.0, 0.0, 0.35)
@@ -261,8 +261,8 @@ static func _build_geometry() -> void:
 	pdw.scene_path = "res://prefabs/weapons/pdw_blockout.tscn"  # tools/make_pdw_blockout.py
 	pdw.model_variants = {"Stock": "Extended", "Mags": "PDW_Mag_32", "Muzzle": "Thread"}
 	pdw.muzzle = Vector3(0.0, 0.02, 0.236)
-	pdw.rear_sight = Vector3(0.0, 0.08, -0.115)   # bottom of the rear notch
-	pdw.front_sight = Vector3(0.0, 0.08, 0.115)   # tip of the front post
+	pdw.rear_sight = Vector3(0.0, 0.086, -0.115)  # top of the rear ears (the post's tip flush with them)
+	pdw.front_sight = Vector3(0.0, 0.086, 0.115)   # tip of the front post
 	pdw.eye_relief = 0.2  # over the stock, in front of the butt (behind it the U butt framed the whole view)
 	pdw.right_hand = Vector3(0.0, -0.085, -0.1)
 	pdw.left_hand = Vector3(0.0, -0.08, 0.076)    # the left hand holds the magazine well
@@ -279,8 +279,8 @@ static func _build_geometry() -> void:
 	luger.scene_path = "res://prefabs/weapons/luger_blockout.tscn"  # tools/make_luger_blockout.py
 	luger.model_variants = {"Barrel": "B100", "Toggle/LinkRear/Sight": "Notch", "Stock": "None", "Mags": "Luger_Mag_8"}
 	luger.muzzle = Vector3(0.0, 0.03, 0.105)
-	luger.rear_sight = Vector3(0.0, 0.048, -0.098)  # the notch on the toggle (it rises with every shot)
-	luger.front_sight = Vector3(0.0, 0.05, 0.097)
+	luger.rear_sight = Vector3(0.0, 0.056, -0.098)  # the notch's ears' tops on the toggle (it rises with every shot)
+	luger.front_sight = Vector3(0.0, 0.056, 0.097)
 	luger.eye_relief = 0.38  # arms out, a little bent
 	luger.model_scale = 1.2  # life size it is a toy next to a pig, and the two fists hid it
 	luger.right_hand = Vector3(0.0, -0.06, -0.1)    # the middle of the grip
@@ -296,16 +296,16 @@ static func _build_geometry() -> void:
 	acr.id = "acr"
 	acr.display_name = "ACR"
 	acr.scene_path = "res://prefabs/weapons/acr_blockout.tscn"  # tools/make_acr_blockout.py
-	acr.model_variants = {"Barrel": "B145", "Barrel/B105/Muzzle": "Hider", "Barrel/B145/Muzzle": "Hider",
-			"Barrel/B185/Muzzle": "Hider", "Stock": "Extended", "Mags": "ACR_Mag_30"}
-	acr.muzzle = Vector3(0.0, 0.05, 0.453)
-	acr.rear_sight = Vector3(0.0, 0.113, -0.12)   # bottom of the rear notch
-	acr.front_sight = Vector3(0.0, 0.113, 0.27)   # tip of the front post
+	acr.model_variants = {"Barrel": "B145", "Barrel/B105/Muzzle": "Brake", "Barrel/B145/Muzzle": "Brake",
+			"Barrel/B185/Muzzle": "Brake", "Stock": "Extended", "Mags": "ACR_Mag_30"}
+	acr.muzzle = Vector3(0.0, 0.05, 0.548)
+	acr.rear_sight = Vector3(0.0, 0.113, -0.05)   # top of the rear ears (the post's tip flush with them)
+	acr.front_sight = Vector3(0.0, 0.113, 0.31)   # tip of the front post
 	acr.eye_relief = 0.15  # cheek on the comb
-	acr.right_hand = Vector3(0.0, -0.08, -0.085)
-	acr.left_hand = Vector3(0.0, -0.012, 0.22)
-	acr.ejection_port = Vector3(-0.027, 0.05, 0.035)
-	acr.charging_handle = Vector3(0.036, 0.062, 0.13)  # forward on the left, under the rail
+	acr.right_hand = Vector3(0.0, -0.04, -0.076)
+	acr.left_hand = Vector3(0.0, 0.015, 0.29)
+	acr.ejection_port = Vector3(-0.027, 0.06, 0.06)
+	acr.charging_handle = Vector3(0.03, 0.083, 0.2)  # forward on the left, under the rail
 	acr.handle_reciprocates = false
 	acr.bolt_travel = 0.08
 	acr.sound_shot = "shot"

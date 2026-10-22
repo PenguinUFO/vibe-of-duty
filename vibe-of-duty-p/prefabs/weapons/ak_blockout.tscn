@@ -316,15 +316,15 @@ size = Vector3(0.01, 0.014, 0.022)
 
 [sub_resource type="BoxMesh" id="mesh_50"]
 material = SubResource("mat_steel_light")
-size = Vector3(0.005, 0.02, 0.006)
+size = Vector3(0.005, 0.028, 0.006)
 
 [sub_resource type="BoxMesh" id="mesh_51"]
 material = SubResource("mat_steel")
-size = Vector3(0.004, 0.027, 0.012)
+size = Vector3(0.004, 0.033, 0.012)
 
 [sub_resource type="BoxMesh" id="mesh_52"]
 material = SubResource("mat_steel")
-size = Vector3(0.004, 0.027, 0.012)
+size = Vector3(0.004, 0.033, 0.012)
 
 [sub_resource type="CylinderMesh" id="mesh_53"]
 material = SubResource("mat_steel_light")
@@ -546,15 +546,15 @@ transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.023, 0.501)
 mesh = SubResource("mesh_49")
 
 [node name="FrontSightPost" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.1, 0.5)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.104, 0.5)
 mesh = SubResource("mesh_50")
 
 [node name="FrontSightEarL" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -0.011, 0.0985, 0.5)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -0.011, 0.1015, 0.5)
 mesh = SubResource("mesh_51")
 
 [node name="FrontSightEarR" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0.011, 0.0985, 0.5)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0.011, 0.1015, 0.5)
 mesh = SubResource("mesh_52")
 
 [node name="CleaningRod" type="MeshInstance3D" parent="."]

@@ -18,7 +18,7 @@ Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel p
 sits under the receiver at the trigger, metres; prefab +x is the shooter's left. Module variants (model_variants):
 "Stock" (Extended / Folded), "Mags" (PDW_Mag_32 / PDW_Mag_20, "*_Mag_*" nodes so reloads slide them out), "Muzzle"
 (Thread / Suppressor). Key points used by WeaponDB (prefab space): muzzle (0, 0.02, 0.236) - with the suppressor
-(0, 0.02, 0.385); rear sight notch (0, 0.08, -0.115), front post tip (0, 0.08, 0.115); pistol grip (0, -0.085,
+(0, 0.02, 0.385); rear sight's top (0, 0.086, -0.115), front post tip (0, 0.086, 0.115); pistol grip (0, -0.085,
 -0.1); magazine well (0, -0.08, 0.076); charging handle (-0.026, 0.03, 0.09).
 """
 import math
@@ -83,13 +83,14 @@ for side, x0, x1 in both(0.022, 0.0245):
     for i, (z, y) in enumerate(((0.06, 0.01), (0.01, 0.012), (-0.036, 0.008), (-0.034, -0.01), (0.066, -0.03))):
         stud("Pin%s%d" % (side, i), 0.0028, x0, x1, y, z, "steel_light")
     stud("SlingPin" + side, 0.004, x0, x1 + 0.001, 0.045, 0.155, "steel")
-# Iron sights on the rail (the photos show none: a plain notch and post).
+# Iron sights on the rail (the photos show none: a plain notch and post). The sight line over the ears' tops and the
+# post's tip (y 0.086): the post in the middle of the notch, flush with its top; the front ears hide behind the rear.
 box("RearSightBase", -0.012, 0.012, 0.068, 0.08, -0.122, -0.108, "steel")
-box("RearSightEarL", 0.003, 0.011, 0.08, 0.092, -0.12, -0.11, "steel")   # notch between the ears
-box("RearSightEarR", -0.011, -0.003, 0.08, 0.092, -0.12, -0.11, "steel")
-box("FrontSightPost", -0.0025, 0.0025, 0.068, 0.08, 0.112, 0.118, "steel_light")
-box("FrontSightEarL", 0.008, 0.012, 0.068, 0.085, 0.108, 0.122, "steel")
-box("FrontSightEarR", -0.012, -0.008, 0.068, 0.085, 0.108, 0.122, "steel")
+box("RearSightEarL", 0.003, 0.011, 0.08, 0.086, -0.12, -0.11, "steel")   # notch between the ears
+box("RearSightEarR", -0.011, -0.003, 0.08, 0.086, -0.12, -0.11, "steel")
+box("FrontSightPost", -0.0025, 0.0025, 0.068, 0.086, 0.112, 0.118, "steel_light")
+box("FrontSightEarL", 0.008, 0.012, 0.068, 0.086, 0.108, 0.122, "steel")
+box("FrontSightEarR", -0.012, -0.008, 0.068, 0.086, 0.108, 0.122, "steel")
 # Trigger group: the oval guard, the trigger, the light safety lever out of the grip's front under the guard, the magazine well with
 # its release on the left; the grip.
 mesh("TriggerGuard", "guard", "steel")

@@ -1,8 +1,10 @@
 class_name PauseMenu
 extends CanvasLayer
 ## In-game menu on Esc. It does not stop the game (it is online); it only frees the mouse so the
-## player stops sending input. Resume / Settings / Kid mode (with its code, KidModeEntry) / Leave match.
+## player stops sending input. Resume / Build (BuildMenu) / Settings / Kid mode (with its code, KidModeEntry) /
+## Leave match.
 
+var world: NetWorld  # set by NetWorld (BuildMenu sends the build through it)
 var _root: Control
 var _menu_box: VBoxContainer
 var _panel: Control  # the open sub-panel (SettingsPanel or KidPanel; both emit `closed`), or null
@@ -38,6 +40,7 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 40)
 	_menu_box.add_child(title)
 	_add_button("Продолжить", close)
+	_add_button("Сборка", _open_builds)
 	_add_button("Настройки", func() -> void: _open_panel(SettingsPanel.new()))
 	_kid_entry = KidModeEntry.new()
 	_kid_entry.open_requested.connect(func() -> void: _open_panel(KidPanel.new()))
@@ -96,6 +99,13 @@ func _open_panel(panel: Control) -> void:
 	_root.add_child(panel)
 	UiTheme.pop_in(panel)
 	_focus_first(panel)
+
+
+func _open_builds() -> void:
+	var menu := BuildMenu.new()
+	menu.world = world
+	menu.picked.connect(close)  # back to the game: on a training map the new build is already in the hands
+	_open_panel(menu)
 
 
 func _close_panel() -> void:

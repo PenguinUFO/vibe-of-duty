@@ -12,7 +12,7 @@ var model_variants := {}      # group node in the model -> the one child kept (t
 var model_scale := 1.0        # the model drawn this much bigger than life; the points below are already scaled
                               # (WeaponDB), bolt_travel is not (it moves a part inside the model)
 var muzzle := Vector3.ZERO    # muzzle position in prefab space (before the 180 deg turn to face -Z)
-var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab space (ADS alignment)
+var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab space (ADS alignment; the post's tip flush with it)
 var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel end in prefab space
 var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
 var sight := ""                 # optic on the gun (SightModels; "": iron sights), set by its sight module

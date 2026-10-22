@@ -1,5 +1,5 @@
 extends SceneTree
-## Renders a weapon model in side profile (barrel to the left, like a catalogue photo) to ../shots/model_<case>.png:
+## Renders a weapon model in side profile (barrel to the left; "_r" cases from the other side) to ../shots/model_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_model.gd
 
 const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
@@ -15,6 +15,7 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
 	"luger_150": [2, ["luger.barrel.150"]],
 	"luger_mods": [2, ["luger.mag.32", "luger.stock.board", "luger.barrel.200"]],
 	"acr": [3, []],
+	"acr_r": [3, []],
 	"acr_open": [3, [], 1.0],
 	"acr_105_can": [3, ["acr.barrel.105", "acr.muzzle.suppressor"]],
 	"acr_mods": [3, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
@@ -46,7 +47,9 @@ func _initialize() -> void:
 		view.set_weapon(CASES[c][0], WeaponDB.make_def(CASES[c][0], CASES[c][1]))
 		view.bolt_pull = CASES[c][2] if CASES[c].size() > 2 else 0.0
 		# The barrel points to -Z: seen from -X it is on the left of the picture.
-		cam.look_at_from_position(Vector3(-2.0, 0.0, -0.1), Vector3(0.0, 0.0, -0.1))
+		# "_r" cases: seen from the gun's right (+X here), the barrel on the right, as most photos.
+		var side := 2.0 if c.ends_with("_r") else -2.0
+		cam.look_at_from_position(Vector3(side, 0.0, -0.1), Vector3(0.0, 0.0, -0.1))
 		await process_frame
 		await process_frame
 		get_root().get_texture().get_image().save_png(dir.path_join("model_%s.png" % c))

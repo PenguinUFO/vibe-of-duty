@@ -17,8 +17,8 @@ are the options: "Barrel" (B100 / B150 / B200), "Toggle/LinkRear/Sight" (Notch /
 0.015 m behind where the hand holds it, WeaponView.mag_grip_point, so it is not where the magazine is).
 The toggle: "Toggle/LinkRear" pivots on the frame, "Toggle/LinkFront" hangs from the knee, "Toggle/Breech" slides; the
 links point along +Z from their node; WeaponView folds them up as the breech goes back (shots, reloads).
-Key points used by WeaponDB (prefab space): muzzle (0, 0.03, 0.105 / 0.155 / 0.205); rear sight notch on the toggle
-(0, 0.048, -0.098), on the 200 mm barrel (0, 0.049, 0.0905); front post tips (0, 0.05, muzzle - 0.008); grip
+Key points used by WeaponDB (prefab space): muzzle (0, 0.03, 0.105 / 0.155 / 0.205); rear sight's ears' tops on the toggle
+(0, 0.056, -0.098), on the 200 mm barrel (0, 0.056, 0.0905); front post tips flush with them (0, 0.056, muzzle - 0.008); grip
 (0, -0.076, -0.111); toggle knobs (+-0.017, 0.042, -0.07).
 """
 import math
@@ -105,8 +105,8 @@ for side, x0, x1 in (("L", 0.009, 0.021), ("R", -0.021, -0.009)):  # the knobs t
 node("Sight", "Toggle/LinkRear")
 node("Notch", "Toggle/LinkRear/Sight")
 node("Plain", "Toggle/LinkRear/Sight")
-box("EarL", 0.0015, 0.006, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
-box("EarR", -0.006, -0.0015, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
+box("EarL", 0.0025, 0.006, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
+box("EarR", -0.006, -0.0025, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
 node("LinkFront", "Toggle", (0.0, 0.04, -0.07))
 box("Link", -0.008, 0.008, -0.006, 0.008, 0.0, 0.04, "steel", parent="Toggle/LinkFront")
 node("Breech", "Toggle", (0.0, 0.04, -0.03))
@@ -120,11 +120,11 @@ for name, muzzle in (("B100", 0.105), ("B150", 0.155), ("B200", 0.205)):
     p = "Barrel/" + name
     tube("Tube", 0.0095, 0.08, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0072)  # tapering to the muzzle
     box("FrontBase", -0.004, 0.004, BORE_Y + 0.006, BORE_Y + 0.011, muzzle - 0.016, muzzle - 0.002, "steel", parent=p)
-    box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.011, 0.05, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)
+    box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.011, 0.056, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)  # flush with the notch's ears (sight line y 0.056)
     if name == "B200":
         box("TangentBase", -0.009, 0.009, BORE_Y + 0.006, 0.049, 0.082, 0.1, "steel", parent=p)
-        box("TangentEarL", 0.0015, 0.008, 0.049, 0.058, 0.086, 0.095, "steel", parent=p)
-        box("TangentEarR", -0.008, -0.0015, 0.049, 0.058, 0.086, 0.095, "steel", parent=p)
+        box("TangentEarL", 0.0025, 0.008, 0.049, 0.056, 0.086, 0.095, "steel", parent=p)
+        box("TangentEarR", -0.008, -0.0025, 0.049, 0.056, 0.086, 0.095, "steel", parent=p)
 
 # Stock: none, or the board (the holster) on the heel lug: a plank widening to the butt.
 node("Stock")
