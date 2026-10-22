@@ -122,8 +122,8 @@ for variant, fold in (("Extended", False), ("Folded", True)):
 f = lambda v: "%g" % round(v, 5)
 res = []
 for key, (albedo, metal, rough) in MATERIALS.items():
-    res.append('[sub_resource type="StandardMaterial3D" id="mat_%s"]\nalbedo_color = Color(%s, %s, %s, 1)\nmetallic = %s\nroughness = %s\n'
-               % (key, f(albedo[0]), f(albedo[1]), f(albedo[2]), f(metal), f(rough)))
+    res.append('[sub_resource type="StandardMaterial3D" id="mat_%s"]\nresource_name = "%s"\nalbedo_color = Color(%s, %s, %s, 1)\nmetallic = %s\nroughness = %s\n'
+               % (key, key, f(albedo[0]), f(albedo[1]), f(albedo[2]), f(metal), f(rough)))
 nodes = ['[node name="ACR" type="Node3D"]\n']
 for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     r = math.radians(rot)

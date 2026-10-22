@@ -1,21 +1,25 @@
 [gd_scene format=3]
 
 [sub_resource type="StandardMaterial3D" id="mat_steel"]
+resource_name = "steel"
 albedo_color = Color(0.11, 0.11, 0.13, 1)
 metallic = 0.6
 roughness = 0.4
 
 [sub_resource type="StandardMaterial3D" id="mat_steel_light"]
+resource_name = "steel_light"
 albedo_color = Color(0.24, 0.24, 0.25, 1)
 metallic = 0.6
 roughness = 0.4
 
 [sub_resource type="StandardMaterial3D" id="mat_wood"]
+resource_name = "wood"
 albedo_color = Color(0.36, 0.2, 0.1, 1)
 metallic = 0
 roughness = 0.7
 
 [sub_resource type="StandardMaterial3D" id="mat_mag"]
+resource_name = "mag"
 albedo_color = Color(0.1, 0.1, 0.105, 1)
 metallic = 0.4
 roughness = 0.5
