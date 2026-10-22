@@ -6,9 +6,11 @@ The trigger guard with the grip frame, and the grip panels, are meshes made by t
 
 Docs/LOADOUT.md, "Люгер". A P08 with the artillery model's parts as modules: the barrel 100 mm (P08) / 150 mm (navy) /
 200 mm (Lange Pistole 08: a tangent rear sight on the barrel, none on the toggle), the board stock on the grip's heel
-lug, the TM08 "snail" drum (32 rounds, hangs left of the grip). Sizes from memory of the real gun (length 222 mm with
-the 100 mm barrel, grip ~55 degrees to the bore), not measured from photos. Built life size; the game draws it
-1.2 times bigger (WeaponDef.model_scale: life size, the two fists hid it).
+lug, the TM08 "snail" drum (32 rounds, hangs left of the grip). Proportions after the owner's photos of a WE P08 6"
+(airsoft, the real gun's sizes: 267 mm long with the 150 mm barrel, so 0.402 mm a pixel of the side view): the small
+round trigger guard, the thin frame under the barrel extension, the grip raked 25 degrees (the front strap 29), the
+thin barrel out of a short barrel extension. Built life size; the game draws it 1.2 times bigger
+(WeaponDef.model_scale: life size, the two fists hid it).
 
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres. Module variants (WeaponDef.model_variants) are groups whose children
@@ -17,9 +19,9 @@ are the options: "Barrel" (B100 / B150 / B200), "Toggle/LinkRear/Sight" (Notch /
 0.015 m behind where the hand holds it, WeaponView.mag_grip_point, so it is not where the magazine is).
 The toggle: "Toggle/LinkRear" pivots on the frame, "Toggle/LinkFront" hangs from the knee, "Toggle/Breech" slides; the
 links point along +Z from their node; WeaponView folds them up as the breech goes back (shots, reloads).
-Key points used by WeaponDB (prefab space): muzzle (0, 0.03, 0.105 / 0.155 / 0.205); rear sight's ears' tops on the toggle
-(0, 0.056, -0.098), on the 200 mm barrel (0, 0.056, 0.0905); front post tips flush with them (0, 0.056, muzzle - 0.008); grip
-(0, -0.076, -0.111); toggle knobs (+-0.017, 0.042, -0.07).
+Key points used by WeaponDB (prefab space): muzzle (0, 0.03, 0.11 / 0.16 / 0.21); rear sight's ears' tops on the toggle's
+rear end (0, 0.05, -0.0875), on the 200 mm barrel (0, 0.05, 0.0485); front post tips flush with them (0, 0.05, muzzle - 0.008);
+grip (0, -0.035, -0.06); toggle knobs (+-0.017, 0.0384, -0.059).
 """
 import math
 import os
@@ -35,7 +37,7 @@ MATERIALS = {
 
 MESHES = ["frame_upper", "frame_lower", "grip_panels"]
 BORE_Y = 0.03
-GRIP_RAKE = 35.0  # degrees back from vertical (the bore to the grip ~55)
+GRIP_RAKE = 25.0  # degrees back from vertical: the grip's axis (the front strap 29)
 
 parts = []  # (name, parent, kind, size/params, center, rot_x_deg, material)
 
@@ -75,56 +77,58 @@ def grip_box(name, half_x, top, length, depth, mat, parent=".", start=0.0):
     parts.append((name, parent, "box", (2 * half_x, length, depth), (0.0, y, z), GRIP_RAKE, mat))  # + tips the bottom back (to -Z)
 
 
-# Frame: the lower frame with the trigger guard, side walls the toggle sits between, the hinge ears at the rear.
+# Frame: the thin lower frame with the trigger guard, the barrel extension's side rails the toggle sits between, the
+# hinge ears at the rear (as high as the toggle's rear).
 mesh("Frame", "frame_upper", "steel")  # the rounded nose under the barrel (tools/make_parts.gd)
-box("FrameWallL", 0.009, 0.012, 0.02, 0.04, -0.11, -0.03, "steel")
-box("FrameWallR", -0.012, -0.009, 0.02, 0.04, -0.11, -0.03, "steel")
-box("HingeEars", -0.012, 0.012, 0.02, 0.046, -0.118, -0.1, "steel")
-box("Receiver", -0.011, 0.011, 0.02, 0.042, -0.03, 0.065, "steel")  # the barrel extension
-tube("BarrelShank", 0.011, 0.065, 0.08, BORE_Y, "steel")
-box("SidePlate", 0.012, 0.0135, -0.012, 0.016, -0.03, 0.045, "steel_light")
-box("Safety", 0.012, 0.016, -0.004, 0.012, -0.102, -0.086, "steel_light")
-box("MagRelease", 0.012, 0.016, -0.032, -0.021, -0.048, -0.038, "steel_light")
-box("TakedownLever", 0.012, 0.0145, 0.0, 0.012, 0.04, 0.056, "steel_light")  # front left of the frame
-box("Trigger", -0.004, 0.004, -0.036, -0.015, -0.002, 0.008, "steel_light")
-# Grip: raked far back, walnut panels over the frame, the stock lug at the heel.
-GRIP_TOP = (-0.015, -0.068)
-GRIP_LEN = 0.1
+box("FrameWallL", 0.009, 0.012, 0.021, 0.038, -0.085, -0.025, "steel")
+box("FrameWallR", -0.012, -0.009, 0.021, 0.038, -0.085, -0.025, "steel")
+box("HingeEars", -0.012, 0.012, 0.021, 0.042, -0.097, -0.085, "steel")  # under the sight line: the notch above them
+box("Receiver", -0.011, 0.011, 0.021, 0.0417, -0.025, 0.035, "steel")  # the barrel extension
+tube("BarrelShank", 0.0078, 0.035, 0.042, BORE_Y, "steel")
+box("SidePlate", 0.012, 0.0132, 0.013, 0.036, -0.018, 0.012, "steel_light")
+box("Safety", 0.012, 0.016, 0.021, 0.034, -0.085, -0.076, "steel_light")
+box("MagRelease", 0.0125, 0.016, -0.012, -0.006, -0.023, -0.017, "steel_light")
+box("TakedownLever", 0.012, 0.0145, 0.013, 0.019, 0.01, 0.024, "steel_light")  # front left of the frame
+box("Trigger", -0.003, 0.003, -0.012, 0.011, -0.005, 0.001, "steel_light")
+# Grip: walnut panels over the frame, the stock lug at the heel. GRIP_TOP: the axis at the frame's bottom (y, z).
+GRIP_TOP = (0.0107, -0.0382)
+GRIP_LEN = 0.106
 mesh("FrameLower", "frame_lower", "steel")  # the guard's loop and the grip frame (tools/make_parts.gd)
 mesh("GripPanels", "grip_panels", "wood")
-heel_y, heel_z = along_grip(GRIP_TOP, GRIP_LEN - 0.006)
-heel_y, heel_z = heel_y + 0.017 * math.sin(math.radians(GRIP_RAKE)), heel_z - 0.017 * math.cos(math.radians(GRIP_RAKE))  # the back strap
+heel_y, heel_z = -0.0753, -0.1053  # the back strap's bottom
 box("StockLug", -0.006, 0.006, heel_y - 0.006, heel_y + 0.006, heel_z - 0.008, heel_z + 0.002, "steel")
 
 # The toggle at rest: rear link from the hinge to the knee, front link from the knee to the breech block's pin.
 node("Toggle")
-node("LinkRear", "Toggle", (0.0, 0.04, -0.105))
-box("Link", -0.009, 0.009, -0.006, 0.008, 0.0, 0.035, "steel", parent="Toggle/LinkRear")
+node("LinkRear", "Toggle", (0.0, 0.04, -0.0845))
+box("Link", -0.009, 0.009, -0.006, 0.0025, 0.0, 0.0255, "steel", parent="Toggle/LinkRear")  # top flush with the extension
 for side, x0, x1 in (("L", 0.009, 0.021), ("R", -0.021, -0.009)):  # the knobs the hand racks
-    disc("Knob" + side, 0.009, x0, x1, 0.002, 0.035, "steel_light", parent="Toggle/LinkRear")
+    disc("Knob" + side, 0.008, x0, x1, -0.0016, 0.0255, "steel_light", parent="Toggle/LinkRear")
 node("Sight", "Toggle/LinkRear")
 node("Notch", "Toggle/LinkRear/Sight")
 node("Plain", "Toggle/LinkRear/Sight")
-box("EarL", 0.0025, 0.006, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
-box("EarR", -0.006, -0.0025, 0.008, 0.016, 0.003, 0.011, "steel", parent="Toggle/LinkRear/Sight/Notch")
-node("LinkFront", "Toggle", (0.0, 0.04, -0.07))
-box("Link", -0.008, 0.008, -0.006, 0.008, 0.0, 0.04, "steel", parent="Toggle/LinkFront")
-node("Breech", "Toggle", (0.0, 0.04, -0.03))
-box("Block", -0.009, 0.009, -0.012, 0.008, 0.0, 0.035, "steel", parent="Toggle/Breech")
+# The notch on the rear link's rear end, over the hinge - the gun's highest point behind (tops: the sight line, y 0.05).
+box("Riser", -0.008, 0.008, 0.0025, 0.0055, -0.008, 0.002, "steel", parent="Toggle/LinkRear/Sight/Notch")
+box("EarL", 0.0025, 0.008, 0.0055, 0.01, -0.008, 0.002, "steel", parent="Toggle/LinkRear/Sight/Notch")
+box("EarR", -0.008, -0.0025, 0.0055, 0.01, -0.008, 0.002, "steel", parent="Toggle/LinkRear/Sight/Notch")
+node("LinkFront", "Toggle", (0.0, 0.04, -0.059))
+box("Link", -0.008, 0.008, -0.006, 0.0025, 0.0, 0.034, "steel", parent="Toggle/LinkFront")
+node("Breech", "Toggle", (0.0, 0.04, -0.025))
+box("Block", -0.009, 0.009, -0.012, 0.0015, 0.0, 0.035, "steel", parent="Toggle/Breech")
 
-# Barrels: 100 / 150 / 200 mm from the breech face (z 0.005), a front post at the muzzle; the 200 mm one carries the
-# tangent rear sight ahead of the receiver.
+# Barrels: 100 / 150 / 200 mm from the breech face (z 0.01), thin (13 mm at the extension, 11 at the muzzle), a front
+# post on a base at the muzzle; the 200 mm one carries the tangent rear sight just ahead of the barrel extension.
 node("Barrel")
-for name, muzzle in (("B100", 0.105), ("B150", 0.155), ("B200", 0.205)):
+for name, muzzle in (("B100", 0.11), ("B150", 0.16), ("B200", 0.21)):
     node(name, "Barrel")
     p = "Barrel/" + name
-    tube("Tube", 0.0095, 0.08, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0072)  # tapering to the muzzle
-    box("FrontBase", -0.004, 0.004, BORE_Y + 0.006, BORE_Y + 0.011, muzzle - 0.016, muzzle - 0.002, "steel", parent=p)
-    box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.011, 0.056, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)  # flush with the notch's ears (sight line y 0.056)
+    tube("Tube", 0.0067, 0.035, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0057)  # tapering to the muzzle
+    box("FrontBase", -0.004, 0.004, BORE_Y + 0.004, BORE_Y + 0.009, muzzle - 0.016, muzzle - 0.002, "steel", parent=p)
+    box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.009, 0.05, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)  # flush with the notch's ears (sight line y 0.05)
     if name == "B200":
-        box("TangentBase", -0.009, 0.009, BORE_Y + 0.006, 0.049, 0.082, 0.1, "steel", parent=p)
-        box("TangentEarL", 0.0025, 0.008, 0.049, 0.056, 0.086, 0.095, "steel", parent=p)
-        box("TangentEarR", -0.008, -0.0025, 0.049, 0.056, 0.086, 0.095, "steel", parent=p)
+        box("TangentBase", -0.009, 0.009, BORE_Y + 0.004, 0.044, 0.04, 0.058, "steel", parent=p)
+        box("TangentEarL", 0.0025, 0.008, 0.044, 0.05, 0.044, 0.053, "steel", parent=p)
+        box("TangentEarR", -0.008, -0.0025, 0.044, 0.05, 0.044, 0.053, "steel", parent=p)
 
 # Stock: none, or the board (the holster) on the heel lug: a plank widening to the butt.
 node("Stock")
@@ -146,7 +150,7 @@ base_y, base_z = along_grip(GRIP_TOP, GRIP_LEN)
 node("Luger_Mag_8", "Mags", (0.0, base_y + 0.11, base_z - 0.015))
 mag_top = (GRIP_TOP[0] - base_y - 0.11, GRIP_TOP[1] - base_z + 0.015)  # the grip's top in the node's space
 grip_box("Body", 0.006, mag_top, 0.095, 0.022, "mag", parent="Mags/Luger_Mag_8", start=0.008)
-grip_box("Base", 0.011, mag_top, 0.014, 0.03, "wood", parent="Mags/Luger_Mag_8", start=GRIP_LEN - 0.001)
+grip_box("Base", 0.011, mag_top, 0.012, 0.026, "wood", parent="Mags/Luger_Mag_8", start=GRIP_LEN - 0.02)  # flush with the grip's bottom
 drum_y, drum_z = base_y - 0.03, base_z + 0.05  # forward of the grip, under the trigger guard's rear
 node("Luger_Mag_32", "Mags", (0.0, drum_y + 0.11, drum_z - 0.015))
 local = lambda y, z: (y - drum_y - 0.11, z - drum_z + 0.015)

@@ -28,11 +28,11 @@ const MODULE_GEOMETRY := {
 			"sound_shot": "shot_suppressed"},
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3},  # the cheek on the board
-	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.155),
-			"front_sight": Vector3(0.0, 0.056, 0.147)},
+	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.16),
+			"front_sight": Vector3(0.0, 0.05, 0.152)},
 	"luger.barrel.200": {"model_variants": {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain"},
-			"muzzle": Vector3(0.0, 0.03, 0.205), "rear_sight": Vector3(0.0, 0.056, 0.0905),
-			"front_sight": Vector3(0.0, 0.056, 0.197), "eye_relief_add": 0.1885},  # the notch moved 0.19 m forward
+			"muzzle": Vector3(0.0, 0.03, 0.21), "rear_sight": Vector3(0.0, 0.05, 0.0485),
+			"front_sight": Vector3(0.0, 0.05, 0.202), "eye_relief_add": 0.136},  # the notch moved 0.136 m forward
 	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.447)},
 	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.637)},
 	"acr.stock.folded": {"model_variants": {"Stock": "Folded"}},
@@ -278,15 +278,15 @@ static func _build_geometry() -> void:
 	luger.display_name = "Люгер"
 	luger.scene_path = "res://prefabs/weapons/luger_blockout.tscn"  # tools/make_luger_blockout.py
 	luger.model_variants = {"Barrel": "B100", "Toggle/LinkRear/Sight": "Notch", "Stock": "None", "Mags": "Luger_Mag_8"}
-	luger.muzzle = Vector3(0.0, 0.03, 0.105)
-	luger.rear_sight = Vector3(0.0, 0.056, -0.098)  # the notch's ears' tops on the toggle (it rises with every shot)
-	luger.front_sight = Vector3(0.0, 0.056, 0.097)
+	luger.muzzle = Vector3(0.0, 0.03, 0.11)
+	luger.rear_sight = Vector3(0.0, 0.05, -0.0875)  # the notch's ears' tops on the toggle (it rises with every shot)
+	luger.front_sight = Vector3(0.0, 0.05, 0.102)
 	luger.eye_relief = 0.38  # arms out, a little bent
 	luger.model_scale = 1.2  # life size it is a toy next to a pig, and the two fists hid it
-	luger.right_hand = Vector3(0.0, -0.06, -0.1)    # the middle of the grip
-	luger.left_hand = Vector3(0.0, -0.105, -0.118)  # cupped under the right hand and the magazine's base
-	luger.ejection_port = Vector3(0.0, 0.05, 0.0)    # up out of the open toggle
-	luger.charging_handle = Vector3(-0.017, 0.042, -0.07)  # the right knob: the hand racks the toggle (no handle added)
+	luger.right_hand = Vector3(0.0, -0.035, -0.06)   # the middle of the grip
+	luger.left_hand = Vector3(0.0, -0.08, -0.078)   # cupped under the right hand and the magazine's base
+	luger.ejection_port = Vector3(0.0, 0.045, -0.01)    # up out of the open toggle
+	luger.charging_handle = Vector3(-0.017, 0.0384, -0.059)  # the right knob: the hand racks the toggle (no handle added)
 	luger.bolt_travel = 0.045
 	luger.sound_shot = "shot_pistol"
 	luger.hip_offset = Vector3(0.13, -0.15, -0.36)

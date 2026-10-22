@@ -12,8 +12,8 @@ extends SceneTree
 ## the lower handguard swells under the palm. PDW - after the Parker-Hale photos (Docs/LOADOUT.md, "PDW"): the
 ## receiver's rounded nose, the grip raked in front and near upright behind, flaring at the bottom, the big oval
 ## trigger guard (the lower housing with the oval cut: a U whose top is the receiver), the long magazine well, the stock's U butt with a hollow back
-## (one side's plate; folded, the stock turns round and the butt is in front). Luger - after the P08, from memory: the
-## trigger guard's round loop running into the raked grip frame, the walnut panels. ACR - after the owner's photos: the
+## (one side's plate; folded, the stock turns round and the butt is in front). Luger - after the photos of a WE P08 6": the
+## trigger guard's small round loop running into the raked grip frame, the walnut panels. ACR - after the owner's photos: the
 ## upper and the tall lower split at a slant, the long deep handguard (short with 10.5"), the MOE grip, the solid stock.
 
 const DIR := "res://prefabs/weapons/"
@@ -113,23 +113,29 @@ const PARTS := {
 	},
 	"luger": {
 		"profiles": {
-			# The trigger guard's loop and the grip frame in one outline: the guard's opening is a notch up to the frame
-			# (the box above, in the scene); thin at the guard, the grip's width behind it.
-			"frame_lower": {"points": [Vector2(0.05, -0.013), Vector2(0.042, -0.02), Vector2(0.04, -0.036),
-					Vector2(0.033, -0.047), Vector2(0.02, -0.053), Vector2(0.0, -0.055), Vector2(-0.02, -0.052),
-					Vector2(-0.045, -0.049), Vector2(-0.074, -0.05), Vector2(-0.093, -0.08), Vector2(-0.1115, -0.1067),
-					Vector2(-0.1393, -0.0871), Vector2(-0.11, -0.046), Vector2(-0.0876, -0.013), Vector2(-0.022, -0.013),
-					Vector2(-0.026, -0.03), Vector2(-0.018, -0.043), Vector2(0.0, -0.048), Vector2(0.02, -0.046),
-					Vector2(0.03, -0.04), Vector2(0.034, -0.028), Vector2(0.034, -0.013)],
-					"width": [Vector2(-0.06, 0.0125), Vector2(-0.03, 0.005)], "chamfer": 0.0025},
-			# The frame above them: the rounded nose under the barrel, the back bevelled down into the back strap.
-			"frame_upper": {"points": [Vector2(-0.118, 0.02), Vector2(-0.118, 0.006), Vector2(-0.106, -0.015),
-					Vector2(0.04, -0.015), Vector2(0.054, -0.012), Vector2(0.062, -0.004), Vector2(0.064, 0.008),
-					Vector2(0.06, 0.02)], "width": [Vector2(0.0, 0.012)], "chamfer": 0.003},
-			# The walnut panels: along the grip (35 degrees back), from 12 to 90 mm down its axis, rounded ends.
-			"grip_panels": {"points": [Vector2(-0.0626, -0.0334), Vector2(-0.1034, -0.0917), Vector2(-0.1074, -0.0973),
-					Vector2(-0.1132, -0.0985), Vector2(-0.1320, -0.0801), Vector2(-0.0912, -0.0218), Vector2(-0.0872, -0.0162),
-					Vector2(-0.0814, -0.015)], "width": [Vector2(0.0, 0.0155)], "chamfer": 0.004},
+			# After the photos of a WE P08 6" (Docs/LOADOUT.md, "Люгер"; 0.402 mm a pixel): the trigger guard's small round
+			# loop and the grip frame in one outline, the guard's opening a notch up to the frame; thin at the guard,
+			# the grip's width behind it; the back strap's hump under the frame's rear.
+			"frame_lower": {"points": [Vector2(0.0185, 0.0107), Vector2(0.0205, 0.0027), Vector2(0.0185, -0.007),
+					Vector2(0.0133, -0.0146), Vector2(0.0056, -0.019), Vector2(-0.0028, -0.0186), Vector2(-0.01, -0.0154),
+					Vector2(-0.0229, -0.015), Vector2(-0.0362, -0.0371), Vector2(-0.0482, -0.058), Vector2(-0.0603, -0.0793),
+					Vector2(-0.0595, -0.0858), Vector2(-0.0764, -0.0886), Vector2(-0.1013, -0.0898), Vector2(-0.1061, -0.0822),
+					Vector2(-0.1053, -0.0745), Vector2(-0.0965, -0.052), Vector2(-0.0844, -0.0263), Vector2(-0.0764, -0.013),
+					Vector2(-0.0732, -0.0038), Vector2(-0.0764, 0.0035), Vector2(-0.0844, 0.0083), Vector2(-0.0949, 0.0115),
+					Vector2(-0.0056, 0.0107), Vector2(-0.0076, 0.0051), Vector2(-0.008, -0.0022), Vector2(-0.0056, -0.0102),
+					Vector2(0.0, -0.015), Vector2(0.0072, -0.0154), Vector2(0.0137, -0.011), Vector2(0.0161, -0.0038),
+					Vector2(0.0153, 0.0039), Vector2(0.0121, 0.0107)],
+					"width": [Vector2(-0.02, 0.0125), Vector2(-0.008, 0.005)], "chamfer": 0.001},  # the loop is 4 mm: a bigger chamfer crosses it
+			# The frame above them: thin under the barrel extension, the rounded nose in front.
+			"frame_upper": {"points": [Vector2(-0.0965, 0.0212), Vector2(0.033, 0.0212), Vector2(0.0338, 0.0163),
+					Vector2(0.0314, 0.0123), Vector2(0.0273, 0.0107), Vector2(-0.0949, 0.0107)],
+					"width": [Vector2(0.0, 0.012)], "chamfer": 0.002},
+			# The grip panels over the grip frame, a strap's width inside its outline.
+			"grip_panels": {"points": [Vector2(-0.0141, 0.0083), Vector2(-0.0716, 0.0083), Vector2(-0.0732, -0.0038),
+					Vector2(-0.0748, -0.013), Vector2(-0.0828, -0.0263), Vector2(-0.0945, -0.052), Vector2(-0.1021, -0.0681),
+					Vector2(-0.1025, -0.0773), Vector2(-0.0973, -0.0842), Vector2(-0.0764, -0.0858), Vector2(-0.0627, -0.0834),
+					Vector2(-0.0571, -0.0753), Vector2(-0.0462, -0.0564), Vector2(-0.0342, -0.0359), Vector2(-0.0221, -0.015),
+					Vector2(-0.0153, -0.0022)], "width": [Vector2(0.0, 0.0155)], "chamfer": 0.004},
 		},
 		"sections": {},
 	},
