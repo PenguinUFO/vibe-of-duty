@@ -3,7 +3,7 @@
 Run from the repo:  python vibe-of-duty-p/tools/make_ak_blockout.py   (overwrites the scene)
 Shaped parts are meshes made by Godot tools - run those first if they change:
   tools/make_ak_mag.gd    -> prefabs/weapons/ak_mag_mesh.tres (the curved magazine)
-  tools/make_ak_parts.gd  -> prefabs/weapons/ak_<part>_mesh.tres (stock, butt plate, grip, handguards, dust cover)
+  tools/make_parts.gd     -> prefabs/weapons/ak_<part>_mesh.tres (stock, butt plate, grip, handguards, dust cover)
 
 Conventions (as WeaponView expects): the barrel points to +Z, +Y is up, the origin sits under the receiver at the
 trigger; prefab +x is the shooter's left. Units are metres; the rifle is ~0.96 m long. Module variants: group

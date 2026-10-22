@@ -19,7 +19,7 @@ const MODULE_GEOMETRY := {
 			"front_sight": Vector3(0.035, 0.155, 0.24), "eye_relief": 0.06},
 	"pdw.mag.20": {"model_variants": {"Mags": "PDW_Mag_20"}},
 	"pdw.sight.compm": {"sight": "compm", "rear_sight": Vector3(0.0, 0.098, -0.06),
-			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.475},  # the eye where it is with the irons
+			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
 	"pdw.stock.folded": {"model_variants": {"Stock": "Folded"}},
 	"ak.muzzle.brake": {"model_variants": {"Muzzle": "Brake"}, "muzzle": Vector3(0.0, 0.045, 0.6)},
 	"ak.muzzle.pbs": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
@@ -40,6 +40,9 @@ const MODULE_GEOMETRY := {
 	"acr.muzzle.suppressor": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
 			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.115), "sound_shot": "shot_suppressed"},
 }
+## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
+const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
+		"ejection_port", "charging_handle"]
 const MODULE_SLOT_NAMES := {"caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "barrel": "Ствол",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
@@ -99,6 +102,8 @@ static func make_def(index: int, module_ids: Array) -> WeaponDef:
 					continue
 				var value: Variant = geometry[key]
 				var prop := key.trim_suffix("_add")
+				if prop in SCALED_POINTS or (adding and prop == "eye_relief"):  # an added relief follows a sight that moved
+					value = value * def.model_scale
 				if adding:
 					value = def.get(prop) + value
 				elif value is Dictionary:
@@ -258,12 +263,12 @@ static func _build_geometry() -> void:
 	pdw.muzzle = Vector3(0.0, 0.02, 0.236)
 	pdw.rear_sight = Vector3(0.0, 0.08, -0.115)   # bottom of the rear notch
 	pdw.front_sight = Vector3(0.0, 0.08, 0.115)   # tip of the front post
-	pdw.eye_relief = 0.42  # behind the butt (not on it): closer in, the butt frame's bars fill the bottom of the screen
-	pdw.right_hand = Vector3(0.0, -0.065, -0.0925)
-	pdw.left_hand = Vector3(0.0, -0.06, 0.087)    # the left hand holds the magazine well
+	pdw.eye_relief = 0.2  # over the stock, in front of the butt (behind it the U butt framed the whole view)
+	pdw.right_hand = Vector3(0.0, -0.085, -0.1)
+	pdw.left_hand = Vector3(0.0, -0.08, 0.076)    # the left hand holds the magazine well
 	pdw.ejection_port = Vector3(-0.023, 0.04, 0.03)
-	pdw.charging_handle = Vector3(-0.03, 0.045, 0.06)  # not on the photos: put where the AK has it
-	pdw.bolt_travel = 0.05
+	pdw.charging_handle = Vector3(-0.026, 0.03, 0.09)  # in the slot forward on the right (the photo shows the slot)
+	pdw.bolt_travel = 0.045
 	pdw.sound_shot = "shot"
 	pdw.hip_offset = Vector3(0.12, -0.155, -0.42)  # short: further out than the AK, so its muzzle is where the AK's is
 	_defs.append(pdw)
@@ -276,9 +281,10 @@ static func _build_geometry() -> void:
 	luger.muzzle = Vector3(0.0, 0.03, 0.105)
 	luger.rear_sight = Vector3(0.0, 0.048, -0.098)  # the notch on the toggle (it rises with every shot)
 	luger.front_sight = Vector3(0.0, 0.05, 0.097)
-	luger.eye_relief = 0.45  # arms out
-	luger.right_hand = Vector3(0.0, -0.076, -0.111)  # low on the grip: higher, the fists hide the rear sight
-	luger.left_hand = Vector3(0.0, -0.125, -0.12)   # cupped under the right hand and the magazine's base
+	luger.eye_relief = 0.38  # arms out, a little bent
+	luger.model_scale = 1.2  # life size it is a toy next to a pig, and the two fists hid it
+	luger.right_hand = Vector3(0.0, -0.06, -0.1)    # the middle of the grip
+	luger.left_hand = Vector3(0.0, -0.105, -0.118)  # cupped under the right hand and the magazine's base
 	luger.ejection_port = Vector3(0.0, 0.05, 0.0)    # up out of the open toggle
 	luger.charging_handle = Vector3(-0.017, 0.042, -0.07)  # the right knob: the hand racks the toggle (no handle added)
 	luger.bolt_travel = 0.045
@@ -296,8 +302,8 @@ static func _build_geometry() -> void:
 	acr.rear_sight = Vector3(0.0, 0.113, -0.12)   # bottom of the rear notch
 	acr.front_sight = Vector3(0.0, 0.113, 0.27)   # tip of the front post
 	acr.eye_relief = 0.15  # cheek on the comb
-	acr.right_hand = Vector3(0.0, -0.075, -0.0775)
-	acr.left_hand = Vector3(0.0, -0.005, 0.22)
+	acr.right_hand = Vector3(0.0, -0.08, -0.085)
+	acr.left_hand = Vector3(0.0, -0.012, 0.22)
 	acr.ejection_port = Vector3(-0.027, 0.05, 0.035)
 	acr.charging_handle = Vector3(0.036, 0.062, 0.13)  # forward on the left, under the rail
 	acr.handle_reciprocates = false
@@ -305,3 +311,7 @@ static func _build_geometry() -> void:
 	acr.sound_shot = "shot"
 	acr.hip_offset = Vector3(0.15, -0.19, -0.36)
 	_defs.append(acr)
+
+	for def in _defs:
+		for prop in SCALED_POINTS:
+			def.set(prop, def.get(prop) * def.model_scale)

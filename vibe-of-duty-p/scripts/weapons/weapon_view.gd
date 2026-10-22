@@ -97,6 +97,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 		_dot = optic.get_node_or_null("Dot")
 		if _dot and not is_viewmodel:
 			_dot.visible = false  # lit only for the eye behind it
+	_model.scale = Vector3.ONE * def.model_scale
 	_pivot.add_child(_model)
 	_handle = null
 	_toggle = _model.get_node_or_null("Toggle")
@@ -116,7 +117,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 		handle_mesh.material = material
 		_handle = MeshInstance3D.new()
 		_handle.mesh = handle_mesh
-		_handle_rest = def.charging_handle
+		_handle_rest = def.charging_handle / def.model_scale  # in the model, which is scaled
 		_handle.position = _handle_rest
 		_model.add_child(_handle)
 	WeaponSkin.apply(_model)
@@ -195,13 +196,13 @@ func flash(show_flash := true) -> void:
 
 ## Where a hand holds the magazine (prefab space), or INF when the gun has none.
 func mag_grip_point() -> Vector3:
-	return _mag_rest + Vector3(0.0, -0.11, 0.015) if _mag else Vector3.INF
+	return (_mag_rest + Vector3(0.0, -0.11, 0.015)) * def.model_scale if _mag else Vector3.INF
 
 
 ## Moves the magazine off its seat by `shift` (prefab space); third-person reloads (Mannequin).
 func set_mag_shift(shift: Vector3) -> void:
 	if _mag:
-		_mag.position = _mag_rest + shift
+		_mag.position = _mag_rest + shift / def.model_scale
 
 
 ## Landing: the gun dips and tips forward, then settles (`strength` ~ 1 for a normal jump).

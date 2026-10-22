@@ -1,11 +1,14 @@
 """Generates prefabs/weapons/luger_blockout.tscn: a blockout of the Luger P08 (Pistole Parabellum 1908), 9x19.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_luger_blockout.py   (overwrites the scene)
+The trigger guard with the grip frame, and the grip panels, are meshes made by tools/make_parts.gd
+(prefabs/weapons/luger_<part>_mesh.tres) - run that first if they change.
 
 Docs/LOADOUT.md, "Люгер". A P08 with the artillery model's parts as modules: the barrel 100 mm (P08) / 150 mm (navy) /
 200 mm (Lange Pistole 08: a tangent rear sight on the barrel, none on the toggle), the board stock on the grip's heel
 lug, the TM08 "snail" drum (32 rounds, hangs left of the grip). Sizes from memory of the real gun (length 222 mm with
-the 100 mm barrel, grip ~55 degrees to the bore), not measured from photos.
+the 100 mm barrel, grip ~55 degrees to the bore), not measured from photos. Built life size; the game draws it
+1.2 times bigger (WeaponDef.model_scale: life size, the two fists hid it).
 
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres. Module variants (WeaponDef.model_variants) are groups whose children
@@ -30,6 +33,7 @@ MATERIALS = {
     "mag": ((0.1, 0.1, 0.105), 0.4, 0.5),
 }
 
+MESHES = ["frame_upper", "frame_lower", "grip_panels"]
 BORE_Y = 0.03
 GRIP_RAKE = 35.0  # degrees back from vertical (the bore to the grip ~55)
 
@@ -40,13 +44,19 @@ def box(name, x0, x1, y0, y1, z0, z1, mat, rot_x=0.0, parent="."):
     parts.append((name, parent, "box", (x1 - x0, y1 - y0, z1 - z0), ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), rot_x, mat))
 
 
-def tube(name, radius, z0, z1, y, mat, x=0.0, parent="."):
-    parts.append((name, parent, "cyl", (radius, z1 - z0), (x, y, (z0 + z1) / 2), 90.0, mat))
+def tube(name, radius, z0, z1, y, mat, x=0.0, parent=".", radius_end=None):
+    """A cylinder along the barrel; `radius_end` at z1 tapers it."""
+    parts.append((name, parent, "cyl", (radius, z1 - z0, radius if radius_end is None else radius_end),
+                  (x, y, (z0 + z1) / 2), 90.0, mat))
 
 
 def disc(name, radius, x0, x1, y, z, mat, parent="."):
     """A cylinder across the gun (axis along X)."""
     parts.append((name, parent, "cylx", (radius, x1 - x0), ((x0 + x1) / 2, y, z), 0.0, mat))
+
+
+def mesh(name, key, mat, parent="."):
+    parts.append((name, parent, "ext_mesh", key, (0.0, 0.0, 0.0), 0.0, mat))
 
 
 def node(name, parent=".", pos=(0.0, 0.0, 0.0)):
@@ -66,7 +76,7 @@ def grip_box(name, half_x, top, length, depth, mat, parent=".", start=0.0):
 
 
 # Frame: the lower frame with the trigger guard, side walls the toggle sits between, the hinge ears at the rear.
-box("Frame", -0.012, 0.012, -0.015, 0.02, -0.11, 0.058, "steel")
+mesh("Frame", "frame_upper", "steel")  # the rounded nose under the barrel (tools/make_parts.gd)
 box("FrameWallL", 0.009, 0.012, 0.02, 0.04, -0.11, -0.03, "steel")
 box("FrameWallR", -0.012, -0.009, 0.02, 0.04, -0.11, -0.03, "steel")
 box("HingeEars", -0.012, 0.012, 0.02, 0.046, -0.118, -0.1, "steel")
@@ -75,14 +85,13 @@ tube("BarrelShank", 0.011, 0.065, 0.08, BORE_Y, "steel")
 box("SidePlate", 0.012, 0.0135, -0.012, 0.016, -0.03, 0.045, "steel_light")
 box("Safety", 0.012, 0.016, -0.004, 0.012, -0.102, -0.086, "steel_light")
 box("MagRelease", 0.012, 0.016, -0.032, -0.021, -0.048, -0.038, "steel_light")
-box("TriggerGuard", -0.005, 0.005, -0.05, -0.044, -0.034, 0.035, "steel")
-box("TriggerGuardFront", -0.005, 0.005, -0.05, -0.015, 0.03, 0.036, "steel")
+box("TakedownLever", 0.012, 0.0145, 0.0, 0.012, 0.04, 0.056, "steel_light")  # front left of the frame
 box("Trigger", -0.004, 0.004, -0.036, -0.015, -0.002, 0.008, "steel_light")
 # Grip: raked far back, walnut panels over the frame, the stock lug at the heel.
 GRIP_TOP = (-0.015, -0.068)
 GRIP_LEN = 0.1
-grip_box("GripFrame", 0.0125, GRIP_TOP, GRIP_LEN, 0.034, "steel")
-grip_box("GripPanels", 0.0155, GRIP_TOP, 0.08, 0.03, "wood", start=0.01)
+mesh("FrameLower", "frame_lower", "steel")  # the guard's loop and the grip frame (tools/make_parts.gd)
+mesh("GripPanels", "grip_panels", "wood")
 heel_y, heel_z = along_grip(GRIP_TOP, GRIP_LEN - 0.006)
 heel_y, heel_z = heel_y + 0.017 * math.sin(math.radians(GRIP_RAKE)), heel_z - 0.017 * math.cos(math.radians(GRIP_RAKE))  # the back strap
 box("StockLug", -0.006, 0.006, heel_y - 0.006, heel_y + 0.006, heel_z - 0.008, heel_z + 0.002, "steel")
@@ -109,7 +118,7 @@ node("Barrel")
 for name, muzzle in (("B100", 0.105), ("B150", 0.155), ("B200", 0.205)):
     node(name, "Barrel")
     p = "Barrel/" + name
-    tube("Tube", 0.0075, 0.08, muzzle, BORE_Y, "steel", parent=p)
+    tube("Tube", 0.0095, 0.08, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0072)  # tapering to the muzzle
     box("FrontBase", -0.004, 0.004, BORE_Y + 0.006, BORE_Y + 0.011, muzzle - 0.016, muzzle - 0.002, "steel", parent=p)
     box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.011, 0.05, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)
     if name == "B200":
@@ -164,14 +173,19 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     if kind == "node":
         nodes.append('\n[node name="%s" type="Node3D" parent="%s"]\ntransform = %s\n' % (name, parent, xform))
         continue
+    if kind == "ext_mesh":
+        nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = ExtResource("%s")\n'
+                     'surface_material_override/0 = SubResource("mat_%s")\n' % (name, parent, xform, params, mat))
+        continue
     if kind == "box":
         res.append('[sub_resource type="BoxMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\nsize = Vector3(%s, %s, %s)\n'
                    % (i, mat, f(params[0]), f(params[1]), f(params[2])))
     else:
         res.append('[sub_resource type="CylinderMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\ntop_radius = %s\nbottom_radius = %s\nheight = %s\nradial_segments = 12\nrings = 1\n'
-                   % (i, mat, f(params[0]), f(params[0]), f(params[1])))
+                   % (i, mat, f(params[2] if len(params) > 2 else params[0]), f(params[0]), f(params[1])))
     nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = SubResource("mesh_%d")\n' % (name, parent, xform, i))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8", newline="\n") as out:
-    out.write("[gd_scene format=3]\n\n" + "\n".join(res) + "\n" + "".join(nodes))
+    ext = "".join('[ext_resource type="ArrayMesh" path="res://prefabs/weapons/luger_%s_mesh.tres" id="%s"]\n' % (m, m) for m in MESHES)
+    out.write("[gd_scene format=3]\n\n" + ext + "\n" + "\n".join(res) + "\n" + "".join(nodes))
 print("wrote %s: %d parts" % (OUT, len(parts)))
