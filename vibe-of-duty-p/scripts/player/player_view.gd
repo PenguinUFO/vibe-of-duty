@@ -168,6 +168,8 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
 	_arms.reload = weapons.reload_progress() if alive else -1.0
+	_view.melee = weapons.melee_progress() if alive else -1.0
+	_arms.melee = _view.melee
 	_arms.pose()  # the hands follow the gun
 
 
@@ -261,7 +263,7 @@ func _update_death_drift(delta: float) -> void:
 
 
 ## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
-## alive, weapon index, reload progress (-1: none), sliding].
+## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none)].
 func drawn_pose() -> Array:
 	var pos := global_position
 	var yaw := rotation.y
@@ -275,8 +277,9 @@ func drawn_pose() -> Array:
 		yaw = rotation.y + _visual.rotation.y
 		pitch = _shown_pitch
 	var reload := weapons.reload_progress() if control != Mode.PUPPET else _visual.reload_progress()
+	var melee := weapons.melee_progress() if control != Mode.PUPPET else _visual.melee_progress()
 	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index, reload,
-			is_sliding]
+			is_sliding, melee]
 
 
 ## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.

@@ -88,7 +88,8 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	var wish_len := minf(wish.length(), 1.0)
 	wish = wish.normalized()
 	var firing := weapons.wants_fire(cmd)
-	is_sprinting = cmd.sprint and cmd.move.y < -0.1 and not is_crouched and not cmd.aim and not firing
+	is_sprinting = cmd.sprint and cmd.move.y < -0.1 and not is_crouched and not cmd.aim and not firing \
+			and not weapons.is_meleeing()
 	var top_speed := SPRINT_SPEED if is_sprinting else WALK_SPEED
 	if is_sliding:
 		horiz = _slide_dir * _slide_speed

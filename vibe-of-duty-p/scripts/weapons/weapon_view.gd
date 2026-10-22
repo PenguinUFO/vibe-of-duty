@@ -32,6 +32,7 @@ var _handle_rest := Vector3.ZERO
 var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
 var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
 var lowered := 0.0        # 0..1: the gun is lowered out of view (first person, vaulting)
+var melee := -1.0         # hoof punch progress 0..1 (-1: none): the gun swings aside (first person)
 var _hip_pos := Vector3.ZERO
 var _ads_pos := Vector3.ZERO
 
@@ -198,6 +199,12 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 		rot.x += dip * deg_to_rad(8.0)
 		rot.z -= dip * deg_to_rad(32.0)  # canted, the magazine towards the left hand and the middle of the screen
 	bolt_pull = Mannequin.reload_bolt_pull(reload_p)
+
+	# Hoof punch: the gun goes out to the right and down, out of the left hoof's way (Mannequin.punch_curve).
+	var aside := Mannequin.punch_curve(melee).y
+	pos += Vector3(0.07, -0.09, 0.04) * aside
+	rot.y -= deg_to_rad(25.0) * aside
+	rot.x -= deg_to_rad(18.0) * aside
 
 	# Equip: raise from below.
 	if equip_p >= 0.0:

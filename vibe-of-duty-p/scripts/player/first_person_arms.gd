@@ -12,10 +12,12 @@ const THICKNESS := 0.8      # and a bit slimmer, or they fill the screen
 const RIGHT_POLE := Vector3(1.0, -1.0, 0.25)
 const LEFT_POLE := Vector3(-0.6, -1.0, 0.0)
 const POUCH := Vector3(-0.2, -0.6, -0.2)  # camera space: where the left hand swaps magazines, below the view
+const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at full reach of a punch, just below the middle
 
 var _weapon: WeaponView
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
+var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
 var ledge_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left, right
 var _right: Dictionary
 var _left: Dictionary
@@ -65,6 +67,11 @@ func pose() -> void:
 	var left_fingers := xform.basis * Mannequin.LEFT_FINGERS
 	var right_dir := xform.basis * Mannequin.RIGHT_PALM
 	var left_dir := xform.basis * Mannequin.LEFT_PALM
+	var punch := Mannequin.punch_curve(melee)
+	if punch.y > 0.0:
+		left_palm = left_palm.lerp(PUNCH, punch.x)
+		left_fingers = left_fingers.lerp(Vector3.FORWARD, punch.y)
+		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
 	if ledge_weight > 0.0:
 		# Vaulting: palms flat on the ledge, fingers over its edge.
 		var to_arms := global_basis.inverse()

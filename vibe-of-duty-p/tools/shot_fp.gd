@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_fp.gd
 
-const CASES := {"hip": [0, 0.0], "ads": [0, 1.0]}
+const CASES := {"hip": [0, 0.0, -1.0], "ads": [0, 1.0, -1.0], "punch": [0, 0.0, 0.27], "punch_back": [0, 0.0, 0.6]}  # [weapon, ads, punch progress]
 
 
 func _initialize() -> void:
@@ -37,6 +37,8 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
 		view.set_weapon(CASES[c][0])
+		view.melee = CASES[c][2]
+		arms.melee = CASES[c][2]
 		for i in 30:
 			view.update_pose(1.0 / 60.0, CASES[c][1], -1.0, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()

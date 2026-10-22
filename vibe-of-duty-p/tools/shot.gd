@@ -14,7 +14,9 @@ const CASES := {  # name -> [local velocity (x right, z back), aim pitch, ads, c
 	"ads_f": [Vector3(0, 0, -5.25), 0.0, true, false, true],
 	"ads_r": [Vector3(5.25, 0, 0), 0.0, true, false, true],
 	"ads_b": [Vector3(0, 0, 5.25), 0.0, true, false, true],
+	"punch": [Vector3.ZERO, 0.0, false, false, true],  # hoof punch at full reach (PUNCH_PROGRESS)
 }
+const PUNCH_PROGRESS := 0.27
 const VIEWS := {"front": Vector3(1.6, 1.4, -2.6), "side": Vector3(3.0, 1.3, 0.0), "left": Vector3(-1.8, 1.5, -1.8)}
 
 
@@ -45,6 +47,7 @@ func _initialize() -> void:
 		vis.set_aim_pitch(CASES[c][1])
 		vis.set_ads(CASES[c][2])
 		vis.set_crouched(CASES[c][3])
+		vis.show_melee(PUNCH_PROGRESS if c == "punch" else -2.0)
 		for view in VIEWS:
 			cam.look_at_from_position(VIEWS[view], Vector3(0, 1.0, 0))
 			for i in (6 if c == "run_f" and view == "front" else 25):

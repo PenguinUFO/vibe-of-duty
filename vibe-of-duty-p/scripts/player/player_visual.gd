@@ -27,6 +27,9 @@ var _reloading := false
 var _reload_t := -1.0             # s into the reload being shown, -1 = none
 var _mantling := false
 var _shown_reload := -2.0         # replay: reload progress given directly (show_reload), -2 = not given
+var _meleeing := false
+var _melee_t := -1.0              # s into the punch being shown, -1 = none
+var _shown_melee := -2.0          # replay: punch progress given directly (show_melee), -2 = not given
 var _ads_target := false
 
 
@@ -64,6 +67,23 @@ func set_reloading(reloading: bool) -> void:
 	if reloading and not _reloading and not _dead:
 		_reload_t = 0.0
 	_reloading = reloading
+
+
+## Hoof punch (from the snapshot flags): plays the punch from its start over its full length.
+func set_meleeing(meleeing: bool) -> void:
+	if meleeing and not _meleeing and not _dead:
+		_melee_t = 0.0
+	_meleeing = meleeing
+
+
+## Punch progress as shown (-1: none), e.g. for the kill cam's recording.
+func melee_progress() -> float:
+	return _mannequin.melee if _mannequin else -1.0
+
+
+## Replays (KillCam): shows the punch at exactly this progress (-1: none) instead of timing it here.
+func show_melee(progress: float) -> void:
+	_shown_melee = progress
 
 
 ## Vaulting (from the snapshot flags); `top_y`: world height of the ledge's top. The hands go onto the ledge in
@@ -110,6 +130,7 @@ func update_motion(delta: float, _local_velocity: Vector3, on_floor: bool = true
 	_mannequin.pitch = _pitch
 	_mannequin.mantle = move_toward(_mannequin.mantle, 1.0 if _mantling else 0.0, delta * (10.0 if _mantling else 5.0))
 	_update_reload(delta)
+	_update_melee(delta)
 	_update_air(on_floor)
 	_mannequin.animate(delta, global_basis.inverse() * _velocity, not _air, _sliding)
 	_mannequin.pose()
@@ -139,6 +160,22 @@ func _update_reload(delta: float) -> void:
 		_mannequin.reload = -1.0
 	else:
 		_mannequin.reload = _reload_t / length
+
+
+func _update_melee(delta: float) -> void:
+	if _shown_melee > -2.0:
+		_mannequin.melee = _shown_melee
+		return
+	if _melee_t < 0.0:
+		_mannequin.melee = -1.0
+		return
+	_melee_t += delta
+	var length := WeaponSim.MELEE_WINDUP + WeaponSim.MELEE_RECOVER
+	if _melee_t >= length:
+		_melee_t = -1.0
+		_mannequin.melee = -1.0
+	else:
+		_mannequin.melee = _melee_t / length
 
 
 ## In the air or not: the caller's `on_floor` (players know it) or this node's own vertical movement (replay
@@ -208,6 +245,8 @@ func set_dead(dead: bool, from := Vector3.INF, head_hit := false) -> void:
 		_crouch_v = 0.0
 	_reload_t = -1.0
 	_reloading = false
+	_melee_t = -1.0
+	_meleeing = false
 	_mantling = false
 	_mannequin.mantle = 0.0
 

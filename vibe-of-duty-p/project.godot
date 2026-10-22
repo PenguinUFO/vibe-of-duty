@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="vibe-of-duty-p"
-config/version="0.1.2"
+config/version="0.1.4"
 run/main_scene="res://prefabs/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"

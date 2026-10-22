@@ -53,6 +53,7 @@ const FLAG_FIRE := 8
 const FLAG_AIM := 16
 const FLAG_RELOAD := 32
 const FLAG_JUMP_HELD := 256
+const FLAG_MELEE := 512
 const FLAG_SELECT_SHIFT := 6  # 2 bits: weapon index + 1, 0 = no switch
 const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
@@ -62,6 +63,11 @@ const STATE_WEAPON_SHIFT := 4  # 2 bits: current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
+const STATE_MELEE := 512
+## Hoof punch: ray directions as (yaw, pitch) offsets from the view, middle first. At the 2 m reach the outer ones are
+## ~0.5 m to the side and ~0.45 m lower (a crouching or sliding target).
+const MELEE_FAN: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.13, 0.0), Vector2(-0.13, 0.0), Vector2(0.0, -0.23),
+		Vector2(0.26, 0.0), Vector2(-0.26, 0.0), Vector2(0.13, -0.23), Vector2(-0.13, -0.23)]
 const MAX_HEALTH := 150  # kid mode: more (Settings.kid_health), up to KID_HEALTH_MAX
 const KID_HEALTH_MAX := 600
 const BACK_FULL_ANGLE := deg_to_rad(135.0)  # kid mode: shots from this far off the view get the full back_damage
@@ -77,6 +83,8 @@ const HISTORY_MAX := 180             # commands kept for replay (3 s)
 const CORRECTION_DECAY := 12.0       # 1/s, how fast the visual correction offset fades out
 const CORRECTION_SNAP_DISTANCE := 2.0  # m; larger errors are shown instantly
 
+## Server only: a hoof punch landed on a player or target at `pos` (NetWorld relays it for the cosmetics).
+signal server_melee(player: Player, pos: Vector3)
 ## Server only: a shot was fired. `hits` = [{player_id, zone, pos}] (NetWorld relays it; damage is applied separately).
 signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array)
 
@@ -207,6 +215,7 @@ var _vault_note_until := 0
 var _puppet_on_floor := true
 var _puppet_sliding := false
 var _puppet_reloading := false
+var _puppet_meleeing := false
 var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 

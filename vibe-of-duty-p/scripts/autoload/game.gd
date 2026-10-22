@@ -41,6 +41,7 @@ var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest ene
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
+var bot_melee := false     # --bot-melee: bots run at the nearest enemy and punch (melee test)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
@@ -78,6 +79,9 @@ func _ready() -> void:
 		elif arg == "--bot-oink":
 			bot_mode = true
 			bot_oink = true
+		elif arg == "--bot-melee":
+			bot_mode = true
+			bot_melee = true
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true

@@ -18,6 +18,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		_try_oink()
 	if Game.bot_aim and world != null:
 		return _bot_aim_cmd(t)
+	if Game.bot_melee and world != null:
+		return _bot_melee_cmd(t)
 	if Game.bot_targets:
 		return _bot_targets_cmd(t)
 	if Game.bot_course:
@@ -104,6 +106,31 @@ func _bot_targets_cmd(t: float) -> PlayerCmd:
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	cmd.reload = weapons.mags[weapons.index] == 0
+	return cmd
+
+
+## Runs at the nearest enemy (as seen on this client's screen), looking at their chest, and punches within reach.
+func _bot_melee_cmd(t: float) -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var target: Player = null
+	var best := INF
+	for id in world.players:
+		var other: Player = world.players[id]
+		if other != self and other.alive:
+			var d := other.global_position.distance_to(global_position)
+			if d < best:
+				best = d
+				target = other
+	if target != null and alive:
+		var eye := global_position + Vector3.UP * STAND_EYE
+		var seg := LagComp.body_segment(target.hitbox_state())
+		var dir := ((seg[0] as Vector3).lerp(seg[1], 0.6) - eye).normalized()
+		look_yaw = atan2(-dir.x, -dir.z)
+		look_pitch = clampf(asin(dir.y), -MAX_PITCH, MAX_PITCH)
+		cmd.move = Vector2(0.4 if int(t / 2.0) % 2 == 0 else -0.4, -1.0 if best > 1.2 else 0.0)
+		cmd.melee = best < 1.8 and not weapons.is_meleeing()
+	cmd.yaw = look_yaw
+	cmd.pitch = look_pitch
 	return cmd
 
 

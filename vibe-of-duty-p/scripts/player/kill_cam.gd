@@ -221,6 +221,7 @@ func _play(delta: float) -> void:
 		ghost.set_crouched(pose[3])
 		ghost.set_sliding(pose[8])
 		ghost.show_reload(pose[7])
+		ghost.show_melee(pose[9])
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6])
 		if ghost._dead == pose[5]:
@@ -246,8 +247,10 @@ func _play(delta: float) -> void:
 		_view.set_weapon(killer[6])
 		_view.visible = killer[5]
 		_arms.visible = killer[5]
+		_view.melee = killer[9]
 		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
 		_arms.reload = killer[7]
+		_arms.melee = killer[9]
 		_arms.pose()
 
 	for shot in _shots:
@@ -300,6 +303,13 @@ func _arms_for(id: int) -> FirstPersonArms:
 
 
 func _replay_shot(shot: Dictionary) -> void:
+	if shot["weapon"] == WeaponSim.MELEE:  # a punch that landed: its sound and the flinch (the pose shows the swing)
+		for end in shot["ends"]:
+			Audio.play("punch_hit", end)
+			for id in _ghosts:
+				if id != shot["id"]:
+					(_ghosts[id] as PlayerVisual).react_to_shot(shot["origin"], end)
+		return
 	var def := WeaponDB.get_def(shot["weapon"])
 	var muzzle: Vector3 = shot["origin"]
 	if shot["id"] == _killer_id:

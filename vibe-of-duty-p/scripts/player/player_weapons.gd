@@ -1,6 +1,6 @@
 class_name PlayerWeapons
 extends PlayerMantle
-## Player, part 3 of 9: weapon tick, shots, hit tests (hitscan against LagComp hitboxes), shot cosmetics.
+## Player, part 3 of 9: weapon tick, shots, hoof punches, hit tests (hitscan against LagComp hitboxes), shot cosmetics.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
 func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
@@ -10,6 +10,7 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 		"crouched": is_crouched,
 		"airborne": not is_on_floor(),
 		"sprinting": is_sprinting,
+		"sliding": is_sliding,
 	}
 	var events := weapons.tick(cmd, dt, ctx)
 	aiming = weapons.ads > 0.5
@@ -26,6 +27,11 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 				_local_sfx("equip")
 				if _view:
 					_view.set_weapon(weapons.index)
+			"melee_start":
+				_sfx("punch")
+			"melee":
+				event["view_tick"] = cmd.view_tick
+				_on_melee(event)
 
 
 func _local_sfx(id: String) -> void:
@@ -98,6 +104,60 @@ func _on_shot(event: Dictionary) -> void:
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
+
+
+## The blow of a hoof punch: the nearest player or target in a fan of short rays around the view (easier to land
+## than a bullet), judged like a shot (LagComp rewind on the server). The server applies the damage; the puncher hears
+## the hit at once (predicted), everybody else gets it from the server (server_melee).
+func _on_melee(event: Dictionary) -> void:
+	if _replaying:
+		return
+	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
+	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
+	var tick := _judge_tick(event["view_tick"], is_server)
+	var hit := {}
+	for offset in MELEE_FAN:
+		var r := _trace(origin, Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) 				* Vector3.FORWARD, WeaponSim.MELEE_RANGE, tick)
+		if r["player"] != null or r.get("target") != null:
+			hit = r
+			break  # the fan goes from the middle outwards: the first body found is the one punched
+	if hit.is_empty():
+		return
+	var head: bool = hit["zone"] == "head"
+	var damage := WeaponSim.MELEE_DAMAGE * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
+	if is_local:
+		Audio.play("punch_hit", hit["pos"])
+		if hit["player"] != null:
+			(hit["player"] as Player).react_to_shot(origin, hit["pos"])
+		else:
+			(hit["target"] as Target).react_to_shot(origin, hit["pos"])
+		if world != null and world.kill_cam != null:
+			world.kill_cam.record_shot(peer_id, WeaponSim.MELEE, origin, PackedVector3Array([hit["pos"]]))
+	if not is_server:
+		return
+	Game.count("melee_hits")
+	server_melee.emit(self, hit["pos"])
+	if hit["player"] != null:
+		if world != null:
+			world.server_apply_damage(self, hit["player"], damage, head, WeaponSim.MELEE)
+	else:
+		var target: Target = hit["target"]
+		target.add_mark(hit["pos"], head)
+		var knocked := target.take_damage(damage, head)
+		if is_local:
+			on_hit_confirmed(knocked, head)
+
+
+## Cosmetics of somebody else's punch that landed at `pos` (called by World on clients and on the host).
+func show_remote_melee(pos: Vector3) -> void:
+	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
+	if world != null and world.kill_cam != null:
+		world.kill_cam.record_shot(peer_id, WeaponSim.MELEE, origin, PackedVector3Array([pos]))
+	Audio.play("punch_hit", pos)
+	if world != null:
+		for id in world.players:
+			if id != peer_id:
+				(world.players[id] as Player).react_to_shot(origin, pos)
 
 
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),

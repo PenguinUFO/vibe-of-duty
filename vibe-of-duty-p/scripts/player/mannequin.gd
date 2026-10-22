@@ -49,6 +49,7 @@ const LEFT_FINGERS := Vector3(1.0, 0.15, -0.3)    # across under the handguard, 
 const LEFT_PALM := Vector3(0.0, 1.0, 0.0)         # palm up
 const RIGHT_POLE := Vector3(0.9, -1.0, 0.3)       # where the elbows point (mannequin space)
 const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
+const PUNCH_REACH := Vector3(0.14, -0.04, -0.55)  # the punching hoof from the left shoulder, aim frame (towards the middle)
 
 # --- locomotion ---
 const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
@@ -99,6 +100,7 @@ const FACET_KEY_PROPS := ["radius", "height", "radial_segments", "rings", "top_r
 
 var pitch := 0.0      # aim pitch, radians, + = up
 var reload := -1.0    # reload progress 0..1, -1 = not reloading
+var melee := -1.0     # hoof punch progress 0..1, -1 = not punching
 var mantle := 0.0     # 0..1: vaulting pose weight
 var mantle_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left and right hand on the ledge
 var mantle_top := 0.0  # world height of the ledge's top
@@ -491,12 +493,24 @@ func pose() -> void:
 	else:
 		weapon.set_mag_shift(Vector3.ZERO)
 		weapon.bolt_pull = 0.0
+	var punch := punch_curve(melee)
+	if punch.y > 0.0:
+		# Hoof punch: the gun swings out to the side and down about the butt (the stock stays at the shoulder), out of
+		# the left hoof's way.
+		var butt_point := weapon_local * _view_point(BUTT)
+		var swing := Basis(Vector3.UP, -0.3 * punch.y) * Basis(Vector3.RIGHT, -0.35 * punch.y)
+		weapon_local = Transform3D(swing, butt_point - swing * butt_point) * weapon_local
 	var right_palm := weapon_local * right_view
 	var left_palm := weapon_local * left_view
 	var right_fingers := weapon_local.basis * RIGHT_FINGERS
 	var right_dir := weapon_local.basis * RIGHT_PALM
 	var left_fingers := weapon_local.basis * LEFT_FINGERS
 	var left_dir := weapon_local.basis * LEFT_PALM
+	if punch.y > 0.0:
+		var fist := shoulder_l + aim * PUNCH_REACH
+		left_palm = left_palm.lerp(fist, punch.x)
+		left_fingers = left_fingers.lerp(aim * Vector3.FORWARD, punch.y)
+		left_dir = left_dir.lerp(aim * Vector3.DOWN, punch.y)
 	if mantle > 0.0:
 		# Vaulting: the gun hangs at the right side, barrel down, both hands on the ledge pulling the body up.
 		var slung := chest * Transform3D(Basis(Vector3.RIGHT, -1.3).rotated(Vector3.UP, 0.25),
@@ -709,6 +723,26 @@ func _reload_pose(weapon_local: Transform3D, grip: Vector3, chest: Transform3D) 
 	_reload_hand = path[0]
 	weapon.set_mag_shift(_view_point(_reload_hand - seated) if path[1] else Vector3.ZERO)
 	return weapon_local
+
+
+## Hoof punch at progress `m` (-1: none): x = how far the left hoof is out (0 at the gun, 1 at full reach; a short
+## pull-back first), y = how far the gun is swung aside. The blow lands at PUNCH_HIT - the moment the server judges it
+## (WeaponSim.MELEE_WINDUP) - so the hoof arrives together with the hit. Shared with the first-person arms.
+static func punch_curve(m: float) -> Vector2:
+	if m < 0.0:
+		return Vector2.ZERO
+	var hit := WeaponSim.MELEE_WINDUP / (WeaponSim.MELEE_WINDUP + WeaponSim.MELEE_RECOVER)
+	var out := 0.0
+	if m < hit * 0.4:
+		out = -0.2 * smoothstep(0.0, hit * 0.4, m)
+	elif m < hit:
+		out = lerpf(-0.2, 1.0, smoothstep(hit * 0.4, hit, m))
+	elif m < hit + 0.12:
+		out = 1.0
+	else:
+		out = 1.0 - smoothstep(hit + 0.12, 0.8, m)
+	var aside := smoothstep(0.0, hit * 0.6, m) * (1.0 - smoothstep(0.7, 1.0, m))
+	return Vector2(out, aside)
 
 
 ## The left hand's path through a reload (`r` 0..1), in gun view space - shared by the third-person body and the

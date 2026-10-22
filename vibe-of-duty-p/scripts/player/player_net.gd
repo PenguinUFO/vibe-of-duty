@@ -12,6 +12,7 @@ func _encode_cmd(cmd: PlayerCmd) -> Array:
 	flags |= FLAG_FIRE if cmd.fire else 0
 	flags |= FLAG_AIM if cmd.aim else 0
 	flags |= FLAG_RELOAD if cmd.reload else 0
+	flags |= FLAG_MELEE if cmd.melee else 0
 	flags |= (cmd.select + 1) << FLAG_SELECT_SHIFT
 	return [_cmd_seq, cmd.move, cmd.yaw, cmd.pitch, flags, cmd.view_tick]
 
@@ -29,6 +30,7 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	cmd.fire = flags & FLAG_FIRE != 0
 	cmd.aim = flags & FLAG_AIM != 0
 	cmd.reload = flags & FLAG_RELOAD != 0
+	cmd.melee = flags & FLAG_MELEE != 0
 	cmd.select = ((flags >> FLAG_SELECT_SHIFT) & 3) - 1
 	cmd.view_tick = entry[5]
 	return cmd
@@ -95,7 +97,7 @@ func _pop_server_cmd() -> PlayerCmd:
 		filler.crouch = _last_cmd.crouch
 		filler.fire = _last_cmd.fire
 		filler.aim = _last_cmd.aim
-		return filler  # no jump / reload / weapon switch: one-shot events are not repeated
+		return filler  # no jump / reload / melee / weapon switch: one-shot events are not repeated
 	var entry: Array = _cmd_queue.pop_front()
 	_acked_seq = entry[0]
 	_last_cmd = _decode_cmd(entry)
@@ -120,6 +122,7 @@ func get_net_state() -> Array:
 	flags |= STATE_RELOADING if weapons.is_reloading() else 0
 	flags |= STATE_ADS if weapons.ads > 0.5 else 0
 	flags |= STATE_MANTLING if is_mantling else 0
+	flags |= STATE_MELEE if weapons.is_meleeing() else 0
 	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
 	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
@@ -318,3 +321,8 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 		Audio.play("reload", global_position)
 	_puppet_reloading = reloading
 	_visual.set_reloading(reloading)
+	var meleeing := flags & STATE_MELEE != 0
+	if meleeing and not _puppet_meleeing:
+		Audio.play("punch", global_position)
+	_puppet_meleeing = meleeing
+	_visual.set_meleeing(meleeing)

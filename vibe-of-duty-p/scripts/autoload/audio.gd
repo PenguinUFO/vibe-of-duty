@@ -29,6 +29,8 @@ const PLACEHOLDERS := {
 	"step": {"kind": "noise", "dur": 0.06, "decay": 50.0, "vol": 0.25},
 	"slide": {"kind": "noise", "dur": 0.35, "decay": 6.0, "vol": 0.3},
 	"impact": {"kind": "noise", "dur": 0.05, "decay": 60.0, "vol": 0.35},
+	"punch": {"kind": "noise", "dur": 0.18, "decay": 14.0, "vol": 0.3},     # hoof punch swing (whoosh)
+	"punch_hit": {"kind": "thump", "dur": 0.14, "freq": 160.0, "freq_end": 70.0, "decay": 22.0, "vol": 0.9},
 	"match_start": {"kind": "tone", "dur": 0.4, "freq": 440.0, "freq_end": 880.0, "decay": 5.0, "vol": 0.5},
 	"match_end": {"kind": "tone", "dur": 0.6, "freq": 880.0, "freq_end": 330.0, "decay": 4.0, "vol": 0.5},
 	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},

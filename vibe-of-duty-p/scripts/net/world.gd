@@ -460,6 +460,7 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: 
 	players[id] = player
 	if multiplayer.is_server():
 		player.server_shot.connect(_on_server_shot)
+		player.server_melee.connect(_on_server_melee)
 
 
 ## Server: relay a shot to everyone except the shooter, who already showed it (prediction).
@@ -475,6 +476,21 @@ func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: Packed
 func _remote_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
 	if players.has(shooter_id) and shooter_id != multiplayer.get_unique_id():
 		(players[shooter_id] as Player).show_remote_shot(weapon, origin, ends)
+
+
+## Server: relay a punch that landed to everyone except the puncher, who already showed it (prediction).
+func _on_server_melee(puncher: Player, pos: Vector3) -> void:
+	for peer in _ready_peers:
+		if peer != puncher.peer_id:
+			_remote_melee.rpc_id(peer, puncher.peer_id, pos)
+	if not Game.dedicated and puncher.control != Player.Mode.LOCAL:
+		puncher.show_remote_melee(pos)
+
+
+@rpc("authority", "unreliable")
+func _remote_melee(puncher_id: int, pos: Vector3) -> void:
+	if players.has(puncher_id) and puncher_id != multiplayer.get_unique_id():
+		(players[puncher_id] as Player).show_remote_melee(pos)
 
 
 ## Client -> server: the sender pressed F (oink).
@@ -540,7 +556,7 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		kill_cam.start(killer_id)
 	if hud:
 		var me := multiplayer.get_unique_id()
-		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else ""
+		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else 				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 
 

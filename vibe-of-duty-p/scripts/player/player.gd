@@ -134,6 +134,7 @@ func _process(delta: float) -> void:
 		_visual.set_crouched(is_crouched)
 		_visual.set_sliding(is_sliding)
 		_visual.set_reloading(weapons.is_reloading())
+		_visual.set_meleeing(weapons.is_meleeing())
 		_visual.set_mantling(is_mantling, _mantle_up.y)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
@@ -166,6 +167,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 		cmd.fire = Input.is_action_pressed("fire")
 		cmd.aim = Input.is_action_pressed("aim")
 		cmd.reload = Input.is_action_just_pressed("reload")
+		cmd.melee = Input.is_action_just_pressed("melee")
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER_TIME
 		var count := WeaponDB.count()
@@ -178,7 +180,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 			cmd.select = (weapons.index + count - 1) % count
 		# Any other action ends a latched sprint; press Y / L3 again to sprint on.
 		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("crouch") or cmd.fire or cmd.aim \
-				or cmd.reload or cmd.select >= 0:
+				or cmd.reload or cmd.melee or cmd.select >= 0:
 			_sprint_latched = false
 		cmd.sprint = Input.is_action_pressed("sprint") or _sprint_latched
 	cmd.jump = _jump_buffer > 0.0
