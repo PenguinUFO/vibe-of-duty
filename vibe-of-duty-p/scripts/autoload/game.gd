@@ -15,7 +15,8 @@ const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are buildin
 const TRAINING_MAPS: Array[String] = ["range", "course", "test_level"]
 ## Developer test maps: never offered in the menus, only reachable with --map= (dedicated server) or --training=.
 ## arena: a small walled box with nothing between the spawns, for automated netcode / kill cam / combat tests.
-const TEST_MAPS: Array[String] = ["arena"]
+## ttk: the TTK balance test (--bot-ttk): targets at 10 / 20 / 40 / 80 m and dodgers running round the shooter there.
+const TEST_MAPS: Array[String] = ["arena", "ttk"]
 const TRAINING_INFO := {
 	"range": "Мишени на дистанциях от 5 до 75 м и бегущая мишень",
 	"course": "Площадка по кругу: стены, поручни, туннели, ямы, склоны, брёвна, ступени. На каждом снаряде несколько вариантов рядом — что получается, а что уже нет",
@@ -41,6 +42,11 @@ var test_build: Array = []     # --build=part,part,...: the build bots play (Par
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
+var bot_ttk := ""          # --bot-ttk=NODE: --bot-targets shoot only that target's body and time each kill (balance test)
+var bot_react := 0.0       # --bot-react=S: --bot-ttk aims where the target was this long ago (a human's reaction)
+var bot_hip := false       # --bot-hip: --bot-ttk shoots from the hip
+var bot_strafe := false    # --bot-strafe: --bot-ttk strafes left and right while shooting
+var bot_recoil := 1.0      # --bot-recoil=X: share of the recoil kick the bots pull down (1: all, 0: none)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var bot_melee := false     # --bot-melee: bots run at the nearest enemy and punch (melee test)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
@@ -104,6 +110,18 @@ func _ready() -> void:
 			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
 		elif arg.begins_with("--build="):
 			test_build = Array(arg.trim_prefix("--build=").split(","))
+		elif arg.begins_with("--bot-ttk="):
+			bot_mode = true
+			bot_targets = true
+			bot_ttk = arg.trim_prefix("--bot-ttk=")
+		elif arg.begins_with("--bot-react="):
+			bot_react = maxf(float(arg.trim_prefix("--bot-react=")), 0.0)
+		elif arg == "--bot-hip":
+			bot_hip = true
+		elif arg == "--bot-strafe":
+			bot_strafe = true
+		elif arg.begins_with("--bot-recoil="):
+			bot_recoil = clampf(float(arg.trim_prefix("--bot-recoil=")), 0.0, 1.0)
 		elif arg.begins_with("--summary="):
 			summary_time = maxf(1.0, float(arg.trim_prefix("--summary=")))
 		elif arg.begins_with("--intermission="):

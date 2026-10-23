@@ -164,6 +164,8 @@ func _weapon_stats(parts: Array) -> String:
 		"Темп %.0f выстр/мин · магазин %d · запас %d" % [60.0 / def.fire_interval, def.mag_size, def.reserve_start],
 		"Перезарядка %.2f с · прицеливание %.2f с · зум ×%.1f" % [def.reload_time * mods["reload_mult"],
 				def.ads_time * mods["ads_time_mult"], 1.0 / def.ads_fov_mult],
+		"Скорость ×%.2f, в прицеле ×%.2f · смена %.2f с" % [def.move_speed_mult,
+				def.move_speed_mult * def.ads_move_mult, def.equip_time],
 		"Отдача %.2f° · разброс %.1f° / %.2f°" % [rad_to_deg(def.recoil_pitch),
 				rad_to_deg(def.spread_hip) * mods["spread_hip_mult"], rad_to_deg(def.spread_ads) * mods["spread_ads_mult"]],
 		"Пробитие %.2f м (урон ×%.1f)%s%s" % [def.penetration, def.penetration_damage,

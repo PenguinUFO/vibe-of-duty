@@ -220,6 +220,7 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.ads_time = maxf(float(v.get("ads_time", def.ads_time)), 0.01)
 	def.ads_fov_mult = float(v.get("ads_zoom", def.ads_fov_mult))
 	def.ads_move_mult = float(v.get("ads_move", def.ads_move_mult))
+	def.move_speed_mult = float(v.get("move_speed", def.move_speed_mult))
 	def.spread_hip = deg_to_rad(float(v.get("spread_hip", rad_to_deg(def.spread_hip))))
 	def.spread_ads = deg_to_rad(float(v.get("spread_ads", rad_to_deg(def.spread_ads))))
 	def.spread_move = deg_to_rad(float(v.get("spread_move", rad_to_deg(def.spread_move))))

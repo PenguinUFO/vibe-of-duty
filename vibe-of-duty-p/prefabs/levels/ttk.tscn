@@ -1,0 +1,64 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://cpr1l748quiwk" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+[ext_resource type="Script" path="res://scripts/game/target.gd" id="3_target"]
+[ext_resource type="Script" path="res://tools/dodge_target.gd" id="4_dodge"]
+
+[node name="Ttk" type="Node3D"]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.766, -0.3957, 0.5065, 0, 0.788, 0.6157, -0.6428, 0.4716, -0.6037, 0, 12, 0)
+
+[node name="Floor" parent="." instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+size = Vector3(220, 1, 220)
+color = Color(0.42, 0.44, 0.46, 1)
+
+[node name="Targets" type="Node3D" parent="."]
+
+[node name="Target10m" type="Node3D" parent="Targets"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -10)
+script = ExtResource("3_target")
+
+[node name="Dodge10m" type="Node3D" parent="Targets"]
+script = ExtResource("4_dodge")
+color_id = 11
+radius = 10.0
+
+[node name="Target20m" type="Node3D" parent="Targets"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -20)
+script = ExtResource("3_target")
+
+[node name="Dodge20m" type="Node3D" parent="Targets"]
+script = ExtResource("4_dodge")
+color_id = 11
+radius = 20.0
+
+[node name="Target40m" type="Node3D" parent="Targets"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -40)
+script = ExtResource("3_target")
+
+[node name="Dodge40m" type="Node3D" parent="Targets"]
+script = ExtResource("4_dodge")
+color_id = 11
+radius = 40.0
+
+[node name="Target80m" type="Node3D" parent="Targets"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -80)
+script = ExtResource("3_target")
+
+[node name="Dodge80m" type="Node3D" parent="Targets"]
+script = ExtResource("4_dodge")
+color_id = 11
+radius = 80.0
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="Spawn0" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="World" type="Node" parent="."]
+script = ExtResource("1_world")

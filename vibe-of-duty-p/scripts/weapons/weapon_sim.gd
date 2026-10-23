@@ -109,7 +109,7 @@ func wants_fire(cmd: PlayerCmd) -> bool:
 
 
 func speed_mult() -> float:
-	return lerpf(1.0, current().ads_move_mult, ads)
+	return current().move_speed_mult * lerpf(1.0, current().ads_move_mult, ads)
 
 
 ## Current cone half angle in radians for the HUD crosshair and for shooting.

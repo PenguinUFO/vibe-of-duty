@@ -50,12 +50,13 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	_slide_cooldown = maxf(_slide_cooldown - dt, 0.0)
 	var crouch_pressed := cmd.crouch and not _prev_crouch
 	_prev_crouch = cmd.crouch
+	var heft := weapons.current().move_speed_mult  # a heavy weapon: a sprint is slower, so is the slide it starts
 	if not is_sliding and crouch_pressed and on_floor and _slide_cooldown <= 0.0 \
-			and horiz.length() >= SLIDE_MIN_SPEED:
+			and horiz.length() >= SLIDE_MIN_SPEED * heft:
 		is_sliding = true
 		_slide_time = 0.0
 		_slide_dir = horiz.normalized()
-		_slide_speed = maxf(horiz.length(), SLIDE_START_SPEED)
+		_slide_speed = maxf(horiz.length(), SLIDE_START_SPEED * heft)
 		_sfx("slide")
 	var slide_finished := false
 	if is_sliding:

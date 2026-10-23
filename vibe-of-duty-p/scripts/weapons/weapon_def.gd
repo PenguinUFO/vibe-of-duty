@@ -39,6 +39,7 @@ var equip_time := 0.4
 var ads_time := 0.2
 var ads_fov_mult := 0.75
 var ads_move_mult := 0.7
+var move_speed_mult := 1.0  # walk, sprint and crouch speed with it in hand (the heavier, the slower)
 
 var spread_hip := deg_to_rad(2.0)   # cone half angle
 var spread_ads := deg_to_rad(0.3)

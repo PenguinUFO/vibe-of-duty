@@ -6,6 +6,10 @@ extends PlayerView
 var _bot_select := 0
 var _bot_corner := 1      # --bot-course: the loop corner it runs to next
 var _bot_stuck := 0.0     # --bot-course: s standing still while trying to run
+var _ttk_start := -1      # --bot-ttk: physics frame of the kill's first shot (-1: not shooting yet)
+var _ttk_shots := 0       # --bot-ttk: shots_total at that shot
+var _ttk_aim_points: Array[Vector3] = []  # --bot-ttk: the target's body point over the last --bot-react s
+var _ttk_seen := -1       # --bot-ttk: physics frame the target stood up at (-1: down)
 ## --bot-course: corners of the obstacle course loop (x, z), in running order (prefabs/levels/course.tscn).
 const COURSE_LOOP: Array[Vector2] = [Vector2(-30, 22), Vector2(30, 22), Vector2(30, -22), Vector2(-30, -22)]
 
@@ -20,6 +24,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		return _bot_aim_cmd(t)
 	if Game.bot_melee and world != null:
 		return _bot_melee_cmd(t)
+	if Game.bot_ttk != "":
+		return _bot_ttk_cmd()
 	if Game.bot_targets:
 		return _bot_targets_cmd(t)
 	if Game.bot_course:
@@ -111,6 +117,57 @@ func _bot_targets_cmd(t: float) -> PlayerCmd:
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	cmd.reload = weapons.mags[weapons.index] == 0
+	return cmd
+
+
+## Shoots the body of one target (--bot-ttk) from a full magazine each time it stands up, pulling down Game.bot_recoil
+## of the kick, aiming where the target was --bot-react s ago; from the hip (--bot-hip) or aiming, standing or strafing (--bot-strafe: 1 s each way). Counts each kill
+## (Game.stats): ttk_ms from the first shot, ttk_full_ms from the target standing up (the aiming time included),
+## its shots.
+func _bot_ttk_cmd() -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var target := get_tree().current_scene.find_child(Game.bot_ttk, true, false) as Target
+	for other in get_tree().get_nodes_in_group(Target.GROUP):
+		if other != target:  # the nearer targets (and the runner) stand in the line of fire of the farther ones
+			other.remove_from_group(Target.GROUP)
+			other.visible = false
+	if target != null and alive:
+		var seg := LagComp.body_segment(target.hitbox_state())
+		_ttk_aim_points.append((seg[0] as Vector3).lerp(seg[1], 0.6))
+		var late := roundi(Game.bot_react * Engine.physics_ticks_per_second)  # aims where it was `late` ticks ago
+		while _ttk_aim_points.size() > late + 1:
+			_ttk_aim_points.pop_front()
+		var aim: Vector3 = _ttk_aim_points[0]
+		if late > 0 and _ttk_aim_points.size() > 1:  # leads it as it was moving then: misses only its changes
+			aim += (_ttk_aim_points[1] - _ttk_aim_points[0]) * late
+		var dir := (aim - (global_position + Vector3.UP * STAND_EYE)).normalized()
+		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y * Game.bot_recoil
+		look_pitch = clampf(asin(dir.y) - weapons.recoil.x * Game.bot_recoil, -MAX_PITCH, MAX_PITCH)
+		var frame := Engine.get_physics_frames()
+		if target.alive:
+			if _ttk_seen < 0:
+				_ttk_seen = frame
+			if _ttk_start < 0 and shots_total > _ttk_shots:
+				_ttk_start = frame - 1  # the shot went out last tick
+			cmd.aim = not Game.bot_hip
+			cmd.fire = (Game.bot_hip or weapons.ads > 0.95) and weapons.mags[weapons.index] > 0 and _bot_trigger()
+			cmd.reload = weapons.mags[weapons.index] == 0  # the magazine ran out before the kill: part of its time
+			if Game.bot_strafe:
+				cmd.move = Vector2(1.0 if int(frame / Engine.physics_ticks_per_second) % 2 == 0 else -1.0, 0.0)
+		else:
+			if _ttk_start >= 0:
+				var rate := float(Engine.physics_ticks_per_second)
+				Game.count("ttk_kills")
+				Game.count("ttk_ms", roundi((frame - 1 - _ttk_start) * 1000.0 / rate))
+				Game.count("ttk_full_ms", roundi((frame - 1 - _ttk_seen) * 1000.0 / rate))
+				Game.count("ttk_shots", shots_total - _ttk_shots)
+				_ttk_start = -1
+			_ttk_seen = -1
+			_ttk_shots = shots_total
+			weapons.reserves[weapons.index] = weapons.current().reserve_max  # the test runs out of nothing
+			cmd.reload = weapons.mags[weapons.index] < weapons.current().mag_size
+	cmd.yaw = look_yaw
+	cmd.pitch = look_pitch
 	return cmd
 
 
