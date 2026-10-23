@@ -136,7 +136,7 @@ func _refresh() -> void:
 		var options := PartDB.options(slot, parts[0])
 		picker.clear()
 		for part in options:
-			picker.add_item("%s  (%d)" % [part.display_name, part.cost])
+			picker.add_item("%s  (%d)" % [part.display_name, PartDB.price(part)])
 		if options.is_empty():
 			picker.add_item("—")  # this weapon has no modules for the slot
 		picker.disabled = options.size() < 2
@@ -152,6 +152,14 @@ func _refresh() -> void:
 
 
 ## The weapon's numbers with this build: its modules and the organs that touch it.
+## "450", or "450→1400 за 1.5 с" for a ramping rate.
+func _fire_rate_text(def: WeaponDef) -> String:
+	var text := "%.0f" % (60.0 / def.fire_interval)
+	if def.fire_ramp_time > 0.0 and def.fire_interval_ramped > 0.0:
+		text += "→%.0f за %.1f с" % [60.0 / def.fire_interval_ramped, def.fire_ramp_time]
+	return text
+
+
 func _weapon_stats(parts: Array) -> String:
 	var def := WeaponDB.make_def(WeaponDB.index_of(parts[0]), PartDB.weapon_modules(parts))
 	var mods := PartDB.mods(parts)
@@ -161,7 +169,7 @@ func _weapon_stats(parts: Array) -> String:
 	var lines: PackedStringArray = [
 		def.info,
 		"Урон %.0f%s" % [def.damage, (", " + ", ".join(falloff)) if not falloff.is_empty() else ""],
-		"Темп %.0f выстр/мин · магазин %d · запас %d" % [60.0 / def.fire_interval, def.mag_size, def.reserve_start],
+		"Темп %s выстр/мин · магазин %d · запас %d" % [_fire_rate_text(def), def.mag_size, def.reserve_start],
 		"Перезарядка %.2f с · прицеливание %.2f с · зум ×%.1f" % [def.reload_time * mods["reload_mult"],
 				def.ads_time * mods["ads_time_mult"], 1.0 / def.ads_fov_mult],
 		"Скорость ×%.2f, в прицеле ×%.2f · смена %.2f с" % [def.move_speed_mult,

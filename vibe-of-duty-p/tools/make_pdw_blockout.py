@@ -61,6 +61,11 @@ def node(name, parent=".", pos=(0.0, 0.0, 0.0)):
     parts.append((name, parent, "node", None, pos, 0.0, None))
 
 
+def label(name, text, pos, height, color, parent="."):
+    """Text on the left side (+x), read with the barrel to the left; `height` - the font's line height, m."""
+    parts.append((name, parent, "label", (text, height, color), pos, 0.0, None))
+
+
 def both(x0, x1):
     """(side, x0, x1) on the left (+x) and mirrored on the right."""
     return (("L", x0, x1), ("R", -x1, -x0))
@@ -76,6 +81,8 @@ for i in range(9):
 # (WeaponView adds the handle). Both: the trigger housing's plate and its pins, the front sling pin.
 box("Markings", 0.0218, 0.0228, 0.012, 0.042, 0.118, 0.152, "steel_mid")
 box("Selector", 0.022, 0.027, 0.02, 0.034, -0.1, -0.07, "steel_light")
+# The owner's inscription along the left side panel, between the rail and the trigger housing's plate (2026-10-23).
+label("Inscription", "IDW DA NYAAAAA!", (0.0232, 0.037, 0.03), 0.022, (0.9, 0.9, 0.86))  # the whole panel, bold
 box("HandleSlot", -0.0228, -0.0218, 0.022, 0.038, 0.04, 0.105, "steel_dark")
 for side, x0, x1 in both(0.0215, 0.0228):
     box("HousingPlate" + side, x0, x1, -0.019, 0.016, -0.06, 0.045, "steel_mid")
@@ -165,6 +172,15 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     xform = "Transform3D(1, 0, 0, 0, %s, %s, 0, %s, %s, %s, %s, %s)" % (f(cr), f(-sr), f(sr), f(cr), f(c[0]), f(c[1]), f(c[2]))
     if kind == "node":
         nodes.append('\n[node name="%s" type="Node3D" parent="%s"]\ntransform = %s\n' % (name, parent, xform))
+        continue
+    if kind == "label":
+        text, height, color = params
+        # Faces +x (local +Z), the text runs to -Z (local +X): the barrel on the reader's left.
+        nodes.append('\n[node name="%s" type="Label3D" parent="%s"]\ntransform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, %s, %s, %s)\n'
+                     'pixel_size = %s\ndouble_sided = false\nshaded = true\nmodulate = Color(%s, %s, %s, 1)\nfont_size = 32\n'
+                     'outline_size = 6\noutline_modulate = Color(%s, %s, %s, 1)\ntext = "%s"\n'
+                     % (name, parent, f(c[0]), f(c[1]), f(c[2]), f(height / 32.0), f(color[0]), f(color[1]), f(color[2]),
+                        f(color[0]), f(color[1]), f(color[2]), text))
         continue
     if kind == "ext_mesh":
         nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = ExtResource("%s")\n'

@@ -29,6 +29,8 @@ var damage := 25.0
 var pellets := 1
 var max_range := 150.0
 var fire_interval := 0.1
+var fire_interval_ramped := 0.0  # s between shots after fire_ramp_time of fire in a burst (0: no ramp)
+var fire_ramp_time := 0.0
 var automatic := true
 var mag_size := 30
 var reserve_start := 120
@@ -72,8 +74,13 @@ func damage_at(distance: float) -> float:
 	return damage * mult
 
 
-func fire_ticks() -> int:
-	return maxi(1, roundi(fire_interval * 60.0))
+## Ticks between shots, fractional: WeaponSim carries the remainder over, so any rate is exact on average. `held` - s
+## of fire in this burst: a ramping rate (fire_ramp_time > 0) climbs from fire_interval to fire_interval_ramped.
+func fire_ticks(held := 0.0) -> float:
+	var rate := 1.0 / fire_interval
+	if fire_ramp_time > 0.0 and fire_interval_ramped > 0.0:
+		rate = lerpf(rate, 1.0 / fire_interval_ramped, clampf(held / fire_ramp_time, 0.0, 1.0))
+	return maxf(60.0 / rate, 1.0)
 
 
 func reload_ticks() -> int:

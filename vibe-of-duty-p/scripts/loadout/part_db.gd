@@ -13,6 +13,9 @@ const SLOT_NAMES := {"weapon": "Оружие", "caliber": "Калибр", "mag":
 		"barrel": "Ствол", "muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
 		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги"}
 const BUDGET := 10
+## Owner, 2026-10-23: everything costs 0 for now (balance testing). The prices stay in the data (PartDef.cost,
+## weapons.cfg): false brings them back.
+const FREE := true
 ## Every number a part can change, at "no change". "_mult" multiply, the rest add up.
 const DEFAULT_MODS := {
 	"health_add": 0.0,          # max health (on top of kid mode's)
@@ -77,8 +80,13 @@ static func cost(parts: Array) -> int:
 	for id in parts:
 		var part := get_part(str(id))
 		if part != null:
-			total += part.cost
+			total += price(part)
 	return total
+
+
+## What a part costs in a build now: its price, or 0 while FREE.
+static func price(part: PartDef) -> int:
+	return 0 if FREE else part.cost
 
 
 ## A valid build from anything: wrong or missing parts become native, so do modules of another weapon or whose

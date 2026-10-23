@@ -17,7 +17,8 @@ const MELEE_NAME := "копыто"   # kill feed
 var index := 0
 var mags := PackedInt32Array()
 var reserves := PackedInt32Array()
-var cooldown := 0       # ticks until the next shot is allowed
+var cooldown := 0.0     # ticks until the next shot is allowed (fractional: a shot adds its interval, the rest carries)
+var burst := 0          # ticks the trigger has held a weapon that can fire (WeaponDef.fire_ticks: a ramping rate)
 var reload_ticks := 0   # ticks left in the current reload (0 = not reloading)
 var switch_ticks := 0   # ticks left in the current equip animation
 var shots := 0          # shots fired so far (seeds spread)
@@ -52,7 +53,8 @@ func reset() -> void:
 	for i in WeaponDB.count():
 		mags.append(def_at(i).mag_size)
 		reserves.append(def_at(i).reserve_start)
-	cooldown = 0
+	cooldown = 0.0
+	burst = 0
 	reload_ticks = 0
 	switch_ticks = 0
 	shots = 0
@@ -131,7 +133,8 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
 	var def := current()
 
-	cooldown = maxi(cooldown - 1, 0)
+	if cooldown > 0.0:
+		cooldown -= 1.0
 	if switch_ticks > 0:
 		switch_ticks -= 1
 	if reload_ticks > 0:
@@ -159,7 +162,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		def = current()
 		switch_ticks = def.equip_ticks()
 		reload_ticks = 0
-		cooldown = maxi(cooldown, def.equip_ticks())
+		cooldown = maxf(cooldown, float(def.equip_ticks()))
 		ads = 0.0
 		events.append({"type": "equip"})
 
@@ -174,12 +177,13 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 
 	# Fire.
 	var fired := false
-	if cmd.fire and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and cooldown == 0 and (def.automatic or not fire_prev):
+	burst = burst + 1 if wants_fire(cmd) else 0
+	if cmd.fire and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and cooldown <= 0.0 and (def.automatic or not fire_prev):
 		if mags[index] > 0:
 			fired = true
 			mags[index] -= 1
 			shots += 1
-			cooldown = def.fire_ticks()
+			cooldown += def.fire_ticks(burst / 60.0)
 			var angle := spread_angle(ctx["speed"], ctx["crouched"], ctx["airborne"])
 			var rng := RandomNumberGenerator.new()
 			var dirs: Array[Vector3] = []
@@ -198,7 +202,9 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 				events.append({"type": "reload_start"})
 	fire_prev = cmd.fire
 
-	if not fired and cooldown == 0:
+	if not fired:
+		cooldown = maxf(cooldown, 0.0)  # the carried remainder is for a burst, not a credit after a pause
+	if not fired and cooldown == 0.0:
 		recoil = recoil.move_toward(Vector2.ZERO, def.recoil_recover * dt)
 	return events
 
@@ -218,7 +224,7 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
-			melee_ticks]
+			melee_ticks, burst]
 
 
 func from_array(a: Array) -> void:
@@ -233,3 +239,4 @@ func from_array(a: Array) -> void:
 	recoil = a[8]
 	fire_prev = a[9]
 	melee_ticks = a[10]
+	burst = a[11]

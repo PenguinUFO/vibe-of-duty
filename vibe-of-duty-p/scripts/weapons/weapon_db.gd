@@ -24,8 +24,9 @@ const MODULE_GEOMETRY := {
 	"ak.muzzle.brake": {"model_variants": {"Muzzle": "Brake"}, "muzzle": Vector3(0.0, 0.045, 0.6)},
 	"ak.muzzle.pbs": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
 			"sound_shot": "shot_suppressed"},
-	"pdw.muzzle.suppressor": {"model_variants": {"Muzzle": "Suppressor"}, "muzzle": Vector3(0.0, 0.02, 0.385),
-			"sound_shot": "shot_suppressed"},
+	# The PH IDW's base wears the suppressor (owner, 2026-10-23); this module takes it off.
+	"pdw.muzzle.thread": {"model_variants": {"Muzzle": "Thread"}, "muzzle": Vector3(0.0, 0.02, 0.236),
+			"sound_shot": "shot"},
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3},  # the cheek on the board
 	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.16),
@@ -211,6 +212,9 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.pellets = int(v.get("pellets", def.pellets))
 	if v.has("fire_rate"):
 		def.fire_interval = 60.0 / maxf(float(v["fire_rate"]), 1.0)
+	if v.has("fire_rate_max"):
+		def.fire_interval_ramped = 60.0 / maxf(float(v["fire_rate_max"]), 1.0)
+	def.fire_ramp_time = float(v.get("fire_ramp", def.fire_ramp_time))
 	def.automatic = bool(v.get("automatic", def.automatic))
 	def.mag_size = maxi(roundi(float(v.get("mag_size", def.mag_size))), 1)
 	def.reserve_start = roundi(float(v.get("reserve_start", def.reserve_start)))
@@ -269,10 +273,10 @@ static func _build_geometry() -> void:
 
 	var pdw := WeaponDef.new()
 	pdw.id = "pdw"
-	pdw.display_name = "PDW"
+	pdw.display_name = "PH IDW"
 	pdw.scene_path = "res://prefabs/weapons/pdw_blockout.tscn"  # tools/make_pdw_blockout.py
-	pdw.model_variants = {"Stock": "Extended", "Mags": "PDW_Mag_32", "Muzzle": "Thread"}
-	pdw.muzzle = Vector3(0.0, 0.02, 0.236)
+	pdw.model_variants = {"Stock": "Extended", "Mags": "PDW_Mag_32", "Muzzle": "Suppressor"}  # .45 with the can
+	pdw.muzzle = Vector3(0.0, 0.02, 0.385)
 	pdw.rear_sight = Vector3(0.0, 0.086, -0.115)  # top of the rear ears (the post's tip flush with them)
 	pdw.front_sight = Vector3(0.0, 0.086, 0.115)   # tip of the front post
 	pdw.eye_relief = 0.2  # over the stock, in front of the butt (behind it the U butt framed the whole view)
@@ -281,7 +285,7 @@ static func _build_geometry() -> void:
 	pdw.ejection_port = Vector3(-0.023, 0.04, 0.03)
 	pdw.charging_handle = Vector3(-0.026, 0.03, 0.09)  # in the slot forward on the right (the photo shows the slot)
 	pdw.bolt_travel = 0.045
-	pdw.sound_shot = "shot"
+	pdw.sound_shot = "shot_suppressed"
 	pdw.hip_offset = Vector3(0.12, -0.155, -0.42)  # short: further out than the AK, so its muzzle is where the AK's is
 	_defs.append(pdw)
 

@@ -7,6 +7,7 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
 	"ak_brake": [0, ["ak.muzzle.brake"]],
 	"ak_pbs": [0, ["ak.muzzle.pbs"]],
 	"pdw": [1, []],
+	"pdw_r": [1, []],
 	"pdw_folded": [1, ["pdw.stock.folded"]],
 	"pdw_mods": [1, ["pdw.mag.20", "pdw.stock.folded", "pdw.muzzle.suppressor"]],
 	"pdw_compm": [1, ["pdw.sight.compm"]],
