@@ -105,8 +105,9 @@ func _apply_stats() -> void:
 
 
 ## Server: the build's share of damage taken (all of it, and head hits).
-func damage_taken_mult(head: bool) -> float:
-	return mods["damage_taken_mult"] * (mods["head_taken_mult"] if head else 1.0)
+func damage_taken_mult(head: bool, armor_piercing := false) -> float:
+	var mult: float = mods["damage_taken_mult"] * (mods["head_taken_mult"] if head else 1.0)
+	return maxf(mult, 1.0) if armor_piercing else mult  # a piercing bullet: the reductions do not hold
 
 
 ## What the server accepts from a player: no less health, no slower regeneration and no more damage than normal.

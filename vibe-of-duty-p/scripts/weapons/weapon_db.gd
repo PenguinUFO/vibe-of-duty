@@ -7,7 +7,7 @@ extends RefCounted
 
 const CONFIG_PATH := "res://assets/data/weapons.cfg"
 const CONFIG_OVERRIDE := "weapons.cfg"  # next to the exported .exe
-const MODULE_SLOTS: Array[String] = ["caliber", "mag", "stock", "barrel", "muzzle", "sight", "ammo"]
+const MODULE_SLOTS: Array[String] = ["caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
 ## Modules' geometry (the config holds only their numbers), WeaponDef properties set on top of the base weapon's: an
 ## optic's model (SightModels) and the aim line through it, prefab space like _build_geometry's iron sights; a model
 ## variant (model_variants, merged into the base's); a muzzle that moved. A key ending in "_add" adds to the property
@@ -33,6 +33,16 @@ const MODULE_GEOMETRY := {
 	"luger.barrel.200": {"model_variants": {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain"},
 			"muzzle": Vector3(0.0, 0.03, 0.21), "rear_sight": Vector3(0.0, 0.05, 0.0485),
 			"front_sight": Vector3(0.0, 0.05, 0.202), "eye_relief_add": 0.136},  # the notch moved 0.136 m forward
+	"mp7.mag.30": {"model_variants": {"Mags": "MP7_Mag_30"}},
+	"mp7.mag.20": {"model_variants": {"Mags": "MP7_Mag_20"}},
+	"mp7.stock.extended": {"model_variants": {"Stock": "Extended"}, "eye_relief_add": 0.1},  # the gun 0.223 m further out
+	"mp7.grip.folded": {"model_variants": {"Foregrip": "Folded"}, "left_hand": Vector3(0.0, -0.02, 0.16)},  # on the folded grip
+	"mp7.muzzle.suppressor": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
+			"sound_shot": "shot_suppressed"},
+	# The PDW's CompM on the MP7's rail (0.0031 higher), the flip-up sights folded under it.
+	"mp7.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0031, 0.0),
+			"model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.1011, -0.06),
+			"front_sight": Vector3(0.0, 0.1011, 0.06), "eye_relief": 0.202},  # the eye where it is with the irons
 	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.447)},
 	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.637)},
 	"acr.stock.folded": {"model_variants": {"Stock": "Folded"}},
@@ -43,7 +53,7 @@ const MODULE_GEOMETRY := {
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
 		"ejection_port", "charging_handle"]
-const MODULE_SLOT_NAMES := {"caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "barrel": "Ствол",
+const MODULE_SLOT_NAMES := {"caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка", "barrel": "Ствол",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
 static var _defs: Array[WeaponDef] = []
@@ -225,6 +235,7 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.loudness = float(v.get("loudness", def.loudness))
 	def.muzzle_flash = bool(v.get("muzzle_flash", def.muzzle_flash))
 	def.tracer = bool(v.get("tracer", def.tracer))
+	def.armor_piercing = bool(v.get("armor_piercing", def.armor_piercing))
 
 
 static func _build() -> void:
@@ -311,6 +322,26 @@ static func _build_geometry() -> void:
 	acr.sound_shot = "shot"
 	acr.hip_offset = Vector3(0.15, -0.19, -0.36)
 	_defs.append(acr)
+
+	var mp7 := WeaponDef.new()
+	mp7.id = "mp7"
+	mp7.display_name = "MP7"
+	mp7.scene_path = "res://prefabs/weapons/mp7_blockout.tscn"  # tools/make_mp7_blockout.py
+	mp7.model_variants = {"Stock": "Collapsed", "Foregrip": "Unfolded", "Muzzle": "Hider", "Sights": "Up",
+			"Mags": "MP7_Mag_40"}
+	mp7.muzzle = Vector3(0.0, 0.0217, 0.2106)
+	mp7.rear_sight = Vector3(0.0, 0.104, -0.132)  # top of the rear ears (the post's tip flush with them)
+	mp7.front_sight = Vector3(0.0, 0.104, 0.108)  # tip of the front post
+	mp7.eye_relief = 0.13  # the stock in: the cheek right behind the receiver
+	mp7.right_hand = Vector3(0.0, -0.045, -0.047)  # the middle of the grip
+	mp7.left_hand = Vector3(0.0, -0.05, 0.124)     # on the foregrip
+	mp7.ejection_port = Vector3(-0.022, 0.04, 0.015)
+	mp7.charging_handle = Vector3(0.0, 0.058, -0.18)  # at the rear under the rail, as an AR's
+	mp7.handle_reciprocates = false
+	mp7.bolt_travel = 0.04
+	mp7.sound_shot = "shot"
+	mp7.hip_offset = Vector3(0.12, -0.155, -0.42)
+	_defs.append(mp7)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:

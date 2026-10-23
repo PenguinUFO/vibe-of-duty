@@ -366,8 +366,11 @@ func _pick_spawn(exclude_id: int) -> Transform3D:
 func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
 		return
+	var piercing := weapon >= 0 and attacker.weapons.def_at(weapon).armor_piercing  # a punch (MELEE) is not a bullet
+	if piercing and victim.damage_taken_mult(head) < 1.0:
+		Game.count("piercing_hits")  # tests: the protection was gone through
 	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
-			* victim.damage_taken_mult(head))
+			* victim.damage_taken_mult(head, piercing))
 	if attacker.control == Player.Mode.LOCAL:
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:

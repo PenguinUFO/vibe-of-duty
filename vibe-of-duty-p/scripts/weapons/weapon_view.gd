@@ -93,6 +93,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	var optic := SightModels.build(def.sight)
 	_dot = null
 	if optic:
+		optic.position = def.sight_offset
 		_model.add_child(optic)
 		_dot = optic.get_node_or_null("Dot")
 		if _dot and not is_viewmodel:

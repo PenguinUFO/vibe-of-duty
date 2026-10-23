@@ -8,7 +8,7 @@ extends RefCounted
 const SHADER := preload("res://assets/shaders/weapon_skin.gdshader")
 const SIZE := 32                # px; tiles seamlessly
 const TILES_PER_METRE := 8.0    # 32 px over 12.5 cm: a texel is 4 mm - chunky up close, as the train's walls
-const POLYMER_NAMES: Array[String] = ["fde", "grip", "rubber"]
+const POLYMER_NAMES: Array[String] = ["fde", "grip", "rubber", "polymer"]
 ## kind -> octaves [lattice cells along u (the barrel), across (v), weight], contrast.
 const KINDS := {
 	"metal": {"octaves": [[2, 2, 0.35], [8, 8, 0.25], [SIZE, SIZE, 0.4]], "contrast": 0.55},

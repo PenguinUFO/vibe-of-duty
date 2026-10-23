@@ -16,6 +16,7 @@ var rear_sight := Vector3(0.0, 0.17, 0.0)   # top of the rear sight in prefab sp
 var front_sight := Vector3(0.0, 0.17, 0.5)  # top of the front sight / barrel end in prefab space
 var eye_relief := 0.15                       # distance from the camera to the rear sight while aiming (m)
 var sight := ""                 # optic on the gun (SightModels; "": iron sights), set by its sight module
+var sight_offset := Vector3.ZERO  # the optic's model moved by this (life size: a rail higher than the PDW's)
 var scope := false              # a magnified scope: aimed, the view goes through ScopeOverlay, not the model
 var right_hand := Vector3(0.0, -0.055, -0.045)  # prefab space: middle of the right palm on the pistol grip
 var left_hand := Vector3(0.0, 0.0, 0.35)        # prefab space: middle of the left palm under the handguard
@@ -55,6 +56,7 @@ var penetration_damage := 0.5  # damage x this after going through
 var loudness := 0.0            # dB on the shot sound
 var muzzle_flash := true
 var tracer := true             # others see the bullet's trail
+var armor_piercing := false    # the body parts' protection does not hold it (PlayerHealth.damage_taken_mult)
 
 var sound_shot := "shot"
 var hip_offset := Vector3(0.17, -0.19, -0.32)  # viewmodel position relative to the camera

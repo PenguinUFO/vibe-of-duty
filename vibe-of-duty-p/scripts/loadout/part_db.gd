@@ -5,11 +5,11 @@ extends RefCounted
 ## SLOTS order; anything invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into
 ## the native parts (sanitize), so the server never applies a build it did not check.
 
-const WEAPON_SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "barrel", "muzzle", "sight", "ammo"]
+const WEAPON_SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
-const SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "barrel", "muzzle", "sight", "ammo", "hands",
+const SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo", "hands",
 		"head", "chest", "belly", "legs"]
-const SLOT_NAMES := {"weapon": "Оружие", "caliber": "Калибр", "mag": "Магазин", "stock": "Приклад",
+const SLOT_NAMES := {"weapon": "Оружие", "caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"barrel": "Ствол", "muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
 		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги"}
 const BUDGET := 10

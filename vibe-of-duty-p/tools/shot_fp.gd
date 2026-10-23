@@ -15,6 +15,10 @@ const CASES := {  # [weapon, ads, punch progress, modules]
 	"acr_hip": [3, 0.0, -1.0, []], "acr_ads": [3, 1.0, -1.0, []],
 	"acr_mods": [3, 0.0, -1.0, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
 	"acr_mods_ads": [3, 1.0, -1.0, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
+	"mp7_hip": [4, 0.0, -1.0, []], "mp7_ads": [4, 1.0, -1.0, []],
+	"mp7_mods": [4, 0.0, -1.0, ["mp7.stock.extended", "mp7.grip.folded", "mp7.muzzle.suppressor", "mp7.sight.compm"]],
+	"mp7_mods_ads": [4, 1.0, -1.0, ["mp7.stock.extended", "mp7.grip.folded", "mp7.muzzle.suppressor", "mp7.sight.compm"]],
+	"mp7_ext_ads": [4, 1.0, -1.0, ["mp7.stock.extended"]],
 }
 
 

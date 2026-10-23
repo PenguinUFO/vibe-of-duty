@@ -15,6 +15,8 @@ extends SceneTree
 ## (one side's plate; folded, the stock turns round and the butt is in front). Luger - after the photos of a WE P08 6": the
 ## trigger guard's small round loop running into the raked grip frame, the walnut panels. ACR - after the owner's photos: the
 ## upper and the tall lower split at a slant, the long deep handguard (short with 10.5"), the MOE grip, the solid stock.
+## MP7 - after the owner's photos: the one-block receiver with its sloping front, the L guard, the upright grip, the butt
+## plate.
 
 const DIR := "res://prefabs/weapons/"
 ## weapon -> {profiles: name -> {points (z, y) in order round it, width [z, hw] along z (linear between), chamfer},
@@ -108,6 +110,30 @@ const PARTS := {
 					Vector2(0.074, 0.082), Vector2(0.091, 0.082), Vector2(0.091, -0.055), Vector2(0.074, -0.058),
 					Vector2(0.063, -0.05), Vector2(-0.046, 0.02), Vector2(-0.104, 0.02)],
 					"width": [Vector2(0.0, 0.02)], "chamfer": 0.005},
+		},
+		"sections": {},
+	},
+	"mp7": {
+		"profiles": {
+			# After the owner's photos of a Tokyo Marui MP7A1 (Docs/LOADOUT.md, "MP7"; 0.658 mm a pixel of the left
+			# side): the receiver one block under the rail, its front sloping down to the chin under the barrel.
+			"receiver": {"points": [Vector2(0.1263, 0.0658), Vector2(-0.1665, 0.0658), Vector2(-0.1717, 0.0619),
+					Vector2(-0.1717, 0.0), Vector2(0.1546, 0.0), Vector2(0.1606, -0.0046), Vector2(0.1717, -0.0046),
+					Vector2(0.1731, 0.0013), Vector2(0.1678, 0.0118), Vector2(0.1652, 0.0296), Vector2(0.1586, 0.0461),
+					Vector2(0.152, 0.0592), Vector2(0.1263, 0.0592)], "width": [Vector2(0.0, 0.021)], "chamfer": 0.004},
+			# The trigger guard: an L from the receiver down and back into the grip's front; its opening is a notch.
+			"guard": {"points": [Vector2(0.0375, 0.0), Vector2(0.0375, -0.0145), Vector2(0.0322, -0.0237),
+					Vector2(0.0243, -0.027), Vector2(-0.023, -0.027), Vector2(-0.023, -0.0211), Vector2(0.023, -0.0211),
+					Vector2(0.0283, -0.0178), Vector2(0.0303, -0.0105), Vector2(0.0303, 0.0)],
+					"width": [Vector2(0.0, 0.0045)], "chamfer": 0.001},
+			# The grip, near upright, the magazine inside it; the front strap leaning forward to the bottom.
+			"grip": {"points": [Vector2(-0.0224, 0.0013), Vector2(-0.0197, -0.0263), Vector2(-0.0178, -0.0592),
+					Vector2(-0.0158, -0.0855), Vector2(-0.0151, -0.0974), Vector2(-0.0796, -0.098), Vector2(-0.0783, -0.0724),
+					Vector2(-0.073, -0.0329), Vector2(-0.0691, 0.0013)], "width": [Vector2(0.0, 0.016)], "chamfer": 0.004},
+			# The butt plate: thin at the top, its bottom swept back. The stock's rods carry it back 0.223 m.
+			"butt": {"points": [Vector2(-0.1717, 0.0513), Vector2(-0.1994, 0.0461), Vector2(-0.2046, 0.0395),
+					Vector2(-0.206, -0.0526), Vector2(-0.2007, -0.0592), Vector2(-0.1895, -0.0579), Vector2(-0.1862, -0.0461),
+					Vector2(-0.1744, 0.0066)], "width": [Vector2(0.0, 0.02)], "chamfer": 0.004},
 		},
 		"sections": {},
 	},

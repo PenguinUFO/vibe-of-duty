@@ -19,6 +19,10 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
 	"acr_open": [3, [], 1.0],
 	"acr_105_can": [3, ["acr.barrel.105", "acr.muzzle.suppressor"]],
 	"acr_mods": [3, ["acr.barrel.185", "acr.muzzle.suppressor", "acr.stock.folded"]],
+	"mp7": [4, []],
+	"mp7_r": [4, []],
+	"mp7_mods": [4, ["mp7.stock.extended", "mp7.grip.folded", "mp7.muzzle.suppressor", "mp7.sight.compm", "mp7.mag.20"]],
+	"mp7_mag30": [4, ["mp7.mag.30"]],
 }
 
 

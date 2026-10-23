@@ -166,8 +166,8 @@ func _weapon_stats(parts: Array) -> String:
 				def.ads_time * mods["ads_time_mult"], 1.0 / def.ads_fov_mult],
 		"Отдача %.2f° · разброс %.1f° / %.2f°" % [rad_to_deg(def.recoil_pitch),
 				rad_to_deg(def.spread_hip) * mods["spread_hip_mult"], rad_to_deg(def.spread_ads) * mods["spread_ads_mult"]],
-		"Пробитие %.2f м (урон ×%.1f)%s" % [def.penetration, def.penetration_damage,
-				"" if def.muzzle_flash else " · без вспышки"],
+		"Пробитие %.2f м (урон ×%.1f)%s%s" % [def.penetration, def.penetration_damage,
+				"" if def.muzzle_flash else " · без вспышки", " · бронебойный" if def.armor_piercing else ""],
 	]
 	for i in range(1, PartDB.WEAPON_SLOTS.size()):
 		var part := PartDB.get_part(parts[i])
