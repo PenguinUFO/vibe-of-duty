@@ -1,0 +1,262 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://cpr1l748quiwk" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+[ext_resource type="Shader" uid="uid://kb4cbwsy0nk3" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
+[ext_resource type="Script" path="res://scripts/game/sky_scenery.gd" id="4_scenery"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/plane_shell.tscn" id="5_shell"]
+[ext_resource type="Script" uid="uid://ctanygjum4bus" path="res://scripts/game/train_props.gd" id="6_props"]
+[ext_resource type="Script" path="res://scripts/game/level_mood.gd" id="7_mood"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_sky")
+shader_parameter/zenith_color = Color(0.22, 0.38, 0.6, 1)
+shader_parameter/horizon_color = Color(0.72, 0.77, 0.83, 1)
+shader_parameter/ground_color = Color(0.36, 0.41, 0.5, 1)
+shader_parameter/horizon_curve = 0.3
+shader_parameter/sun_size = 1.2
+shader_parameter/sun_glow = 0.5
+shader_parameter/sun_glow_size = 10.0
+shader_parameter/cloud_coverage = 0.3
+shader_parameter/cloud_softness = 0.12
+shader_parameter/cloud_scale = 1.6
+shader_parameter/cloud_detail = 0.8
+shader_parameter/cloud_light = Color(1, 0.99, 0.97, 1)
+shader_parameter/cloud_shadow = Color(0.6, 0.66, 0.74, 1)
+shader_parameter/cloud_shading = 9.0
+shader_parameter/cloud_thickness_dark = 0.2
+shader_parameter/cloud_horizon_fade = 0.18
+shader_parameter/cloud_offset = Vector2(2.1, -4.3)
+shader_parameter/sea_coverage = 0.82
+shader_parameter/sea_scale = 0.5
+shader_parameter/sea_light = Color(0.95, 0.95, 0.93, 1)
+shader_parameter/sea_shadow = Color(0.56, 0.61, 0.69, 1)
+shader_parameter/sea_horizon_fade = 0.08
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.66, 0.72, 1)
+ambient_light_energy = 0.35
+reflected_light_source = 1
+tonemap_mode = 4
+tonemap_exposure = 1.1
+tonemap_white = 8.0
+fog_enabled = true
+fog_light_color = Color(0.75, 0.8, 0.86, 1)
+fog_density = 0.0015
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 1.0
+
+[node name="Plane" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.5299, -0.5451, 0.6496, 0, 0.766, 0.6428, -0.848, -0.3406, 0.4059, 0, 30, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 2.4
+shadow_enabled = true
+shadow_bias = 0.05
+shadow_blur = 1.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 60.0
+
+[node name="Shell" parent="." instance=ExtResource("5_shell")]
+
+[node name="Props" type="Node3D" parent="."]
+script = ExtResource("6_props")
+deck_splits = PackedFloat32Array(4.55)
+
+[node name="TruckChassis" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.5, -17.95)
+size = Vector3(2.4, 1, 7.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="TruckCab" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 1.7, -20.6)
+size = Vector3(2.2, 1.4, 2.2)
+color = Color(0.4, 0.41, 0.41, 1)
+
+[node name="TruckBed" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 1.75, -16.75)
+size = Vector3(2.4, 1.5, 5.1)
+color = Color(0.48, 0.44, 0.37, 1)
+
+[node name="Wheel" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.975, 0.475, -20.45)
+size = Vector3(0.15, 0.95, 0.9)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="Wheel1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.425, 0.475, -20.45)
+size = Vector3(0.15, 0.95, 0.9)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="Wheel2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.975, 0.475, -16.35)
+size = Vector3(0.15, 0.95, 0.9)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="Wheel3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.425, 0.475, -16.35)
+size = Vector3(0.15, 0.95, 0.9)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="Pallet" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9, 0.6, -7.5)
+size = Vector3(2, 1.2, 2)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Container" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 1.2, 0.5)
+size = Vector3(2.4, 2.4, 6)
+color = Color(0.48, 0.31, 0.24, 1)
+
+[node name="CrateStack" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 0.9, 5.5)
+size = Vector3(1.8, 1.8, 2)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Crate" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.5, 6.5)
+size = Vector3(1, 1, 1)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Bench" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.025, 0.225, 9)
+size = Vector3(0.35, 0.45, 3)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="Pallet1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.65, 12.5)
+size = Vector3(1.8, 1.3, 2)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Crate1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1.7, 12.4)
+size = Vector3(1.2, 0.8, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Crate2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, 14.5)
+size = Vector3(1.2, 0.9, 1)
+color = Color(0.56, 0.47, 0.36, 1)
+
+[node name="Console" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.15, -29.6)
+size = Vector3(6, 0.9, 0.8)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="PilotSeat" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 5.3, -28.05)
+size = Vector3(0.8, 1.2, 0.7)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="PilotSeat1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 5.3, -28.05)
+size = Vector3(0.8, 1.2, 0.7)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="EngineerDesk" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 5.1, -26.25)
+size = Vector3(1, 0.8, 1.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="Seat" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -22.95)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -21.65)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -22.95)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -21.65)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -20.35)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -19.05)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -16.45)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Table" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.1, -15.25)
+size = Vector3(1, 0.8, 1.5)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="Seat7" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -8.75)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Seat8" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -7.45)
+size = Vector3(2, 1, 0.5)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="SpawnCockpit" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0, 4.75, -26.5)
+
+[node name="SpawnCabin" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.5, 4.75, -5.5)
+
+[node name="SpawnHoldFront" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0.6, 0.05, -20.5)
+
+[node name="SpawnUnderStairs" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.5, 0.05, -17.5)
+
+[node name="SpawnContainer" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, -2, 0.05, 5)
+
+[node name="SpawnRamp" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.5, 0.05, 16.5)
+
+[node name="Scenery" type="Node3D" parent="."]
+script = ExtResource("4_scenery")
+speed = 70.0
+sea_depth = 700.0
+puffs = 50
+puff_color = Color(0.9, 0.9, 0.9, 1)
+puff_clear = 30.0
+puff_reach = 400.0
+puff_y = Vector2(-70, 25)
+puff_size = Vector2(10, 35)
+
+[node name="LevelMood" type="Node" parent="."]
+script = ExtResource("7_mood")
+values = {"sun_elevation": 40.0, "sun_energy": 2.4, "sun_color": Color(1, 0.96, 0.9, 1), "ambient_energy": 1.0, "ambient_color": Color(0.6, 0.65, 0.72, 1), "fog_density": 0.0015, "fog_color": Color(0.66, 0.71, 0.78, 1), "fog_sky_affect": 0.0, "saturation": 0.8, "contrast": 1.12, "sky": {"zenith_color": Color(0.2, 0.32, 0.48, 1), "horizon_color": Color(0.66, 0.71, 0.77, 1), "ground_color": Color(0.3, 0.35, 0.42, 1), "cloud_coverage": 0.3, "cloud_light": Color(0.95, 0.95, 0.94, 1), "cloud_shadow": Color(0.55, 0.6, 0.68, 1), "sun_glow": 0.45, "sun_glow_size": 10.0, "horizon_curve": 0.3}}
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="World" type="Node" parent="."]
+script = ExtResource("1_world")
+kill_height = -15.0

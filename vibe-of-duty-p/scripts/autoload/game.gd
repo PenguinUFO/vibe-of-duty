@@ -9,7 +9,7 @@ signal score_changed(peer_id: int)
 const MENU_SCENE := "res://prefabs/ui/main_menu.tscn"
 const MAPS_DIR := "res://prefabs/levels"
 const DEFAULT_MAP := "res://prefabs/levels/train.tscn"
-const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are building blocks, not maps
+const NOT_MAPS: Array[String] = ["block"]  # scenes in MAPS_DIR that are building blocks, not maps (and any *_shell)
 ## Training maps (main menu -> Тренировка), in menu order. Not offered when creating a game; played alone on a
 ## local-only server (Net.host_training).
 const TRAINING_MAPS: Array[String] = ["range", "course", "test_level"]
@@ -30,14 +30,15 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # --join=IP (skip the menu), --training=map (skip the menu, train on that map), --name=Name, --map=file_name (map of a dedicated server, e.g. --map=train),
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
-# --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests).
+# --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests),
+# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats even in a test launch).
 var dedicated := false
 var bot_mode := false
 var net_log := false
 var auto_join := ""
 var auto_training := ""   # --training=map: skip the menu, start that training map (e.g. --training=range)
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
-var test_spawn := Vector3.INF  # set by --bot-vault: everybody spawns here
+var test_spawn := Vector3.INF  # set by --bot-vault / --test-spawn=x,y,z: everybody spawns here
 var test_build: Array = []     # --build=part,part,...: the build bots play (PartDB ids, SLOTS order); native without it
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
@@ -54,11 +55,15 @@ var net_perturb := false  # --perturb: client injects fake prediction errors (re
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var summary_time := 0.0   # --summary=S: seconds after the level starts to print the [SUMMARY] line and quit (NetWorld)
+var force_stats := false  # --stats: the server records MatchStats in a test launch too (bots, --summary)
 ## Test counters for the [SUMMARY] line (Game.count): laps, target_hits, oinks_heard, kill_cams, bags_dropped, bags_taken.
 var stats := {}
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
 var training := false         # playing a training map alone (no match clock or score on the HUD)
+## Test mode "FFA random weapon" (host panel -> Тестирование): every life gets a random weapon and cards instead of the
+## player's build (RandomWeapons). Chosen by the host, sent to clients by Net.
+var random_weapons := false
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
 var intermission_time := INTERMISSION_TIME
@@ -96,6 +101,13 @@ func _ready() -> void:
 			bot_mode = true
 			bot_vault = true
 			test_spawn = Vector3(23.0, 0.05, -0.5)
+		elif arg.begins_with("--test-spawn="):  # everybody spawns here (tests: walk a bot along a map's edges)
+			var xyz := arg.trim_prefix("--test-spawn=").split(",")
+			test_spawn = Vector3(float(xyz[0]), float(xyz[1]), float(xyz[2]))
+		elif arg == "--random-weapons":
+			random_weapons = true
+		elif arg == "--stats":
+			force_stats = true
 		elif arg == "--no-lagcomp":
 			lag_comp_enabled = false
 		elif arg == "--perturb":
@@ -158,7 +170,8 @@ static func list_maps(with_training := false) -> Array[String]:
 	for file in DirAccess.get_files_at(MAPS_DIR):
 		file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
 		var base := file.get_basename()
-		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and (with_training or not (TRAINING_MAPS.has(base) or TEST_MAPS.has(base))):
+		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and not base.ends_with("_shell") and \
+				(with_training or not (TRAINING_MAPS.has(base) or TEST_MAPS.has(base))):
 			maps.append(MAPS_DIR.path_join(file))
 	maps.sort()
 	return maps
@@ -190,7 +203,7 @@ static func is_map(path: String) -> bool:
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
+const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()

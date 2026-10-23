@@ -184,28 +184,34 @@ for name, length, guard, front in BARRELS:
 
 # Magazine: a coyote PMAG, the top in the well, tilted (minus: the bottom goes forward); its window on the right,
 # the ribs round the lower part and the floor plate's lip.
+# The 30 and the 40 (the "big magazine" card), 45 mm longer.
 node("Mags")
-node("ACR_Mag_30", "Mags", (0.0, -0.028, 0.085))
-p = "Mags/ACR_Mag_30"
 TILT = -6.0
-MAG_Y0, MAG_Y1 = -0.123, 0.06
-mid = (MAG_Y0 + MAG_Y1) / 2
+MAG_Y1 = 0.06
 ts, tc = math.sin(math.radians(TILT)), math.cos(math.radians(TILT))
 
 
-def magbox(name, x0, x1, h0, h1, z0, z1, mat):
-    """A box in the tilted body's frame: h along its height from the body's middle, z along its depth."""
-    h, z = (h0 + h1) / 2, (z0 + z1) / 2
-    parts.append((name, p, "box", (x1 - x0, h1 - h0, z1 - z0), ((x0 + x1) / 2, mid + tc * h - ts * z, ts * h + tc * z),
-                  TILT, mat))
+def magazine(name, y0):
+    p = "Mags/" + name
+    node(name, "Mags", (0.0, -0.028, 0.085))
+    mid = (y0 + MAG_Y1) / 2
+
+    def magbox(box_name, x0, x1, h0, h1, z0, z1, mat):
+        """A box in the tilted body's frame: h along its height from the body's middle, z along its depth."""
+        h, z = (h0 + h1) / 2, (z0 + z1) / 2
+        parts.append((box_name, p, "box", (x1 - x0, h1 - h0, z1 - z0),
+                      ((x0 + x1) / 2, mid + tc * h - ts * z, ts * h + tc * z), TILT, mat))
+
+    magbox("Body", -0.0115, 0.0115, y0 - mid, MAG_Y1 - mid, -0.032, 0.032, "mag")
+    magbox("Window", -0.0122, -0.0112, -0.065, 0.005, -0.026, -0.021, "window")
+    for i in range(4):
+        h = y0 - mid + 0.012 + i * 0.011
+        magbox("Rib%d" % i, -0.0125, 0.0125, h, h + 0.004, -0.032, 0.032, "mag")
+    magbox("Floor", -0.014, 0.014, y0 - mid - 0.01, y0 - mid, -0.035, 0.036, "mag")
 
 
-magbox("Body", -0.0115, 0.0115, MAG_Y0 - mid, MAG_Y1 - mid, -0.032, 0.032, "mag")
-magbox("Window", -0.0122, -0.0112, -0.065, 0.005, -0.026, -0.021, "window")
-for i in range(4):
-    h = MAG_Y0 - mid + 0.012 + i * 0.011
-    magbox("Rib%d" % i, -0.0125, 0.0125, h, h + 0.004, -0.032, 0.032, "mag")
-magbox("Floor", -0.014, 0.014, MAG_Y0 - mid - 0.01, MAG_Y0 - mid, -0.035, 0.036, "mag")
+magazine("ACR_Mag_30", -0.123)
+magazine("ACR_Mag_40", -0.168)
 
 # Stock: two parts (owner's photo, 2026-10-23). On the hinge the base: the slotted beam with the length latch, the
 # cheek riser over it. The butt slides on the beam (telescoping): the black pad, the slanted sling slot, the QD socket;

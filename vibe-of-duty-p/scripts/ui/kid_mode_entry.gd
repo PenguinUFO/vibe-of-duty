@@ -2,7 +2,8 @@ class_name KidModeEntry
 extends HBoxContainer
 ## Menu item "Kid mode" with a 4-digit code field beside it (main menu and pause menu). With the right code typed in,
 ## the button emits `open_requested` (the caller opens KidPanel); otherwise it only shakes off. The code is not kept:
-## the field is cleared once the panel opens.
+## the field is cleared once the panel opens. With a `title` it is another locked item behind the same code (the host
+## panel's "Тестирование").
 
 signal open_requested
 
@@ -10,12 +11,14 @@ const CODE := "0451"
 
 var _button: Button
 var _code: LineEdit
+var _title := ""
 
 
-func _init() -> void:
+func _init(title := "") -> void:
+	_title = title
 	add_theme_constant_override("separation", 10)
 	_button = Button.new()
-	_button.theme_type_variation = "BigButton"
+	_button.theme_type_variation = "" if title != "" else "BigButton"  # the menus' big item; a panel's ordinary one
 	_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_button.pressed.connect(_on_pressed)
@@ -35,7 +38,7 @@ func _init() -> void:
 
 ## Shows whether kid mode is on (call after KidPanel closes).
 func refresh() -> void:
-	_button.text = "Детский режим" + (": вкл" if Settings.kid_mode else "")
+	_button.text = _title if _title != "" else "Детский режим" + (": вкл" if Settings.kid_mode else "")
 
 
 func _on_code_changed(text: String) -> void:

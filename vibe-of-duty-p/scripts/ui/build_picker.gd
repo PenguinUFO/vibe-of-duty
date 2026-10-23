@@ -4,7 +4,7 @@ extends CanvasLayer
 ## build of the next life; keys 1-5 or d-pad left / right pick another saved one (Settings.builds). The server gets it
 ## at once (NetWorld.send_build) and applies it at the respawn (on a training map at once). The pause menu picks too
 ## (BuildMenu). Editing builds is the main menu's (BuildPanel).
-## Created by NetWorld; not on a dedicated server.
+## Created by NetWorld; not on a dedicated server. Hidden in the FFA random weapon mode (the server picks the weapon).
 
 var world: NetWorld
 
@@ -57,7 +57,7 @@ static func pick(world: NetWorld, index: int) -> void:
 
 
 func _shown() -> bool:
-	if world == null or Game.is_test_launch() or get_tree().paused:
+	if world == null or Game.is_test_launch() or get_tree().paused or world.random_weapons_on():
 		return false
 	var me: Player = world.players.get(multiplayer.get_unique_id())
 	return me != null and (not me.alive or Game.is_frozen())

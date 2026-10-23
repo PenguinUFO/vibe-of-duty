@@ -23,7 +23,7 @@ MATERIALS = {
     "wood": ((0.45, 0.24, 0.1), 0.0, 0.7),
     "mag": ((0.62, 0.27, 0.1), 0.0, 0.55),
 }
-MESHES = ["mag", "stock", "butt_plate", "grip", "handguard_lower", "handguard_upper", "dust_cover"]
+MESHES = ["mag", "mag_rpk40", "stock", "butt_plate", "grip", "handguard_lower", "handguard_upper", "dust_cover"]
 
 parts = []  # (name, parent, kind, size/params, center, rot_x_deg, material)
 
@@ -111,10 +111,11 @@ mesh("Stock", "stock", "wood")
 mesh("ButtPlate", "butt_plate", "steel")
 box("SlingLoop", 0.019, 0.023, -0.07, -0.05, -0.34, -0.33, "steel", rot_x=-14.0)
 mesh("PistolGrip", "grip", "wood")
-# Curved magazine: one smooth swept mesh (tools/make_ak_mag.gd).
-mag = "AK_Mag_01"
-node(mag, ".", (0.0, 0.0, 0.085))
-mesh("Body", "mag", "mag", parent=mag)
+# Curved magazines (tools/make_ak_mag.gd): the 30 and the RPK's 40 (the "big magazine" card), each a smooth swept mesh.
+node("Mags")
+for mag, key in (("AK_Mag_30", "mag"), ("AK_Mag_40", "mag_rpk40")):
+    node(mag, "Mags", (0.0, 0.0, 0.085))
+    mesh("Body", key, "mag", parent="Mags/" + mag)
 
 f = lambda v: "%g" % round(v, 5)
 res = []

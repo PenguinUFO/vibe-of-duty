@@ -42,6 +42,8 @@ var _log_timer := 0.0
 var _started_at := 0.0  # s (ticks clock) when this level started (--summary)
 var _toughness_sent := Vector3.ZERO  # local player: Settings.toughness() last sent to the server
 var _toughness_timer := 0.0
+var _stats: MatchStats              # server: balance statistics of this run (null: not recorded)
+var _random := RandomWeapons.new()  # server: the next weapon of each player in the FFA random weapon mode
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
@@ -79,10 +81,19 @@ func _ready() -> void:
 	Net.disconnected.connect(_on_disconnected)
 	_toughness_sent = Settings.toughness()
 	if multiplayer.is_server():
+		if Game.force_stats or not (Game.training or Game.bot_mode or Game.summary_time > 0.0):
+			_stats = MatchStats.new()
+			_stats.open()
+			_stats.match_started(players)
 		if not Game.dedicated:
 			_server_add_player(1, _unique_name(Settings.player_name), _toughness_sent, Settings.current_build())
 	else:
 		_client_ready.rpc_id(1, Settings.player_name, _toughness_sent, Settings.current_build())
+
+
+func _exit_tree() -> void:
+	if _stats != null:
+		_stats.close()
 
 
 ## Gives the level's sun the shadow settings of the current graphics quality, and the level the PSX style's mood
@@ -295,6 +306,8 @@ func _unique_name(wanted: String) -> String:
 func _server_add_player(id: int, player_name: String, toughness: Vector3, build: Array) -> void:
 	if Game.net_log:
 		print("[SERVER] player %d joined as %s" % [id, player_name])
+	if random_weapons_on():
+		build = _random.next_build(id)
 	var xform := _pick_spawn(-1)
 	# Tell the newcomer about everyone already here (their current position), then add the newcomer.
 	if id != 1:
@@ -312,7 +325,14 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3, build:
 		ammo_bags.server_send_all(id)
 		_sync_scores.rpc_id(id, Game.scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
+	if _stats != null:
+		_stats.spawned(players[id])
 	_broadcast_scores()
+
+
+## The FFA random weapon mode (Game.random_weapons): lives get RandomWeapons' builds, not the players' own.
+func random_weapons_on() -> bool:
+	return Game.random_weapons and not Game.training
 
 
 func _on_peer_left(id: int) -> void:
@@ -320,6 +340,9 @@ func _on_peer_left(id: int) -> void:
 		return
 	_ready_peers.erase(id)
 	lag_comp.forget(id)
+	_random.forget(id)
+	if _stats != null:
+		_stats.left(id)
 	_despawn_player(id)
 	for peer in _ready_peers:
 		_despawn_player.rpc_id(peer, id)
@@ -369,8 +392,11 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 	var piercing := weapon >= 0 and attacker.weapons.def_at(weapon).armor_piercing  # a punch (MELEE) is not a bullet
 	if piercing and victim.damage_taken_mult(head) < 1.0:
 		Game.count("piercing_hits")  # tests: the protection was gone through
+	var hp_before := victim.health
 	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
 			* victim.damage_taken_mult(head, piercing))
+	if _stats != null:
+		_stats.damaged(attacker, victim, hp_before, head, weapon)
 	if attacker.control == Player.Mode.LOCAL:
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
@@ -391,6 +417,8 @@ func _server_suicide(player: Player) -> void:
 
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool) -> void:
 	Game.add_kill(killer.peer_id, victim.peer_id)
+	if _stats != null:
+		_stats.killed(killer, victim, weapon, head)
 	_broadcast_scores()
 	if killer != victim:
 		ammo_bags.server_drop(victim.global_position)  # not for falling off the map
@@ -415,10 +443,12 @@ func _server_respawn(id: int, force: bool) -> void:
 	player.spawn_protect = SPAWN_PROTECTION_TICKS
 	player.alive = true
 	lag_comp.clear(id)
-	var build := player.wanted_build
+	var build := _random.next_build(id) if random_weapons_on() else player.wanted_build
 	_apply_respawn(id, xform, build)
 	for peer in _ready_peers:
 		_player_respawned.rpc_id(peer, id, xform, build)
+	if _stats != null:
+		_stats.spawned(player)
 
 
 # --- Match flow (server) ----------------------------------------------------------------------------
@@ -438,6 +468,8 @@ func _server_match_clock(delta: float) -> void:
 
 func _server_end_match(reason: String) -> void:
 	Game.end_match()
+	if _stats != null:
+		_stats.match_ended(players, reason)
 	Audio.play("match_end")
 	if Game.net_log:
 		print("[MATCH] ended (%s) winners=%s scores=%s" % [reason, str(Game.winners), str(Game.scores)])
@@ -448,6 +480,8 @@ func _server_end_match(reason: String) -> void:
 func _server_start_match() -> void:
 	Game.reset_match()
 	ammo_bags.server_clear()
+	if _stats != null:
+		_stats.match_started(players)
 	Audio.play("match_start")
 	for id in players.keys():
 		Game.ensure_player(id)
@@ -509,7 +543,9 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: 
 
 
 ## Server: relay a shot to everyone except the shooter, who already showed it (prediction).
-func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, _hits: Array) -> void:
+func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array) -> void:
+	if _stats != null:
+		_stats.shot(shooter, hits)
 	for peer in _ready_peers:
 		if peer != shooter.peer_id:
 			_remote_shot.rpc_id(peer, shooter.peer_id, weapon, origin, ends)

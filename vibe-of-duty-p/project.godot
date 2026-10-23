@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="vibe-of-duty-p"
-config/version="0.1.4"
+config/version="0.1.5"
 run/main_scene="res://prefabs/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -129,6 +129,7 @@ scoreboard={
 3d_render/layer_2="viewmodel"
 3d_render/layer_3="train_lower"
 3d_render/layer_4="train_upper"
+3d_render/layer_5="deck_3"
 3d_physics/layer_1="world"
 3d_physics/layer_2="player"
 3d_physics/layer_3="hitbox"

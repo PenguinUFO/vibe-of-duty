@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_mag_mesh.tres" id="mag"]
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_mag_rpk40_mesh.tres" id="mag_rpk40"]
 [ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_stock_mesh.tres" id="stock"]
 [ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_butt_plate_mesh.tres" id="butt_plate"]
 [ext_resource type="ArrayMesh" path="res://prefabs/weapons/ak_grip_mesh.tres" id="grip"]
@@ -598,10 +599,21 @@ transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
 mesh = ExtResource("grip")
 surface_material_override/0 = SubResource("mat_wood")
 
-[node name="AK_Mag_01" type="Node3D" parent="."]
+[node name="Mags" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+
+[node name="AK_Mag_30" type="Node3D" parent="Mags"]
 transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0.085)
 
-[node name="Body" type="MeshInstance3D" parent="AK_Mag_01"]
+[node name="Body" type="MeshInstance3D" parent="Mags/AK_Mag_30"]
 transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
 mesh = ExtResource("mag")
+surface_material_override/0 = SubResource("mat_mag")
+
+[node name="AK_Mag_40" type="Node3D" parent="Mags"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0.085)
+
+[node name="Body" type="MeshInstance3D" parent="Mags/AK_Mag_40"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+mesh = ExtResource("mag_rpk40")
 surface_material_override/0 = SubResource("mat_mag")

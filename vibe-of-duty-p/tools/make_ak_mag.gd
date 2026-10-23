@@ -1,18 +1,21 @@
 extends SceneTree
-## Generates prefabs/weapons/ak_mag_mesh.tres: the AK's curved magazine as one smooth mesh (used by
-## tools/make_ak_blockout.py under the AK_Mag_01 node). Run from the Godot project folder:
+## Generates the AK's curved magazines as smooth meshes (tools/make_ak_blockout.py puts them under "Mags"): the 30
+## (prefabs/weapons/ak_mag_mesh.tres) and the RPK's 40 (ak_mag_rpk40_mesh.tres, longer and more curved - the "big
+## magazine" card). Run from the Godot project folder:
 ##   godot --headless --path vibe-of-duty-p -s tools/make_ak_mag.gd
 ##
 ## The magazine is a chamfered rectangle (WIDTH across, DEPTH front to back) swept down a curve whose forward tilt
-## grows evenly from ANGLE_TOP to ANGLE_BOTTOM, so it bends forward like the real banana magazine; the sides are
+## grows evenly from ANGLE_TOP to the bottom's angle, so it bends forward like the real banana magazine; the sides are
 ## smoothly shaded along the curve. A slightly larger floor plate closes the bottom. Prefab space as the rifle's:
 ## +Y up, +Z towards the muzzle; the origin is the middle of the magazine's top (where it seats in the receiver).
 
-const OUT := "res://prefabs/weapons/ak_mag_mesh.tres"
-const LENGTH := 0.215          # along the curve
+## path -> [length along the curve, degrees it leans forward at the bottom]
+const MAGAZINES := {
+	"res://prefabs/weapons/ak_mag_mesh.tres": [0.215, 34.0],
+	"res://prefabs/weapons/ak_mag_rpk40_mesh.tres": [0.27, 42.0],
+}
 const SEGMENTS := 12
-const ANGLE_TOP := 5.0         # degrees the magazine leans forward at the top...
-const ANGLE_BOTTOM := 34.0     # ...and at the bottom
+const ANGLE_TOP := 5.0         # degrees the magazine leans forward at the top
 const WIDTH := 0.028
 const DEPTH_TOP := 0.06
 const DEPTH_BOTTOM := 0.068
@@ -22,17 +25,24 @@ const PLATE_GROW := 0.004      # how much it sticks out all round
 
 
 func _initialize() -> void:
+	for path: String in MAGAZINES:
+		var mesh := _magazine(MAGAZINES[path][0], MAGAZINES[path][1])
+		print("wrote %s (%s)" % [path, error_string(ResourceSaver.save(mesh, path))])
+	quit()
+
+
+func _magazine(length: float, angle_bottom: float) -> Mesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rings: Array = []  # [centre, along (down the magazine), forward normal, depth]
 	var p := Vector3.ZERO
-	var step := LENGTH / SEGMENTS
+	var step := length / SEGMENTS
 	for i in SEGMENTS + 1:
 		var t := float(i) / SEGMENTS
-		var angle := deg_to_rad(lerpf(ANGLE_TOP, ANGLE_BOTTOM, t))
+		var angle := deg_to_rad(lerpf(ANGLE_TOP, angle_bottom, t))
 		rings.append([p, Vector3(0.0, -cos(angle), sin(angle)), Vector3(0.0, sin(angle), cos(angle)),
 				lerpf(DEPTH_TOP, DEPTH_BOTTOM, t)])
-		var mid := deg_to_rad(lerpf(ANGLE_TOP, ANGLE_BOTTOM, (i + 0.5) / SEGMENTS))
+		var mid := deg_to_rad(lerpf(ANGLE_TOP, angle_bottom, (i + 0.5) / SEGMENTS))
 		p += Vector3(0.0, -cos(mid), sin(mid)) * step
 	_sweep(st, rings, 0.0, false)
 	# Floor plate: a short, slightly larger block at the bottom, flat-shaded.
@@ -43,10 +53,7 @@ func _initialize() -> void:
 	_cap(st, rings[0], 0.0, true)
 	_cap(st, plate_top, PLATE_GROW, true)
 	_cap(st, plate_bottom, PLATE_GROW, false)
-	var mesh := st.commit()
-	var err := ResourceSaver.save(mesh, OUT)
-	print("wrote %s (%s)" % [OUT, error_string(err)])
-	quit()
+	return st.commit()
 
 
 ## The cross-section (x across, n forward), corners in order round the outline.

@@ -56,6 +56,12 @@ func _try_start_mantle(cmd: PlayerCmd) -> bool:
 	# is not: the body hits its edge on the way up, so it is vaulted whatever its height.
 	if ledge_height < MANTLE_MIN_HEIGHT and not _open_below(space, feet, facing, wall["position"]):
 		return _vault_fail("low ledge (%.1f m): just jump" % ledge_height)
+	# The pull-up rises straight up from where we stand: a ceiling over us ends it. Otherwise the probe from above
+	# finds the roof on top of that ceiling (a cabin, a hold) and the vault goes through it.
+	var column := space.intersect_ray(PhysicsRayQueryParameters3D.create(feet + Vector3.UP * 0.5,
+			Vector3(feet.x, top_y + 0.05, feet.z), Layers.WORLD))
+	if not column.is_empty():
+		return _vault_fail("ceiling overhead")
 
 	# 3. Where we end up: on top of the ledge, a body radius behind its edge, stepping on with a little speed. On a
 	# narrow top (a partition, a carriage side, a cover wall) on the middle of it instead, standing still, so the

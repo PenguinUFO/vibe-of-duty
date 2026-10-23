@@ -6,7 +6,8 @@ extends RefCounted
 ## (MuzzleLights), in Palette.EMBER - so warm light reads as "here", against the cold. Bright lamps get a soft halo
 ## (halo(): a billboard, far cheaper on integrated graphics than the Environment's glow; the PSX dither bands it).
 ## Players keep a readability rim (Mannequin.set_rim): seeing the enemy comes first.
-## Turned off, everything is as the level was made.
+## Turned off, everything is as the level was made. A level may have its own mood (LevelMood: the plane's day, the
+## tower's night) - its overrides of the constants below.
 ##
 ## Applied by NetWorld to its level (at load and whenever the graphics settings change). The level's own values are
 ## kept as metadata on the resources the first time, so switching back and forth always starts from them (the
@@ -55,30 +56,35 @@ const LAMPS_NODE := "MoodLamps"
 
 static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bool) -> void:
 	Mannequin.set_rim(on)
+	var own: Dictionary = {}  # the level's LevelMood overrides
+	var level_mood := level.get_node_or_null("LevelMood") as LevelMood if level != null else null
+	if level_mood != null:
+		own = level_mood.values
 	if env != null:
 		var base: Dictionary = _base(env, ENV_KEYS)
 		for key in ENV_KEYS:
 			env.set(key, base[key])
 		if on:
-			env.ambient_light_energy = base["ambient_light_energy"] * AMBIENT_ENERGY
-			env.ambient_light_color = AMBIENT_COLOR
-			env.ambient_light_sky_contribution = AMBIENT_SKY
-			env.fog_density = FOG_DENSITY
-			env.fog_light_color = FOG_COLOR
+			env.ambient_light_energy = base["ambient_light_energy"] * own.get("ambient_energy", AMBIENT_ENERGY)
+			env.ambient_light_color = own.get("ambient_color", AMBIENT_COLOR)
+			env.ambient_light_sky_contribution = own.get("ambient_sky", AMBIENT_SKY)
+			env.fog_density = own.get("fog_density", FOG_DENSITY)
+			env.fog_light_color = own.get("fog_color", FOG_COLOR)
 			env.fog_sun_scatter = FOG_SUN_SCATTER
-			env.fog_sky_affect = FOG_SKY_AFFECT
-			env.adjustment_saturation = SATURATION
-			env.adjustment_contrast = CONTRAST
+			env.fog_sky_affect = own.get("fog_sky_affect", FOG_SKY_AFFECT)
+			env.adjustment_saturation = own.get("saturation", SATURATION)
+			env.adjustment_contrast = own.get("contrast", CONTRAST)
 		var sky_material := env.sky.sky_material as ShaderMaterial if env.sky else null
 		if sky_material != null:
-			var sky_base: Dictionary = _base_params(sky_material, SKY.keys())
-			for key in SKY:
-				sky_material.set_shader_parameter(key, SKY[key] if on else sky_base[key])
+			var sky: Dictionary = SKY.merged(own.get("sky", {}), true)
+			var sky_base: Dictionary = _base_params(sky_material, sky.keys())
+			for key in sky:
+				sky_material.set_shader_parameter(key, sky[key] if on else sky_base[key])
 	if sun != null:
 		var sun_base: Dictionary = _base(sun, ["light_energy", "light_color", "basis"])
-		sun.light_energy = SUN_ENERGY if on else sun_base["light_energy"]
-		sun.light_color = SUN_COLOR if on else sun_base["light_color"]
-		sun.basis = _low_sun(sun_base["basis"]) if on else sun_base["basis"]
+		sun.light_energy = own.get("sun_energy", SUN_ENERGY) if on else sun_base["light_energy"]
+		sun.light_color = own.get("sun_color", SUN_COLOR) if on else sun_base["light_color"]
+		sun.basis = _low_sun(sun_base["basis"], own.get("sun_elevation", SUN_ELEVATION)) if on else sun_base["basis"]
 	if level != null and DisplayServer.get_name() != "headless":
 		var lamps := level.get_node_or_null(LAMPS_NODE)
 		if lamps != null:
@@ -88,13 +94,13 @@ static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bo
 			_build_lamps_later(level)
 
 
-## The sun turned down to SUN_ELEVATION over the horizon, keeping the direction it shines from.
-static func _low_sun(basis: Basis) -> Basis:
+## The sun turned to `elevation` degrees over the horizon, keeping the direction it shines from.
+static func _low_sun(basis: Basis, elevation: float) -> Basis:
 	var dir := -basis.z
 	var flat := Vector3(dir.x, 0.0, dir.z)
 	if flat.length() < 0.01:
 		flat = Vector3.FORWARD
-	var e := deg_to_rad(SUN_ELEVATION)
+	var e := deg_to_rad(elevation)
 	var low := flat.normalized() * cos(e) + Vector3.DOWN * sin(e)
 	return Basis.looking_at(low, Vector3.UP)
 
@@ -117,8 +123,10 @@ static func _build_lamps(level: Node) -> void:
 	var own := level.find_child("Lamps", true, false)  # the train's are in its shell (Shell/Lamps)
 	if own != null:
 		for light in own.get_children():
-			if light is OmniLight3D:
-				_shade(root, (light as Node3D).global_position + Vector3.UP * 0.32, Vector3(0.7, 0.05, 0.3), 1.6)
+			if light is OmniLight3D:  # metadata/shade: the fixture's size (the generators set it), zero for none
+				var size: Vector3 = light.get_meta(&"shade", Vector3(0.7, 0.05, 0.3))
+				if size != Vector3.ZERO:
+					_shade(root, (light as Node3D).global_position + Vector3.UP * 0.32, size, 1.6)
 		return
 	var spawns := level.get_node_or_null("SpawnPoints")
 	if spawns == null or spawns.get_child_count() == 0:

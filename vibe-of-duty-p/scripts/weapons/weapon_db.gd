@@ -7,7 +7,12 @@ extends RefCounted
 
 const CONFIG_PATH := "res://assets/data/weapons.cfg"
 const CONFIG_OVERRIDE := "weapons.cfg"  # next to the exported .exe
-const MODULE_SLOTS: Array[String] = ["suppressor", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
+const MODULE_SLOTS: Array[String] = ["suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo"]
+## The Luger drawn bigger than life: life size it is a toy next to a pig, and the two fists hid it.
+const LUGER_SCALE := 1.2
+## The Luger's tangent rear sight on its 200 mm artillery barrel: this far (life size) ahead of the P08's notch on the
+## toggle, where the eye relief was set.
+const LUGER_SIGHT_AHEAD := 0.136
 ## Modules' geometry (the config holds only their numbers), WeaponDef properties set on top of the base weapon's: an
 ## optic's model (SightModels) and the aim line through it, prefab space like _build_geometry's iron sights; a model
 ## variant (model_variants, merged into the base's); a muzzle that moved. A key ending in "_add" adds to the property
@@ -17,23 +22,22 @@ const MODULE_GEOMETRY := {
 			"front_sight": Vector3(0.0, 0.15, 0.1), "eye_relief": 0.22},
 	"ak.sight.pso": {"sight": "pso", "scope": true, "rear_sight": Vector3(0.035, 0.155, -0.16),
 			"front_sight": Vector3(0.035, 0.155, 0.24), "eye_relief": 0.06},
-	"pdw.mag.20": {"model_variants": {"Mags": "PDW_Mag_20"}},
 	"pdw.sight.compm": {"sight": "compm", "rear_sight": Vector3(0.0, 0.098, -0.06),
 			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
 	"pdw.stock.folded": {"model_variants": {"Stock": "Folded"}},
+	"ak.mag.rpk40": {"model_variants": {"Mags": "AK_Mag_40"}},
+	"acr.mag.40": {"model_variants": {"Mags": "ACR_Mag_40"}},
 	"ak.muzzle.brake": {"model_variants": {"Muzzle": "Brake"}, "muzzle": Vector3(0.0, 0.045, 0.6)},
 	"ak.suppressor.on": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
 			"sound_shot": "shot_suppressed"},
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
-	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3},  # the cheek on the board
-	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.16),
-			"front_sight": Vector3(0.0, 0.05, 0.152)},
-	"luger.barrel.200": {"model_variants": {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain"},
-			"muzzle": Vector3(0.0, 0.03, 0.21), "rear_sight": Vector3(0.0, 0.05, 0.0485),
-			"front_sight": Vector3(0.0, 0.05, 0.202), "eye_relief_add": 0.136},  # the notch moved 0.136 m forward
-	"mp7.mag.30": {"model_variants": {"Mags": "MP7_Mag_30"}},
-	"mp7.mag.20": {"model_variants": {"Mags": "MP7_Mag_20"}},
-	"mp7.stock.extended": {"model_variants": {"Stock": "Extended"}, "eye_relief_add": 0.1},  # the gun 0.223 m further out
+	# Хрюгер (owner's fantasy, 2026-10-23): the Luger blown up for .50 Action Express, chromed.
+	# Its 200 mm barrel scaled with it; the tangent sight 0.136 m ahead of the toggle's notch goes further forward with
+	# the gun, the eye stays by the hands - the relief grows by the gun's 40%.
+	"luger.conversion.khruger": {"model_scale": LUGER_SCALE * 1.4, "finish": "chrome", "sound_shot": "shot",
+			"eye_relief_add": LUGER_SIGHT_AHEAD * 0.4 / 1.4},
+	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3 + LUGER_SIGHT_AHEAD * LUGER_SCALE},  # the cheek on the board
+	"mp7.stock.collapsed": {"model_variants": {"Stock": "Collapsed"}, "eye_relief_add": -0.1},  # the gun 0.223 m nearer
 	"mp7.grip.folded": {"model_variants": {"Foregrip": "Folded"}, "left_hand": Vector3(0.0, -0.02, 0.16)},  # on the folded grip
 	"mp7.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
 			"sound_shot": "shot_suppressed"},
@@ -41,10 +45,7 @@ const MODULE_GEOMETRY := {
 	"mp7.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0031, 0.0),
 			"model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.1011, -0.06),
 			"front_sight": Vector3(0.0, 0.1011, 0.06), "eye_relief": 0.202},  # the eye where it is with the irons
-	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.447)},
-	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.637)},
-	"acr.stock.collapsed": {"model_variants": {"Stock/Extended/Butt": "In"}},
-	"acr.stock.folded": {"model_variants": {"Stock": "Folded"}},
+	"acr.stock.collapsed": {"model_variants": {"Stock/Extended/Butt": "In"}},  # slid in along the beam
 	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.103 m longer than the brake.
 	"acr.suppressor.on": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
 			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.103), "sound_shot": "shot_suppressed"},
@@ -52,7 +53,7 @@ const MODULE_GEOMETRY := {
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
 		"ejection_port", "charging_handle"]
-const MODULE_SLOT_NAMES := {"suppressor": "Глушитель", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка", "barrel": "Ствол",
+const MODULE_SLOT_NAMES := {"suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
 static var _defs: Array[WeaponDef] = []
@@ -111,6 +112,9 @@ static func make_def(index: int, module_ids: Array) -> WeaponDef:
 					continue
 				var value: Variant = geometry[key]
 				var prop := key.trim_suffix("_add")
+				if prop == "model_scale":  # a bigger gun: the points the base scaled grow with it
+					for point in SCALED_POINTS:
+						def.set(point, def.get(point) * float(value) / def.model_scale)
 				if prop in SCALED_POINTS or (adding and prop == "eye_relief"):  # an added relief follows a sight that moved
 					value = value * def.model_scale
 				if adding:
@@ -259,7 +263,7 @@ static func _build_geometry() -> void:
 	rifle.id = "ak"
 	rifle.display_name = "АК"
 	rifle.scene_path = "res://prefabs/weapons/ak_blockout.tscn"  # tools/make_ak_blockout.py
-	rifle.model_variants = {"Muzzle": "Slant"}
+	rifle.model_variants = {"Muzzle": "Slant", "Mags": "AK_Mag_30"}
 	rifle.muzzle = Vector3(0.0, 0.045, 0.565)
 	rifle.rear_sight = Vector3(0.0, 0.118, 0.28)   # top of the rear leaf (the post's tip flush with it)
 	rifle.front_sight = Vector3(0.0, 0.118, 0.5)   # tip of the front post
@@ -294,12 +298,13 @@ static func _build_geometry() -> void:
 	luger.id = "luger"
 	luger.display_name = "Люгер"
 	luger.scene_path = "res://prefabs/weapons/luger_blockout.tscn"  # tools/make_luger_blockout.py
-	luger.model_variants = {"Barrel": "B100", "Toggle/LinkRear/Sight": "Notch", "Stock": "None", "Mags": "Luger_Mag_8"}
-	luger.muzzle = Vector3(0.0, 0.03, 0.11)
-	luger.rear_sight = Vector3(0.0, 0.05, -0.0875)  # the notch's ears' tops on the toggle (it rises with every shot)
-	luger.front_sight = Vector3(0.0, 0.05, 0.102)
-	luger.eye_relief = 0.38  # arms out, a little bent
-	luger.model_scale = 1.2  # life size it is a toy next to a pig, and the two fists hid it
+	# The artillery model's 200 mm barrel (owner, 2026-10-23): its tangent sight replaces the toggle's notch.
+	luger.model_variants = {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain", "Stock": "None", "Mags": "Luger_Mag_8"}
+	luger.muzzle = Vector3(0.0, 0.03, 0.21)
+	luger.rear_sight = Vector3(0.0, 0.05, 0.0485)  # the tangent sight's ears' tops
+	luger.front_sight = Vector3(0.0, 0.05, 0.202)
+	luger.eye_relief = 0.38 + LUGER_SIGHT_AHEAD * LUGER_SCALE  # arms out, a little bent: 0.38 behind the toggle's notch
+	luger.model_scale = LUGER_SCALE
 	luger.right_hand = Vector3(0.0, -0.035, -0.06)   # the middle of the grip
 	luger.left_hand = Vector3(0.0, -0.08, -0.078)   # cupped under the right hand and the magazine's base
 	luger.ejection_port = Vector3(0.0, 0.045, -0.01)    # up out of the open toggle
@@ -334,12 +339,12 @@ static func _build_geometry() -> void:
 	mp7.id = "mp7"
 	mp7.display_name = "MP7"
 	mp7.scene_path = "res://prefabs/weapons/mp7_blockout.tscn"  # tools/make_mp7_blockout.py
-	mp7.model_variants = {"Stock": "Collapsed", "Foregrip": "Unfolded", "Muzzle": "Hider", "Sights": "Up",
+	mp7.model_variants = {"Stock": "Extended", "Foregrip": "Unfolded", "Muzzle": "Hider", "Sights": "Up",
 			"Mags": "MP7_Mag_40"}
 	mp7.muzzle = Vector3(0.0, 0.0217, 0.2106)
 	mp7.rear_sight = Vector3(0.0, 0.104, -0.132)  # top of the rear ears (the post's tip flush with them)
 	mp7.front_sight = Vector3(0.0, 0.104, 0.108)  # tip of the front post
-	mp7.eye_relief = 0.13  # the stock in: the cheek right behind the receiver
+	mp7.eye_relief = 0.23  # the stock out (0.223 m on its rods): 0.1 further than the cheek right behind the receiver
 	mp7.right_hand = Vector3(0.0, -0.045, -0.047)  # the middle of the grip
 	mp7.left_hand = Vector3(0.0, -0.05, 0.124)     # on the foregrip
 	mp7.ejection_port = Vector3(-0.022, 0.04, 0.015)

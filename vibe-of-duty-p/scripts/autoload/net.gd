@@ -31,7 +31,7 @@ func _on_peer_connected(id: int) -> void:
 		# The newcomer takes our map, match rules and weapon balance (weapons.cfg), loads the map, then reports ready
 		# to NetWorld.
 		_receive_map.rpc_id(id, Game.map_scene, {"score_limit": Game.score_limit, "match_time": Game.match_time,
-				"weapons": WeaponDB.config_text})
+				"random_weapons": Game.random_weapons, "weapons": WeaponDB.config_text})
 	peer_joined.emit(id)
 
 
@@ -46,6 +46,7 @@ func _receive_map(path: String, rules: Dictionary) -> void:
 	Game.map_scene = path
 	Game.score_limit = int(rules.get("score_limit", Game.SCORE_LIMIT))
 	Game.match_time = float(rules.get("match_time", Game.MATCH_TIME))
+	Game.random_weapons = bool(rules.get("random_weapons", false))
 	# The server's weapon numbers and modules: prediction must match its simulation (back to ours on leave()).
 	if not WeaponDB.load_text(str(rules.get("weapons", ""))):
 		push_error("Server sent no usable weapons.cfg")

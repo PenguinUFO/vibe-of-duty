@@ -84,7 +84,7 @@ box("FrameWallL", 0.009, 0.012, 0.021, 0.038, -0.085, -0.025, "steel")
 box("FrameWallR", -0.012, -0.009, 0.021, 0.038, -0.085, -0.025, "steel")
 box("HingeEars", -0.012, 0.012, 0.021, 0.042, -0.097, -0.085, "steel")  # under the sight line: the notch above them
 box("Receiver", -0.011, 0.011, 0.021, 0.0417, -0.025, 0.035, "steel")  # the barrel extension
-tube("BarrelShank", 0.0078, 0.035, 0.042, BORE_Y, "steel")
+tube("BarrelShank", 0.0086, 0.035, 0.042, BORE_Y, "steel")
 box("SidePlate", 0.012, 0.0132, 0.013, 0.036, -0.018, 0.012, "steel_light")
 box("Safety", 0.012, 0.016, 0.021, 0.034, -0.085, -0.076, "steel_light")
 box("MagRelease", 0.0125, 0.016, -0.012, -0.006, -0.023, -0.017, "steel_light")
@@ -116,13 +116,14 @@ box("Link", -0.008, 0.008, -0.006, 0.0025, 0.0, 0.034, "steel", parent="Toggle/L
 node("Breech", "Toggle", (0.0, 0.04, -0.025))
 box("Block", -0.009, 0.009, -0.012, 0.0015, 0.0, 0.035, "steel", parent="Toggle/Breech")
 
-# Barrels: 100 / 150 / 200 mm from the breech face (z 0.01), thin (13 mm at the extension, 11 at the muzzle), a front
+# Barrels: 100 / 150 / 200 mm from the breech face (z 0.01), 10% thicker than the real one (owner, 2026-10-23: 15 mm at
+# the extension, 12.5 at the muzzle; it read too thin), a front
 # post on a base at the muzzle; the 200 mm one carries the tangent rear sight just ahead of the barrel extension.
 node("Barrel")
 for name, muzzle in (("B100", 0.11), ("B150", 0.16), ("B200", 0.21)):
     node(name, "Barrel")
     p = "Barrel/" + name
-    tube("Tube", 0.0067, 0.035, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0057)  # tapering to the muzzle
+    tube("Tube", 0.0074, 0.035, muzzle, BORE_Y, "steel", parent=p, radius_end=0.0063)  # tapering to the muzzle
     box("FrontBase", -0.004, 0.004, BORE_Y + 0.004, BORE_Y + 0.009, muzzle - 0.016, muzzle - 0.002, "steel", parent=p)
     box("FrontPost", -0.0015, 0.0015, BORE_Y + 0.009, 0.05, muzzle - 0.012, muzzle - 0.004, "steel_light", parent=p)  # flush with the notch's ears (sight line y 0.05)
     if name == "B200":

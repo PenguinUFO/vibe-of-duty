@@ -1,17 +1,23 @@
 class_name HostPanel
 extends PanelContainer
 ## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length) and, under
-## the folded "Дополнительно", the port.
+## the folded "Дополнительно", the port. Below it, "Тестирование" behind the kid mode code (KidModeEntry): the
+## right code opens a section of test modes - for now "FFA random weapon" (Game.random_weapons).
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
 ## the menu then opens the server.
 
 signal start_requested
 signal closed
 
+## The test modes chosen this run (not saved: a restart turns them off, the section stays locked until the code).
+static var unlocked := false
+static var random_weapons := false
+
 var _map: OptionButton
 var _score_limit: SpinBox
 var _match_minutes: SpinBox
 var _port: SpinBox
+var _random_weapons: CheckBox
 
 
 func _init() -> void:
@@ -49,6 +55,7 @@ func _init() -> void:
 	advanced_box.add_theme_constant_override("separation", 10)
 	advanced.add_child(advanced_box)
 	_port = _add_spin(advanced_box, "Порт", 1024, 65535, Settings.host_port, "")
+	_add_testing(box)
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
@@ -88,7 +95,35 @@ func _on_start() -> void:
 	Game.match_time = Settings.host_match_minutes * 60.0
 	Game.launch_port = Settings.host_port
 	Game.training = false
+	random_weapons = _random_weapons.button_pressed
+	Game.random_weapons = random_weapons
 	start_requested.emit()
+
+
+## "Тестирование": locked behind the code like kid mode; once opened, a folding section like "Дополнительно".
+func _add_testing(box: Container) -> void:
+	var testing := FoldableContainer.new()
+	testing.title = "Тестирование"
+	testing.visible = unlocked
+	box.add_child(testing)
+	var testing_box := VBoxContainer.new()
+	testing_box.add_theme_constant_override("separation", 10)
+	testing.add_child(testing_box)
+	_random_weapons = CheckBox.new()
+	_random_weapons.text = "Игровой режим: FFA рандомное оружие"
+	_random_weapons.button_pressed = random_weapons
+	_random_weapons.toggled.connect(func(_on: bool) -> void: Audio.play("ui_click"))
+	testing_box.add_child(_random_weapons)
+	if unlocked:
+		return
+	var entry := KidModeEntry.new("Тестирование")
+	box.add_child(entry)
+	entry.open_requested.connect(func() -> void:
+		unlocked = true
+		entry.queue_free()
+		testing.visible = true
+		testing.folded = false
+		_random_weapons.grab_focus())
 
 
 func _add_spin(parent: Container, label_text: String, min_value: int, max_value: int, value: int, suffix: String) -> SpinBox:

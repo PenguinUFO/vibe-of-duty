@@ -30,6 +30,16 @@ uniform float cloud_thickness_dark : hint_range(0.0, 1.0) = 0.35;  // how much d
 uniform float cloud_horizon_fade : hint_range(0.01, 0.5) = 0.18;
 uniform vec2 cloud_offset = vec2(0.0);
 
+// A sea of clouds below the horizon (maps above the clouds: plane, tower). Off at sea_coverage 0. The far sea is
+// sky, not geometry: it costs nothing and never ends; SkyScenery scrolls sea_offset when the map "flies".
+group_uniforms sea;
+uniform float sea_coverage : hint_range(0.0, 1.0) = 0.0;
+uniform float sea_scale : hint_range(0.05, 4.0) = 0.6;      // smaller = bigger clouds
+uniform vec3 sea_light : source_color = vec3(0.9, 0.9, 0.88);
+uniform vec3 sea_shadow : source_color = vec3(0.45, 0.5, 0.58);
+uniform vec2 sea_offset = vec2(0.0);
+uniform float sea_horizon_fade : hint_range(0.01, 0.5) = 0.08;
+
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -109,6 +119,19 @@ void sky() {
 		}
 	}
 	col += sun_col * disk * (1.0 - cover) * 4.0;  // clouds cover the sun
+
+	// The sea of clouds: the same noise on a plane below, gaps showing ground_color (the depth under it).
+	if (up < 0.0 && sea_coverage > 0.0) {
+		vec2 uv = dir.xz / (-up + 0.03) * sea_scale + sea_offset;
+		uv += vec2(value_noise(uv * 0.7 + 3.1), value_noise(uv * 0.7 - 5.7)) * 0.6;
+		float n = fbm(uv);
+		float sea = smoothstep(1.0 - sea_coverage, 1.0 - sea_coverage + 0.12, n);
+		vec2 toward_sun = normalize(sun_dir.xz + vec2(0.0001)) * 0.06;
+		float lit = clamp(0.55 + (n - fbm(uv + toward_sun)) * cloud_shading, 0.0, 1.0);
+		vec3 sea_col = mix(sea_shadow, sea_light * (0.6 + 0.4 * sun_col), lit);
+		vec3 below = mix(ground_color, sea_col, sea);
+		col = mix(horizon_color, below, smoothstep(0.0, sea_horizon_fade, -up));  // the far sea melts into the haze
+	}
 
 	COLOR = col;
 }

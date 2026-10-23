@@ -40,7 +40,8 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 40)
 	_menu_box.add_child(title)
 	_add_button("Продолжить", close)
-	_add_button("Сборка", _open_builds)
+	if not world.random_weapons_on():  # FFA random weapon: the server picks every life's weapon
+		_add_button("Сборка", _open_builds)
 	_add_button("Настройки", func() -> void: _open_panel(SettingsPanel.new()))
 	_kid_entry = KidModeEntry.new()
 	_kid_entry.open_requested.connect(func() -> void: _open_panel(KidPanel.new()))
