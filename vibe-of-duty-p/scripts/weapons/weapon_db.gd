@@ -7,7 +7,7 @@ extends RefCounted
 
 const CONFIG_PATH := "res://assets/data/weapons.cfg"
 const CONFIG_OVERRIDE := "weapons.cfg"  # next to the exported .exe
-const MODULE_SLOTS: Array[String] = ["caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
+const MODULE_SLOTS: Array[String] = ["suppressor", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
 ## Modules' geometry (the config holds only their numbers), WeaponDef properties set on top of the base weapon's: an
 ## optic's model (SightModels) and the aim line through it, prefab space like _build_geometry's iron sights; a model
 ## variant (model_variants, merged into the base's); a muzzle that moved. A key ending in "_add" adds to the property
@@ -22,11 +22,8 @@ const MODULE_GEOMETRY := {
 			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
 	"pdw.stock.folded": {"model_variants": {"Stock": "Folded"}},
 	"ak.muzzle.brake": {"model_variants": {"Muzzle": "Brake"}, "muzzle": Vector3(0.0, 0.045, 0.6)},
-	"ak.muzzle.pbs": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
+	"ak.suppressor.on": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
 			"sound_shot": "shot_suppressed"},
-	# The PH IDW's base wears the suppressor (owner, 2026-10-23); this module takes it off.
-	"pdw.muzzle.thread": {"model_variants": {"Muzzle": "Thread"}, "muzzle": Vector3(0.0, 0.02, 0.236),
-			"sound_shot": "shot"},
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3},  # the cheek on the board
 	"luger.barrel.150": {"model_variants": {"Barrel": "B150"}, "muzzle": Vector3(0.0, 0.03, 0.16),
@@ -38,7 +35,7 @@ const MODULE_GEOMETRY := {
 	"mp7.mag.20": {"model_variants": {"Mags": "MP7_Mag_20"}},
 	"mp7.stock.extended": {"model_variants": {"Stock": "Extended"}, "eye_relief_add": 0.1},  # the gun 0.223 m further out
 	"mp7.grip.folded": {"model_variants": {"Foregrip": "Folded"}, "left_hand": Vector3(0.0, -0.02, 0.16)},  # on the folded grip
-	"mp7.muzzle.suppressor": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
+	"mp7.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
 			"sound_shot": "shot_suppressed"},
 	# The PDW's CompM on the MP7's rail (0.0031 higher), the flip-up sights folded under it.
 	"mp7.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0031, 0.0),
@@ -46,15 +43,16 @@ const MODULE_GEOMETRY := {
 			"front_sight": Vector3(0.0, 0.1011, 0.06), "eye_relief": 0.202},  # the eye where it is with the irons
 	"acr.barrel.105": {"model_variants": {"Barrel": "B105"}, "muzzle": Vector3(0.0, 0.05, 0.447)},
 	"acr.barrel.185": {"model_variants": {"Barrel": "B185"}, "muzzle": Vector3(0.0, 0.05, 0.637)},
+	"acr.stock.collapsed": {"model_variants": {"Stock/Extended/Butt": "In"}},
 	"acr.stock.folded": {"model_variants": {"Stock": "Folded"}},
 	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.103 m longer than the brake.
-	"acr.muzzle.suppressor": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
+	"acr.suppressor.on": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
 			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.103), "sound_shot": "shot_suppressed"},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
 		"ejection_port", "charging_handle"]
-const MODULE_SLOT_NAMES := {"caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка", "barrel": "Ствол",
+const MODULE_SLOT_NAMES := {"suppressor": "Глушитель", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка", "barrel": "Ствол",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
 static var _defs: Array[WeaponDef] = []
@@ -173,9 +171,9 @@ static func load_text(text: String) -> bool:
 					"name": str(values.get("name", path[2])), "info": str(values.get("info", "")),
 					"cost": int(values.get("cost", 0)),
 					"requires": path[0] + "." + str(values["requires"]) if values.has("requires") else "",
-					"values": {}}
+					"excludes": str(values.get("excludes", "")), "values": {}}
 			for key in values:
-				if not key in ["name", "info", "cost", "requires"]:
+				if not key in ["name", "info", "cost", "requires", "excludes"]:
 					module["values"][key] = values[key]
 			_modules[section] = module
 			_module_ids.append(section)
@@ -190,7 +188,10 @@ static func load_text(text: String) -> bool:
 
 static func _apply_module(values: Dictionary, changes: Dictionary) -> void:
 	for key: String in changes:
-		if key.ends_with("_mult"):
+		if key.ends_with("_add"):
+			var added := key.trim_suffix("_add")
+			values[added] = float(values.get(added, 0.0)) + float(changes[key])
+		elif key.ends_with("_mult"):
 			var base_key := key.trim_suffix("_mult")
 			var current: Variant = values.get(base_key, 0.0)
 			if current is Array:
@@ -313,7 +314,8 @@ static func _build_geometry() -> void:
 	acr.display_name = "ACR"
 	acr.scene_path = "res://prefabs/weapons/acr_blockout.tscn"  # tools/make_acr_blockout.py
 	acr.model_variants = {"Barrel": "B145", "Barrel/B105/Muzzle": "Brake", "Barrel/B145/Muzzle": "Brake",
-			"Barrel/B185/Muzzle": "Brake", "Stock": "Extended", "Mags": "ACR_Mag_30"}
+			"Barrel/B185/Muzzle": "Brake", "Stock": "Extended", "Stock/Extended/Butt": "Out", "Stock/Folded/Butt": "In",
+			"Mags": "ACR_Mag_30"}
 	acr.muzzle = Vector3(0.0, 0.05, 0.548)
 	acr.rear_sight = Vector3(0.0, 0.113, -0.05)   # top of the rear ears (the post's tip flush with them)
 	acr.front_sight = Vector3(0.0, 0.113, 0.31)   # tip of the front post
@@ -321,7 +323,7 @@ static func _build_geometry() -> void:
 	acr.right_hand = Vector3(0.0, -0.04, -0.076)
 	acr.left_hand = Vector3(0.0, 0.015, 0.29)
 	acr.ejection_port = Vector3(-0.027, 0.06, 0.06)
-	acr.charging_handle = Vector3(0.03, 0.083, 0.2)  # forward on the left, under the rail
+	acr.charging_handle = Vector3(0.03, 0.0695, 0.2)  # forward on the left, under the top's bevel
 	acr.handle_reciprocates = false
 	acr.bolt_travel = 0.08
 	acr.sound_shot = "shot"

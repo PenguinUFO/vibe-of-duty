@@ -11,6 +11,7 @@ var display_name := ""
 var info := ""            # what it does, plus and minus
 var mods := {}            # PartDB.DEFAULT_MODS key -> value ("_mult" keys multiply, the others add up)
 var requires := ""        # a weapon module: another part id the build must have (weapons.cfg "requires")
+var excludes := ""        # a weapon module: a slot kept at its default while this part is in (weapons.cfg "excludes")
 var weapon := ""          # a weapon module: the weapon's id (it fits only that weapon); "" for every other part
 
 

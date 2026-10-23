@@ -9,17 +9,19 @@ with a red dot and a can): all coyote - the anodised upper and the polymer - wit
 ejection cover and butt pad. The upper and the tall lower meet on a line falling to the front; the deep handguard's
 back edge climbs at a slant to the rail, one row of long slots above and one of short ones below, a short black side
 rail at its front (the 10.5" has a short handguard without it); one rail over all of it with flip-up sights at both
-ends; the long black ejection cover on the right, the non-reciprocating charging handle on the left under the rail
+ends; the upper's and the handguard's tops bevelled in to the rail (owner's photo, 2026-10-23); the long black ejection cover
+on the right, open, the bolt carrier cycling in the port ("Bolt"); the non-reciprocating charging handle on the left under the bevel
 (WeaponDef.charging_handle, handle_reciprocates false); the big trigger guard, the MOE grip, a PMAG with its window;
-the solid stock with the cheek riser, folding to the right side.
+the two-part telescoping stock - the base on the hinge (the slotted beam, the latch, the cheek riser) and the butt sliding on
+the beam ("Butt") - folding to the right side (owner's photo of a black ACR, 2026-10-23).
 
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres; prefab +x is the shooter's left. Module variants (model_variants):
 "Barrel" (B105 / B145 / B185: 10.5", 14.5", 18", each with its handguard), each with its own "Muzzle" (Brake / Can) -
-so the suppressor module names all three; "Stock" (Extended / Folded); "Mags" (ACR_Mag_30, a "*_Mag_*" node so
+so the suppressor module names all three; "Stock" (Extended / Folded), each with "Butt" (In / Out: the telescope); "Mags" (ACR_Mag_30, a "*_Mag_*" node so
 reloads slide it out). Key points used by WeaponDB (prefab space): bore y 0.05; muzzle with the brake
 z 0.38 / 0.481 / 0.57 + 0.067, the suppressor + 0.17 instead; rear sight's top (0, 0.113, -0.05), front post tip
-(0, 0.113, 0.31); pistol grip (0, -0.04, -0.076); handguard bottom (0, 0.015, 0.29); charging handle (0.03, 0.083, 0.2).
+(0, 0.113, 0.31); pistol grip (0, -0.04, -0.076); handguard bottom (0, 0.015, 0.29); charging handle (0.03, 0.0695, 0.2).
 """
 import math
 import os
@@ -31,16 +33,19 @@ MATERIALS = {
     "black": ((0.07, 0.07, 0.075), 0.4, 0.5),   # barrel, brake, ejection cover, side rail
     "steel": ((0.13, 0.13, 0.14), 0.55, 0.45),
     "steel_dark": ((0.04, 0.04, 0.045), 0.5, 0.5),  # slots, ports
+    "steel_bright": ((0.36, 0.36, 0.38), 0.7, 0.35),  # the bolt carrier in the port
     "rubber": ((0.06, 0.06, 0.06), 0.0, 0.9),
     "mag": ((0.55, 0.46, 0.32), 0.0, 0.75),     # coyote PMAG
     "window": ((0.12, 0.11, 0.1), 0.0, 0.3),
 }
-MESHES = ["upper", "lower", "guard", "grip", "handguard", "handguard_short", "stock", "stock_folded"]
+MESHES = ["upper", "upper_top", "lower", "guard", "grip", "handguard", "handguard_top", "handguard_short",
+          "handguard_short_top", "stock_beam", "stock_cheek", "stock_butt"]
 BORE_Y = 0.05
 CHAMBER_Z = 0.113
 BARRELS = (("B105", 0.267, "handguard_short", 0.354), ("B145", 0.368, "handguard", 0.421),
            ("B185", 0.457, "handguard", 0.421))  # 10.5", 14.5", 18" from the chamber; the handguard and its front
 BRAKE_LEN = 0.067
+BUTT_TRAVEL = 0.06  # the telescoping stock: the butt all the way in to all the way out
 CAN_LEN = 0.17
 
 parts = []  # (name, parent, kind, size/params, center, rot_x_deg, material)
@@ -62,8 +67,10 @@ def mesh(name, key, mat, parent=".", pos=(0.0, 0.0, 0.0)):
     parts.append((name, parent, "ext_mesh", key, pos, 0.0, mat))
 
 
-def node(name, parent=".", pos=(0.0, 0.0, 0.0)):
-    parts.append((name, parent, "node", None, pos, 0.0, None))
+def node(name, parent=".", pos=(0.0, 0.0, 0.0), turned=False, meta=None):
+    """`turned`: half a turn round the vertical axis (x and z flipped round pos/2: a part folded over a hinge at pos/2).
+    `meta`: {key: number} as node metadata (WeaponView reads the bolt's "travel")."""
+    parts.append((name, parent, "node", (turned, meta or {}), pos, 0.0, None))
 
 
 def both(x0, x1):
@@ -74,14 +81,22 @@ def both(x0, x1):
 # Upper: coyote, one rail from the hinge to the front sight, the long black ejection cover on the right, the charging
 # handle's slot on the left under the rail (on the upper, then on the wider handguard).
 mesh("Upper", "upper", "fde")
+mesh("UpperTop", "upper_top", "fde")  # the bevel from the sides in to the rail
 box("Rail", -0.011, 0.011, 0.086, 0.095, -0.095, 0.345, "fde")
 for i in range(17):  # cross slots along the rail
     z = -0.088 + i * 0.0254
     box("RailSlot%d" % i, -0.0115, 0.0115, 0.091, 0.0955, z, z + 0.009, "steel_dark")
-box("EjectionCover", -0.0275, -0.0255, 0.048, 0.071, 0.006, 0.113, "black")
-box("CoverHinge", -0.0285, -0.0265, 0.069, 0.072, 0.008, 0.111, "black")
-box("HandleSlotUpper", 0.0255, 0.0265, 0.077, 0.084, 0.12, 0.175, "steel_dark")
-box("HandleSlotGuard", 0.0295, 0.0305, 0.077, 0.084, 0.175, 0.24, "steel_dark")  # WeaponView adds the handle
+# The ejection port on the right, its long black cover open (it springs open with the first shot and stays so) and
+# hanging under the port; in the port the bolt carrier, which cycles with every shot (WeaponView: the "Bolt" node,
+# "travel" m back) - the charging handle on the left does not.
+box("EjectionPort", -0.0268, -0.0258, 0.051, 0.069, 0.02, 0.1, "steel_dark")
+box("EjectionCover", -0.0285, -0.0265, 0.029, 0.049, 0.006, 0.113, "black")
+box("CoverHinge", -0.0285, -0.0265, 0.048, 0.051, 0.008, 0.111, "black")
+node("Bolt", meta={"travel": 0.035})
+box("Carrier", -0.0271, -0.0262, 0.054, 0.066, 0.064, 0.097, "steel_bright", parent="Bolt")
+box("CarrierGroove", -0.0273, -0.0269, 0.059, 0.061, 0.066, 0.095, "steel_dark", parent="Bolt")
+box("HandleSlotUpper", 0.0255, 0.0265, 0.066, 0.073, 0.12, 0.175, "steel_dark")
+box("HandleSlotGuard", 0.0295, 0.0305, 0.066, 0.073, 0.175, 0.24, "steel_dark")  # WeaponView adds the handle
 # The hinge coyote, black only on its sides: in the sights the camera's near plane cuts the stock open and its back
 # face fills the bottom of the view (black, it was a wall).
 box("Hinge", -0.021, 0.021, 0.024, 0.074, -0.118, -0.104, "fde")
@@ -128,6 +143,7 @@ for name, length, guard, front in BARRELS:
     end = CHAMBER_Z + length
     node(name, "Barrel")
     mesh("Handguard", guard, "fde", parent=p)
+    mesh("HandguardTop", guard + "_top", "fde", parent=p)
     slots_low = 5 if guard == "handguard" else 4
     for side, x0, x1 in both(0.0295, 0.0305):
         for i in range(slots_low):
@@ -191,21 +207,38 @@ for i in range(4):
     magbox("Rib%d" % i, -0.0125, 0.0125, h, h + 0.004, -0.032, 0.032, "mag")
 magbox("Floor", -0.014, 0.014, MAG_Y0 - mid - 0.01, MAG_Y0 - mid, -0.035, 0.036, "mag")
 
-# Stock: solid, the cheek riser on top, the black butt pad, the sling slot and the QD socket near the butt, the
-# length buttons. Folded, it swings round the hinge's vertical axis to lie along the right side (prefab -x).
+# Stock: two parts (owner's photo, 2026-10-23). On the hinge the base: the slotted beam with the length latch, the
+# cheek riser over it. The butt slides on the beam (telescoping): the black pad, the slanted sling slot, the QD socket;
+# "Butt" holds it at both ends of its travel - "In" (all the way in, as on the photo) and "Out" (BUTT_TRAVEL back).
+# Folded, the whole stock turns half round the hinge's vertical axis (x -0.024, z -0.111) to lie
+# along the right side (prefab -x), the butt in front.
+def stock(p):
+    mesh("Beam", "stock_beam", "fde", parent=p)
+    for side, x0, x1 in both(0.017, 0.0175):
+        for i in range(5):
+            z = -0.158 + i * 0.0085
+            box("Window%s%d" % (side, i), x0, x1, 0.0318, 0.048, z, z + 0.0055, "steel_dark", parent=p)
+    for side, x0, x1 in both(0.017, 0.0205):
+        box("Latch" + side, x0, x1, 0.0259, 0.0507, -0.2221, -0.1924, "fde", parent=p)
+    for side, x0, x1 in both(0.0205, 0.022):
+        box("LatchButton" + side, x0, x1, 0.0291, 0.048, -0.2016, -0.1924, "black", parent=p)
+    mesh("Cheek", "stock_cheek", "fde", parent=p)
+    node("Butt", p)
+    for length, back in (("In", 0.0), ("Out", BUTT_TRAVEL)):
+        b = p + "/Butt/" + length
+        node(length, p + "/Butt", pos=(0.0, 0.0, -back))
+        mesh("Body", "stock_butt", "fde", parent=b)
+        box("Pad", -0.021, 0.021, -0.0578, 0.0793, -0.3177, -0.3112, "rubber", parent=b)
+        for side, x0, x1 in both(0.0205, 0.0215):
+            box("SlingSlot" + side, x0, x1, -0.042, -0.013, -0.2645, -0.2585, "steel_dark", rot_x=28.0, parent=b)
+            cylx("QD" + side, 0.005, x0, x1 + 0.0005, 0.0334, -0.295, "black", parent=b)
+
+
 node("Stock")
 node("Extended", "Stock")
-s = "Stock/Extended"
-mesh("Body", "stock", "fde", parent=s)
-box("Pad", -0.021, 0.021, -0.059, 0.083, -0.321, -0.307, "rubber", parent=s)
-for side, x0, x1 in both(0.0195, 0.0205):
-    box("SlingSlot" + side, x0, x1, -0.035, -0.005, -0.296, -0.29, "steel_dark", parent=s)
-    cylx("QD" + side, 0.005, x0, x1 + 0.0005, 0.06, -0.29, "black", parent=s)
-    box("Button" + side, x0, x1 + 0.001, 0.05, 0.068, -0.2, -0.185, "fde", parent=s)
-node("Folded", "Stock")
-s = "Stock/Folded"
-mesh("Body", "stock_folded", "fde", parent=s, pos=(-0.048, 0.0, 0.0))
-box("Pad", -0.069, -0.027, -0.059, 0.083, 0.091, 0.105, "rubber", parent=s)
+stock("Stock/Extended")
+node("Folded", "Stock", pos=(-0.048, 0.0, -0.222), turned=True)
+stock("Stock/Folded")
 
 f = lambda v: "%g" % round(v, 5)
 res = []
@@ -218,7 +251,11 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     cr, sr = math.cos(r), math.sin(r)
     xform = "Transform3D(1, 0, 0, 0, %s, %s, 0, %s, %s, %s, %s, %s)" % (f(cr), f(-sr), f(sr), f(cr), f(c[0]), f(c[1]), f(c[2]))
     if kind == "node":
-        nodes.append('\n[node name="%s" type="Node3D" parent="%s"]\ntransform = %s\n' % (name, parent, xform))
+        turned, meta = params
+        if turned:
+            xform = "Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, %s, %s, %s)" % (f(c[0]), f(c[1]), f(c[2]))
+        extra = "".join("metadata/%s = %s\n" % (k, f(v)) for k, v in meta.items())
+        nodes.append('\n[node name="%s" type="Node3D" parent="%s"]\ntransform = %s\n%s' % (name, parent, xform, extra))
         continue
     if kind == "ext_mesh":
         nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = ExtResource("%s")\n'

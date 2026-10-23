@@ -31,6 +31,8 @@ var _drop := 0.0          # landing jolt, decays
 var _handle: MeshInstance3D   # charging handle (WeaponDef.charging_handle), rides the bolt
 var _handle_rest := Vector3.ZERO
 var _toggle: Node3D       # a toggle lock (Luger): "Toggle" in the model, folded up as the breech goes back
+var _bolt: Node3D         # a bolt in the model ("Bolt", metadata "travel" m): cycles with every shot, the handle or not
+var _bolt_rest := Vector3.ZERO
 var _toggle_hinge := Vector3.ZERO  # rest positions: the rear link's hinge, the knee, the breech block's pin
 var _toggle_knee := Vector3.ZERO
 var _toggle_pin := Vector3.ZERO
@@ -101,6 +103,9 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	_model.scale = Vector3.ONE * def.model_scale
 	_pivot.add_child(_model)
 	_handle = null
+	_bolt = _model.get_node_or_null("Bolt")
+	if _bolt:
+		_bolt_rest = _bolt.position
 	_toggle = _model.get_node_or_null("Toggle")
 	if _toggle:
 		_toggle_hinge = _toggle.get_node("LinkRear").position
@@ -151,6 +156,9 @@ func _process(delta: float) -> void:
 		_handle.position = _handle_rest + Vector3(0.0, 0.0, -def.bolt_travel * back)
 	elif _toggle:
 		_fold_toggle(maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull)
+	if _bolt:
+		var bolt_back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull
+		_bolt.position = _bolt_rest + Vector3(0.0, 0.0, -float(_bolt.get_meta("travel", 0.0)) * bolt_back)
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:

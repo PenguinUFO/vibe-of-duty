@@ -14,7 +14,8 @@ extends SceneTree
 ## trigger guard (the lower housing with the oval cut: a U whose top is the receiver), the long magazine well, the stock's U butt with a hollow back
 ## (one side's plate; folded, the stock turns round and the butt is in front). Luger - after the photos of a WE P08 6": the
 ## trigger guard's small round loop running into the raked grip frame, the walnut panels. ACR - after the owner's photos: the
-## upper and the tall lower split at a slant, the long deep handguard (short with 10.5"), the MOE grip, the solid stock.
+## upper and the tall lower split at a slant, the tops bevelled to the rail, the long deep handguard (short with 10.5"), the
+## MOE grip, the two-part telescoping stock.
 ## MP7 - after the owner's photos: the one-block receiver with its sloping front, the L guard, the upright grip, the butt
 ## plate.
 
@@ -75,8 +76,9 @@ const PARTS := {
 	"acr": {
 		"profiles": {
 			# After the photos (0.613 mm a pixel of the right-side one, Docs/LOADOUT.md "ACR"): the upper's bottom runs
-			# down to the front, where the handguard's back edge climbs at a slant to the rail.
-			"upper": {"points": [Vector2(-0.106, 0.052), Vector2(-0.106, 0.086), Vector2(0.181, 0.086),
+			# down to the front, where the handguard's back edge climbs at a slant to the rail. The sides stop under the
+			# top's bevel (the sections below: the upper slopes in from the sides to the rail, owner's photo 2026-10-23).
+			"upper": {"points": [Vector2(-0.106, 0.052), Vector2(-0.106, 0.075), Vector2(0.1698, 0.075),
 					Vector2(0.12, 0.026)], "width": [Vector2(0.0, 0.026)], "chamfer": 0.004},
 			# The lower, tall, up to the upper's slanting edge; the magazine well shallow, with a lip.
 			"lower": {"points": [Vector2(-0.106, 0.052), Vector2(0.12, 0.026), Vector2(0.124, 0.005),
@@ -93,25 +95,38 @@ const PARTS := {
 			"grip": {"points": [Vector2(-0.035, 0.004), Vector2(-0.042, -0.02), Vector2(-0.06, -0.055),
 					Vector2(-0.077, -0.084), Vector2(-0.081, -0.092), Vector2(-0.109, -0.09), Vector2(-0.112, -0.083),
 					Vector2(-0.101, -0.04), Vector2(-0.094, 0.004)], "width": [Vector2(0.0, 0.016)], "chamfer": 0.004},
-			# The handguard, deep and long (14.5" and 18"), short with the 10.5" barrel (as in the catalogue).
-			"handguard": {"points": [Vector2(0.12, 0.026), Vector2(0.181, 0.086), Vector2(0.417, 0.086),
-					Vector2(0.421, 0.078), Vector2(0.421, 0.03), Vector2(0.415, 0.02), Vector2(0.405, 0.016),
+			# The handguard, deep and long (14.5" and 18"), short with the 10.5" barrel (as in the catalogue); its top
+			# bevels to the rail as the upper's.
+			"handguard": {"points": [Vector2(0.12, 0.026), Vector2(0.1708, 0.076), Vector2(0.417, 0.076),
+					Vector2(0.421, 0.07), Vector2(0.421, 0.03), Vector2(0.415, 0.02), Vector2(0.405, 0.016),
 					Vector2(0.13, 0.016)], "width": [Vector2(0.0, 0.03)], "chamfer": 0.007},
-			"handguard_short": {"points": [Vector2(0.12, 0.026), Vector2(0.181, 0.086), Vector2(0.35, 0.086),
-					Vector2(0.354, 0.078), Vector2(0.354, 0.03), Vector2(0.348, 0.02), Vector2(0.338, 0.016),
+			"handguard_short": {"points": [Vector2(0.12, 0.026), Vector2(0.1708, 0.076), Vector2(0.35, 0.076),
+					Vector2(0.354, 0.07), Vector2(0.354, 0.03), Vector2(0.348, 0.02), Vector2(0.338, 0.016),
 					Vector2(0.13, 0.016)], "width": [Vector2(0.0, 0.03)], "chamfer": 0.007},
-			# The stock, solid: the cheek riser on top, the butt, the bottom slanting up to the hinge. Folded: the same
-			# turned round the hinge (z -0.108).
-			"stock": {"points": [Vector2(-0.112, 0.02), Vector2(-0.17, 0.02), Vector2(-0.279, -0.05),
-					Vector2(-0.29, -0.058), Vector2(-0.307, -0.055), Vector2(-0.307, 0.082), Vector2(-0.29, 0.082),
-					Vector2(-0.262, 0.084), Vector2(-0.255, 0.094), Vector2(-0.112, 0.088)],
-					"width": [Vector2(0.0, 0.02)], "chamfer": 0.005},
-			"stock_folded": {"points": [Vector2(-0.104, 0.088), Vector2(0.039, 0.094), Vector2(0.046, 0.084),
-					Vector2(0.074, 0.082), Vector2(0.091, 0.082), Vector2(0.091, -0.055), Vector2(0.074, -0.058),
-					Vector2(0.063, -0.05), Vector2(-0.046, 0.02), Vector2(-0.104, 0.02)],
-					"width": [Vector2(0.0, 0.02)], "chamfer": 0.005},
+			# The stock, after the owner's photo of a black ACR (2026-10-23, 0.54 mm a pixel): two parts. On the hinge, the
+			# base - a slotted beam with the length latch - and the cheek riser over it; the butt slides on the beam
+			# (telescoping: the beam runs on inside it): its back with the pad, the sling slot and the QD socket, the slanted front under the beam, a
+			# tongue forward under the riser. Folded, all of it turns round the hinge to the right side (the scene does it).
+			"stock_beam": {"points": [Vector2(-0.118, 0.0534), Vector2(-0.3, 0.0534), Vector2(-0.3, 0.0172),
+					Vector2(-0.118, 0.0172)], "width": [Vector2(0.0, 0.017)], "chamfer": 0.003},
+			"stock_cheek": {"points": [Vector2(-0.2167, 0.0777), Vector2(-0.214, 0.0804), Vector2(-0.1249, 0.0869),
+					Vector2(-0.1217, 0.0831), Vector2(-0.1292, 0.055), Vector2(-0.214, 0.055), Vector2(-0.2167, 0.0588)],
+					"width": [Vector2(0.0, 0.019)], "chamfer": 0.004},
+			"stock_butt": {"points": [Vector2(-0.3112, 0.0788), Vector2(-0.2734, 0.0788), Vector2(-0.2664, 0.0599),
+					Vector2(-0.2113, 0.0599), Vector2(-0.2113, 0.0534), Vector2(-0.2286, 0.0534),
+					Vector2(-0.2286, -0.006), Vector2(-0.2491, -0.0476), Vector2(-0.2588, -0.0562),
+					Vector2(-0.3096, -0.0573), Vector2(-0.3112, -0.0546)], "width": [Vector2(0.0, 0.021)],
+					"chamfer": 0.0025},
 		},
-		"sections": {},
+		"sections": {
+			# The tops: from the sides' upper edge in to the rail's foot.
+			"upper_top": {"points": [Vector2(-0.026, 0.075), Vector2(0.026, 0.075), Vector2(0.012, 0.086),
+					Vector2(-0.012, 0.086)], "z": Vector2(-0.106, 0.176)},
+			"handguard_top": {"points": [Vector2(-0.03, 0.076), Vector2(0.03, 0.076), Vector2(0.013, 0.086),
+					Vector2(-0.013, 0.086)], "z": Vector2(0.176, 0.417)},
+			"handguard_short_top": {"points": [Vector2(-0.03, 0.076), Vector2(0.03, 0.076), Vector2(0.013, 0.086),
+					Vector2(-0.013, 0.086)], "z": Vector2(0.176, 0.35)},
+		},
 	},
 	"mp7": {
 		"profiles": {

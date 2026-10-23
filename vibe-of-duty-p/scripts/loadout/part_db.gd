@@ -5,11 +5,12 @@ extends RefCounted
 ## SLOTS order; anything invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into
 ## the native parts (sanitize), so the server never applies a build it did not check.
 
-const WEAPON_SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
+## "suppressor" is a card in the build editor (on / off), the first after the weapon (owner, 2026-10-23).
+const WEAPON_SLOTS: Array[String] = ["weapon", "suppressor", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo"]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
-const SLOTS: Array[String] = ["weapon", "caliber", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo", "hands",
+const SLOTS: Array[String] = ["weapon", "suppressor", "mag", "stock", "grip", "barrel", "muzzle", "sight", "ammo", "hands",
 		"head", "chest", "belly", "legs"]
-const SLOT_NAMES := {"weapon": "Оружие", "caliber": "Калибр", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
+const SLOT_NAMES := {"weapon": "Оружие", "suppressor": "Глушитель", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"barrel": "Ствол", "muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
 		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги"}
 const BUDGET := 10
@@ -90,7 +91,7 @@ static func price(part: PartDef) -> int:
 
 
 ## A valid build from anything: wrong or missing parts become native, so do modules of another weapon or whose
-## "requires" is not in the build; over budget, the whole build is native (with its weapon).
+## "requires" is not in the build, and the slot another part "excludes" (the AK's suppressor card: the muzzle); over budget, the whole build is native (with its weapon).
 ## Each id goes to its part's slot, so the order and missing slots do not matter (--build=pso,lead_heart).
 static func sanitize(parts: Variant) -> Array:
 	if not parts is Array:
@@ -105,6 +106,11 @@ static func sanitize(parts: Variant) -> Array:
 		var part := get_part(str(id))
 		if part != null and options(part.slot, clean[0]).has(part):
 			clean[SLOTS.find(part.slot)] = part.id
+	for i in SLOTS.size():
+		var part := get_part(clean[i])
+		if part != null and part.excludes != "":
+			var kept := options(part.excludes, clean[0])
+			clean[SLOTS.find(part.excludes)] = kept[0].id if not kept.is_empty() else ""
 	for i in SLOTS.size():
 		var part := get_part(clean[i])
 		if part != null and part.requires != "" and not clean.has(part.requires):
@@ -170,6 +176,7 @@ static func _build() -> void:
 			for module: Dictionary in WeaponDB.modules_for(def.id, slot):
 				var part := PartDef.make(module["id"], slot, module["cost"], module["name"], module["info"])
 				part.requires = module["requires"]
+				part.excludes = module["excludes"]
 				part.weapon = def.id
 				_parts.append(part)
 	_by_id.clear()

@@ -3,14 +3,20 @@ extends PanelContainer
 ## Builds, opened by the main menu's "Сборка" (Docs/LOADOUT.md): the BUILD_COUNT saved builds, one tab each; the open
 ## one is also the one played (Settings.build_index). Two columns: the weapon and its modules (weapons.cfg), the body.
 ## Each slot lists its parts (a module slot: the build weapon's; another weapon resets them to its base ones) with their token price; a part that would go over PartDB.BUDGET is refused, a module whose
-## "requires" is not in the build is greyed out (and falls back to the default when its requirement goes). Under the
-## weapon - its numbers with this build. Saved to user://builds.cfg on every change.
+## "requires" is not in the build is greyed out (and falls back to the default when its requirement goes). The
+## suppressor is a card, not a list (owner, 2026-10-23, as Black Ops 2's): pressed, its "on" module is in; pressed again,
+## out; a weapon without one hides it. A slot the build's parts "exclude" is locked at its default. Under the weapon - its
+## numbers with this build. Saved to user://builds.cfg on every change.
 
 signal closed
 
+const CARD_SLOT := "suppressor"
+
 var _tabs: Array[Button] = []
 var _name_edit := LineEdit.new()
-var _pickers := {}            # slot -> OptionButton
+var _pickers := {}            # slot -> OptionButton (all but the card's)
+var _card := Button.new()     # the suppressor card
+var _card_label := Label.new()
 var _tokens := Label.new()
 var _stats := Label.new()
 var _info := Label.new()
@@ -68,9 +74,17 @@ func _init() -> void:
 		grid.add_theme_constant_override("h_separation", 10)
 		column.add_child(grid)
 		for slot: String in slots:
-			var label := Label.new()
+			var label := Label.new() if slot != CARD_SLOT else _card_label
 			label.text = PartDB.SLOT_NAMES[slot]
 			grid.add_child(label)
+			if slot == CARD_SLOT:
+				_card.toggle_mode = true
+				_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_card.custom_minimum_size.y = 40
+				_card.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				_card.toggled.connect(func(on: bool) -> void: _on_part(CARD_SLOT, 1 if on else 0))
+				grid.add_child(_card)
+				continue
 			var picker := OptionButton.new()  # its items: _refresh (module slots list the build weapon's)
 			picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			picker.item_selected.connect(func(index: int) -> void: _on_part(slot, index))
@@ -115,7 +129,7 @@ func _on_part(slot: String, index: int) -> void:
 		for i in PartDB.WEAPON_SLOTS.size():
 			parts[i] = native[i]
 	parts[PartDB.SLOTS.find(slot)] = part.id
-	var fixed := PartDB.sanitize(parts)  # drops modules whose requirement just went (e.g. the drum with 5.45)
+	var fixed := PartDB.sanitize(parts)  # drops modules whose requirement just went (e.g. a magazine for another caliber)
 	if PartDB.cost(parts) > PartDB.BUDGET:
 		_note.text = "Не хватает токенов."
 		_refresh()  # back to the part it had
@@ -130,8 +144,23 @@ func _on_part(slot: String, index: int) -> void:
 func _refresh() -> void:
 	var parts: Array = Settings.builds[Settings.build_index]["parts"]
 	var lines: PackedStringArray = []
+	var locked := {}  # slots a part of the build excludes
+	for id in parts:
+		var part := PartDB.get_part(str(id))
+		if part != null and part.excludes != "":
+			locked[part.excludes] = true
+	var card_options := PartDB.options(CARD_SLOT, parts[0])
+	_card.visible = card_options.size() > 1
+	_card_label.visible = _card.visible
+	if _card.visible:
+		var on: PartDef = card_options[1]
+		_card.set_pressed_no_signal(parts.has(on.id))
+		_card.text = "%s %s  (%d)" % ["●" if _card.button_pressed else "○", on.display_name, PartDB.price(on)]
+		_card.tooltip_text = on.info
 	for i in PartDB.SLOTS.size():
 		var slot := PartDB.SLOTS[i]
+		if slot == CARD_SLOT:
+			continue
 		var picker: OptionButton = _pickers[slot]
 		var options := PartDB.options(slot, parts[0])
 		picker.clear()
@@ -139,7 +168,7 @@ func _refresh() -> void:
 			picker.add_item("%s  (%d)" % [part.display_name, PartDB.price(part)])
 		if options.is_empty():
 			picker.add_item("—")  # this weapon has no modules for the slot
-		picker.disabled = options.size() < 2
+		picker.disabled = options.size() < 2 or locked.has(slot)
 		for j in options.size():
 			picker.set_item_disabled(j, options[j].requires != "" and not parts.has(options[j].requires))
 			if options[j].id == parts[i]:
@@ -148,11 +177,10 @@ func _refresh() -> void:
 					lines.append("%s — %s" % [options[j].display_name, options[j].info])
 	_tokens.text = "Токены: %d / %d" % [PartDB.cost(parts), PartDB.BUDGET]
 	_info.text = "\n".join(lines) if not lines.is_empty() else "Родная туша: без органов и имплантов."
-	_stats.text = _weapon_stats(parts)
+	_stats.text = _weapon_stats(parts)  # lists the card's words too, when it is on (a module with a price)
 
 
-## The weapon's numbers with this build: its modules and the organs that touch it.
-## "450", or "450→1400 за 1.5 с" for a ramping rate.
+## "450", or "450→600 за 1.0 с" for a ramping rate.
 func _fire_rate_text(def: WeaponDef) -> String:
 	var text := "%.0f" % (60.0 / def.fire_interval)
 	if def.fire_ramp_time > 0.0 and def.fire_interval_ramped > 0.0:
@@ -160,6 +188,7 @@ func _fire_rate_text(def: WeaponDef) -> String:
 	return text
 
 
+## The weapon's numbers with this build: its modules and the organs that touch it.
 func _weapon_stats(parts: Array) -> String:
 	var def := WeaponDB.make_def(WeaponDB.index_of(parts[0]), PartDB.weapon_modules(parts))
 	var mods := PartDB.mods(parts)
