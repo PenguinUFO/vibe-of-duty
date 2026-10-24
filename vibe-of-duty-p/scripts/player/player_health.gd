@@ -92,7 +92,7 @@ func set_build(parts: Array) -> void:
 	for i in WeaponDB.count():
 		weapons.defs.append(WeaponDB.make_def(i, PartDB.weapon_modules(build)))
 	weapons.build_weapon = WeaponDB.index_of(build[0])
-	weapons.index = weapons.build_weapon  # a first spawn has no respawn (reset) to pick it
+	weapons.reset()  # the weapon, its magazine and reserve as built (a first spawn has no respawn to reset them)
 	_apply_stats()
 	health = mini(health, max_health)
 

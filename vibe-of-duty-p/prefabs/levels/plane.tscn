@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://prefabs/levels/plane_shell.tscn" id="5_shell"]
 [ext_resource type="Script" uid="uid://ctanygjum4bus" path="res://scripts/game/train_props.gd" id="6_props"]
 [ext_resource type="Script" path="res://scripts/game/level_mood.gd" id="7_mood"]
+[ext_resource type="Script" path="res://scripts/game/loose_cargo.gd" id="8_loose"]
+[ext_resource type="Script" path="res://scripts/game/plane_bank.gd" id="9_bank"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("3_sky")
@@ -73,187 +75,455 @@ directional_shadow_max_distance = 60.0
 
 [node name="Props" type="Node3D" parent="."]
 script = ExtResource("6_props")
-deck_splits = PackedFloat32Array(4.55)
+deck_splits = PackedFloat32Array(-0.15, 4.55)
 
-[node name="TruckChassis" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.5, -17.95)
+[node name="Truck" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 6.0
+
+[node name="TruckChassis" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, 0.5, -35.95)
 size = Vector3(2.4, 1, 7.5)
 color = Color(0.25, 0.24, 0.23, 1)
 
-[node name="TruckCab" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 1.7, -20.6)
+[node name="TruckCab" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, 1.7, -38.6)
 size = Vector3(2.2, 1.4, 2.2)
 color = Color(0.4, 0.41, 0.41, 1)
 
-[node name="TruckBed" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 1.75, -16.75)
+[node name="TruckBed" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, 1.75, -34.75)
 size = Vector3(2.4, 1.5, 5.1)
 color = Color(0.48, 0.44, 0.37, 1)
 
-[node name="Wheel" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.975, 0.475, -20.45)
+[node name="Wheel" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.975, 0.475, -38.45)
 size = Vector3(0.15, 0.95, 0.9)
 color = Color(0.25, 0.24, 0.23, 1)
 
-[node name="Wheel1" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.425, 0.475, -20.45)
+[node name="Wheel1" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.425, 0.475, -38.45)
 size = Vector3(0.15, 0.95, 0.9)
 color = Color(0.25, 0.24, 0.23, 1)
 
-[node name="Wheel2" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.975, 0.475, -16.35)
+[node name="Wheel2" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.975, 0.475, -34.35)
 size = Vector3(0.15, 0.95, 0.9)
 color = Color(0.25, 0.24, 0.23, 1)
 
-[node name="Wheel3" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.425, 0.475, -16.35)
+[node name="Wheel3" parent="Props/Truck" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.425, 0.475, -34.35)
 size = Vector3(0.15, 0.95, 0.9)
 color = Color(0.25, 0.24, 0.23, 1)
 
-[node name="Pallet" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9, 0.6, -7.5)
-size = Vector3(2, 1.2, 2)
+[node name="CrateA" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate" parent="Props/CrateA" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0.6, -38.4)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="Forklift" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 6.0
+
+[node name="ForkliftBody" parent="Props/Forklift" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.8, -25)
+size = Vector3(1.2, 1.6, 2)
+color = Color(0.55, 0.5, 0.38, 1)
+
+[node name="ForkliftMast" parent="Props/Forklift" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 1.2, -26.2)
+size = Vector3(1.2, 2.4, 0.4)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="PalletA" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 5.0
+
+[node name="Pallet" parent="Props/PalletA" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.6, -19.15)
+size = Vector3(1.8, 1.2, 1.7)
 color = Color(0.56, 0.47, 0.36, 1)
 
-[node name="Container" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 1.2, 0.5)
-size = Vector3(2.4, 2.4, 6)
+[node name="Tank" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 9.5
+
+[node name="TankTrack" parent="Props/Tank" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 0.45, -9.75)
+size = Vector3(0.7, 0.9, 6.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="TankTrack1" parent="Props/Tank" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.55, 0.45, -9.75)
+size = Vector3(0.7, 0.9, 6.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="TankHull" parent="Props/Tank" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, -9.75)
+size = Vector3(3.2, 1.1, 6.5)
+color = Color(0.38, 0.38, 0.35, 1)
+
+[node name="TankTurret" parent="Props/Tank" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, -9.5)
+size = Vector3(2.2, 0.7, 3)
+color = Color(0.38, 0.38, 0.35, 1)
+
+[node name="TankGun" parent="Props/Tank" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.825, -13.25)
+size = Vector3(0.16, 0.15, 4.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="ContainerB" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 8.0
+
+[node name="Container" parent="Props/ContainerB" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 1.2, -0.5)
+size = Vector3(2.6, 2.4, 6)
 color = Color(0.48, 0.31, 0.24, 1)
 
-[node name="CrateStack" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 0.9, 5.5)
-size = Vector3(1.8, 1.8, 2)
+[node name="CrateB" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate1" parent="Props/CrateB" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0.6, 1.4)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="Heli" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 7.0
+
+[node name="HeliCabin" parent="Props/Heli" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 12)
+size = Vector3(2.4, 2.3, 8)
+color = Color(0.44, 0.45, 0.44, 1)
+penetrable = true
+
+[node name="HeliNose" parent="Props/Heli" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 7.5)
+size = Vector3(2, 1.7, 1)
+color = Color(0.44, 0.45, 0.44, 1)
+penetrable = true
+
+[node name="HeliTail" parent="Props/Heli" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 19.25)
+size = Vector3(0.6, 0.6, 6.5)
+color = Color(0.44, 0.45, 0.44, 1)
+penetrable = true
+
+[node name="HeliHub" parent="Props/Heli" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 11.5)
+size = Vector3(0.6, 0.4, 1)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="HeliBlades" parent="Props/Heli" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.95, 14)
+size = Vector3(0.3, 0.1, 16)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="CrateC" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate2" parent="Props/CrateC" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 0.5, 6.6)
+size = Vector3(1.2, 1, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="Tanker" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 6.0
+
+[node name="FuelTank" parent="Props/Tanker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 1.3, 32)
+size = Vector3(2.4, 2, 8)
+color = Color(0.5, 0.49, 0.46, 1)
+
+[node name="TrailerFrame" parent="Props/Tanker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.15, 32)
+size = Vector3(2.2, 0.3, 9)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="PalletD" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 5.0
+
+[node name="Pallet1" parent="Props/PalletD" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6, 0.65, 35)
+size = Vector3(2, 1.3, 2)
 color = Color(0.56, 0.47, 0.36, 1)
 
-[node name="Crate" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.5, 6.5)
-size = Vector3(1, 1, 1)
-color = Color(0.56, 0.47, 0.36, 1)
-
-[node name="Bench" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.025, 0.225, 9)
-size = Vector3(0.35, 0.45, 3)
-color = Color(0.42, 0.42, 0.41, 1)
-
-[node name="Pallet1" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.65, 12.5)
-size = Vector3(1.8, 1.3, 2)
-color = Color(0.56, 0.47, 0.36, 1)
-
-[node name="Crate1" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 1.7, 12.4)
+[node name="Crate3" parent="Props/PalletD" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.8, 1.7, 34.9)
 size = Vector3(1.2, 0.8, 1.2)
 color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
 
-[node name="Crate2" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.45, 14.5)
-size = Vector3(1.2, 0.9, 1)
+[node name="CrateD" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate4" parent="Props/CrateD" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.9, 0.45, 37.5)
+size = Vector3(1, 0.9, 1)
 color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="BladderFront" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 8.5
+
+[node name="Bladder" parent="Props/BladderFront" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, -2.55, -30)
+size = Vector3(2.5, 0.9, 6)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="BladderMid" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 8.5
+
+[node name="Bladder1" parent="Props/BladderMid" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, -2.55, -5)
+size = Vector3(2.5, 0.9, 6)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="CrateBelly" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate5" parent="Props/CrateBelly" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, -2.4, -19.4)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="ReelFront" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 3.5
+
+[node name="Reel" parent="Props/ReelFront" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, -2.5, 4.5)
+size = Vector3(1, 1, 1)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="ReelAft" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 3.5
+
+[node name="Reel1" parent="Props/ReelAft" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, -2.5, 20.5)
+size = Vector3(1, 1, 1)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="CrateBelly1" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate6" parent="Props/CrateBelly1" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, -2.5, 24.6)
+size = Vector3(1.2, 1, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="CrateBelly2" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate7" parent="Props/CrateBelly2" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9, -2.3, 30.7)
+size = Vector3(1.4, 1.4, 1.4)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
 
 [node name="Console" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.15, -29.6)
-size = Vector3(6, 0.9, 0.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.15, -49.6)
+size = Vector3(8, 0.9, 0.8)
 color = Color(0.25, 0.24, 0.23, 1)
 
 [node name="PilotSeat" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 5.3, -28.05)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 5.3, -48.05)
 size = Vector3(0.8, 1.2, 0.7)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="PilotSeat1" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 5.3, -28.05)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 5.3, -48.05)
 size = Vector3(0.8, 1.2, 0.7)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="EngineerDesk" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 5.1, -26.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.7, 5.1, -46.25)
+size = Vector3(1, 0.8, 1.5)
+color = Color(0.25, 0.24, 0.23, 1)
+
+[node name="NavigatorDesk" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7, 5.1, -46.25)
 size = Vector3(1, 0.8, 1.5)
 color = Color(0.25, 0.24, 0.23, 1)
 
 [node name="Seat" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -22.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 5.2, -42.75)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Seat1" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -21.65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 5.2, -41.45)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Seat2" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -22.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 5.2, -40.15)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Seat3" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -21.65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 5.2, -38.85)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Seat4" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -20.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 5.2, -42.75)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Seat5" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -19.05)
-size = Vector3(2, 1, 0.5)
-color = Color(0.36, 0.33, 0.29, 1)
-
-[node name="Seat6" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.2, -16.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 5.2, -41.45)
 size = Vector3(2, 1, 0.5)
 color = Color(0.36, 0.33, 0.29, 1)
 
 [node name="Table" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.1, -15.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.1, -24.25)
 size = Vector3(1, 0.8, 1.5)
 color = Color(0.42, 0.42, 0.41, 1)
 
-[node name="Seat7" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -8.75)
-size = Vector3(2, 1, 0.5)
+[node name="Bunk" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 5.2, -18)
+size = Vector3(1.2, 1, 2)
 color = Color(0.36, 0.33, 0.29, 1)
 
-[node name="Seat8" parent="Props" instance=ExtResource("2_block")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 5.2, -7.45)
-size = Vector3(2, 1, 0.5)
+[node name="Bunk1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 5.2, -14)
+size = Vector3(1.2, 1, 2)
 color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="Galley" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 5.2, -1.5)
+size = Vector3(1.2, 1, 5)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="Table1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.1, -2.25)
+size = Vector3(1.2, 0.8, 1.5)
+color = Color(0.42, 0.42, 0.41, 1)
+
+[node name="Lockers" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.9, 5.7, 2)
+size = Vector3(0.6, 2, 4)
+color = Color(0.4, 0.41, 0.41, 1)
+
+[node name="TroopSeat" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 5.2, 7.5)
+size = Vector3(1.4, 1, 3)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="TroopSeat1" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 5.2, 21.5)
+size = Vector3(1.4, 1, 3)
+color = Color(0.36, 0.33, 0.29, 1)
+
+[node name="CrateTroop" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate8" parent="Props/CrateTroop" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 5.3, 28.25)
+size = Vector3(1.5, 1.2, 1.5)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
+
+[node name="CrateTroop1" type="Node3D" parent="Props"]
+script = ExtResource("8_loose")
+grip = 4.5
+
+[node name="Crate9" parent="Props/CrateTroop1" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 5.15, 27.6)
+size = Vector3(1.2, 0.9, 1.2)
+color = Color(0.56, 0.47, 0.36, 1)
+penetrable = true
 
 [node name="SpawnPoints" type="Node3D" parent="."]
 
 [node name="SpawnCockpit" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0, 4.75, -26.5)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0, 4.75, -46.5)
 
-[node name="SpawnCabin" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.5, 4.75, -5.5)
+[node name="SpawnCrew" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.5, 4.75, -21)
+
+[node name="SpawnRestRoom" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.5, 4.75, -8)
+
+[node name="SpawnTroopFront" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 2.5, 4.75, 7)
+
+[node name="SpawnTroopAft" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.5, 4.75, 25.0)
 
 [node name="SpawnHoldFront" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0.6, 0.05, -20.5)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0.2, 0.05, -31.0)
 
-[node name="SpawnUnderStairs" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.5, 0.05, -17.5)
+[node name="SpawnForklift" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 1.5, 0.05, -21)
+
+[node name="SpawnTank" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0.0, 0.05, -5.0)
 
 [node name="SpawnContainer" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, -2, 0.05, 5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.5, 0.05, 3.5)
+
+[node name="SpawnHeli" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 2.0, 0.05, 23.5)
+
+[node name="SpawnTanker" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 2.5, 0.05, 27)
 
 [node name="SpawnRamp" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.5, 0.05, 16.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.5, 0.05, 41)
+
+[node name="SpawnBellyFront" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 0, -2.95, -34)
+
+[node name="SpawnBellyMid" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -2.95, 2)
+
+[node name="SpawnBellyAft" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -2.95, 34)
 
 [node name="Scenery" type="Node3D" parent="."]
 script = ExtResource("4_scenery")
 speed = 70.0
 sea_depth = 700.0
+view_far = 700.0
 puffs = 50
 puff_color = Color(0.9, 0.9, 0.9, 1)
-puff_clear = 30.0
-puff_reach = 400.0
+puff_clear = 55.0
+puff_reach = 450.0
 puff_y = Vector2(-70, 25)
 puff_size = Vector2(10, 35)
 
 [node name="LevelMood" type="Node" parent="."]
 script = ExtResource("7_mood")
 values = {"sun_elevation": 40.0, "sun_energy": 2.4, "sun_color": Color(1, 0.96, 0.9, 1), "ambient_energy": 1.0, "ambient_color": Color(0.6, 0.65, 0.72, 1), "fog_density": 0.0015, "fog_color": Color(0.66, 0.71, 0.78, 1), "fog_sky_affect": 0.0, "saturation": 0.8, "contrast": 1.12, "sky": {"zenith_color": Color(0.2, 0.32, 0.48, 1), "horizon_color": Color(0.66, 0.71, 0.77, 1), "ground_color": Color(0.3, 0.35, 0.42, 1), "cloud_coverage": 0.3, "cloud_light": Color(0.95, 0.95, 0.94, 1), "cloud_shadow": Color(0.55, 0.6, 0.68, 1), "sun_glow": 0.45, "sun_glow_size": 10.0, "horizon_curve": 0.3}}
+
+[node name="Bank" type="Node3D" parent="."]
+script = ExtResource("9_bank")
 
 [node name="Players" type="Node3D" parent="."]
 

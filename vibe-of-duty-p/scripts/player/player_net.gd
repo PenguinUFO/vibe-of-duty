@@ -65,7 +65,8 @@ func _send_delayed(entries: Array) -> void:
 
 @rpc("any_peer", "unreliable_ordered")
 func submit_cmds(entries: Array) -> void:
-	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != peer_id:
+	# Out of the tree: the level is being left (Lobby) and cmds still arrive for a moment.
+	if not is_inside_tree() or not multiplayer.is_server() or multiplayer.get_remote_sender_id() != peer_id:
 		return
 	if control != Mode.REMOTE_SERVER or entries.size() > CMD_REDUNDANCY:
 		return

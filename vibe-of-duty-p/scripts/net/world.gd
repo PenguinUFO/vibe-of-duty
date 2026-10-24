@@ -282,15 +282,23 @@ func _server_set_toughness(id: int, t: Vector3) -> void:
 		_player_toughness.rpc_id(peer, id, t)
 
 
-## Server: the name a joining player gets: as sent, or with "_2", "_3"... when someone here already has it (any
-## letter case), shortened to fit the 24 characters of the name field.
+## Server: the name a joining player gets (unique_name among those here).
 func _unique_name(wanted: String) -> String:
+	var names: Array = []
+	for other_id in players:
+		names.append((players[other_id] as Player).player_name)
+	return unique_name(wanted, names)
+
+
+## The name as sent, or with "_2", "_3"... when one of `names` already is it (any letter case), shortened to fit the
+## 24 characters of the name field. Also the lobby's (Lobby).
+static func unique_name(wanted: String, names: Array) -> String:
 	var base := wanted.strip_edges().left(NAME_MAX)
 	if base == "":
 		base = "Игрок"
 	var taken := {}
-	for other_id in players:
-		taken[(players[other_id] as Player).player_name.to_lower()] = true
+	for other_name in names:
+		taken[str(other_name).to_lower()] = true
 	if not taken.has(base.to_lower()):
 		return base
 	var n := 2
@@ -461,7 +469,10 @@ func _server_match_clock(delta: float) -> void:
 	elif Game.state == Game.State.ENDED:
 		Game.intermission_left = maxf(Game.intermission_left - delta, 0.0)
 		if Game.intermission_left <= 0.0:
-			_server_start_match()
+			if Lobby.enabled():
+				_server_to_lobby()
+			else:
+				_server_start_match()
 	if server_tick % 60 == 0:
 		_broadcast_match()  # once a second: clients count down locally in between
 
@@ -475,6 +486,16 @@ func _server_end_match(reason: String) -> void:
 		print("[MATCH] ended (%s) winners=%s scores=%s" % [reason, str(Game.winners), str(Game.scores)])
 	_broadcast_match()
 	_apply_match_state()
+
+
+## Server: the intermission is over - everybody to the lobby to vote for the next map (Lobby); this level is left.
+func _server_to_lobby() -> void:
+	if Game.state != Game.State.ENDED:
+		return
+	var names := {}
+	for id in players:
+		names[id] = (players[id] as Player).player_name
+	Lobby.server_open_vote(names)
 
 
 func _server_start_match() -> void:

@@ -146,7 +146,8 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	_arms.ledge_weight = _mantle_view
 
 	_camera.position = bob + Vector3(0.0, _cam_land - 0.04 * _mantle_view, 0.0)
-	_camera.rotation = Vector3(_punch.x - 0.12 * _mantle_view, 0.0, _cam_roll + _punch.y + 0.004 * sway)
+	_camera.rotation = Vector3(_punch.x - 0.12 * _mantle_view, 0.0,
+			_cam_roll + _punch.y + 0.004 * sway + PlaneBank.view_roll)  # the plane's bank (zero elsewhere)
 
 
 func _update_viewmodel(delta: float, speed: float) -> void:

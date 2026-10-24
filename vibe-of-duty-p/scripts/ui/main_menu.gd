@@ -1,5 +1,5 @@
 extends Control
-## Main menu: host a game (HostPanel: map, rules, port), join one (JoinPanel: address or a recent server; the server
+## Main menu: host a game (HostPanel: map, rules, port; then the lobby until the host starts), join one (JoinPanel: address or a recent server; the server
 ## sends its map and rules), train alone (TrainingPanel: the training maps), edit builds (BuildPanel), or quit.
 
 const MENU_LEFT := 96.0  # the column's left edge (as in the scene)
@@ -113,7 +113,10 @@ func _start_server() -> void:
 	if err != OK:
 		_status.text = "Не удалось создать игру на порту %d: %s" % [Game.launch_port, error_string(err)]
 		return
-	_start_game()
+	if Lobby.enabled():
+		Lobby.server_open_waiting()  # the match starts when the host presses Start there
+	else:
+		_start_game()
 
 
 func _on_join() -> void:
@@ -189,8 +192,9 @@ func _set_buttons_disabled(disabled: bool) -> void:
 	_training_button.disabled = disabled
 
 
+## The map, or the lobby when the server is in it (Net._receive_map).
 func _start_game() -> void:
-	get_tree().change_scene_to_file(Game.map_scene)
+	get_tree().change_scene_to_file(Lobby.SCENE if Lobby.phase != Lobby.Phase.NONE else Game.map_scene)
 
 
 func _open_settings() -> void:

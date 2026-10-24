@@ -18,7 +18,7 @@ const GAME_TITLE := "Press F to Хрючево"
 const GAME_FONT := UiTheme.GAME_FONT
 const BUS_NAMES: Array[StringName] = [&"Master", &"SFX", &"Music", &"UI"]
 # Index = Settings.shadow_quality: off / medium / high.
-const SHADOW_ATLAS_SIZES := [1024, 1024, 2048]
+const SHADOW_ATLAS_SIZES := [1024, 2048, 4096]
 const SHADOW_MAX_DISTANCES := [0.0, 40.0, 70.0]
 const WINDOW_SIZES: Array[Vector2i] = [
 	Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1600, 900), Vector2i(1920, 1080),
@@ -60,7 +60,7 @@ var builds: Array = []   # BUILD_COUNT x {"name": String, "parts": Array (PartDB
 var build_index := 0     # the build played (sent on join, changed with BuildPicker)
 
 var antialiasing := 1    # 0 = off, 1 = FXAA
-var shadow_quality := 2  # 0 = off, 1 = medium (1024 px, 40 m), 2 = high (2048 px, 70 m)
+var shadow_quality := 2  # 0 = off, 1 = medium (2048 px, 40 m), 2 = high (4096 px, 70 m)
 var render_scale := 1.0  # 3D resolution scale; below 1.0 uses FSR 1
 var vsync := true
 var psx_style := true    # PSX look: a darker mood (Mood) and the colour dither over the 3D frame (_psx_layer)
@@ -307,11 +307,14 @@ func apply_display() -> void:
 	DisplayServer.window_set_position(area.position + (area.size - window_size) / 2)
 
 
-## Gives a level's directional light the shadow settings of the chosen quality.
+## Gives a level's directional light the shadow settings of the chosen quality. Always 4 cascades: with 2 (the levels'
+## own setting) the far one is coarse, and 20-50 m off the low sun's shadow edges went to steps and light leaked under
+## roofs and along walls (owner's screenshots, the train, the plane, the tower; no cost measured on shot_level).
 func apply_sun(light: DirectionalLight3D) -> void:
 	light.shadow_enabled = shadow_quality > 0
 	if shadow_quality > 0:
 		light.directional_shadow_max_distance = SHADOW_MAX_DISTANCES[shadow_quality]
+		light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 
 
 ## The build to play: the picked saved one; in test launches --build=... or the native build (tests never depend on

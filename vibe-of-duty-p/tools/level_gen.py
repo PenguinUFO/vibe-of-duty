@@ -57,7 +57,7 @@ class Level:
         rows = tuple(tuple(sum(rz[i][k] * rx[k][j] for k in range(3)) for j in range(3)) for i in range(3))
         self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks), False))
 
-    def slab(self, name, rects, holes, y0, y1, color):
+    def slab(self, name, rects, holes, y0, y1, color, decks=None):
         """A floor over rects [(x0, x1, z0, z1)] (not overlapping) with rectangular holes [(x0, x1, z0, z1)]."""
         for rx0, rx1, rz0, rz1 in rects:
             xs = sorted({rx0, rx1} | {v for h in holes for v in h[:2] if rx0 < v < rx1})
@@ -67,10 +67,10 @@ class Level:
                 z = rz0
                 for za, zb in cuts:
                     if za > z:
-                        self.box(name, xa, xb, y0, y1, z, za, color)
+                        self.box(name, xa, xb, y0, y1, z, za, color, decks)
                     z = max(z, zb)
                 if z < rz1:
-                    self.box(name, xa, xb, y0, y1, z, rz1, color)
+                    self.box(name, xa, xb, y0, y1, z, rz1, color, decks)
 
     def ramp(self, name, x0, x1, y_low, y_high, z_low, z_high, color, thick=0.25):
         """Stairs as a ramp from (y_low at z_low) up to (y_high at z_high); its top surface meets both floors."""

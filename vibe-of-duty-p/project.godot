@@ -23,6 +23,7 @@ Settings="*res://scripts/autoload/settings.gd"
 Audio="*res://scripts/autoload/audio.gd"
 Net="*res://scripts/autoload/net.gd"
 Game="*res://scripts/autoload/game.gd"
+Lobby="*res://scripts/autoload/lobby.gd"
 
 [display]
 

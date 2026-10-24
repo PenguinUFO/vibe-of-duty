@@ -167,8 +167,9 @@ func _update_labels() -> void:
 		var names: PackedStringArray = []
 		for id in Game.winners:
 			names.append(_player_name(id))
-		_banner.text = "МАТЧ ОКОНЧЕН\n%s %s\nСледующий матч через %d" % [", ".join(names) if not names.is_empty() else "Никто не",
-				"побеждает" if names.size() <= 1 else "побеждают", ceili(Game.intermission_left)]
+		_banner.text = "МАТЧ ОКОНЧЕН\n%s %s\n%s через %d" % [", ".join(names) if not names.is_empty() else "Никто не",
+				"побеждает" if names.size() <= 1 else "побеждают", "Лобби" if Lobby.enabled() else "Следующий матч",
+				ceili(Game.intermission_left)]
 
 
 func _rebuild_board() -> void:

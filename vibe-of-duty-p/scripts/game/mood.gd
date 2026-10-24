@@ -85,6 +85,8 @@ static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bo
 		sun.light_energy = own.get("sun_energy", SUN_ENERGY) if on else sun_base["light_energy"]
 		sun.light_color = own.get("sun_color", SUN_COLOR) if on else sun_base["light_color"]
 		sun.basis = _low_sun(sun_base["basis"], own.get("sun_elevation", SUN_ELEVATION)) if on else sun_base["basis"]
+	if level != null:
+		level.set_meta(&"mood_on", on)  # read by _build_lamps_later (not Settings: tools run without the autoloads)
 	if level != null and DisplayServer.get_name() != "headless":
 		var lamps := level.get_node_or_null(LAMPS_NODE)
 		if lamps != null:
@@ -109,7 +111,7 @@ static func _low_sun(basis: Basis, elevation: float) -> Basis:
 ## after load. Skipped if the style was turned off (or the lamps built) meanwhile.
 static func _build_lamps_later(level: Node) -> void:
 	await level.get_tree().physics_frame
-	if is_instance_valid(level) and level.is_inside_tree() and Settings.psx_style and \
+	if is_instance_valid(level) and level.is_inside_tree() and level.get_meta(&"mood_on", false) and \
 			level.get_node_or_null(LAMPS_NODE) == null:
 		_build_lamps(level)
 

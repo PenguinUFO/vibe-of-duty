@@ -7,7 +7,7 @@ const TRAINING_PORT := 27120
 
 signal hosted
 signal connected_to_server
-signal map_received(path: String)  # client: the server told us its map and rules; load the map and join
+signal map_received(path: String)  # client: the server told us its map and rules; load the map (or the lobby) and join
 signal connection_failed
 signal disconnected
 signal peer_joined(id: int)
@@ -31,11 +31,11 @@ func _on_peer_connected(id: int) -> void:
 		# The newcomer takes our map, match rules and weapon balance (weapons.cfg), loads the map, then reports ready
 		# to NetWorld.
 		_receive_map.rpc_id(id, Game.map_scene, {"score_limit": Game.score_limit, "match_time": Game.match_time,
-				"random_weapons": Game.random_weapons, "weapons": WeaponDB.config_text})
+				"random_weapons": Game.random_weapons, "weapons": WeaponDB.config_text, "lobby": Lobby.phase})
 	peer_joined.emit(id)
 
 
-## Client: which map the server plays, and its match rules. Only maps this build has are accepted (never load an
+## Client: which map the server plays (or that it is in the lobby: then the lobby is loaded instead), and its match rules. Only maps this build has are accepted (never load an
 ## arbitrary path).
 @rpc("authority", "reliable")
 func _receive_map(path: String, rules: Dictionary) -> void:
@@ -47,6 +47,7 @@ func _receive_map(path: String, rules: Dictionary) -> void:
 	Game.score_limit = int(rules.get("score_limit", Game.SCORE_LIMIT))
 	Game.match_time = float(rules.get("match_time", Game.MATCH_TIME))
 	Game.random_weapons = bool(rules.get("random_weapons", false))
+	Lobby.phase = int(rules.get("lobby", Lobby.Phase.NONE)) as Lobby.Phase
 	# The server's weapon numbers and modules: prediction must match its simulation (back to ours on leave()).
 	if not WeaponDB.load_text(str(rules.get("weapons", ""))):
 		push_error("Server sent no usable weapons.cfg")

@@ -1,42 +1,49 @@
 extends SceneTree
 ## Renders a map (SHOT_MAP, default the train) from a few views to ../shots/level_<view>.png and prints the GPU time of each view
-## (vsync off, 1080p). Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
+## (vsync off, 1080p); SHOT_MOOD=1 - in the PSX style's lighting (Mood, without its dither); SHOT_BANK=s - the plane's
+## bank and cargo as at that time.
+## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
 
-const VIEWS := {"train": {  # train.tscn (cars along z, 20 m each: A from -42.1, B -20.7, C 0.7, D 22.1)
-	"a_lower": [Vector3(0.3, 1.65, -40.0), Vector3(0.0, 1.2, -28.0)],
-	"a_upper": [Vector3(-0.5, 4.95, -24.0), Vector3(0.5, 4.6, -36.0)],
-	"b_lower": [Vector3(-1.0, 1.65, -19.5), Vector3(0.5, 1.0, -8.0)],
-	"b_upper": [Vector3(0.0, 4.95, -19.0), Vector3(0.0, 4.6, -6.0)],
-	"cargo": [Vector3(2.0, 4.95, 2.0), Vector3(-1.0, 1.0, 14.0)],
-	"d_upper": [Vector3(-2.0, 4.95, 39.0), Vector3(1.5, 4.6, 28.0)],
-	"outside": [Vector3(16.0, 3.5, -20.0), Vector3(0.0, 2.5, 0.0)],
-	"window": [Vector3(0.5, 1.65, 31.0), Vector3(12.0, 0.5, 30.0)],
-	"axis_up": [Vector3(0.0, 4.95, 21.8), Vector3(0.0, 4.6, -40.0)],  # from D's upper front door back along the train
-	"axis_low": [Vector3(0.0, 1.65, -0.5), Vector3(0.0, 1.2, -40.0)],  # from C's lower front door into B and A
-	"bot": [Vector3(0.0, 1.65, -24.0), Vector3(0.5, 1.0, -38.0)],  # readability of a player at ~14 m (Bot0)
-}, "plane": {  # plane.tscn: hold z -22 .. 18, ramp to 22; upper deck (y 4.7) z -30 .. -4
-	"hold_fwd": [Vector3(0.0, 1.65, 16.0), Vector3(0.0, 1.2, -20.0)],
-	"hold_aft": [Vector3(0.5, 1.65, -12.0), Vector3(0.0, 1.0, 22.0)],
-	"ramp": [Vector3(1.5, 1.65, 19.0), Vector3(-3.0, -5.0, 60.0)],
-	"door": [Vector3(0.0, 1.65, 7.0), Vector3(4.0, 1.0, 11.0)],
-	"deck": [Vector3(0.0, 6.35, -6.0), Vector3(0.0, 5.5, -28.0)],
-	"cockpit": [Vector3(0.0, 6.35, -26.0), Vector3(0.0, 5.6, -40.0)],
-	"outside": [Vector3(30.0, 12.0, 30.0), Vector3(0.0, 3.0, -5.0)],
-}, "tower": {  # tower.tscn: 30 x 30 m, floors at y 0, 4, 8; the core x -4 .. 4, z -6 .. 2
+const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5, 25.5), ramp to 44; deck y 4.7 z -50 .. 30; belly y -3
+	"hold_fwd": [Vector3(0.5, 1.65, -38.0), Vector3(0.0, 1.2, -16.0)],
+	"tank": [Vector3(-3.0, 1.65, -3.0), Vector3(0.0, 1.0, -14.0)],
+	"heli": [Vector3(-2.0, 1.65, 6.0), Vector3(0.5, 1.5, 20.0)],
+	"hold_aft": [Vector3(2.5, 1.65, 27.0), Vector3(0.0, 1.0, 44.0)],
+	"ramp": [Vector3(1.5, 1.65, 41.0), Vector3(-3.0, -5.0, 82.0)],
+	"belly": [Vector3(0.0, -1.35, -34.0), Vector3(0.0, -1.6, -12.0)],
+	"deck": [Vector3(0.0, 6.35, -21.0), Vector3(0.0, 5.5, -44.0)],
+	"deck_long": [Vector3(0.0, 6.35, 28.0), Vector3(0.0, 5.5, -50.0)],  # 78 m along the upper deck: past the shadows' reach?
+	"troop": [Vector3(0.0, 6.35, 6.0), Vector3(0.0, 5.5, 29.0)],
+	"cockpit": [Vector3(0.0, 6.35, -46.0), Vector3(0.0, 5.6, -60.0)],
+	"outside": [Vector3(50.0, 18.0, 50.0), Vector3(0.0, 3.0, -5.0)],
+}, "train": {  # train.tscn: A -84.9, B -63.5, C -42.1, E -20.7, F 0.7, G 22.1, D 43.5, H 64.9 (+20 each)
+	"e_hall": [Vector3(1.5, 1.65, -19.0), Vector3(-0.5, 3.0, -4.0)],
+	"e_gallery": [Vector3(2.2, 4.95, -18.5), Vector3(-2.0, 3.5, -3.0)],
+	"f_ring": [Vector3(2.2, 4.95, 1.8), Vector3(-1.5, 2.5, 18.0)],
+	"g_low": [Vector3(0.5, 1.65, 23.0), Vector3(0.0, 1.5, 40.0)],
+	"h_upper": [Vector3(0.0, 4.95, 66.5), Vector3(0.0, 4.6, 84.0)],
+	"balcony": [Vector3(1.0, 1.65, 82.0), Vector3(0.0, 1.0, 100.0)],
+	"outside": [Vector3(18.0, 5.0, 0.0), Vector3(0.0, 2.5, 20.0)],
+	"axis_up": [Vector3(0.0, 4.95, 63.4), Vector3(0.0, 4.6, -80.0)],
+	"from_c": [Vector3(0.0, 5.0, -23.0), Vector3(0.0, 3.0, -100.0)],  # from C's landing to the front: B and A far off
+}, "tower": {  # tower.tscn: the first tower (x -15 .. 15) and the east wing (x 15 .. 45; the strip 15 .. 21 open)
 	"l0_front": [Vector3(12.0, 1.65, 13.0), Vector3(-5.0, 2.0, -5.0)],
-	"l0_back": [Vector3(12.0, 1.65, -2.0), Vector3(-12.0, 1.0, -12.0)],
-	"l1": [Vector3(12.0, 5.65, 1.0), Vector3(-10.0, 6.0, -12.0)],
-	"l2": [Vector3(-2.0, 9.65, -13.0), Vector3(20.0, 6.0, 20.0)],
-	"edge": [Vector3(0.0, 1.65, 13.0), Vector3(0.0, -20.0, 80.0)],
-	"shaft": [Vector3(6.0, 1.65, -3.9), Vector3(2.0, -5.0, -3.9)],
-	"crane": [Vector3(10.0, 2.0, 10.0), Vector3(-11.0, 30.0, -11.0)],
-	"outside": [Vector3(40.0, 15.0, 40.0), Vector3(0.0, 3.0, 0.0)],
+	"east_l0": [Vector3(43.0, 1.65, 13.0), Vector3(25.0, 1.5, -10.0)],
+	"far_under": [Vector3(44.0, 5.65, 14.0), Vector3(-14.0, 1.0, -14.0)],  # the west half under L1, ~65 m off
+	"strip": [Vector3(18.0, 1.65, 13.5), Vector3(18.0, 3.0, -14.0)],
+	"east_l1": [Vector3(43.0, 5.65, 13.0), Vector3(22.0, 5.5, -12.0)],
+	"bridge": [Vector3(10.0, 5.65, -11.2), Vector3(30.0, 5.5, -11.2)],
+	"east_l2": [Vector3(44.0, 9.65, -14.0), Vector3(28.0, 8.0, 5.0)],
+	"hoist": [Vector3(30.0, 10.0, 0.0), Vector3(46.0, 17.0, 0.0)],
+	"far_towers": [Vector3(-17.0, 9.65, -17.0), Vector3(-140.0, -230.0, -220.0)],  # no cut ends: they sink in the clouds
+	"edge_down": [Vector3(46.5, 5.65, 6.0), Vector3(60.0, -300.0, 0.0)],  # straight down past the hoist and the body
+	"outside": [Vector3(75.0, 20.0, 40.0), Vector3(15.0, 3.0, 0.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
-	"train": [Vector3(0.5, 0.05, -38), Vector3(-0.5, 3.35, -18), Vector3(-1.0, 0.05, 2.0)],
-	"plane": [Vector3(0.5, 0.05, -10), Vector3(-0.5, 4.75, -18), Vector3(1.0, 0.05, 12)],
-	"tower": [Vector3(5.0, 0.05, 5.0), Vector3(-6.0, 4.05, -8.0), Vector3(-9.0, 8.05, -10.0)],
+	"plane": [Vector3(0.5, 0.05, -30), Vector3(-0.5, 4.75, -30), Vector3(0.0, -2.95, -20)],
+	"train": [Vector3(0.5, 0.05, -81.0), Vector3(2.0, 3.35, -14.0), Vector3(2.2, 0.05, 4.0)],
+	"tower": [Vector3(25.0, 0.05, 5.0), Vector3(35.0, 4.05, -5.0), Vector3(40.0, 8.05, -12.0)],
 }
 const FRAMES := 120
 
@@ -72,6 +79,7 @@ func _initialize() -> void:
 		world.hud.visible = false
 	var cam := Camera3D.new()
 	cam.fov = 75
+	cam.far = 300.0  # as the player's camera (prefabs/player/player.tscn); a level's SkyScenery may push it out
 	level.add_child(cam)
 	cam.current = true
 	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
@@ -82,8 +90,31 @@ func _initialize() -> void:
 		var node := level.get_node_or_null(hide) as Node3D
 		if node:
 			node.visible = false
+	var sun := level.get_node("Sun") as DirectionalLight3D  # shadows as Settings.apply_sun gives them at high quality
+	sun.directional_shadow_max_distance = 70.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	RenderingServer.directional_shadow_atlas_set_size(4096, true)
+	var shadow := OS.get_environment("SHOT_SHADOW").split(",", false)  # experiments: splits (2/4), distance, atlas px, blur
+	if shadow.size() == 4:
+		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if shadow[0] == "4" 				else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+		sun.directional_shadow_max_distance = float(shadow[1])
+		RenderingServer.directional_shadow_atlas_set_size(int(shadow[2]), true)
+		sun.shadow_blur = float(shadow[3])
+	if OS.has_environment("SHOT_MOOD"):  # the PSX style's lighting (Mood; the dither post-process is not applied)
+		Mood.apply(level, (level.get_node("WorldEnvironment") as WorldEnvironment).environment,
+				level.get_node("Sun") as DirectionalLight3D, true)
+		for i in 3:
+			await physics_frame
+	var bank = level.get_node_or_null("Bank")  # PlaneBank, untyped: naming its class would compile it before the autoloads
+	if bank and OS.has_environment("SHOT_BANK"):  # the plane's schedule read at this time (s): its bank, the cargo
+		bank.time_override = float(OS.get_environment("SHOT_BANK"))
+		for i in 3:
+			await physics_frame
 	var scenery := level.get_node_or_null("Scenery")
+	var only := OS.get_environment("SHOT_VIEWS").split(",", false)  # just these views
 	for view in views:
+		if not only.is_empty() and not only.has(view):
+			continue
 		if scenery is TrainScenery and OS.has_environment("SHOT_TUNNEL"):  # a tunnel coming over the train: its centre at z -40 now
 			var now: float = scenery._world.shared_time() if scenery._world else Time.get_ticks_usec() / 1e6
 			scenery._tunnel_start = now - (-40.0 - scenery.TUNNEL_START) / scenery.speed
@@ -91,6 +122,9 @@ func _initialize() -> void:
 		cam.look_at_from_position(views[view][0], views[view][1])
 		for i in 30:
 			await process_frame
+		if bank:  # the player's camera leans with the bank
+			cam.look_at_from_position(views[view][0], views[view][1])
+			cam.rotate_object_local(Vector3.BACK, bank.lean())
 		var gpu := 0.0
 		for i in FRAMES:
 			await process_frame

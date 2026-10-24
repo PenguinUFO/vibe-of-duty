@@ -7,6 +7,11 @@ extends Node3D
 ##   map "runs" towards -Z). The sky's sea scrolls to match, as if it lay `sea_depth` m below.
 ## - Beacons: every Marker3D under a node named Beacons in the level gets a small glowing light with a halo, blinking
 ##   (the warning lights on the tops of the far towers).
+## - view_far: the cameras see this far here (the player's camera stops at 300 m - enough for the train's forest; the
+##   far towers stand 300-450 m off and were cut by the far plane where the camera moved).
+## - sink: blocks named sink_names* (the far towers, the tower's own body) fade out downwards between these heights
+##   (assets/shaders/sink_fade.gdshader) - they sink into the sea of clouds instead of showing their ends against it
+##   (the sea is painted on the sky).
 
 @export var speed := 0.0               # m/s the clouds move along +Z (the plane's speed; the tower: a slow wind)
 @export var sea_depth := 400.0         # m: how far below the sky's sea of clouds seems to lie (its scroll speed)
@@ -18,6 +23,9 @@ extends Node3D
 @export var puff_size := Vector2(12.0, 40.0)  # radius range of a puff
 @export var beacon_period := 2.0       # s per blink
 @export var beacon_color := Color(1.0, 0.62, 0.35)
+@export var view_far := 0.0            # m: the current camera's far plane is pushed out to this (0: left as it is)
+@export var sink := Vector2.ZERO       # y where the sink_names blocks start fading, y where they are gone (zero: none)
+@export var sink_names: PackedStringArray = ["FarTower"]   # name prefixes of the blocks that sink
 
 const SPAN := 900.0                    # puffs wrap round over z -SPAN .. SPAN; they shrink to nothing at the ends
 const BALLS := 4                       # balls per puff
@@ -42,10 +50,15 @@ func _ready() -> void:
 			_sea_offset = _sky.get_shader_parameter("sea_offset")
 	_build_puffs()
 	_build_beacons()
+	_sink_far_bodies()
 
 
 func _process(delta: float) -> void:
 	_time += delta
+	if view_far > 0.0:  # whichever camera is current (the player's, the kill cam), each frame: they change
+		var camera := get_viewport().get_camera_3d()
+		if camera != null and camera.far < view_far:
+			camera.far = view_far
 	if speed != 0.0:
 		_scroll += speed * delta
 		if _sky:  # the sea's features move along +Z too: the offset goes the other way
@@ -109,6 +122,24 @@ func _place_puffs() -> void:
 		var fade := clampf((SPAN - absf(z)) / (SPAN * 0.3), 0.0, 1.0)
 		_multimesh.set_instance_transform(i, Transform3D(base.basis.scaled(Vector3.ONE * fade),
 				Vector3(base.origin.x, base.origin.y, z)))
+
+
+func _sink_far_bodies() -> void:
+	if sink == Vector2.ZERO:
+		return
+	var shader: Shader = load("res://assets/shaders/sink_fade.gdshader")
+	var blocks: Array[Node] = []
+	for prefix in sink_names:
+		blocks.append_array(get_parent().find_children(prefix + "*", "Block", true, false))
+	for block in blocks:
+		var material := ShaderMaterial.new()
+		material.shader = shader
+		material.set_shader_parameter("color", (block as Block).color)
+		material.set_shader_parameter("fade_top", sink.x)
+		material.set_shader_parameter("fade_bottom", sink.y)
+		var mesh := block.get_node("Mesh") as MeshInstance3D
+		mesh.material_override = material
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _build_beacons() -> void:
