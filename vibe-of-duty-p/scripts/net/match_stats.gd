@@ -2,7 +2,8 @@ class_name MatchStats
 extends RefCounted
 ## Server: records how live players fight, for balance (TTK, which weapon and cards win) - one file per server run,
 ## user://stats/<date>_<time>.jsonl, one JSON object per line ("e" = event). Format and the report - Docs/STATS.md;
-## the report: tools/stats_report.py. Owned by NetWorld; off on training maps and in automated tests (--stats: on).
+## the report: tools/stats_report.py. Owned by NetWorld; only when the host asks
+## (Game.record_stats: host panel -> Тестирование, --stats), never on training maps.
 ##
 ## Engagement: the damage a player takes from the moment they were last at full health. Its start is where the TTK
 ## of a kill is counted from (per attacker: their first hit on the victim in it).

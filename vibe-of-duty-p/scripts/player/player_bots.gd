@@ -30,6 +30,17 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		return _bot_targets_cmd(t)
 	if Game.bot_course:
 		return _bot_course_cmd(delta)
+	if not is_nan(Game.bot_climb):
+		look_yaw = Game.bot_climb
+		cmd.yaw = look_yaw
+		cmd.move = Vector2(0.0, -1.0 if not is_on_floor() else 0.0)  # jump first, then push on (as a player does)
+		cmd.jump = fmod(t, 1.5) < delta
+		cmd.jump_held = true
+		return cmd
+	if Game.bot_idle != "":
+		cmd.yaw = look_yaw
+		cmd.crouch = Game.bot_idle == "crouch"
+		return cmd
 	if Game.bot_vault:
 		# Runs back and forth over the test ledges, jumping all the time (vaults whenever one is in reach).
 		look_yaw = PI if fmod(t, 7.0) >= 3.5 else 0.0  # 3.5 s each way (~18 m): crosses the ledges in both directions

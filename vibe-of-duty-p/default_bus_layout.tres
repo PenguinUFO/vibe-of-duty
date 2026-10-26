@@ -1,4 +1,7 @@
-[gd_resource type="AudioBusLayout" format=3]
+[gd_resource type="AudioBusLayout" format=3 uid="uid://b7kiwwnvv5m2o"]
+
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_j3pel"]
+resource_name = "Compressor"
 
 [resource]
 bus/1/name = &"SFX"
@@ -11,8 +14,10 @@ bus/2/name = &"Music"
 bus/2/solo = false
 bus/2/mute = false
 bus/2/bypass_fx = false
-bus/2/volume_db = 0.0
+bus/2/volume_db = -5.045384
 bus/2/send = &"Master"
+bus/2/effect/0/effect = SubResource("AudioEffectCompressor_j3pel")
+bus/2/effect/0/enabled = true
 bus/3/name = &"UI"
 bus/3/solo = false
 bus/3/mute = false

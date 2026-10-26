@@ -31,7 +31,7 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
 # --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests),
-# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats even in a test launch).
+# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats).
 var dedicated := false
 var bot_mode := false
 var net_log := false
@@ -50,18 +50,20 @@ var bot_strafe := false    # --bot-strafe: --bot-ttk strafes left and right whil
 var bot_recoil := 1.0      # --bot-recoil=X: share of the recoil kick the bots pull down (1: all, 0: none)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var bot_melee := false     # --bot-melee: bots run at the nearest enemy and punch (melee test)
+var bot_idle := ""         # --bot-idle / --bot-idle=crouch: bots stand still (crouched) - the train's tunnel test
+var bot_climb := NAN       # --bot-climb=DEG: bots face this yaw, jump every 1.5 s and push on in the air (a hatch, a ledge step)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var summary_time := 0.0   # --summary=S: seconds after the level starts to print the [SUMMARY] line and quit (NetWorld)
-var force_stats := false  # --stats: the server records MatchStats in a test launch too (bots, --summary)
+var record_stats := false  # the server records MatchStats (host panel -> Тестирование; --stats)
 ## Test counters for the [SUMMARY] line (Game.count): laps, target_hits, oinks_heard, kill_cams, bags_dropped, bags_taken.
 var stats := {}
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
 var training := false         # playing a training map alone (no match clock or score on the HUD)
-## Test mode "FFA random weapon" (host panel -> Тестирование): every life gets a random weapon and cards instead of the
+## Game mode "FFA random weapon" (host panel): every life gets a random weapon and cards instead of the
 ## player's build (RandomWeapons). Chosen by the host, sent to clients by Net.
 var random_weapons := false
 var score_limit := SCORE_LIMIT
@@ -91,6 +93,12 @@ func _ready() -> void:
 		elif arg == "--bot-oink":
 			bot_mode = true
 			bot_oink = true
+		elif arg == "--bot-idle" or arg == "--bot-idle=crouch":
+			bot_mode = true
+			bot_idle = "crouch" if arg.ends_with("crouch") else "stand"
+		elif arg.begins_with("--bot-climb="):
+			bot_mode = true
+			bot_climb = deg_to_rad(arg.get_slice("=", 1).to_float())
 		elif arg == "--bot-melee":
 			bot_mode = true
 			bot_melee = true
@@ -107,7 +115,7 @@ func _ready() -> void:
 		elif arg == "--random-weapons":
 			random_weapons = true
 		elif arg == "--stats":
-			force_stats = true
+			record_stats = true
 		elif arg == "--no-lagcomp":
 			lag_comp_enabled = false
 		elif arg == "--perturb":

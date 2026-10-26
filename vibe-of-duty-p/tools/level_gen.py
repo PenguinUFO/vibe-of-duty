@@ -5,6 +5,10 @@ Docs/LEVEL_TRAIN.md). Not run by itself.
 Decks: the lamps cast no shadows, so each lights only its own deck's blocks (render layers 3, 4, 5 - project.godot;
 the props get theirs from TrainProps.deck_splits). A block centred within SLAB_BAND of a split - a floor slab -
 belongs to both decks around it, and so does any block passed decks="all" (stairs, shafts through the floors).
+
+Groups: blocks and lamps made while Level.group is set go under a Node3D of that name instead of Geometry / Lamps
+(the lamps under <group>/Lamps) - a part a script moves as one (the tower's crane load). Their positions are the
+level's, with the group node at the origin.
 """
 import math
 
@@ -22,9 +26,10 @@ LAMP_COLOR = (1.0, 0.86, 0.66)   # Palette.EMBER as light, as on the train
 class Level:
     def __init__(self, splits):
         self.splits = list(splits)   # heights between the decks, lowest first
-        self.blocks = []             # (name, center, basis rows, size, color, layers, penetrable)
-        self.lights = []             # (name, position, energy, range, shade size)
+        self.blocks = []             # (name, center, basis rows, size, color, layers, penetrable, group)
+        self.lights = []             # (name, position, energy, range, shade size, group)
         self.markers = {}            # group name -> [(name, position)]
+        self.group = None            # blocks and lamps made now go under this node (see the module's doc)
         self._names = {}
 
     def uniq(self, name):
@@ -46,7 +51,7 @@ class Level:
     def box(self, name, x0, x1, y0, y1, z0, z1, color, decks=None, penetrable=False):
         c = ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
         self.blocks.append((self.uniq(name), c, ((1, 0, 0), (0, 1, 0), (0, 0, 1)), (x1 - x0, y1 - y0, z1 - z0), color,
-                            self.layers_at(c[1], decks), penetrable))
+                            self.layers_at(c[1], decks), penetrable, self.group))
 
     def rotated(self, name, center, size, color, rot_x=0.0, rot_z=0.0, decks=None):
         """A box turned rot_x about X, then rot_z about Z (radians)."""
@@ -55,7 +60,8 @@ class Level:
         rx = ((1, 0, 0), (0, cx, -sx), (0, sx, cx))
         rz = ((cz, -sz, 0), (sz, cz, 0), (0, 0, 1))
         rows = tuple(tuple(sum(rz[i][k] * rx[k][j] for k in range(3)) for j in range(3)) for i in range(3))
-        self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks), False))
+        self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks), False,
+                            self.group))
 
     def slab(self, name, rects, holes, y0, y1, color, decks=None):
         """A floor over rects [(x0, x1, z0, z1)] (not overlapping) with rectangular holes [(x0, x1, z0, z1)]."""
@@ -90,7 +96,7 @@ class Level:
         self.box(name, x0, x1, y, y + RAIL, z - RAIL_T / 2, z + RAIL_T / 2, color)
 
     def lamp(self, name, pos, energy=1.2, rng=9.0, shade=(0.7, 0.05, 0.3)):
-        self.lights.append((self.uniq(name), pos, energy, rng, shade))
+        self.lights.append((self.uniq(name), pos, energy, rng, shade, self.group))
 
     def marker(self, group, name, pos):
         self.markers.setdefault(group, []).append((self.uniq(name), pos))
@@ -103,8 +109,16 @@ class Level:
         if ground_y is not None:
             out.append('[sub_resource type="WorldBoundaryShape3D" id="ground_shape"]\n\n')
         out.append('[node name="%s" type="Node3D"]\n\n[node name="Geometry" type="Node3D" parent="."]\n' % root_name)
-        for name, c, r, s, col, layers, pen in self.blocks:
-            out.append('\n[node name="%s" parent="Geometry" instance=ExtResource("2_block")]\n' % name)
+        groups = []
+        for item in self.blocks + self.lights:
+            if item[-1] is not None and item[-1] not in groups:
+                groups.append(item[-1])
+        for group in groups:
+            out.append('\n[node name="%s" type="Node3D" parent="."]\n' % group)
+            if any(light[-1] == group for light in self.lights):
+                out.append('\n[node name="Lamps" type="Node3D" parent="%s"]\n' % group)
+        for name, c, r, s, col, layers, pen, group in self.blocks:
+            out.append('\n[node name="%s" parent="%s" instance=ExtResource("2_block")]\n' % (name, group or "Geometry"))
             # Transform3D(basis rows..., origin): Godot writes the basis row by row (as make_train_map.py does).
             flat = [v for row in r for v in row]
             out.append("transform = Transform3D(%s, %s, %s, %s)\n" % (", ".join(map(f, flat)), f(c[0]), f(c[1]), f(c[2])))
@@ -118,8 +132,9 @@ class Level:
             out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, %s, 0)\n" % f(ground_y))
             out.append('\n[node name="Shape" type="CollisionShape3D" parent="Ground"]\nshape = SubResource("ground_shape")\n')
         out.append('\n[node name="Lamps" type="Node3D" parent="."]\n')
-        for name, p, energy, rng, shade in self.lights:
-            out.append('\n[node name="%s" type="OmniLight3D" parent="Lamps"]\n' % name)
+        for name, p, energy, rng, shade, group in self.lights:
+            parent = group + "/Lamps" if group else "Lamps"
+            out.append('\n[node name="%s" type="OmniLight3D" parent="%s"]\n' % (name, parent))
             out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %s, %s, %s)\n" % tuple(map(f, p)))
             out.append("light_color = Color(%s, %s, %s, 1)\n" % tuple(map(f, LAMP_COLOR)))
             out.append("light_energy = %s\nlight_specular = 0.0\nomni_range = %s\nomni_attenuation = 1.4\n" % (f(energy), f(rng)))

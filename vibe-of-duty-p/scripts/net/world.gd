@@ -47,6 +47,7 @@ var _random := RandomWeapons.new()  # server: the next weapon of each player in 
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
+@onready var _scenery := get_node_or_null("../Scenery") as TrainScenery  # the train map: its tunnels sweep the roofs
 
 
 func _ready() -> void:
@@ -81,7 +82,7 @@ func _ready() -> void:
 	Net.disconnected.connect(_on_disconnected)
 	_toughness_sent = Settings.toughness()
 	if multiplayer.is_server():
-		if Game.force_stats or not (Game.training or Game.bot_mode or Game.summary_time > 0.0):
+		if Game.record_stats and not Game.training:
 			_stats = MatchStats.new()
 			_stats.open()
 			_stats.match_started(players)
@@ -118,6 +119,9 @@ func _physics_process(delta: float) -> void:
 		player.server_regen(delta)
 		if player.alive and player.global_position.y < kill_height:
 			_server_suicide(player)
+		elif player.alive and _scenery and _scenery.hits_vault(player.global_position,
+				Player.CROUCH_HEIGHT if player.is_crouched else Player.STAND_HEIGHT):
+			_server_suicide(player)  # the train's tunnel swept them off a roof
 	ammo_bags.server_tick(delta)
 	lag_comp.record(server_tick, players)
 	if server_tick % SNAPSHOT_INTERVAL == 0:

@@ -11,7 +11,9 @@ extends Node3D
 ##   clouds, the sun - its light patches sweep across the hold), and the local camera leans part of the bank
 ##   (view_roll, read by PlayerView).
 ## - The cargo pushes players out of its way (the server, and each client its own player, before the players step);
-##   blocked - the player is crushed. Standing on cargo is safe: it carries you (its blocks' constant velocity).
+##   blocked - the player is crushed. Standing on cargo is safe: it carries you. A client's own player rides on the
+##   blocks' velocity (its prediction and replays step with it); the server carries riders itself, once a tick - it
+##   steps a client 0-2 commands a tick (Player.CMD_BUDGET_PER_TICK), and a carry per step drifted (CraneBridge too).
 ## Must come before Players in the scene: the cargo moves before anybody steps.
 
 const SLOT := 45.0                 # s: at most one bank in each slot of this long
@@ -86,17 +88,20 @@ func _physics_process(delta: float) -> void:
 	var server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	for i in _cargo.size():
 		var moved := offsets[i] - _offsets[i]
+		var velocity := Vector3.ZERO if server else Vector3(moved / delta, 0.0, 0.0)
+		for block: Block in _cargo[i]["blocks"]:
+			block.constant_linear_velocity = velocity
 		if moved == 0.0:
-			for block: Block in _cargo[i]["blocks"]:
-				block.constant_linear_velocity = Vector3.ZERO
 			continue
 		var cargo: LooseCargo = _cargo[i]["node"]
 		cargo.position.x = offsets[i]
-		for block: Block in _cargo[i]["blocks"]:
-			block.constant_linear_velocity = Vector3(moved / delta, 0.0, 0.0)
 		if _world:
 			for player: Player in _world.players.values():
-				if player.alive and (server or player.control == Player.Mode.LOCAL):
+				if not player.alive or not (server or player.control == Player.Mode.LOCAL):
+					continue
+				if server and _rides(player, _cargo[i]):
+					_shove(player, _cargo[i], Vector3(moved, 0.0, 0.0), server)
+				else:
 					_push(player, _cargo[i], signf(moved), server)
 	_offsets = offsets
 
@@ -245,11 +250,27 @@ func _push(player: Player, cargo: Dictionary, side: float, server: bool) -> void
 				or feet.y + height <= lo.y or feet.y >= hi.y - ON_TOP:
 			continue
 		need = maxf(need, (hi.x + r + 0.01 - feet.x) if side > 0.0 else (feet.x - (lo.x - r - 0.01)))
-	if need <= 0.0:
-		return
+	if need > 0.0:
+		_shove(player, cargo, Vector3(side * need, 0.0, 0.0), server)
+
+
+## Stands on this cargo: on the floor, and the floor is one of its blocks (the last move's collisions).
+func _rides(player: Player, cargo: Dictionary) -> bool:
+	if not player.is_on_floor():
+		return false
+	var blocks: Array[Block] = cargo["blocks"]
+	for i in player.get_slide_collision_count():
+		var hit := player.get_slide_collision(i)
+		if hit.get_normal().y > 0.7 and blocks.has(hit.get_collider()):
+			return true
+	return false
+
+
+## Moves a player through the cargo's blocks (not through the level or other cargo); blocked - crushed.
+func _shove(player: Player, cargo: Dictionary, motion: Vector3, server: bool) -> void:
 	for block: Block in cargo["blocks"]:
 		player.add_collision_exception_with(block)
-	var hit := player.move_and_collide(Vector3(side * need, 0.0, 0.0))
+	var hit := player.move_and_collide(motion)
 	for block: Block in cargo["blocks"]:
 		player.remove_collision_exception_with(block)
 	if server and hit != null and hit.get_remainder().length() > CRUSH_SLACK:

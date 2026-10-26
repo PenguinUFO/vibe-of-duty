@@ -26,24 +26,31 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"outside": [Vector3(18.0, 5.0, 0.0), Vector3(0.0, 2.5, 20.0)],
 	"axis_up": [Vector3(0.0, 4.95, 63.4), Vector3(0.0, 4.6, -80.0)],
 	"from_c": [Vector3(0.0, 5.0, -23.0), Vector3(0.0, 3.0, -100.0)],  # from C's landing to the front: B and A far off
-}, "tower": {  # tower.tscn: the first tower (x -15 .. 15) and the east wing (x 15 .. 45; the strip 15 .. 21 open)
+	"roofs": [Vector3(-1.0, 8.4, -84.0), Vector3(0.5, 6.6, -40.0)],  # standing on A's roof: the hatches, B's roof, C
+	"ledges": [Vector3(13.0, 7.0, -78.0), Vector3(3.0, 4.0, -62.0)],  # A and B's right side: the ledges, their doors
+}, "tower": {  # tower.tscn: the west tower (x -15 .. 15), the gap (15 .. 25) with the crane's corridor, the east tower (25 .. 49)
 	"l0_front": [Vector3(12.0, 1.65, 13.0), Vector3(-5.0, 2.0, -5.0)],
-	"east_l0": [Vector3(43.0, 1.65, 13.0), Vector3(25.0, 1.5, -10.0)],
-	"far_under": [Vector3(44.0, 5.65, 14.0), Vector3(-14.0, 1.0, -14.0)],  # the west half under L1, ~65 m off
-	"strip": [Vector3(18.0, 1.65, 13.5), Vector3(18.0, 3.0, -14.0)],
-	"east_l1": [Vector3(43.0, 5.65, 13.0), Vector3(22.0, 5.5, -12.0)],
-	"bridge": [Vector3(10.0, 5.65, -11.2), Vector3(30.0, 5.5, -11.2)],
-	"east_l2": [Vector3(44.0, 9.65, -14.0), Vector3(28.0, 8.0, 5.0)],
-	"hoist": [Vector3(30.0, 10.0, 0.0), Vector3(46.0, 17.0, 0.0)],
+	"east_l0": [Vector3(47.0, 1.65, 13.0), Vector3(29.0, 1.5, -10.0)],
+	"far_under": [Vector3(48.0, 5.65, 14.0), Vector3(-14.0, 1.0, -14.0)],  # the west tower under L1, ~65 m off
+	"gap": [Vector3(12.0, 5.65, 2.5), Vector3(24.0, 4.0, -11.0)],  # the corridor docked, from the west L1
+	"bridge": [Vector3(15.6, 5.65, -9.8), Vector3(30.0, 5.5, -10.5)],  # inside it, upstairs
+	"bridge_low": [Vector3(15.6, 1.65, -10.0), Vector3(30.0, 1.5, -10.0)],  # downstairs, the stair on the left
+	"east_l1": [Vector3(47.0, 5.65, 13.0), Vector3(26.0, 5.5, -12.0)],
+	"east_l2": [Vector3(48.0, 9.65, -14.0), Vector3(32.0, 8.0, 5.0)],
+	"crane": [Vector3(55.0, 24.0, 32.0), Vector3(20.0, 18.0, -8.0)],
+	"hoist": [Vector3(34.0, 10.0, 0.0), Vector3(50.0, 17.0, 0.0)],
 	"far_towers": [Vector3(-17.0, 9.65, -17.0), Vector3(-140.0, -230.0, -220.0)],  # no cut ends: they sink in the clouds
-	"edge_down": [Vector3(46.5, 5.65, 6.0), Vector3(60.0, -300.0, 0.0)],  # straight down past the hoist and the body
-	"outside": [Vector3(75.0, 20.0, 40.0), Vector3(15.0, 3.0, 0.0)],
+	"edge_down": [Vector3(50.5, 5.65, 6.0), Vector3(64.0, -300.0, 0.0)],  # straight down past the hoist and the body
+	"outside": [Vector3(79.0, 20.0, 40.0), Vector3(19.0, 3.0, 0.0)],
+	"walk_entry": [Vector3(-13.0, 1.65, -13.6), Vector3(-3.0, -3.5, -16.5)],  # the walkways a floor below L0
+	"walk": [Vector3(-2.0, -2.35, -16.0), Vector3(40.0, -2.0, -16.0)],
+	"walk_out": [Vector3(20.0, 6.0, -26.0), Vector3(20.0, -3.0, -15.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
 	"plane": [Vector3(0.5, 0.05, -30), Vector3(-0.5, 4.75, -30), Vector3(0.0, -2.95, -20)],
 	"train": [Vector3(0.5, 0.05, -81.0), Vector3(2.0, 3.35, -14.0), Vector3(2.2, 0.05, 4.0)],
-	"tower": [Vector3(25.0, 0.05, 5.0), Vector3(35.0, 4.05, -5.0), Vector3(40.0, 8.05, -12.0)],
+	"tower": [Vector3(29.0, 0.05, 5.0), Vector3(39.0, 4.05, -5.0), Vector3(44.0, 8.05, -12.0)],
 }
 const FRAMES := 120
 
@@ -108,6 +115,11 @@ func _initialize() -> void:
 	var bank = level.get_node_or_null("Bank")  # PlaneBank, untyped: naming its class would compile it before the autoloads
 	if bank and OS.has_environment("SHOT_BANK"):  # the plane's schedule read at this time (s): its bank, the cargo
 		bank.time_override = float(OS.get_environment("SHOT_BANK"))
+		for i in 3:
+			await physics_frame
+	var crane = level.get_node_or_null("Crane")  # CraneBridge, untyped like the bank
+	if crane and OS.has_environment("SHOT_CRANE"):  # the crane's schedule read at this time (s): where its load is
+		crane.time_override = float(OS.get_environment("SHOT_CRANE"))
 		for i in 3:
 			await physics_frame
 	var scenery := level.get_node_or_null("Scenery")

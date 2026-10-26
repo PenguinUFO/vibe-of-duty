@@ -9,12 +9,12 @@ const WEAPON_SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stoc
 		"ammo"]
 ## Slots the build editor shows as cards (on / off: the slot's second module or its first), right after the weapon
 ## (owner, 2026-10-23, as Black Ops 2's attachments): the suppressor, a conversion (the Luger's "Хрюгер"), the stock
-## (fold it; the Luger's: put it on), the next magazine size up.
-const CARD_SLOTS: Array[String] = ["suppressor", "conversion", "stock", "mag"]
+## (fold it; the Luger's: put it on), the next magazine size up, the optic (owner, 2026-10-26: the AK's Kobra).
+const CARD_SLOTS: Array[String] = ["suppressor", "conversion", "stock", "mag", "sight"]
 ## Slots hidden for now (owner, 2026-10-23): the editor does not show them and every build has their defaults - the
 ## weapon's lists, and the whole body (the native one). The parts stay (weapons.cfg, _build); dropping a slot from here
 ## brings it back.
-const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "sight", "ammo", "hands", "head", "chest", "belly", "legs"]
+const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "ammo", "hands", "head", "chest", "belly", "legs"]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 const SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
 		"head", "chest", "belly", "legs"]
@@ -197,6 +197,8 @@ static func _build() -> void:
 		_parts.append(PartDef.make(def.id, "weapon", 0, def.display_name, def.info))
 		for slot in WEAPON_SLOTS.slice(1):
 			for module: Dictionary in WeaponDB.modules_for(def.id, slot):
+				if module["hidden"]:
+					continue  # weapons.cfg "hidden": kept for later, not offered (a build with it goes native)
 				var part := PartDef.make(module["id"], slot, module["cost"], module["name"], module["info"])
 				part.requires = module["requires"]
 				part.excludes = module["excludes"]

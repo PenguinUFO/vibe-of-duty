@@ -122,13 +122,20 @@ static func _build_lamps(level: Node) -> void:
 	var root := Node3D.new()
 	root.name = LAMPS_NODE
 	level.add_child(root)
-	var own := level.find_child("Lamps", true, false)  # the train's are in its shell (Shell/Lamps)
-	if own != null:
-		for light in own.get_children():
-			if light is OmniLight3D:  # metadata/shade: the fixture's size (the generators set it), zero for none
-				var size: Vector3 = light.get_meta(&"shade", Vector3(0.7, 0.05, 0.3))
-				if size != Vector3.ZERO:
-					_shade(root, (light as Node3D).global_position + Vector3.UP * 0.32, size, 1.6)
+	# The train's are in its shell (Shell/Lamps); a part that moves has its own (the tower's Shell/CraneLoad/Lamps):
+	# the fixtures go beside each Lamps node, so they move with its part, and go with root (the style turned off).
+	var owns := level.find_children("Lamps", "", true, false)
+	if not owns.is_empty():
+		for own in owns:
+			var holder := Node3D.new()
+			holder.name = LAMPS_NODE
+			own.get_parent().add_child(holder)
+			root.tree_exiting.connect(holder.queue_free)
+			for light in own.get_children():
+				if light is OmniLight3D:  # metadata/shade: the fixture's size (the generators set it), zero for none
+					var size: Vector3 = light.get_meta(&"shade", Vector3(0.7, 0.05, 0.3))
+					if size != Vector3.ZERO:
+						_shade(holder, (light as Node3D).global_position + Vector3.UP * 0.32, size, 1.6)
 		return
 	var spawns := level.get_node_or_null("SpawnPoints")
 	if spawns == null or spawns.get_child_count() == 0:

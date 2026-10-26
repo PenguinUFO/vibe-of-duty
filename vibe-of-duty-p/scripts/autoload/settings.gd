@@ -72,6 +72,7 @@ var host_map := "res://prefabs/levels/train.tscn"
 var host_score_limit := 20
 var host_match_minutes := 10
 var host_port := 27015
+var host_random_weapons := false  # the FFA random weapon mode (Game.random_weapons)
 
 
 var _psx_layer: CanvasLayer  # full-screen PSX post-process (assets/shaders/psx_post.gdshader), under every UI layer
@@ -377,6 +378,7 @@ func save_settings() -> void:
 	cfg.set_value("host", "score_limit", host_score_limit)
 	cfg.set_value("host", "match_minutes", host_match_minutes)
 	cfg.set_value("host", "port", host_port)
+	cfg.set_value("host", "random_weapons", host_random_weapons)
 	for bus in BUS_NAMES:
 		cfg.set_value("audio", String(bus), volumes[bus])
 	cfg.save(SAVE_PATH)
@@ -424,5 +426,6 @@ func load_settings() -> void:
 	host_score_limit = clampi(cfg.get_value("host", "score_limit", host_score_limit), 1, 100)
 	host_match_minutes = clampi(cfg.get_value("host", "match_minutes", host_match_minutes), 1, 60)
 	host_port = clampi(cfg.get_value("host", "port", host_port), 1024, 65535)
+	host_random_weapons = bool(cfg.get_value("host", "random_weapons", host_random_weapons))
 	for bus in BUS_NAMES:
 		volumes[bus] = cfg.get_value("audio", String(bus), volumes[bus])

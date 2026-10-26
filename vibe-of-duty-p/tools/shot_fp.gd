@@ -14,6 +14,7 @@ const CASES := {  # [weapon, ads, punch progress, modules]
 	"pdw_compm_half": [1, 0.6, -1.0, ["pdw.sight.compm"]], "ak_kobra_ads": [0, 1.0, -1.0, ["ak.sight.kobra"]],
 	"ak_pbs": [0, 0.0, -1.0, ["ak.suppressor.on"]], "ak_pbs_ads": [0, 1.0, -1.0, ["ak.suppressor.on"]],
 	"acr_hip": [3, 0.0, -1.0, []], "acr_ads": [3, 1.0, -1.0, []],
+	"acr_acog_ads": [3, 1.0, -1.0, ["acr.sight.acog"]], "acr_acog_half": [3, 0.6, -1.0, ["acr.sight.acog"]],
 	"acr_mods": [3, 0.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
 	"acr_mods_ads": [3, 1.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
 	"mp7_hip": [4, 0.0, -1.0, []], "mp7_ads": [4, 1.0, -1.0, []],
@@ -54,7 +55,9 @@ func _initialize() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
-		view.set_weapon(CASES[c][0], WeaponDB.make_def(CASES[c][0], CASES[c][3]))
+		var def := WeaponDB.make_def(CASES[c][0], CASES[c][3])
+		view.set_weapon(CASES[c][0], def)
+		cam.fov = lerpf(75.0, 75.0 * def.ads_fov_mult, CASES[c][1])  # the sights' zoom, as Player
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
 		for i in 30:

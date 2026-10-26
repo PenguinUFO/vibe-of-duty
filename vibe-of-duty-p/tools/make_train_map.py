@@ -89,8 +89,22 @@ def rail_x(x, y, z0, z1, inward, name="Rail"):
 
 # --- pieces ----------------------------------------------------------------------------------------------------
 
-def side_wall(x_inner, outward, z0, z1, deck_y, top_y, color, panoramic=False):
+def side_wall(x_inner, outward, z0, z1, deck_y, top_y, color, panoramic=False, doors=()):
+    """doors: [(za, zb)] - doorways in the wall (out to a ledge), DOOR_H high."""
     xa, xb = sorted((x_inner, x_inner + outward * T))
+    z = z0
+    for za, zb in sorted(doors):
+        wall_run(xa, xb, z, za, deck_y, top_y, color, panoramic)
+        box("Lintel", xa, xb, deck_y + DOOR_H, top_y, za, zb, color)
+        z = zb
+    wall_run(xa, xb, z, z1, deck_y, top_y, color, panoramic)
+
+
+def wall_run(xa, xb, z0, z1, deck_y, top_y, color, panoramic):
+    """A stretch of side wall with its window band; one too short for a window is solid."""
+    if z1 - z0 < WIN_W + 2 * PILLAR:
+        box("Wall", xa, xb, deck_y, top_y, z0, z1, color)
+        return
     low, high = (0.9, 2.3) if panoramic else (WIN_LOW, WIN_HIGH)
     box("WallLow", xa, xb, deck_y, deck_y + low, z0, z1, color)
     box("WallHigh", xa, xb, deck_y + high, top_y, z0, z1, color)
@@ -128,18 +142,62 @@ def upper_floor(z0, z1, holes, m=1):
     lv.slab("UpperFloor", [(-HW, HW, z0, z1)], holes, UPPER - SLAB, UPPER, FLOOR)
 
 
-def body(z0, color, front_door=(True, True), back_door=(True, True), panoramic_upper=False):
-    """Floor, roof, the walls with windows and the end walls (doors per deck: (lower, upper)) of a closed car."""
+def body(z0, color, front_door=(True, True), back_door=(True, True), panoramic_upper=False, hatch=None,
+         side_doors=None):
+    """Floor, roof, the walls with windows and the end walls (doors per deck: (lower, upper)) of a closed car.
+    hatch: (x0, x1, za, zb) - a hole in the roof; side_doors: (side, [(za, zb)]) - doorways in the upper deck's wall
+    on that side (+1 right, -1 left)."""
     z1 = z0 + L
     box("Underframe", -W / 2 + 0.5, W / 2 - 0.5, -1.3, -SLAB, z0 + 1.0, z1 - 1.0, UNDER)
     box("Floor", -W / 2, W / 2, -SLAB, 0.0, z0, z1, FLOOR)
-    box("Roof", -W / 2, W / 2, ROOF, ROOF + SLAB, z0, z1, ROOF_C)
+    lv.slab("Roof", [(-W / 2, W / 2, z0, z1)], [hatch] if hatch else [], ROOF, ROOF + SLAB, ROOF_C)
+    if hatch:  # its lid thrown open, standing up on the roof: seen from the roofs as the way down
+        box("HatchLid", hatch[0], hatch[1], ROOF + SLAB, ROOF + SLAB + 0.9, hatch[3], hatch[3] + 0.06, STEEL)
     for i, (deck_y, top_y, pano) in enumerate(((0.0, UPPER, False), (UPPER, ROOF + SLAB, panoramic_upper))):
-        side_wall(HW, 1, z0, z1, deck_y, top_y, color, pano)
-        side_wall(-HW, -1, z0, z1, deck_y, top_y, color, pano)
+        for side in (1, -1):
+            doors = side_doors[1] if i == 1 and side_doors and side_doors[0] == side else ()
+            side_wall(side * HW, side, z0, z1, deck_y, top_y, color, pano, doors)
         end_wall(z0, 1, deck_y, top_y, color, front_door[i])
         end_wall(z1, -1, deck_y, top_y, color, back_door[i])
     return z1
+
+
+# --- the ways onto the roofs ---------------------------------------------------------------------------------------
+# The roof top (ROOF + SLAB, 6.6 m) is out of the vault's reach (2.8 m) from a deck or a platform. Two ways up:
+# - a hatch in the roof of every closed car with a step under it on the upper deck: jump onto the step, jump at the
+#   rim, the vault pulls you up;
+# - the ledges outside the upper deck (A-B on the right, G-D on the left) have a step at their outer end: from it
+#   the vault takes the wall onto the roof.
+# The tunnels' vault is low (TrainScenery.TUNNEL_CEILING, 8.0 m): standing on a roof in a tunnel kills, a crouching
+# player (1.1 m) fits under it.
+
+STEP = 0.9          # a jump (~1.06 m) clears it; from its top the roof is 2.4 m up
+HATCH = 1.4         # the hatch is HATCH x HATCH
+LEDGE = 1.0         # ledge width outside the wall
+
+
+def hatch_at(z, m=1, x0=1.25, reach=0.4):
+    """A roof hatch over x0 .. x0 + HATCH, z .. z + HATCH (m = -1: mirrored to the left) and its step under it,
+    against the wall on the upper deck. The step reaches `reach` under the rim all round: stepping towards the rim
+    before the jump does not drop you off it. Returns the hole for body()."""
+    box("HatchStep", x0 - reach, HW, UPPER, UPPER + STEP, z - reach, z + HATCH + reach, STEEL, m=m)
+    return (x0, x0 + HATCH, z, z + HATCH) if m > 0 else (-x0 - HATCH, -x0, z, z + HATCH)
+
+
+def ledge(z0, z1, side, step_end=None, end_rails=()):
+    """A ledge outside the upper deck's wall on `side` from z0 to z1: floor, outer rail, brackets; step_end ("front" /
+    "back") - the step up to the roof at that end; end_rails - the ends railed across (an open end faces the next
+    car's ledge over the gangway: a jump)."""
+    xa, xb = sorted((side * W / 2, side * (W / 2 + LEDGE)))
+    box("Ledge", xa, xb, UPPER - 0.2, UPPER, z0, z1, STEEL)
+    rail_x(side * (W / 2 + LEDGE), UPPER, z0, z1, -side, "LedgeRail")
+    for end in end_rails:
+        rail_z(z0 if end == "front" else z1, UPPER, xa, xb, 1 if end == "front" else -1, "LedgeRail")
+    for zz in (z0 + 3.0, z0 + L / 2, z1 - 3.0):
+        box("LedgeBracket", xa, xb, UPPER - 0.6, UPPER - 0.2, zz - 0.1, zz + 0.1, STEEL)
+    if step_end:
+        za, zb = (z0, z0 + 0.8) if step_end == "front" else (z1 - 0.8, z1)
+        box("LedgeStep", xa, xb, UPPER, UPPER + STEP, za, zb, STEEL)
 
 
 def lamps(z0, lower=True, upper=True):
@@ -149,9 +207,19 @@ def lamps(z0, lower=True, upper=True):
         lv.lamp("Lamp", (0.0, ROOF - 0.4, z0 + L / 2), energy=1.2, rng=9.0)
 
 
-def closed_car(z0, color, m=1, front_door=True, back_door=True, panoramic_upper=False):
-    """A, B, D: stairs at both ends (front stairs right, back stairs left for m = 1)."""
-    z1 = body(z0, color, (front_door,) * 2, (back_door,) * 2, panoramic_upper)
+def closed_car(z0, color, m=1, front_door=True, back_door=True, panoramic_upper=False, ledge_side=0, step_end=None,
+               end_rails=()):
+    """A, B, D: stairs at both ends (front stairs right, back stairs left for m = 1). ledge_side +1 / -1: a ledge
+    outside the upper deck on that side, with two doors out to it where the deck has floor (clear of the stair)."""
+    z1 = z0 + L
+    doors = None
+    if ledge_side:
+        if ledge_side == m:   # this side's stair is at the front
+            doors = (ledge_side, [(z0 + 8.0, z0 + 9.2), (z1 - 2.4, z1 - 1.2)])
+        else:
+            doors = (ledge_side, [(z0 + 1.2, z0 + 2.4), (z1 - 9.2, z1 - 8.0)])
+        ledge(z0, z1, ledge_side, step_end, end_rails)
+    body(z0, color, (front_door,) * 2, (back_door,) * 2, panoramic_upper, hatch_at(z0 + L / 2 + 1.5, m), doors)
     s1 = (HW - STAIR_W, HW, z0 + 1.2, z0 + 1.2 + STAIR_RUN)      # front stairs, rising backwards
     s2 = (-HW, -HW + STAIR_W, z1 - 1.2 - STAIR_RUN, z1 - 1.2)    # back stairs, rising forwards
     upper_floor(z0 + T, z1 - T, [s1, s2], m)
@@ -223,7 +291,7 @@ GAL = 1.3   # gallery width
 
 
 def car_e(e0):
-    e1 = body(e0, BODY_E)
+    e1 = body(e0, BODY_E, hatch=hatch_at(e0 + 0.55, reach=0.25))   # over the right of the front landing
     land0, land1 = e0 + T + 2.0, e1 - T - 2.0      # inner edges of the end landings
     mid = e0 + L / 2
     br0, br1 = mid - 0.75, mid + 0.75               # the bridge across the middle
@@ -280,7 +348,9 @@ def car_f(f0):
 # --- G: staff car - one stair in the middle --------------------------------------------------------------------------
 
 def car_g(g0):
-    g1 = body(g0, BODY_G)
+    g1 = g0 + L
+    ledge(g0, g1, -1, "front")
+    body(g0, BODY_G, hatch=hatch_at(g0 + L / 2 + 4.5), side_doors=(-1, [(g0 + 2.0, g0 + 3.2), (g1 - 3.2, g1 - 2.0)]))
     mid = g0 + L / 2
     s = (-0.8, 0.8, mid - 3.0, mid + 3.0)           # rising aft along the centre line
     upper_floor(g0 + T, g1 - T, [s])
@@ -300,7 +370,7 @@ BALCONY = 2.5
 
 
 def car_h(h0):
-    h1 = body(h0, BODY_H, back_door=(True, False), panoramic_upper=True)
+    h1 = body(h0, BODY_H, back_door=(True, False), panoramic_upper=True, hatch=hatch_at(h0 + L / 2 + 1.5))
     s = (HW - STAIR_W, HW, h0 + 1.2, h0 + 1.2 + STAIR_RUN)   # front stairs, rising backwards (right side)
     upper_floor(h0 + T, h1 - T, [s])
     lv.ramp("Stairs", s[0], s[1], 0.0, UPPER, s[2], s[3], STEEL)
@@ -330,10 +400,10 @@ box("LocoCab", -W / 2 + 0.2, W / 2 - 0.2, 5.2, 6.2, z - 6.0, z - 1.5, LOCO)
 
 starts = {}
 starts["A"] = z
-z = closed_car(z, BODY, front_door=False)
+z = closed_car(z, BODY, front_door=False, ledge_side=1, step_end="front", end_rails=("front",))
 gangway(z, z + GAP); z += GAP
 starts["B"] = z
-z = closed_car(z, BODY_B, m=-1, panoramic_upper=True)
+z = closed_car(z, BODY_B, m=-1, panoramic_upper=True, ledge_side=1, step_end="back")
 gangway(z, z + GAP); z += GAP
 starts["C"] = z
 z = car_c(z)
@@ -348,7 +418,7 @@ starts["G"] = z
 z = car_g(z)
 gangway(z, z + GAP); z += GAP
 starts["D"] = z
-z = closed_car(z, BODY_D, m=-1)
+z = closed_car(z, BODY_D, m=-1, ledge_side=-1, step_end="back")
 gangway(z, z + GAP); z += GAP
 starts["H"] = z
 z = car_h(z)

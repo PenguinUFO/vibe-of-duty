@@ -1,27 +1,34 @@
-"""Generates prefabs/levels/tower_shell.tscn: the shell of the unfinished top of a skyscraper above the clouds, at
-night (FFA, 2-4 players) - 60 x 30 m: the first tower (the west half, x -15 .. 15) and an east wing built on to it.
+"""Generates prefabs/levels/tower_shell.tscn: the shell of the unfinished tops of two skyscrapers above the clouds, at
+night (FFA, 2-4 players) - the west tower (x -15 .. 15) and the east tower (x 25 .. 49), a 10 m gap between them.
 Read Docs/LEVEL_TOWER.md first (layout, the owner's decisions, how to check); update it with any change here.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_tower_map.py
-Re-running overwrites the shell, so tune it here, not in the editor. Props, spawns, environment, the moon - the
-hand-edited prefabs/levels/tower.tscn, which instances this shell.
+Re-running overwrites the shell, so tune it here, not in the editor. Props, spawns, environment, the moon, the crane's
+schedule (CraneBridge) - the hand-edited prefabs/levels/tower.tscn, which instances this shell.
 
-The west half: L0 (y 0) poured whole, L1 (y 4) over its back (z < 3), L2 (y 8) one corner and the core's roof; the
-core (x -4 .. 4, z -6 .. 2) with switchback stairs and two open lift shafts; a scaffold stair; the crane on L2.
+The west tower: L0 (y 0) poured whole, L1 (y 4) over its back (z < 3), L2 (y 8) one corner and the core's roof; the
+core (x -4 .. 4, z -6 .. 2) with switchback stairs and two open lift shafts; a scaffold stair.
 
-The east wing (floors 4 m apart, as in the west half):
-- L0 (y 0): poured whole. Between the halves a strip x 15 .. 21 open to the sky (L1 does not cover it).
-- L1 (y 4): poured over the whole wing (x 21 .. 45), dark, with half-built block partitions; two bridges across the
-  strip join it to the west half's L1.
-- L2 (y 8): the wing's back corner (x 27 .. 45, z < -3) and the second core's roof, joined.
-- A second core (x 29 .. 37, z 0 .. 8) with the same stairs L0 -> L1 -> L2 and two more lift shafts.
+The east tower (floors 4 m apart, as in the west one):
+- L0 (y 0): poured whole, dark (all under L1).
+- L1 (y 4): poured whole, with half-built block partitions.
+- L2 (y 8): the back corner (x 31 .. 49, z < -3) and the second core's roof, joined.
+- A second core (x 33 .. 41, z 2 .. 10) with the same stairs L0 -> L1 -> L2 and two more lift shafts.
 - A goods hoist on the east facade (decor, out of reach).
-The west half's edge at x 15 is inside the building now: its L0 rail is gone (its facade panels stay, as partitions),
-its L1 rail is cut where the bridges land.
+
+The gap (x 15 .. 25) is open down to the clouds: fall in and you die. Two ways across:
+- the walkways (the owner's): one along the back facades, its mirror along the front ones, a floor below L0 (y -4).
+  Out through a doorway at the west tower's west corner, down a flight along the facade, under the gap, along the
+  east tower and up a flight to its L0 at its east corner (WALK).
+- the crane's load - a two-storey corridor (L0 below, L1 above, a stair inside) hung from a tower crane that stands in the gap behind the
+towers. The corridor docks against two doorways in each tower's facing edge (DOCKS) and now and then the crane carries
+it to the other pair (scripts/game/crane_bridge.gd moves the CraneLoad node: the corridor, its lamps, the cable and
+the trolley). Built here at the first dock.
 
 The rails are low (RAIL below, 0.8 m - the owner's call): a jump clears them, anybody can go over the edge. The
 lift shafts' doors are open (the owner's call): walk in and you fall 40 m. The facade panels are full height.
 """
+import math
 import os
 import sys
 
@@ -35,28 +42,34 @@ RAIL = 0.8
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "prefabs", "levels", "tower_shell.tscn")
 
-F = 15.0                  # half the west half's footprint
-E1 = 45.0                 # the east wing's far edge (x)
-STRIP = (15.0, 21.0)      # x: open to the sky between the halves (no L1 over it)
+F = 15.0                  # half the west tower's footprint
+E0, E1 = 25.0, 49.0       # the east tower's edges (x)
 FLOOR = [0.0, 4.0, 8.0]
 SLAB = 0.3
-L1_Z1 = 3.0               # the west half's L1 is poured over z -F .. L1_Z1
-L2_X1, L2_Z1 = 0.0, -3.0  # the west half's L2 corner
-EAST_L2 = (27.0, E1, -F, -3.0)   # the east wing's L2 corner
-BRIDGES = [(-12.0, -10.5), (-2.0, -0.5)]   # z ranges of the bridges over the strip at L1
+L1_Z1 = 3.0               # the west tower's L1 is poured over z -F .. L1_Z1
+L2_X1, L2_Z1 = 0.0, -3.0  # the west tower's L2 corner
+EAST_L2 = (31.0, E1, -F, -3.0)   # the east tower's L2 corner
+DOCKS = [(-13.0, -9.0), (-2.0, 2.0)]   # z ranges of the doorways the corridor docks against (both towers, L0 and L1)
+BRIDGE_X = (F + 0.1, E0 - 0.1)         # the corridor's ends
 CW = 0.3
 SHAFT_SPLIT_OFF = (-2.15, -1.85)
 DOOR_W, DOOR_H = 1.4, 2.3
 COLUMNS = (-11.25, -3.75, 3.75, 11.25)
-EAST_COLUMNS = (18.75, 26.25, 33.75, 41.25)
+EAST_COLUMNS = (30.25, 37.75, 45.25)
 SHAFT_BOTTOM = -40.0
 DECK_SPLITS = [FLOOR[1] - SLAB / 2, FLOOR[2] - SLAB / 2]
 KILL_HEIGHT = -8.0
+# The walkways a floor below L0, along the back facades (z < -F) and, mirrored, the front ones (z > F): x ranges.
+WALK_Y = -4.0
+WALK_W = 2.0                           # out from the facade
+WALK_ENTRIES = [(-14.0, -12.0), (47.0, 48.8)]   # doorways out of L0 (west tower, east tower)
+WALK_LANDING = (-F, -11.8, 47.0, E1)   # L0-level landings at both ends: west x0 .. x1, east x0 .. x1
+WALK_FLIGHT = 8.0                      # the flights' run (4 m down: 27 degrees)
 
 CONCRETE = (0.5, 0.48, 0.45)
 SLAB_C = (0.44, 0.42, 0.39)
 CORE_C = (0.4, 0.39, 0.37)
-BLOCKWORK = (0.47, 0.44, 0.4)    # the east wing's partitions, a shade warmer than the concrete
+BLOCKWORK = (0.47, 0.44, 0.4)    # the east tower's partitions, a shade warmer than the concrete
 STEEL = (0.42, 0.42, 0.41)
 REBAR = (0.36, 0.3, 0.26)
 GLASS = (0.24, 0.26, 0.28)
@@ -83,8 +96,9 @@ def guard(axis, at, inward, y, a0, a1):
 
 
 def gaps(a0, a1, taken):
+    """The parts of a0 .. a1 not taken (ranges outside it are ignored)."""
     out, a = [], a0
-    for t0, t1 in sorted(taken):
+    for t0, t1 in sorted(t for t in taken if t[1] > a0 and t[0] < a1):
         if t0 > a:
             out.append((a, t0))
         a = max(a, t1)
@@ -165,21 +179,21 @@ class Core:
 
 HANGING = (0.5, 0.05, 0.25)
 FLOOD = (0.4, 0.08, 0.4)
-west, east = Core(0.0, 0.0), Core(33.0, 8.0)
+west, east = Core(0.0, 0.0), Core(37.0, 8.0)
 cores = (west, east)
 
 # --- floors ----------------------------------------------------------------------------------------------------------
 
 shafts = [c.shafts for c in cores]
-lv.slab("Slab0", [(-F, E1, -F, F)], shafts, floor_y0(0), FLOOR[0], SLAB_C)
-lv.slab("Slab1", [(-F, F, -F, L1_Z1), (STRIP[1], E1, -F, F)] + [(STRIP[0], STRIP[1], a, b) for a, b in BRIDGES],
+lv.slab("Slab0", [(-F, F, -F, F), (E0, E1, -F, F)], shafts, floor_y0(0), FLOOR[0], SLAB_C)
+lv.slab("Slab1", [(-F, F, -F, L1_Z1), (E0, E1, -F, F)],
         shafts + [west.stair_hole, east.stair_hole], floor_y0(1), FLOOR[1], SLAB_C)
 wo, eo = west.outer, east.outer
 lv.slab("Slab2", [(-F, L2_X1, -F, L2_Z1), (wo[0], wo[1], L2_Z1, wo[3]), (L2_X1, wo[1], wo[2], L2_Z1),
                   (EAST_L2[0], EAST_L2[1], EAST_L2[2], EAST_L2[3]), (eo[0], eo[1], EAST_L2[3], eo[3])],
         [west.stair_hole, east.stair_hole], floor_y0(2), FLOOR[2], SLAB_C)
-# The tower below L0, round the lift shafts (which go on down into the dark).
-lv.slab("Tower", [(-F, E1, -F, F)], shafts, -600.0, -SLAB, BODY, decks="all")
+# The towers below L0, round the lift shafts (which go on down into the dark).
+lv.slab("Tower", [(-F, F, -F, F), (E0, E1, -F, F)], shafts, -600.0, -SLAB, BODY, decks="all")
 for core in cores:
     core.build()
 
@@ -196,7 +210,7 @@ east.roof_guards()
 guard("x", eo[3], -1, y2, eo[0], eo[1])                        # the core roof's front
 guard("z", eo[0], 1, y2, EAST_L2[3], eo[3])                    # its left side
 guard("z", eo[1], -1, y2, EAST_L2[3], eo[3] - 4.0)             # its right side, a gap at the front to drop
-for a0, a1 in ((EAST_L2[0], 28.0), (42.5, E1)):                # the corner's front edge over L1, in parts (the pile)
+for a0, a1 in ((EAST_L2[0], 32.0), (46.5, E1)):                # the corner's front edge over L1, in parts (the pile)
     guard("x", EAST_L2[3], -1, y2, a0, a1)
 guard("z", EAST_L2[0], 1, y2, -F, -9.0)                        # the corner's west edge, in part
 
@@ -211,7 +225,7 @@ def column(x, z, y0, y1, rebar):
 
 
 def under_l1(x, z):
-    return z < L1_Z1 if x < F else x > STRIP[1]
+    return z < L1_Z1 if x < F else True
 
 
 def under_l2(x, z):
@@ -234,9 +248,10 @@ for x in COLUMNS + EAST_COLUMNS:
 
 PANEL_T = 0.25
 panels = {
-    "back": [(-F, -5.0), (5.0, F), (24.0, 36.0)],   # z = -F
+    "back": [(-F, WALK_ENTRIES[0][0]), (WALK_ENTRIES[0][1], -5.0), (5.0, F), (28.0, 40.0)],   # z = -F
     "left": [(-F, -6.0)],                           # x = -F
-    "right": [(-F, -9.0), (-3.0, L1_Z1)],           # x = F: inside now, partitions
+    "right": [(-8.5, -2.5)],                        # x = F, over the gap (not where the corridor docks)
+    "gap": [(-7.5, -3.5), (5.0, F)],                # x = E0, over the gap
     "east": [(-F, -6.0), (6.0, F)],                 # x = E1
 }
 for a0, a1 in panels["back"]:
@@ -245,33 +260,37 @@ for a0, a1 in panels["left"]:
     box("Facade", -F, -F + PANEL_T, FLOOR[0], FLOOR[1] - SLAB, a0, a1, GLASS)
 for a0, a1 in panels["right"]:
     box("Facade", F - PANEL_T, F, FLOOR[0], FLOOR[1] - SLAB, a0, a1, GLASS)
+for a0, a1 in panels["gap"]:
+    box("Facade", E0, E0 + PANEL_T, FLOOR[0], FLOOR[1] - SLAB, a0, a1, GLASS)
 for a0, a1 in panels["east"]:
     box("Facade", E1 - PANEL_T, E1, FLOOR[0], FLOOR[1] - SLAB, a0, a1, GLASS)
-# L0: railed where there is no panel.
-for a0, a1 in gaps(-F, E1, panels["back"]):
-    guard("x", -F, 1, FLOOR[0], a0, a1)
-guard("x", F, -1, FLOOR[0], -F, E1)
+# L0: railed where there is no panel; the doorways over the gap open.
+for t0, t1 in ((-F, F), (E0, E1)):   # the walkways' doorways open
+    for a0, a1 in gaps(t0, t1, panels["back"] + WALK_ENTRIES):
+        guard("x", -F, 1, FLOOR[0], a0, a1)
+    for a0, a1 in gaps(t0, t1, WALK_ENTRIES):
+        guard("x", F, -1, FLOOR[0], a0, a1)
 for a0, a1 in gaps(-F, F, panels["left"]):
     guard("z", -F, 1, FLOOR[0], a0, a1)
+for a0, a1 in gaps(-F, F, panels["right"] + DOCKS):
+    guard("z", F, -1, FLOOR[0], a0, a1)
+for a0, a1 in gaps(-F, F, panels["gap"] + DOCKS):
+    guard("z", E0, 1, FLOOR[0], a0, a1)
 for a0, a1 in gaps(-F, F, panels["east"]):
     guard("z", E1, -1, FLOOR[0], a0, a1)
-# L1, west half: its outer edges, its open edge over L0's front in parts, its east edge over the strip but for the
-# bridges (and a gap to drop).
+# L1, west tower: its outer edges, its open edge over L0's front in parts, its edge over the gap but for the doorways.
 guard("x", -F, 1, FLOOR[1], -F, F)
 guard("z", -F, 1, FLOOR[1], -F, L1_Z1)
 for a0, a1 in ((-F, -10.4), (-8.4, -1.0), (1.0, 6.0), (9.0, F)):
     guard("x", L1_Z1, -1, FLOOR[1], a0, a1)
-for a0, a1 in gaps(-F, L1_Z1, BRIDGES + [(-7.0, -5.0)]):
+for a0, a1 in gaps(-F, L1_Z1, DOCKS):
     guard("z", F, -1, FLOOR[1], a0, a1)
-# L1, east wing: the building's edges all round; its west edge over the strip but for the bridges and a gap.
-guard("x", -F, 1, FLOOR[1], STRIP[1], E1)
-guard("x", F, -1, FLOOR[1], STRIP[1], E1)
+# L1, east tower: the edges all round, the doorways over the gap open.
+guard("x", -F, 1, FLOOR[1], E0, E1)
+guard("x", F, -1, FLOOR[1], E0, E1)
 guard("z", E1, -1, FLOOR[1], -F, F)
-for a0, a1 in gaps(-F, F, BRIDGES + [(5.0, 7.0)]):
-    guard("z", STRIP[1], 1, FLOOR[1], a0, a1)
-for a0, a1 in BRIDGES:   # the bridges' sides: railed (4 m down to the strip, but a bridge is no place to stand)
-    guard("x", a0, 1, FLOOR[1], STRIP[0], STRIP[1])
-    guard("x", a1, -1, FLOOR[1], STRIP[0], STRIP[1])
+for a0, a1 in gaps(-F, F, DOCKS):
+    guard("z", E0, 1, FLOOR[1], a0, a1)
 # L2, west corner and east corner: the building's edges railed.
 guard("x", -F, 1, FLOOR[2], -F, L2_X1)
 guard("z", -F, 1, FLOOR[2], -F, L2_Z1)
@@ -281,50 +300,127 @@ for a0, a1 in ((-F, -10.0), (-6.5, wo[0])):
 guard("x", -F, 1, FLOOR[2], EAST_L2[0], E1)
 guard("z", E1, -1, FLOOR[2], -F, EAST_L2[3])
 
-# --- the east wing's L1: half-built blockwork partitions -------------------------------------------------------------
+# --- the east tower's L1: half-built blockwork partitions ------------------------------------------------------------
 
 y1 = FLOOR[1]
-for x0, x1, z0, z1, h in ((25.0, 25.2, -11.0, -4.0, 2.6),     # a wall along z, a doorway's gap at its south end
-                          (25.0, 28.5, -4.2, -4.0, 2.6),
-                          (38.5, 41.5, -9.2, -9.0, 1.2),      # low walls: cover, not rooms
-                          (39.0, 39.2, 2.0, 6.0, 1.2),
-                          (24.0, 28.0, 9.8, 10.0, 2.6),
-                          (27.8, 28.0, 10.0, 12.0, 2.6)):
+for x0, x1, z0, z1, h in ((29.0, 29.2, -11.0, -4.0, 2.6),     # a wall along z, a doorway's gap at its south end
+                          (29.0, 32.5, -4.2, -4.0, 2.6),
+                          (42.5, 45.5, -9.2, -9.0, 1.2),      # low walls: cover, not rooms
+                          (43.0, 43.2, 2.0, 6.0, 1.2),
+                          (28.0, 32.0, 9.8, 10.0, 2.6),
+                          (31.8, 32.0, 10.0, 12.0, 2.6)):
     box("Blockwork", x0, x1, y1, y1 + h, z0, z1, BLOCKWORK)
 
-# Scaffold stair from L0's front up to L1's open edge (the west half's).
+# Scaffold stair from L0's front up to L1's open edge (the west tower's).
 SCAF = (-10.2, -8.6, 10.0, L1_Z1)
 lv.ramp("Scaffold", SCAF[0], SCAF[1], FLOOR[0], FLOOR[1], SCAF[2], SCAF[3], STEEL, thick=0.15)
 for z in (4.5, 7.0, 9.5):
     h = FLOOR[1] * (SCAF[2] - z) / (SCAF[2] - SCAF[3]) - 0.1
     for x in (SCAF[0], SCAF[1] - 0.06):
         box("ScaffoldPost", x, x + 0.06, 0.0, h, z, z + 0.06, STEEL)
-# A second scaffold stair in the strip, up its east side to the east wing's L1 (against the gap in its rail).
-SCAF2 = (19.4, 21.0, 12.5, 7.0)   # x0, x1, z at L0, z at L1 (at the gap 5 .. 7)
-lv.ramp("Scaffold", SCAF2[0], SCAF2[1], FLOOR[0], FLOOR[1], SCAF2[2], SCAF2[3], STEEL, thick=0.15)
-for z in (8.0, 10.0, 12.0):
-    h = FLOOR[1] * (SCAF2[2] - z) / (SCAF2[2] - SCAF2[3]) - 0.1
-    for x in (SCAF2[0], SCAF2[1] - 0.06):
-        box("ScaffoldPost", x, x + 0.06, 0.0, h, z, z + 0.06, STEEL)
-box("ScaffoldDeck", SCAF2[0], SCAF2[1], FLOOR[1] - 0.15, FLOOR[1], 5.0, SCAF2[3], STEEL)
-guard("z", SCAF2[0], 1, FLOOR[1], 5.0, SCAF2[3] + 0.5)   # its open side towards the strip
 
-# --- the crane on the west L2 corner, the goods hoist on the east facade ---------------------------------------------
+# --- the walkways a floor below L0 ----------------------------------------------------------------------------------
 
-MAST = (-12.5, -11.0)
-mx, mz = sum(MAST) / 2, sum(MAST) / 2
-box("CraneMast", MAST[0], MAST[1], FLOOR[2], 38.0, MAST[0], MAST[1], CRANE)
-box("CraneApex", mx - 0.4, mx + 0.4, 38.0, 45.0, mz - 0.4, mz + 0.4, CRANE)
-box("CraneJib", MAST[0], 34.0, 38.0, 39.4, mz - 0.6, mz + 0.6, CRANE)
-box("CraneCounterJib", -24.0, MAST[0], 38.2, 39.2, mz - 0.7, mz + 0.7, CRANE)
-box("CraneWeight", -23.5, -20.0, 35.5, 38.2, mz - 0.9, mz + 0.9, BODY)
-box("CraneCab", MAST[1], MAST[1] + 1.6, 35.4, 37.8, mz - 0.7, mz + 0.7, CRANE)
-HOOK_X = 6.0
-box("CraneTrolley", HOOK_X - 0.5, HOOK_X + 0.5, 37.6, 38.0, mz - 0.5, mz + 0.5, BODY)
-box("CraneCable", HOOK_X - 0.03, HOOK_X + 0.03, 14.0, 37.6, mz - 0.03, mz + 0.03, BODY)
-box("CraneLoad", HOOK_X - 1.6, HOOK_X + 1.6, 12.8, 14.0, mz - 1.2, mz + 1.2, REBAR)
-lv.marker("Beacons", "Beacon", (mx, 45.6, mz))
-lv.marker("Beacons", "Beacon", (33.5, 39.9, mz))
+
+def x_flight(name, x_low, x_high, y_low, y_high, z0, z1, color, thick=0.25):
+    """Stairs as a ramp along x: y_low at x_low up to y_high at x_high."""
+    run, rise = abs(x_high - x_low), y_high - y_low
+    angle = math.atan2(rise, run)
+    lv.rotated(name, ((x_low + x_high) / 2, y_low + rise / 2 - thick / 2 / math.cos(angle), (z0 + z1) / 2),
+               (math.hypot(run, rise), thick, z1 - z0), color, rot_z=angle if x_high > x_low else -angle, decks="all")
+
+
+def x_rail_sloped(x_low, x_high, y_low, y_high, z):
+    """A rail plate RAIL tall standing on a flight along x."""
+    run, rise = abs(x_high - x_low), y_high - y_low
+    angle = math.atan2(rise, run)
+    lv.rotated("Guard", ((x_low + x_high) / 2, (y_low + y_high) / 2 + RAIL / 2, z),
+               (math.hypot(run, rise), RAIL, RAIL_T), STEEL, rot_z=angle if x_high > x_low else -angle, decks="all")
+
+
+wx0, wx1, ex0, ex1 = WALK_LANDING
+flight_w = (wx1, wx1 + WALK_FLIGHT)      # down from the west landing, eastwards
+flight_e = (ex0 - WALK_FLIGHT, ex0)      # up to the east landing
+for side in (-1, 1):                     # -1 the back, +1 the front (its mirror)
+    za, zb = sorted((side * F, side * (F + WALK_W)))
+    outer = side * (F + WALK_W)
+    box("WalkLanding", wx0, wx1, -SLAB, 0.0, za, zb, SLAB_C)
+    box("WalkLanding", ex0, ex1, -SLAB, 0.0, za, zb, SLAB_C)
+    x_flight("WalkStairs", flight_w[1], flight_w[0], WALK_Y, 0.0, za, zb, STEEL)
+    x_flight("WalkStairs", flight_e[0], flight_e[1], WALK_Y, 0.0, za, zb, STEEL)
+    box("Walkway", flight_w[1], flight_e[0], WALK_Y - SLAB, WALK_Y, za, zb, STEEL)
+    # Rails: the outer edge all along, the ends, the inner edge over the gap.
+    guard("x", outer, -side, 0.0, wx0, wx1)
+    guard("x", outer, -side, 0.0, ex0, ex1)
+    guard("x", outer, -side, WALK_Y, flight_w[1], flight_e[0])
+    x_rail_sloped(flight_w[1], flight_w[0], WALK_Y, 0.0, outer - side * RAIL_T / 2)
+    x_rail_sloped(flight_e[0], flight_e[1], WALK_Y, 0.0, outer - side * RAIL_T / 2)
+    guard("z", wx0, 1, 0.0, za, zb)
+    guard("z", ex1, -1, 0.0, za, zb)
+    guard("x", side * F, side, WALK_Y, F, E0)
+    # Underneath: brackets off the towers, girders along the span.
+    for x in (-1.0, 7.0, 30.0, 37.0):
+        box("WalkBracket", x - 0.15, x + 0.15, WALK_Y - 1.2, WALK_Y - SLAB, za, zb, STEEL)
+    for z0, z1 in ((za, za + 0.2), (zb - 0.2, zb)):
+        box("WalkGirder", F - 1.0, E0 + 1.0, WALK_Y - 0.9, WALK_Y - SLAB, z0, z1, CRANE)
+    for x in (-2.0, 8.0, 20.0, 30.0, 38.0):   # on the towers' faces; over the gap on a post off the girder
+        if F < x < E0:
+            box("LampPole", x - 0.05, x + 0.05, WALK_Y, WALK_Y + 2.75, side * (F + 0.3) - 0.05, side * (F + 0.3) + 0.05,
+                STEEL)
+        lv.lamp("WalkLamp", (x, WALK_Y + 2.6, side * (F + 0.35)), energy=2.0, rng=8.0, shade=HANGING)
+
+# --- the tower crane in the gap and its load, the goods hoist on the east facade -------------------------------------
+
+# The crane stands in the gap behind the towers, its jib along z over the gap: the trolley runs along the jib and
+# the load hangs under it, so the load moves along z only.
+CX = (F + E0) / 2
+MAST_Z = -19.5
+JIB_Y = 39.0
+box("CraneMast", CX - 0.75, CX + 0.75, -600.0, JIB_Y, MAST_Z - 0.75, MAST_Z + 0.75, CRANE, decks="all")
+box("CraneApex", CX - 0.4, CX + 0.4, JIB_Y + 1.4, JIB_Y + 8.0, MAST_Z - 0.4, MAST_Z + 0.4, CRANE)
+box("CraneJib", CX - 0.6, CX + 0.6, JIB_Y, JIB_Y + 1.4, MAST_Z, 26.0, CRANE)
+box("CraneCounterJib", CX - 0.7, CX + 0.7, JIB_Y + 0.2, JIB_Y + 1.2, -33.0, MAST_Z, CRANE)
+box("CraneWeight", CX - 0.9, CX + 0.9, JIB_Y - 2.5, JIB_Y + 0.2, -32.5, -29.0, BODY)
+box("CraneCab", CX + 0.75, CX + 2.0, JIB_Y - 2.6, JIB_Y - 0.2, MAST_Z - 0.7, MAST_Z + 0.7, CRANE)
+lv.marker("Beacons", "Beacon", (CX, JIB_Y + 8.6, MAST_Z))
+lv.marker("Beacons", "Beacon", (CX, JIB_Y + 2.0, 26.0))
+
+# The load: a two-storey corridor across the gap, at the first dock (crane_bridge.gd moves the whole group along z).
+lv.group = "CraneLoad"
+BX0, BX1 = BRIDGE_X
+BZ0, BZ1 = DOCKS[0]
+BZC = (BZ0 + BZ1) / 2
+STAIR_Z1 = BZ0 + 1.4                # the stair runs along the -z wall...
+STAIR_X = (17.0, 23.0)              # ...rising towards +x
+HOLE_X0 = 19.0                      # the upper floor is open over the stair from here (headroom)
+box("BridgeFloor", BX0, BX1, -SLAB, 0.0, BZ0, BZ1, SLAB_C)
+lv.slab("BridgeDeck", [(BX0, BX1, BZ0, BZ1)], [(HOLE_X0, STAIR_X[1], BZ0, STAIR_Z1)], floor_y0(1), FLOOR[1], SLAB_C)
+box("BridgeRoof", BX0, BX1, floor_y0(2), FLOOR[2], BZ0, BZ1, STEEL)
+run, rise, thick = STAIR_X[1] - STAIR_X[0], FLOOR[1], 0.25
+angle = math.atan2(rise, run)
+lv.rotated("BridgeStairs", (sum(STAIR_X) / 2, rise / 2 - thick / 2 / math.cos(angle), (BZ0 + RAIL_T + STAIR_Z1) / 2),
+           (math.hypot(run, rise), thick, STAIR_Z1 - BZ0 - RAIL_T), STEEL, rot_z=angle, decks="all")
+guard("x", STAIR_Z1, 1, FLOOR[1], HOLE_X0, STAIR_X[1])     # round the stair's opening upstairs
+guard("z", HOLE_X0, -1, FLOOR[1], BZ0, STAIR_Z1)
+for f in (0, 1):
+    y = FLOOR[f]
+    top = FLOOR[f + 1] - SLAB
+    for z0, z1 in ((BZ0, BZ0 + RAIL_T), (BZ1 - RAIL_T, BZ1)):   # the long sides: a parapet, windows, a beam
+        box("BridgeParapet", BX0, BX1, y, y + RAIL, z0, z1, STEEL)
+    for z0, z1 in ((BZ0, BZ0 + 0.2), (BZ1 - 0.2, BZ1)):
+        box("BridgeBeam", BX0, BX1, y + 2.7, top, z0, z1, CRANE)
+        for x in (BX0, (BX0 + BX1) / 2 - 0.1, BX1 - 0.2):
+            box("BridgePost", x, x + 0.2, y, y + 2.7, z0, z1, CRANE)
+lv.lamp("BridgeLamp", (BX0 + 2.5, floor_y0(1) - 0.45, BZ1 - 1.2), energy=2.0, rng=8.0, shade=HANGING)
+lv.lamp("BridgeLamp", (BX1 - 2.5, floor_y0(2) - 0.45, BZ1 - 1.2), energy=2.0, rng=8.0, shade=HANGING)
+# Rigging: a spreader over the roof, two slings, the cable up to the trolley on the jib.
+box("Spreader", BX0 + 0.5, BX1 - 0.5, FLOOR[2] + 1.4, FLOOR[2] + 1.7, BZC - 0.2, BZC + 0.2, CRANE)
+for x in (BX0 + 0.9, BX1 - 0.9):
+    box("Sling", x - 0.03, x + 0.03, FLOOR[2], FLOOR[2] + 1.4, BZC - 0.03, BZC + 0.03, BODY)
+box("CraneCable", CX - 0.03, CX + 0.03, FLOOR[2] + 1.7, JIB_Y - 0.4, BZC - 0.03, BZC + 0.03, BODY)
+box("CraneTrolley", CX - 0.6, CX + 0.6, JIB_Y - 0.4, JIB_Y, BZC - 0.6, BZC + 0.6, BODY)
+lv.group = None
+
 # The hoist: a mast standing off the east facade, its cage parked well above L2.
 HX = (E1 + 1.2, E1 + 2.0)
 for z0 in (-1.8, 1.0):
@@ -354,7 +450,7 @@ def hanging_lamp(x, z, floor):
     lv.lamp("WorkLamp", (x, FLOOR[floor + 1] - SLAB - 0.45, z), energy=2.4, rng=10.0, shade=HANGING)
 
 
-# The west half.
+# The west tower.
 hanging_lamp(-9.0, -9.0, 0)
 hanging_lamp(9.0, -7.0, 0)
 pole_lamp(10.0, 6.0, 0)
@@ -362,15 +458,16 @@ pole_lamp(-5.0, 11.0, 0)
 pole_lamp(9.0, -9.0, 1)
 pole_lamp(-11.0, 0.0, 1)
 pole_lamp(-6.0, -9.0, 2)
-# The east wing: under L1 it is dark but for a few hanging lamps; L1 and L2 have their own.
-pole_lamp(17.0, 0.0, 0)
-hanging_lamp(30.0, -10.0, 0)
-hanging_lamp(41.0, 9.0, 0)
-hanging_lamp(24.0, 6.0, 0)
-hanging_lamp(31.0, -8.0, 1)
-pole_lamp(41.0, 11.0, 1)
-pole_lamp(24.0, -1.0, 1)
-pole_lamp(41.0, -11.0, 2)
+# The east tower: under L1 it is dark but for a few hanging lamps; L1 and L2 have their own.
+hanging_lamp(28.0, -6.0, 0)
+hanging_lamp(34.0, -10.0, 0)
+hanging_lamp(45.0, 9.0, 0)
+hanging_lamp(28.0, 6.0, 0)
+hanging_lamp(35.0, -8.0, 1)
+pole_lamp(45.0, 11.0, 1)
+pole_lamp(28.0, -5.0, 1)
+pole_lamp(45.0, -11.0, 2)
 
 lv.write(OUT, "TowerShell")
 print("deck_splits %s (Props), kill_height %g (World)" % ([round(s, 3) for s in DECK_SPLITS], KILL_HEIGHT))
+print("crane load: travel %g m along z (CraneBridge)" % (DOCKS[1][0] - DOCKS[0][0]))

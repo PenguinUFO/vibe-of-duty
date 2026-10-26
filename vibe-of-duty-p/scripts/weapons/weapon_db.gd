@@ -22,6 +22,10 @@ const MODULE_GEOMETRY := {
 			"front_sight": Vector3(0.0, 0.15, 0.1), "eye_relief": 0.22},
 	"ak.sight.pso": {"sight": "pso", "scope": true, "rear_sight": Vector3(0.035, 0.155, -0.16),
 			"front_sight": Vector3(0.035, 0.155, 0.24), "eye_relief": 0.06},
+	# The ACOG on the ACR's rail, its axis 36 mm over it; the irons folded under it. The eye 6 cm behind the eyepiece
+	# (the real one's relief is ~4 cm): the cheek where it is with the irons, give or take.
+	"acr.sight.acog": {"sight": "acog", "model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.131, -0.075),
+			"front_sight": Vector3(0.0, 0.131, 0.05), "eye_relief": 0.06},
 	"pdw.sight.compm": {"sight": "compm", "rear_sight": Vector3(0.0, 0.098, -0.06),
 			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
 	"pdw.stock.folded": {"model_variants": {"Stock": "Folded"}},
@@ -125,7 +129,8 @@ static func make_def(index: int, module_ids: Array) -> WeaponDef:
 	return def
 
 
-## Modules of `weapon_id` for `slot`, the default first: [{id, weapon, slot, name, info, cost, requires, values}].
+## Modules of `weapon_id` for `slot`, the default first: [{id, weapon, slot, name, info, cost, requires, excludes,
+## hidden, values}].
 static func modules_for(weapon_id: String, slot: String) -> Array:
 	_build()
 	var list := []
@@ -175,9 +180,9 @@ static func load_text(text: String) -> bool:
 					"name": str(values.get("name", path[2])), "info": str(values.get("info", "")),
 					"cost": int(values.get("cost", 0)),
 					"requires": path[0] + "." + str(values["requires"]) if values.has("requires") else "",
-					"excludes": str(values.get("excludes", "")), "values": {}}
+					"excludes": str(values.get("excludes", "")), "hidden": bool(values.get("hidden", false)), "values": {}}
 			for key in values:
-				if not key in ["name", "info", "cost", "requires", "excludes"]:
+				if not key in ["name", "info", "cost", "requires", "excludes", "hidden"]:
 					module["values"][key] = values[key]
 			_modules[section] = module
 			_module_ids.append(section)
@@ -320,7 +325,7 @@ static func _build_geometry() -> void:
 	acr.scene_path = "res://prefabs/weapons/acr_blockout.tscn"  # tools/make_acr_blockout.py
 	acr.model_variants = {"Barrel": "B145", "Barrel/B105/Muzzle": "Brake", "Barrel/B145/Muzzle": "Brake",
 			"Barrel/B185/Muzzle": "Brake", "Stock": "Extended", "Stock/Extended/Butt": "Out", "Stock/Folded/Butt": "In",
-			"Mags": "ACR_Mag_30"}
+			"Mags": "ACR_Mag_30", "Sights": "Up"}
 	acr.muzzle = Vector3(0.0, 0.05, 0.548)
 	acr.rear_sight = Vector3(0.0, 0.113, -0.05)   # top of the rear ears (the post's tip flush with them)
 	acr.front_sight = Vector3(0.0, 0.113, 0.31)   # tip of the front post

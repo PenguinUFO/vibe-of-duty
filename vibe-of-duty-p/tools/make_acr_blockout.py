@@ -18,7 +18,8 @@ the beam ("Butt") - folding to the right side (owner's photo of a black ACR, 202
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres; prefab +x is the shooter's left. Module variants (model_variants):
 "Barrel" (B105 / B145 / B185: 10.5", 14.5", 18", each with its handguard), each with its own "Muzzle" (Brake / Can) -
-so the suppressor module names all three; "Stock" (Extended / Folded), each with "Butt" (In / Out: the telescope); "Mags" (ACR_Mag_30, a "*_Mag_*" node so
+so the suppressor module names all three; "Stock" (Extended / Folded), each with "Butt" (In / Out: the telescope); "Sights" (Up / Down: folded under the
+ACOG); "Mags" (ACR_Mag_30, a "*_Mag_*" node so
 reloads slide it out). Key points used by WeaponDB (prefab space): bore y 0.05; muzzle with the brake
 z 0.38 / 0.481 / 0.57 + 0.067, the suppressor + 0.17 instead; rear sight's top (0, 0.113, -0.05), front post tip
 (0, 0.113, 0.31); pistol grip (0, -0.04, -0.076); handguard bottom (0, 0.015, 0.29); charging handle (0.03, 0.0695, 0.2).
@@ -123,17 +124,26 @@ for side, x0, x1 in both(0.024, 0.028):
     box("MagRelease" + side, x0, x1, -0.022, -0.006, 0.043, 0.05, "black")
     box("BoltCatch" + side, x0, x1, 0.008, 0.02, 0.1, 0.112, "black")
 
-# Flip-up sights (up), all tops at the sight line (y 0.113): the post stands in the middle of the rear's wide notch, its
-# tip flush with the ears' tops, light on both sides of it; the front's ears (wider than the notch) hide behind the
-# rear's ears.
-box("RearSightBase", -0.012, 0.012, 0.095, 0.099, -0.07, -0.04, "black")
-box("RearSightLeaf", -0.008, 0.008, 0.099, 0.104, -0.056, -0.05, "black")  # the notch's bottom
+# Flip-up sights: group "Sights", up (iron sights) or folded flat (under the ACOG). Up, all tops at the sight line
+# (y 0.113): the post stands in the middle of the rear's wide notch, its tip flush with the ears' tops, light on both
+# sides of it; the front's ears (wider than the notch) hide behind the rear's ears.
+node("Sights")
+node("Up", "Sights")
+s = "Sights/Up"
+box("RearSightBase", -0.012, 0.012, 0.095, 0.099, -0.07, -0.04, "black", parent=s)
+box("RearSightLeaf", -0.008, 0.008, 0.099, 0.104, -0.056, -0.05, "black", parent=s)  # the notch's bottom
 for side, x0, x1 in both(0.003, 0.008):
-    box("RearSightEar" + side, x0, x1, 0.104, 0.113, -0.056, -0.05, "black")
-box("FrontSightBase", -0.012, 0.012, 0.095, 0.099, 0.295, 0.335, "black")
-box("FrontSightPost", -0.002, 0.002, 0.099, 0.113, 0.307, 0.313, "black")
+    box("RearSightEar" + side, x0, x1, 0.104, 0.113, -0.056, -0.05, "black", parent=s)
+box("FrontSightBase", -0.012, 0.012, 0.095, 0.099, 0.295, 0.335, "black", parent=s)
+box("FrontSightPost", -0.002, 0.002, 0.099, 0.113, 0.307, 0.313, "black", parent=s)
 for side, x0, x1 in both(0.008, 0.012):
-    box("FrontSightEar" + side, x0, x1, 0.099, 0.113, 0.303, 0.317, "black")
+    box("FrontSightEar" + side, x0, x1, 0.099, 0.113, 0.303, 0.317, "black", parent=s)
+node("Down", "Sights")
+s = "Sights/Down"
+box("RearSightBase", -0.012, 0.012, 0.095, 0.099, -0.07, -0.04, "black", parent=s)
+box("RearSightLeaf", -0.009, 0.009, 0.099, 0.1012, -0.069, -0.045, "black", parent=s)  # folded back
+box("FrontSightBase", -0.012, 0.012, 0.095, 0.099, 0.295, 0.335, "black", parent=s)
+box("FrontSightLeaf", -0.012, 0.012, 0.099, 0.1012, 0.298, 0.332, "black", parent=s)  # folded forward, flat: under the ACOG's view
 
 # Barrels: each with its handguard (slots, the black side rail on the long one, the gas regulator's knob at its front)
 # and its own muzzle group, the brake (ports) or the suppressor (black, gripping rings, as the third photo).

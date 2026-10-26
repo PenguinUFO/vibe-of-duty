@@ -24,7 +24,10 @@ const BUSHES_PER_CHUNK := 40
 const ROCKS_PER_CHUNK := 8
 const TUNNEL_LEN := 150.0
 const TUNNEL_W := 13.0          # inner width
-const TUNNEL_H := 11.0          # inner height (well above the train roof)
+## The vault's underside (y): 1.4 m over the roofs (6.6 m) - a player standing on a roof (1.8 m) is struck, one
+## crouching (1.1 m) fits under. The server kills on it (hits_vault, NetWorld); the vault itself has no collision.
+const TUNNEL_CEILING := 8.0
+const TUNNEL_H := TUNNEL_CEILING - GROUND_Y  # inner height
 const HILL_W := 70.0            # hill each side of the tunnel
 const HILL_H := 26.0
 const TUNNEL_START := -420.0    # where a tunnel appears (its centre)
@@ -81,12 +84,12 @@ var _darkness := 0.0
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	_world = get_node_or_null("../World") as NetWorld
+	_restart_tunnels()  # the schedule runs headless too: the server kills on the vault (hits_vault)
 	if DisplayServer.get_name() == "headless":
 		set_process(false)
 		return
 	_rng.seed = 7341  # the same forest on every machine
-	_world = get_node_or_null("../World") as NetWorld
-	_restart_tunnels()
 	var world_env := get_node_or_null("../WorldEnvironment") as WorldEnvironment
 	if world_env:
 		_env = world_env.environment
@@ -436,17 +439,30 @@ func _restart_tunnels() -> void:
 	_tunnel_start = FIRST_TUNNEL
 
 
-## Where the tunnel is at server time `time`: it runs from TUNNEL_START to TUNNEL_END with the scenery, then the
-## next one comes a gap later.
-func _update_tunnel(delta: float, time: float) -> void:
+## Where the tunnel's centre is at server time `time` (NAN between tunnels): it runs from TUNNEL_START to TUNNEL_END
+## with the scenery, then the next one comes a gap later.
+func _tunnel_z_at(time: float) -> float:
 	if time < _last_time - 0.5:
 		_restart_tunnels()  # the clock went back (a client's first snapshot): work the schedule out again
 	_last_time = time
 	var passing := (TUNNEL_END - TUNNEL_START) / speed
 	while time >= _tunnel_start + passing:
 		_tunnel_start += passing + _tunnel_rng.randf_range(TUNNEL_GAP.x, TUNNEL_GAP.y)
-	_tunnel.visible = time >= _tunnel_start
-	_tunnel_z = TUNNEL_START + (time - _tunnel_start) * speed
+	return TUNNEL_START + (time - _tunnel_start) * speed if time >= _tunnel_start else NAN
+
+
+## Server: a body `height` tall with its feet at `feet` reaches the vault of a tunnel over it (standing on a roof).
+func hits_vault(feet: Vector3, height: float) -> bool:
+	if feet.y + height <= TUNNEL_CEILING:
+		return false
+	var z := _tunnel_z_at(_world.shared_time() if _world else 0.0)
+	return not is_nan(z) and absf(feet.z - z) < TUNNEL_LEN * 0.5
+
+
+func _update_tunnel(delta: float, time: float) -> void:
+	var z := _tunnel_z_at(time)
+	_tunnel.visible = not is_nan(z)
+	_tunnel_z = z if _tunnel.visible else TUNNEL_START
 	_tunnel.position.z = _tunnel_z
 	# How much of the train is inside: ambient light and haze follow it (the vault's shadow does the sunlight).
 	var inside := 0.0

@@ -46,8 +46,9 @@ const PLACEHOLDERS := {
 
 var _streams: Dictionary = {}  # id -> AudioStream
 var _file_index: Dictionary = {}  # id -> resource path
-var _music_index: Dictionary = {}  # id -> resource path
+var _music_index: Dictionary = {}  # id -> Array of resource paths (playlist)
 var _music_id := ""
+var _music_queue: Array = []  # remaining paths of the current playlist, shuffled
 var _pool_2d: Array[AudioStreamPlayer] = []
 var _pool_3d: Array[AudioStreamPlayer3D] = []
 var _music_player: AudioStreamPlayer
@@ -69,6 +70,7 @@ func _ready() -> void:
 		_pool_3d.append(p3)
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = &"Music"
+	_music_player.finished.connect(_next_track)
 	add_child(_music_player)
 
 
@@ -102,22 +104,38 @@ func play_music(stream: AudioStream) -> void:
 func stop_music() -> void:
 	_music_player.stop()
 	_music_id = ""
+	_music_queue.clear()
 
 
-## Plays the looping track `res://music/<id>.ogg|mp3|wav` (ids used: "menu", "game"). Silence if the file
-## does not exist, so music can simply be dropped into the folder later.
+## Plays playlist [param id] (ids used: "menu", "game"): every file in `res://music/<id>/`, plus
+## `res://music/<id>.ogg|mp3|wav`. Tracks play once each in shuffled order, then reshuffle; a single
+## track just repeats. Silence if there are no files, so music can be dropped into the folder later.
 func play_music_id(id: String) -> void:
 	if _silent or _music_id == id:
 		return
 	if not _music_index.has(id):
 		stop_music()
 		return
-	var stream: AudioStream = load(_music_index[id])
-	if stream is AudioStreamOggVorbis or stream is AudioStreamMP3:
-		stream.loop = true
-	elif stream is AudioStreamWAV:
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_music_id = id
+	_music_queue.clear()
+	_next_track()
+
+
+func _next_track() -> void:
+	if _music_id == "":
+		return
+	if _music_queue.is_empty():
+		_music_queue = _music_index[_music_id].duplicate()
+		_music_queue.shuffle()
+		# Do not repeat the track that just ended right after a reshuffle.
+		if _music_queue.size() > 1 and _music_player.stream != null 				and _music_queue[0] == _music_player.stream.resource_path:
+			_music_queue.push_back(_music_queue.pop_front())
+	var stream: AudioStream = load(_music_queue.pop_front())
+	# Looping is off so `finished` fires and the next track starts.
+	if stream is AudioStreamOggVorbis or stream is AudioStreamMP3:
+		stream.loop = false
+	elif stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
 	play_music(stream)
 
 
@@ -151,13 +169,17 @@ func _scan_dir(dir_path: String) -> void:
 		_scan_dir(dir_path.path_join(sub))
 
 
-func _scan_music(dir_path: String) -> void:
+## Root files `<id>.ext` and every file in subfolder `<id>/` (any depth) go to playlist <id>.
+func _scan_music(dir_path: String, id: String = "") -> void:
 	for file in DirAccess.get_files_at(dir_path):
 		var clean := file.trim_suffix(".import").trim_suffix(".remap")
 		if clean.get_extension() in AUDIO_EXTENSIONS:
-			_music_index[clean.get_basename()] = dir_path.path_join(clean)
+			var list_id := id if id != "" else clean.get_basename()
+			if not _music_index.has(list_id):
+				_music_index[list_id] = []
+			_music_index[list_id].append(dir_path.path_join(clean))
 	for sub in DirAccess.get_directories_at(dir_path):
-		_scan_music(dir_path.path_join(sub))
+		_scan_music(dir_path.path_join(sub), id if id != "" else sub)
 
 
 func _synthesize(def: Dictionary) -> AudioStreamWAV:

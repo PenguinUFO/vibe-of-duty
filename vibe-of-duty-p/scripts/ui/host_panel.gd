@@ -1,23 +1,25 @@
 class_name HostPanel
 extends PanelContainer
-## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length) and, under
-## the folded "Дополнительно", the port. Below it, "Тестирование" behind the kid mode code (KidModeEntry): the
-## right code opens a section of test modes - for now "FFA random weapon" (Game.random_weapons).
+## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length, the FFA random
+## weapon mode - Game.random_weapons) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
+## the kid mode code (KidModeEntry): the right code opens a section of test options - for now recording the match
+## statistics (Game.record_stats, MatchStats).
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
 ## the menu then opens the server.
 
 signal start_requested
 signal closed
 
-## The test modes chosen this run (not saved: a restart turns them off, the section stays locked until the code).
+## The test options chosen this run (not saved: a restart turns them off, the section stays locked until the code).
 static var unlocked := false
-static var random_weapons := false
+static var record_stats := false
 
 var _map: OptionButton
 var _score_limit: SpinBox
 var _match_minutes: SpinBox
 var _port: SpinBox
 var _random_weapons: CheckBox
+var _record_stats: CheckBox
 
 
 func _init() -> void:
@@ -46,6 +48,7 @@ func _init() -> void:
 	_add_row(box, "Карта", _map)
 	_score_limit = _add_spin(box, "Лимит убийств", 1, 100, Settings.host_score_limit, "")
 	_match_minutes = _add_spin(box, "Длительность матча", 1, 60, Settings.host_match_minutes, " мин")
+	_random_weapons = _add_check(box, "Игровой режим: FFA рандомное оружие", Settings.host_random_weapons)
 	# Rarely needed settings, folded away: the port (only when 27015 is taken or a router forwards another one).
 	var advanced := FoldableContainer.new()
 	advanced.title = "Дополнительно"
@@ -89,14 +92,16 @@ func _on_start() -> void:
 	Settings.host_score_limit = int(_score_limit.value)
 	Settings.host_match_minutes = int(_match_minutes.value)
 	Settings.host_port = int(_port.value)
+	Settings.host_random_weapons = _random_weapons.button_pressed
 	Settings.save_settings()
 	Game.map_scene = Settings.host_map if Game.list_maps().has(Settings.host_map) else Game.DEFAULT_MAP
 	Game.score_limit = Settings.host_score_limit
 	Game.match_time = Settings.host_match_minutes * 60.0
 	Game.launch_port = Settings.host_port
 	Game.training = false
-	random_weapons = _random_weapons.button_pressed
-	Game.random_weapons = random_weapons
+	Game.random_weapons = Settings.host_random_weapons
+	record_stats = _record_stats.button_pressed
+	Game.record_stats = record_stats
 	start_requested.emit()
 
 
@@ -109,11 +114,7 @@ func _add_testing(box: Container) -> void:
 	var testing_box := VBoxContainer.new()
 	testing_box.add_theme_constant_override("separation", 10)
 	testing.add_child(testing_box)
-	_random_weapons = CheckBox.new()
-	_random_weapons.text = "Игровой режим: FFA рандомное оружие"
-	_random_weapons.button_pressed = random_weapons
-	_random_weapons.toggled.connect(func(_on: bool) -> void: Audio.play("ui_click"))
-	testing_box.add_child(_random_weapons)
+	_record_stats = _add_check(testing_box, "Записывать статистику боёв", record_stats)
 	if unlocked:
 		return
 	var entry := KidModeEntry.new("Тестирование")
@@ -123,7 +124,16 @@ func _add_testing(box: Container) -> void:
 		entry.queue_free()
 		testing.visible = true
 		testing.folded = false
-		_random_weapons.grab_focus())
+		_record_stats.grab_focus())
+
+
+func _add_check(parent: Container, text: String, pressed: bool) -> CheckBox:
+	var check := CheckBox.new()
+	check.text = text
+	check.button_pressed = pressed
+	check.toggled.connect(func(_on: bool) -> void: Audio.play("ui_click"))
+	parent.add_child(check)
+	return check
 
 
 func _add_spin(parent: Container, label_text: String, min_value: int, max_value: int, value: int, suffix: String) -> SpinBox:
