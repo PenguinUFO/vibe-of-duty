@@ -35,13 +35,27 @@ func setup(peer_id: int, weapon: WeaponView) -> void:
 ## Reload: the left hand follows Mannequin.reload_hand (gun view space) - to the magazine, down out of view to a
 ## pouch and back, the handle - and carries the magazine while it holds it. Returns the hand's target.
 func _reload_hand(def: WeaponDef, handguard: Vector3, s: float) -> Vector3:
+	if _weapon.loads_shells():
+		var gun_from_camera := (transform.affine_inverse() * _weapon.transform).affine_inverse()
+		var with_shell := Mannequin.shell_hand(reload, _weapon, handguard, gun_from_camera * POUCH, s)
+		_weapon.set_shell(reload, with_shell[1])
+		return with_shell[0]
+	if _weapon.breaks_open():
+		var gun_from_arms := (transform.affine_inverse() * _weapon.transform).affine_inverse()
+		var hold := Mannequin.break_hand(reload, _weapon, handguard, gun_from_arms * POUCH, s)
+		_weapon.set_break(reload, hold[1])
+		return hold[0]
+	var xform := transform.affine_inverse() * _weapon.transform
+	var pouch := xform.affine_inverse() * POUCH  # pouch is in arms (camera) space
+	var handle := Mannequin._view_point(def.charging_handle) * s if def.charging_handle.is_finite() else Vector3.INF
+	if _weapon.tips_mag():
+		var tipped := Mannequin.tip_mag_hand(reload, _weapon, handguard, pouch, handle, s)
+		_weapon.set_mag_tip(tipped[1], tipped[2], tipped[3])
+		return tipped[0]
 	var mag_grip := _weapon.mag_grip_point()
 	if not mag_grip.is_finite():
 		return handguard
 	var seated := Mannequin._view_point(mag_grip) * s
-	var xform := transform.affine_inverse() * _weapon.transform
-	var pouch := xform.affine_inverse() * POUCH  # pouch is in arms (camera) space
-	var handle := Mannequin._view_point(def.charging_handle) * s if def.charging_handle.is_finite() else Vector3.INF
 	var path := Mannequin.reload_hand(reload, handguard, seated, pouch, handle, s)
 	var hand: Vector3 = path[0]
 	_weapon.set_mag_shift(Mannequin._view_point((hand - seated) / s) if path[1] else Vector3.ZERO)
@@ -55,13 +69,15 @@ func pose() -> void:
 	var def := _weapon.def
 	var xform := transform.affine_inverse() * _weapon.transform  # both are children of the camera
 	var s := WeaponView.VIEWMODEL_SCALE
-	var right := Mannequin._view_point(def.right_hand) * s
+	var right := Mannequin._view_point(_weapon.lever_hand(def.right_hand)) * s
 	var left := Mannequin._view_point(def.left_hand) * s
 	var right_palm := xform * right
 	if reload >= 0.0:
 		left = _reload_hand(def, left, s)
 	else:
 		_weapon.set_mag_shift(Vector3.ZERO)
+		_weapon.set_break(-1.0)
+		_weapon.set_shell(-1.0)
 	var left_palm := xform * left
 	var right_fingers := xform.basis * Mannequin.RIGHT_FINGERS
 	var left_fingers := xform.basis * Mannequin.LEFT_FINGERS

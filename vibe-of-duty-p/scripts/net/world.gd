@@ -405,8 +405,9 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 	if piercing and victim.damage_taken_mult(head) < 1.0:
 		Game.count("piercing_hits")  # tests: the protection was gone through
 	var hp_before := victim.health
+	var block := attacker.weapons.def_at(weapon).regen_block if weapon >= 0 else 0.0
 	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
-			* victim.damage_taken_mult(head, piercing))
+			* victim.damage_taken_mult(head, piercing), block)
 	if _stats != null:
 		_stats.damaged(attacker, victim, hp_before, head, weapon)
 	if attacker.control == Player.Mode.LOCAL:

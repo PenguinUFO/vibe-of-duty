@@ -7,7 +7,9 @@ extends PanelContainer
 ## token price; a part that would go over PartDB.BUDGET is refused, a module whose "requires" is not in the build is
 ## greyed out (and falls back to the default when its requirement goes). The card slots (PartDB.CARD_SLOTS: the
 ## suppressor, a conversion, the stock, the big magazine) are cards, not lists (owner, 2026-10-23, as Black Ops 2's):
-## pressed, the slot's "on" module is in; pressed again, out; a weapon without one hides it. A slot the build's parts
+## pressed, the slot's "on" module is in; pressed again, out; a weapon without one hides it. A slot with more modules
+## shows a card for each but the first, one row, and one at a time is in (the sight: CompM or ACOG, owner 2026-10-27);
+## pressing another swaps it. A slot the build's parts
 ## "exclude" is locked at its default. Under the weapon - its numbers with this build. Saved to user://builds.cfg on
 ## every change.
 
@@ -17,7 +19,7 @@ signal closed
 var _tabs: Array[Button] = []
 var _name_edit := LineEdit.new()
 var _pickers := {}            # slot -> OptionButton (all but the card's)
-var _cards := {}              # card slot (PartDB.CARD_SLOTS) -> [its Label, its Button]
+var _cards := {}              # card slot (PartDB.CARD_SLOTS) -> [its Label, its row of Buttons: one per 'on' module]
 var _tokens := Label.new()
 var _stats := Label.new()
 var _info := Label.new()
@@ -82,14 +84,11 @@ func _init() -> void:
 			label.text = PartDB.SLOT_NAMES[slot]
 			grid.add_child(label)
 			if slot in PartDB.CARD_SLOTS:
-				var card := Button.new()
-				card.toggle_mode = true
-				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card.custom_minimum_size.y = 40
-				card.alignment = HORIZONTAL_ALIGNMENT_LEFT
-				card.toggled.connect(func(on: bool) -> void: _on_part(slot, 1 if on else 0))
-				grid.add_child(card)
-				_cards[slot] = [label, card]
+				var row := HBoxContainer.new()  # its cards: _refresh (as many as the build weapon has)
+				row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				row.add_theme_constant_override("separation", 6)
+				grid.add_child(row)
+				_cards[slot] = [label, row]
 				continue
 			var picker := OptionButton.new()  # its items: _refresh (module slots list the build weapon's)
 			picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -162,12 +161,18 @@ func _refresh() -> void:
 				locked[slot] = true
 	for slot: String in _cards:
 		var label: Label = _cards[slot][0]
-		var card: Button = _cards[slot][1]
+		var row: HBoxContainer = _cards[slot][1]
 		var card_options := PartDB.options(slot, parts[0])
-		card.visible = card_options.size() > 1  # a weapon without this card hides its row
-		label.visible = card.visible
-		if card.visible:
-			var on: PartDef = card_options[1]
+		label.visible = card_options.size() > 1  # a weapon without this card hides its row
+		row.visible = label.visible
+		while row.get_child_count() < card_options.size() - 1:
+			_add_card(row, slot, row.get_child_count() + 1)
+		for i in row.get_child_count():
+			var card: Button = row.get_child(i)
+			card.visible = i + 1 < card_options.size()
+			if not card.visible:
+				continue
+			var on: PartDef = card_options[i + 1]
 			card.set_pressed_no_signal(parts.has(on.id))
 			card.disabled = locked.has(slot)  # another card excludes it (the Хрюгер: the snail)
 			card.text = "%s %s  (%d)" % ["●" if card.button_pressed else "○", on.display_name, PartDB.price(on)]
@@ -196,6 +201,19 @@ func _refresh() -> void:
 	_preview.show_build(parts)  # lists the card's words too, when it is on (a module with a price)
 
 
+## The card for `slot`'s module number `index` (its "on" one when it is the only card): pressed, that module is in
+## (whichever of the slot's was); pressed again, the slot's default.
+func _add_card(row: HBoxContainer, slot: String, index: int) -> void:
+	var card := Button.new()
+	card.toggle_mode = true
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 40
+	card.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.clip_text = true
+	card.toggled.connect(func(on: bool) -> void: _on_part(slot, index if on else 0))
+	row.add_child(card)
+
+
 ## "450", or "450→600 за 1.0 с" for a ramping rate.
 func _fire_rate_text(def: WeaponDef) -> String:
 	var text := "%.0f" % (60.0 / def.fire_interval)
@@ -213,7 +231,10 @@ func _weapon_stats(parts: Array) -> String:
 		falloff.append("%.0f с %.0f м" % [def.damage * def.falloff_mults[i], def.falloff_ranges[i]])
 	var lines: PackedStringArray = [
 		def.info,
-		"Урон %.0f%s" % [def.damage, (", " + ", ".join(falloff)) if not falloff.is_empty() else ""],
+		"Урон %.0f%s%s%s%s" % [def.damage, " × %d дробин" % def.pellets if def.pellets > 1 else "",
+				(", " + ", ".join(falloff)) if not falloff.is_empty() else "",
+				" · в голову как в тело" if def.head_mult <= 1.0 else "",
+				" · раненый не лечится %.0f с" % def.regen_block if def.regen_block > 0.0 else ""],
 		"Темп %s выстр/мин · магазин %d · запас %d" % [_fire_rate_text(def), def.mag_size, def.reserve_start],
 		"Перезарядка %.2f с · прицеливание %.2f с · зум ×%.1f" % [def.reload_time * mods["reload_mult"],
 				def.ads_time * mods["ads_time_mult"], 1.0 / def.ads_fov_mult],

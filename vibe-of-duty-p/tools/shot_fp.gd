@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_fp.gd
 
-const CASES := {  # [weapon, ads, punch progress, modules]
+const CASES := {  # [weapon, ads, punch progress, modules, reload progress]
 	"hip": [0, 0.0, -1.0, []], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
@@ -15,12 +15,27 @@ const CASES := {  # [weapon, ads, punch progress, modules]
 	"ak_pbs": [0, 0.0, -1.0, ["ak.suppressor.on"]], "ak_pbs_ads": [0, 1.0, -1.0, ["ak.suppressor.on"]],
 	"acr_hip": [3, 0.0, -1.0, []], "acr_ads": [3, 1.0, -1.0, []],
 	"acr_acog_ads": [3, 1.0, -1.0, ["acr.sight.acog"]], "acr_acog_half": [3, 0.6, -1.0, ["acr.sight.acog"]],
+	"acr_compm_ads": [3, 1.0, -1.0, ["acr.sight.compm"]], "pdw_acog_ads": [1, 1.0, -1.0, ["pdw.sight.acog"]],
+	"mp7_compm_ads": [4, 1.0, -1.0, ["mp7.sight.compm"]], "mp7_acog_ads": [4, 1.0, -1.0, ["mp7.sight.acog"]],
 	"acr_mods": [3, 0.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
 	"acr_mods_ads": [3, 1.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
 	"mp7_hip": [4, 0.0, -1.0, []], "mp7_ads": [4, 1.0, -1.0, []],
 	"mp7_mods": [4, 0.0, -1.0, ["mp7.grip.folded", "mp7.suppressor.on", "mp7.sight.compm"]],
 	"mp7_mods_ads": [4, 1.0, -1.0, ["mp7.grip.folded", "mp7.suppressor.on", "mp7.sight.compm"]],
 	"mp7_collapsed_ads": [4, 1.0, -1.0, ["mp7.stock.collapsed"]],
+	"contender_hip": [5, 0.0, -1.0, []], "contender_ads": [5, 1.0, -1.0, []],
+	"contender_r15": [5, 0.0, -1.0, [], 0.15], "contender_r25": [5, 0.0, -1.0, [], 0.25],
+	"contender_r33": [5, 0.0, -1.0, [], 0.33], "contender_r50": [5, 0.0, -1.0, [], 0.5],
+	"contender_r60": [5, 0.0, -1.0, [], 0.6], "contender_r66": [5, 0.0, -1.0, [], 0.66],
+	"contender_r77": [5, 0.0, -1.0, [], 0.77], "contender_r87": [5, 0.0, -1.0, [], 0.87],
+	"winchester_hip": [6, 0.0, -1.0, []], "winchester_ads": [6, 1.0, -1.0, []],
+	"winchester_r30": [6, 0.0, -1.0, [], 0.3], "winchester_r60": [6, 0.0, -1.0, [], 0.6],
+	"winchester_r78": [6, 0.0, -1.0, [], 0.78],
+	"mk14_hip": [7, 0.0, -1.0, []], "mk14_ads": [7, 1.0, -1.0, []], "mk14_r30": [7, 0.0, -1.0, [], 0.3],
+	"mk14_compm_ads": [7, 1.0, -1.0, ["mk14.sight.compm"]], "mk14_acog_ads": [7, 1.0, -1.0, ["mk14.sight.acog"]],
+	"p90_hip": [8, 0.0, -1.0, []], "p90_ads": [8, 1.0, -1.0, []], "p90_half": [8, 0.6, -1.0, []],
+	"p90_r12": [8, 0.0, -1.0, [], 0.12], "p90_r22": [8, 0.0, -1.0, [], 0.22], "p90_r40": [8, 0.0, -1.0, [], 0.4],
+	"p90_r62": [8, 0.0, -1.0, [], 0.62], "p90_r70": [8, 0.0, -1.0, [], 0.7], "p90_r85": [8, 0.0, -1.0, [], 0.85],
 }
 
 
@@ -55,13 +70,19 @@ func _initialize() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
+		if OS.has_environment("SHOT_CASE") and not c.begins_with(OS.get_environment("SHOT_CASE")):
+			continue
 		var def := WeaponDB.make_def(CASES[c][0], CASES[c][3])
 		view.set_weapon(CASES[c][0], def)
 		cam.fov = lerpf(75.0, 75.0 * def.ads_fov_mult, CASES[c][1])  # the sights' zoom, as Player
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
+		var reload: float = CASES[c][4] if CASES[c].size() > 4 else -1.0
+		arms.reload = reload
+		if reload >= 0.0:
+			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:
-			view.update_pose(1.0 / 60.0, CASES[c][1], -1.0, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
+			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()
 			await process_frame
 		get_root().get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))

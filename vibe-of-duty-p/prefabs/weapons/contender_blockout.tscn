@@ -1,0 +1,431 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/contender_frame_mesh.tres" id="frame"]
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/contender_grip_mesh.tres" id="grip"]
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/contender_forend_mesh.tres" id="forend"]
+[ext_resource type="ArrayMesh" path="res://prefabs/weapons/contender_guard_mesh.tres" id="guard"]
+
+[sub_resource type="StandardMaterial3D" id="mat_steel"]
+resource_name = "steel"
+albedo_color = Color(0.07, 0.075, 0.09, 1)
+metallic = 0.6
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="mat_steel_frame"]
+resource_name = "steel_frame"
+albedo_color = Color(0.17, 0.18, 0.21, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="mat_steel_dark"]
+resource_name = "steel_dark"
+albedo_color = Color(0.03, 0.03, 0.035, 1)
+metallic = 0.5
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="mat_wood"]
+resource_name = "wood"
+albedo_color = Color(0.36, 0.18, 0.09, 1)
+metallic = 0
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="mat_brass"]
+resource_name = "brass"
+albedo_color = Color(0.62, 0.46, 0.2, 1)
+metallic = 0.7
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="mat_lead"]
+resource_name = "lead"
+albedo_color = Color(0.38, 0.38, 0.4, 1)
+metallic = 0.3
+roughness = 0.55
+
+[sub_resource type="CylinderMesh" id="mesh_1"]
+material = SubResource("mat_steel_dark")
+top_radius = 0.0016
+bottom_radius = 0.0016
+height = 0.0008
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_2"]
+material = SubResource("mat_steel")
+top_radius = 0.0035
+bottom_radius = 0.0035
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_3"]
+material = SubResource("mat_steel")
+top_radius = 0.0022
+bottom_radius = 0.0022
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_4"]
+material = SubResource("mat_steel")
+top_radius = 0.0025
+bottom_radius = 0.0025
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_5"]
+material = SubResource("mat_steel")
+top_radius = 0.0035
+bottom_radius = 0.0035
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_6"]
+material = SubResource("mat_steel")
+top_radius = 0.0022
+bottom_radius = 0.0022
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_7"]
+material = SubResource("mat_steel")
+top_radius = 0.0025
+bottom_radius = 0.0025
+height = 0.001
+radial_segments = 8
+rings = 1
+
+[sub_resource type="BoxMesh" id="mesh_11"]
+material = SubResource("mat_steel")
+size = Vector3(0.006, 0.026, 0.006)
+
+[sub_resource type="BoxMesh" id="mesh_13"]
+material = SubResource("mat_steel")
+size = Vector3(0.008, 0.02547, 0.01156)
+
+[sub_resource type="BoxMesh" id="mesh_14"]
+material = SubResource("mat_steel")
+size = Vector3(0.007, 0.00413, 0.02313)
+
+[sub_resource type="BoxMesh" id="mesh_15"]
+material = SubResource("mat_steel")
+size = Vector3(0.011, 0.00578, 0.00909)
+
+[sub_resource type="BoxMesh" id="mesh_16"]
+material = SubResource("mat_steel_dark")
+size = Vector3(0.0114, 0.00123, 0.001)
+
+[sub_resource type="BoxMesh" id="mesh_17"]
+material = SubResource("mat_steel_dark")
+size = Vector3(0.0114, 0.00123, 0.001)
+
+[sub_resource type="BoxMesh" id="mesh_18"]
+material = SubResource("mat_steel_dark")
+size = Vector3(0.0114, 0.00123, 0.001)
+
+[sub_resource type="CylinderMesh" id="mesh_20"]
+material = SubResource("mat_steel")
+top_radius = 0.0103
+bottom_radius = 0.0107
+height = 0.354
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_21"]
+material = SubResource("mat_steel_dark")
+top_radius = 0.0048
+bottom_radius = 0.0048
+height = 0.0304
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_22"]
+material = SubResource("mat_steel_dark")
+top_radius = 0.0066
+bottom_radius = 0.0066
+height = 0.0104
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="mesh_23"]
+material = SubResource("mat_steel")
+size = Vector3(0.016, 0.0298, 0.03)
+
+[sub_resource type="CylinderMesh" id="mesh_24"]
+material = SubResource("mat_steel_dark")
+top_radius = 0.003
+bottom_radius = 0.003
+height = 0.017
+radial_segments = 8
+rings = 1
+
+[sub_resource type="BoxMesh" id="mesh_25"]
+material = SubResource("mat_steel")
+size = Vector3(0.0055, 0.005, 0.0122)
+
+[sub_resource type="BoxMesh" id="mesh_26"]
+material = SubResource("mat_steel")
+size = Vector3(0.012, 0.0055, 0.06)
+
+[sub_resource type="BoxMesh" id="mesh_27"]
+material = SubResource("mat_steel_dark")
+size = Vector3(0.005, 0.0015, 0.005)
+
+[sub_resource type="BoxMesh" id="mesh_28"]
+material = SubResource("mat_steel")
+size = Vector3(0.017, 0.0055, 0.005)
+
+[sub_resource type="BoxMesh" id="mesh_29"]
+material = SubResource("mat_steel")
+size = Vector3(0.0057, 0.0045, 0.005)
+
+[sub_resource type="BoxMesh" id="mesh_30"]
+material = SubResource("mat_steel")
+size = Vector3(0.0057, 0.0045, 0.005)
+
+[sub_resource type="BoxMesh" id="mesh_31"]
+material = SubResource("mat_steel")
+size = Vector3(0.01, 0.0055, 0.05925)
+
+[sub_resource type="BoxMesh" id="mesh_32"]
+material = SubResource("mat_steel")
+size = Vector3(0.008, 0.0085, 0.028)
+
+[sub_resource type="BoxMesh" id="mesh_33"]
+material = SubResource("mat_steel")
+size = Vector3(0.0032, 0.011, 0.01239)
+
+[sub_resource type="CylinderMesh" id="mesh_35"]
+material = SubResource("mat_steel")
+top_radius = 0.003
+bottom_radius = 0.003
+height = 0.033
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_37"]
+material = SubResource("mat_brass")
+top_radius = 0.0065
+bottom_radius = 0.0065
+height = 0.0015
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_38"]
+material = SubResource("mat_brass")
+top_radius = 0.0058
+bottom_radius = 0.006
+height = 0.0415
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_39"]
+material = SubResource("mat_brass")
+top_radius = 0.0052
+bottom_radius = 0.0058
+height = 0.004
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_40"]
+material = SubResource("mat_brass")
+top_radius = 0.0052
+bottom_radius = 0.0052
+height = 0.006
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_41"]
+material = SubResource("mat_steel_dark")
+top_radius = 0.0022
+bottom_radius = 0.0022
+height = 0.0003
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="mesh_43"]
+material = SubResource("mat_lead")
+top_radius = 0.002
+bottom_radius = 0.0048
+height = 0.022
+radial_segments = 12
+rings = 1
+
+[node name="Contender" type="Node3D"]
+
+[node name="Frame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+mesh = ExtResource("frame")
+surface_material_override/0 = SubResource("mat_steel_frame")
+
+[node name="FiringPin" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.0438, -0.0192)
+mesh = SubResource("mesh_1")
+
+[node name="HingePinL" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.012, 0.0149, 0.0231)
+mesh = SubResource("mesh_2")
+
+[node name="TriggerPinL" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.012, 0.00165, 0.00083)
+mesh = SubResource("mesh_3")
+
+[node name="HammerPinL" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.012, 0.0347, -0.0264)
+mesh = SubResource("mesh_4")
+
+[node name="HingePinR" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.012, 0.0149, 0.0231)
+mesh = SubResource("mesh_5")
+
+[node name="TriggerPinR" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.012, 0.00165, 0.00083)
+mesh = SubResource("mesh_6")
+
+[node name="HammerPinR" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.012, 0.0347, -0.0264)
+mesh = SubResource("mesh_7")
+
+[node name="Grip" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+mesh = ExtResource("grip")
+surface_material_override/0 = SubResource("mat_wood")
+
+[node name="TriggerGuard" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+mesh = ExtResource("guard")
+surface_material_override/0 = SubResource("mat_steel")
+
+[node name="Trigger" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, -0.006, 0)
+
+[node name="Blade" type="MeshInstance3D" parent="Trigger"]
+transform = Transform3D(1, 0, 0, 0, 0.92718, 0.37461, 0, -0.37461, 0.92718, 0, -0.013, 0.001)
+mesh = SubResource("mesh_11")
+
+[node name="Hammer" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.0347, -0.0264)
+
+[node name="Body" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.00873, -0.00747)
+mesh = SubResource("mesh_13")
+
+[node name="Spur" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 0.99452, 0.10453, 0, -0.10453, 0.99452, 0, 0.01445, -0.02316)
+mesh = SubResource("mesh_14")
+
+[node name="SpurPad" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 0.99452, 0.10453, 0, -0.10453, 0.99452, 0, 0.01362, -0.03266)
+mesh = SubResource("mesh_15")
+
+[node name="Knurl0" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 0.99452, 0.10453, 0, -0.10453, 0.99452, 0, 0.0163, -0.03588)
+mesh = SubResource("mesh_16")
+
+[node name="Knurl1" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 0.99452, 0.10453, 0, -0.10453, 0.99452, 0, 0.0163, -0.0334)
+mesh = SubResource("mesh_17")
+
+[node name="Knurl2" type="MeshInstance3D" parent="Hammer"]
+transform = Transform3D(1, 0, 0, 0, 0.99452, 0.10453, 0, -0.10453, 0.99452, 0, 0.0163, -0.03092)
+mesh = SubResource("mesh_18")
+
+[node name="Break" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.0149, 0.0231)
+
+[node name="Barrel" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.0289, 0.1349)
+mesh = SubResource("mesh_20")
+
+[node name="Bore" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.0289, 0.2971)
+mesh = SubResource("mesh_21")
+
+[node name="Chamber" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.0289, -0.0373)
+mesh = SubResource("mesh_22")
+
+[node name="Lug" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.008, -0.0021)
+mesh = SubResource("mesh_23")
+
+[node name="LugPin" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_24")
+
+[node name="Extractor" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0.00675, 0.0224, -0.0362)
+mesh = SubResource("mesh_25")
+
+[node name="RearBase" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.04135, 0.0089)
+mesh = SubResource("mesh_26")
+
+[node name="RearScrew" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.04485, 0.0094)
+mesh = SubResource("mesh_27")
+
+[node name="RearLeaf" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.04685, -0.0206)
+mesh = SubResource("mesh_28")
+
+[node name="RearEarL" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0.00565, 0.05185, -0.0206)
+mesh = SubResource("mesh_29")
+
+[node name="RearEarR" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -0.00565, 0.05185, -0.0206)
+mesh = SubResource("mesh_30")
+
+[node name="FrontBand" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.04135, 0.27828)
+mesh = SubResource("mesh_31")
+
+[node name="FrontRamp" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 0.98769, 0.15643, 0, -0.15643, 0.98769, 0, 0.04335, 0.27265)
+mesh = SubResource("mesh_32")
+
+[node name="FrontBlade" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.0486, 0.29119)
+mesh = SubResource("mesh_33")
+
+[node name="Forend" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, -0.0149, -0.0231)
+mesh = ExtResource("forend")
+surface_material_override/0 = SubResource("mat_wood")
+
+[node name="ForendScrew" type="MeshInstance3D" parent="Break"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0.00327, 0.09254)
+mesh = SubResource("mesh_35")
+
+[node name="Round" type="Node3D" parent="Break"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.0289, -0.0421)
+
+[node name="Rim" type="MeshInstance3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.00075)
+mesh = SubResource("mesh_37")
+
+[node name="Case" type="MeshInstance3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.02225)
+mesh = SubResource("mesh_38")
+
+[node name="Shoulder" type="MeshInstance3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.045)
+mesh = SubResource("mesh_39")
+
+[node name="Neck" type="MeshInstance3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.05)
+mesh = SubResource("mesh_40")
+
+[node name="Primer" type="MeshInstance3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.00015)
+mesh = SubResource("mesh_41")
+
+[node name="Bullet" type="Node3D" parent="Break/Round"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0.053)
+
+[node name="Ogive" type="MeshInstance3D" parent="Break/Round/Bullet"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.011)
+mesh = SubResource("mesh_43")

@@ -480,7 +480,7 @@ func pose() -> void:
 	if weapon == null or def == null or not weapon.visible:
 		return
 	var aim := Basis(Vector3.RIGHT, pitch)
-	var right_view := _view_point(def.right_hand)
+	var right_view := _view_point(weapon.lever_hand(def.right_hand))
 	var hip_xform := Transform3D(aim, shoulder_r + aim * HIP_BUTT - aim * _view_point(BUTT))
 	var eye := head + aim * EYE
 	var rear_view := _view_point(def.rear_sight)
@@ -492,6 +492,8 @@ func pose() -> void:
 		left_view = _reload_hand
 	else:
 		weapon.set_mag_shift(Vector3.ZERO)
+		weapon.set_break(-1.0)
+		weapon.set_shell(-1.0)
 		weapon.bolt_pull = 0.0
 	var punch := punch_curve(melee)
 	if punch.y > 0.0:
@@ -708,17 +710,38 @@ func _pose_ragdoll() -> void:
 func _reload_pose(weapon_local: Transform3D, grip: Vector3, chest: Transform3D) -> Transform3D:
 	var r := reload
 	var env := smoothstep(0.0, 0.12, r) * (1.0 - smoothstep(0.86, 1.0, r))
+	if weapon.loads_shells():
+		env = smoothstep(0.0, 1.0, weapon.load_blend)  # one reload a shell: the pose holds through all of them
 	weapon.bolt_pull = reload_bolt_pull(r)
 	var tilt := Transform3D(Basis.from_euler(Vector3(-0.3 * env, 0.0, 0.6 * env)), Vector3(-0.03, -0.06, 0.08) * env)
+	if weapon.tips_mag():  # muzzle up, down off the cheek and out: the magazine slides back past the face, not through it
+		tilt = Transform3D(Basis.from_euler(Vector3(0.35 * env, 0.0, 0.4 * env)), Vector3(-0.02, -0.12, -0.08) * env)
 	weapon_local = weapon_local * Transform3D(Basis.IDENTITY, grip) * tilt * Transform3D(Basis.IDENTITY, -grip)
 	var handguard := _view_point(def.left_hand)
 	_reload_hand = handguard
+	if weapon.loads_shells():
+		var pouch_shells := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
+		var with_shell := shell_hand(r, weapon, handguard, pouch_shells, 1.0)
+		_reload_hand = with_shell[0]
+		weapon.set_shell(r, with_shell[1])
+		return weapon_local
+	if weapon.breaks_open():
+		var pouch_at := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
+		var hold := break_hand(r, weapon, handguard, pouch_at, 1.0)
+		_reload_hand = hold[0]
+		weapon.set_break(r, hold[1])
+		return weapon_local
+	var pouch := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
+	var handle := _view_point(def.charging_handle) if def.charging_handle.is_finite() else Vector3.INF
+	if weapon.tips_mag():
+		var tipped := tip_mag_hand(r, weapon, handguard, pouch, handle, 1.0)
+		_reload_hand = tipped[0]
+		weapon.set_mag_tip(tipped[1], tipped[2], tipped[3])
+		return weapon_local
 	var mag_grip := weapon.mag_grip_point()
 	if not mag_grip.is_finite():
 		return weapon_local
 	var seated := _view_point(mag_grip)
-	var pouch := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
-	var handle := _view_point(def.charging_handle) if def.charging_handle.is_finite() else Vector3.INF
 	var path := reload_hand(r, handguard, seated, pouch, handle, 1.0)
 	_reload_hand = path[0]
 	weapon.set_mag_shift(_view_point(_reload_hand - seated) if path[1] else Vector3.ZERO)
@@ -766,6 +789,75 @@ static func reload_hand(r: float, handguard: Vector3, seated: Vector3, pouch: Ve
 			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
 			break
 	return [hand, r >= 0.12 and r < 0.74]
+
+
+## A magazine on top's reload (P90; `r` 0..1), the left hand in gun view space - shared as reload_hand: over the
+## magazine, tips its back up off the catch and slides it back off the gun, down to the pouch and back with the "new"
+## one, slides it forward under the catch, presses its back down, racks the cocking knob, back. `scale`: the gun's
+## drawn scale. Returns [hand position, the magazine's tip, slide, shift] (WeaponView.set_mag_tip).
+static func tip_mag_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vector3, handle: Vector3,
+		scale: float) -> Array:
+	var tip := smoothstep(0.08, 0.15, r) * (1.0 - smoothstep(0.66, 0.72, r))
+	var slide := WeaponView.MAG_SLIDE * (smoothstep(0.15, 0.27, r) if r < 0.4 else 1.0 - smoothstep(0.58, 0.66, r))
+	var on_mag := _view_point(weapon.mag_tip_grip(tip, slide)) * scale  # rides the magazine as it tips and slides
+	var off := _view_point(weapon.mag_tip_grip(1.0, WeaponView.MAG_SLIDE)) * scale
+	var keys := [[0.0, rest], [0.08, on_mag], [0.27, off], [0.38, pouch], [0.48, pouch], [0.58, off], [0.72, on_mag]]
+	if handle.is_finite():
+		var grab := handle + Vector3(0.0, 0.02, 0.0) * scale
+		keys.append_array([[0.8, grab], [0.88, grab + Vector3(0.0, 0.0, 0.07) * scale], [0.97, rest]])
+	else:
+		keys.append([0.9, rest])
+	var hand: Vector3 = rest
+	if (r >= 0.08 and r < 0.27) or (r >= 0.58 and r < 0.72):
+		hand = on_mag
+	else:
+		for i in keys.size() - 1:
+			if r >= keys[i][0] and r < keys[i + 1][0]:
+				var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
+				hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
+				break
+	var carried := _view_point((hand - off) / scale) if r >= 0.27 and r < 0.58 else Vector3.ZERO
+	return [hand, tip, slide, carried]
+
+
+## A break-open's reload (`r` 0..1), the left hand in gun view space - shared as reload_hand: onto the fore-end and down
+## with it (the barrel drops, WeaponView.break_open), to the breech - plucks the spent case and flicks it away - down to
+## the pouch and back with a round, thumbs it into the chamber, swings the barrel shut, back to its hold. `scale`: the
+## gun's drawn scale. Returns [hand position, the round's shift (WeaponView.set_break: ZERO when the hand is empty)].
+static func break_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vector3, scale: float) -> Array:
+	var open := WeaponView.break_open(r)
+	var on_forend := _view_point(weapon.broken(weapon.def.forend, open)) * scale  # rides the fore-end as it moves
+	var seated := _view_point(weapon.round_grip_point(0.0, open)) * scale
+	var lifted := _view_point(weapon.round_grip_point(WeaponView.EXTRACT, open)) * scale
+	var drawn := _view_point(weapon.round_grip_point(0.04, open)) * scale
+	var loading := _view_point(weapon.round_grip_point(0.05, open)) * scale
+	var keys := [[0.0, rest], [0.1, on_forend], [0.27, on_forend], [0.31, lifted], [0.36, drawn], [0.47, pouch],
+			[0.52, pouch], [0.62, loading], [0.68, seated], [0.72, on_forend], [0.8, on_forend], [0.92, rest], [1.0, rest]]
+	var hand: Vector3 = rest
+	for i in keys.size() - 1:
+		if r >= keys[i][0] and r < keys[i + 1][0]:
+			var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
+			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
+			break
+	var holds := (r >= 0.31 and r < 0.36) or (r >= 0.47 and r < 0.68)
+	return [hand, _view_point((hand - seated) / scale) if holds else Vector3.ZERO]
+
+
+## A lever action's loading, one shell (`r` 0..1), the left hand in gun view space - shared as reload_hand: off the
+## fore-end down to the pouch, up with a shell, thumbs it down into the open action's top, back. `scale`: the gun's
+## drawn scale. Returns [hand position, the shell's shift (WeaponView.set_shell: INF when the hand is empty)].
+static func shell_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vector3, scale: float) -> Array:
+	var seated := _view_point(weapon.shell_grip_point()) * scale
+	var above := seated + Vector3(0.0, 0.05, 0.0) * scale
+	var keys := [[0.0, rest], [0.25, pouch], [0.35, pouch], [0.62, above], [0.8, seated], [1.0, rest]]
+	var hand: Vector3 = rest
+	for i in keys.size() - 1:
+		if r >= keys[i][0] and r < keys[i + 1][0]:
+			var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
+			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
+			break
+	var holds := r >= 0.35 and r < 0.8
+	return [hand, _view_point((hand - seated) / scale) if holds else Vector3.INF]
 
 
 ## How far the charging handle is held back at reload progress `r` (the hand racks it in reload_hand, 0.8-0.88).

@@ -54,13 +54,13 @@ const FLAG_AIM := 16
 const FLAG_RELOAD := 32
 const FLAG_JUMP_HELD := 256
 const FLAG_MELEE := 512
-const FLAG_SELECT_SHIFT := 10  # 3 bits: weapon index + 1, 0 = no switch (up to 7 weapons)
-const SELECT_MASK := 7
+const FLAG_SELECT_SHIFT := 10  # 4 bits: weapon index + 1, 0 = no switch (up to 15 weapons; 3 bits until the 8th)
+const SELECT_MASK := 15
 const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
 const STATE_SPRINTING := 4
 const STATE_ON_FLOOR := 8
-const STATE_WEAPON_SHIFT := 10  # 3 bits (SELECT_MASK): current weapon index
+const STATE_WEAPON_SHIFT := 10  # 4 bits (SELECT_MASK): current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256

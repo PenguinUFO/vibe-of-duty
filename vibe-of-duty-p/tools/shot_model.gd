@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders a weapon model in side profile (barrel to the left; "_r" cases from the other side) to ../shots/model_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_model.gd
 
-const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
+const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a break-open's reload progress, loading shells]
 	"ak": [0, []],
 	"ak_brake": [0, ["ak.muzzle.brake"]],
 	"ak_pbs": [0, ["ak.suppressor.on"]],
@@ -27,7 +27,17 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1]
 	"mp7": [4, []],
 	"mp7_r": [4, []],
 	"mp7_mods": [4, ["mp7.grip.folded", "mp7.suppressor.on", "mp7.sight.compm"]],
-	
+	"contender": [5, []],
+	"contender_r": [5, []],
+	"contender_open": [5, [], 0.0, 0.25],
+	"contender_loading": [5, [], 0.0, 0.62],
+	"winchester": [6, []],
+	"winchester_r": [6, []],
+	"winchester_open": [6, [], 0.0, -1.0, true],
+	"mk14": [7, []],
+	"mk14_r": [7, []],
+	"p90": [8, []],
+	"p90_r": [8, []],
 }
 
 
@@ -54,7 +64,13 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
 		view.set_weapon(CASES[c][0], WeaponDB.make_def(CASES[c][0], CASES[c][1]))
+		if OS.has_environment("SHOT_CASE") and not c.begins_with(OS.get_environment("SHOT_CASE")):
+			continue
 		view.bolt_pull = CASES[c][2] if CASES[c].size() > 2 else 0.0
+		view.set_break(CASES[c][3] if CASES[c].size() > 3 else -1.0)
+		var loading: bool = CASES[c].size() > 4 and CASES[c][4]
+		view.load_blend = 1.0 if loading else 0.0  # a lever action held open, a shell at its top
+		view.set_shell(0.5 if loading else -1.0, Vector3.ZERO if loading else Vector3.INF)
 		# The barrel points to -Z: seen from -X it is on the left of the picture.
 		# "_r" cases: seen from the gun's right (+X here), the barrel on the right, as most photos.
 		var side := 2.0 if c.ends_with("_r") else -2.0

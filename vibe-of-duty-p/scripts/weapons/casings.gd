@@ -12,6 +12,9 @@ const BOUNCE := 0.35         # share of the speed kept off a bounce
 const REST_SPEED := 0.5      # slower than this on the ground: lies still
 const RADIUS := 0.006
 const LENGTH := 0.036
+const BRASS := Color(0.86, 0.64, 0.26)
+const HULL := Color(0.62, 0.1, 0.08)        # a shotgun shell's red plastic
+const HULL_SCALE := Vector3(1.75, 1.95, 1.75)  # 12 gauge, 2 3/4": ~21 x 70 mm
 
 static var _instance: Casings
 
@@ -21,15 +24,17 @@ var _basis: Array[Basis] = []
 var _spin: Array[Vector3] = []  # angular velocity (axis * rad/s)
 var _life := PackedFloat32Array()
 var _resting: Array[bool] = []
+var _scale: Array[Vector3] = []
 var _next := 0
 var _query := PhysicsRayQueryParameters3D.new()
 
 
 ## Throws a casing out of the port at `port` (world); `right` / `up` / `back` are the gun's directions (world).
-static func eject(context: Node, port: Vector3, right: Vector3, up: Vector3, back: Vector3) -> void:
+## `hull`: a spent shotgun shell (bigger, red) instead of brass.
+static func eject(context: Node, port: Vector3, right: Vector3, up: Vector3, back: Vector3, hull := false) -> void:
 	var pool := _pool(context)
 	if pool:
-		pool._eject(port, right * randf_range(2.2, 3.0) + up * randf_range(0.6, 1.1) + back * randf_range(0.2, 0.7))
+		pool._eject(port, right * randf_range(2.2, 3.0) + up * randf_range(0.6, 1.1) + back * randf_range(0.2, 0.7), hull)
 
 
 static func _pool(context: Node) -> Casings:
@@ -53,12 +58,13 @@ func _init() -> void:
 	mesh.radial_segments = 6
 	mesh.rings = 0
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.86, 0.64, 0.26)
+	material.vertex_color_use_as_albedo = true  # brass or a hull's red: the instance's colour
 	material.metallic = 0.8
 	material.roughness = 0.35
 	mesh.material = material
 	multimesh = MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_colors = true
 	multimesh.mesh = mesh
 	multimesh.instance_count = POOL
 	_pos.resize(POOL)
@@ -68,14 +74,17 @@ func _init() -> void:
 		_basis.append(Basis())
 		_spin.append(Vector3.ZERO)
 		_resting.append(false)
+		_scale.append(Vector3.ONE)
 		multimesh.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
 	_query.collision_mask = Layers.WORLD
 	top_level = true
 
 
-func _eject(port: Vector3, velocity: Vector3) -> void:
+func _eject(port: Vector3, velocity: Vector3, hull := false) -> void:
 	var i := _next
 	_next = (_next + 1) % POOL
+	_scale[i] = HULL_SCALE if hull else Vector3.ONE
+	multimesh.set_instance_color(i, HULL if hull else BRASS)
 	_pos[i] = port
 	_vel[i] = velocity
 	_basis[i] = Basis.from_euler(Vector3(randf() * TAU, randf() * TAU, randf() * TAU))
@@ -116,4 +125,4 @@ func _process(delta: float) -> void:
 					_basis[i] = Basis(Vector3.UP, randf() * TAU) * Basis(Vector3.FORWARD, PI * 0.5)
 		# Fade out at the end by shrinking.
 		var s := clampf(_life[i] / 0.3, 0.0, 1.0)
-		multimesh.set_instance_transform(i, Transform3D(_basis[i].scaled(Vector3.ONE * s), _pos[i]))
+		multimesh.set_instance_transform(i, Transform3D(_basis[i] * Basis.from_scale(_scale[i] * s), _pos[i]))

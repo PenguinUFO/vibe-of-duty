@@ -3,12 +3,13 @@ extends PlayerMovement
 ## Player, part 5 of 9: damage, regeneration, death, respawn, ammo pickup, kid mode, oink.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
-## Server: applies damage; returns true if this killed the player.
-func server_damage(amount: float) -> bool:
+## Server: applies damage; returns true if this killed the player. `regen_block`: health does not come back for at least
+## this long (a wounding weapon, WeaponDef.regen_block).
+func server_damage(amount: float, regen_block := 0.0) -> bool:
 	if not alive:
 		return false
 	health = maxi(health - roundi(amount), 0)
-	_regen_wait = regen_delay
+	_regen_wait = maxf(regen_delay, maxf(regen_block, _regen_wait))
 	_regen_carry = 0.0
 	if health == 0:
 		alive = false

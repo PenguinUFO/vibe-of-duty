@@ -12,6 +12,21 @@ const KICK_DECAY := 14.0
 const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
 const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
 const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
+const BREAK_ANGLE := 0.73     # rad: how far a break-open's barrel drops for a reload (~42 degrees)
+const HAMMER_DROP := 0.45     # rad: a fired hammer leans forward this far until a reload cocks it
+## A break-open's round: where the left hand's palm is when it holds it (prefab space from the case head, life size,
+## along the frame - not the dropped barrel: to its left, below and ahead, the fingers up round the rim; from behind
+## the hand hid the whole gun), and how far the extractor lifts the spent case out.
+const ROUND_GRIP := Vector3(0.05, -0.04, 0.03)
+const EXTRACT := 0.012
+const LEVER_ANGLE := 0.9      # rad: a lever action's lever thrown down (~52 degrees)
+## A lever action's shell in the left hand: the palm's place from the shell's middle (prefab space, life size: left of
+## it and over it, thumbing it down into the open action).
+const SHELL_GRIP := Vector3(0.035, 0.035, -0.01)
+const MAG_TIP := 0.17         # rad: a magazine on top (P90) tips its back up this far (~10 degrees) off its catch
+const MAG_SLIDE := 0.16       # m: then slides this far back along itself - its front out from under the sight's strap
+## A magazine on top: the left hand's palm on it (from its catch, prefab space, life size) - on its top, near the back.
+const MAG_TOP_GRIP := Vector3(0.0, 0.03, -0.17)
 
 var weapon_index := -1
 var def: WeaponDef  # the weapon shown, with its owner's modules (the sight model and aim line)
@@ -28,7 +43,7 @@ var _bob_time := 0.0
 var _sway := Vector2.ZERO
 var _kick := 0.0
 var _drop := 0.0          # landing jolt, decays
-var _handle: MeshInstance3D   # charging handle (WeaponDef.charging_handle), rides the bolt
+var _handle: Node3D       # charging handle (WeaponDef.charging_handle; the model's "Handle" or a box), rides the bolt
 var _handle_rest := Vector3.ZERO
 var _toggle: Node3D       # a toggle lock (Luger): "Toggle" in the model, folded up as the breech goes back
 var _bolt: Node3D         # a bolt in the model ("Bolt", metadata "travel" m): cycles with every shot, the handle or not
@@ -36,6 +51,20 @@ var _bolt_rest := Vector3.ZERO
 var _toggle_hinge := Vector3.ZERO  # rest positions: the rear link's hinge, the knee, the breech block's pin
 var _toggle_knee := Vector3.ZERO
 var _toggle_pin := Vector3.ZERO
+var _break: Node3D        # a break-open barrel (Contender): "Break" in the model, its origin on the hinge, drops for reloads
+var _round: Node3D        # "Break/Round": the cartridge in the chamber (origin at its case head); the hand carries it
+var _round_rest := Vector3.ZERO
+var _bullet: Node3D       # "Break/Round/Bullet": gone while the round is the spent case
+var _hammer: Node3D       # "Hammer": falls forward on a shot, cocked again at the end of a reload
+var _hammer_down := false
+var _break_r := -1.0      # the reload progress the break-open was last posed at
+var _lever: Node3D        # a lever action's lever (Winchester 1887): "Lever", its origin on the pivot; cycled after a
+						  # shot, held down while loading; it cocks the hammer and throws the hull out
+var _shell: Node3D        # "Shell": a shell at the open action's top, shown while the left hand pushes it in
+var _shell_rest := Vector3.ZERO
+var _ejected := true      # the last shot's hull is out
+var _loading := false     # a lever action is being loaded (set_shell)
+var load_blend := 0.0     # 0..1: eased in and out over a lever action's whole loading (one reload per shell)
 var _dot: Node3D          # a red dot sight's dot (SightModels), put on the aim line from the eye every pose
 var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
 var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
@@ -107,11 +136,27 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	_bolt = _model.get_node_or_null("Bolt")
 	if _bolt:
 		_bolt_rest = _bolt.position
+	_break = _model.get_node_or_null("Break")
+	if _break:
+		_round = _break.get_node("Round")
+		_round_rest = _round.position
+		_bullet = _round.get_node("Bullet")
+	_lever = _model.get_node_or_null("Lever")
+	_shell = _model.get_node_or_null("Shell")
+	if _shell:
+		_shell_rest = _shell.position
+		_shell.visible = false
+	_ejected = true
+	_hammer = _model.get_node_or_null("Hammer")
+	_hammer_down = false
 	_toggle = _model.get_node_or_null("Toggle")
 	if _toggle:
 		_toggle_hinge = _toggle.get_node("LinkRear").position
 		_toggle_knee = _toggle.get_node("LinkFront").position
 		_toggle_pin = _toggle.get_node("Breech").position
+	elif def.charging_handle.is_finite() and _model.has_node("Handle"):
+		_handle = _model.get_node("Handle")  # the model's own (the P90's knobs)
+		_handle_rest = _handle.position
 	elif def.charging_handle.is_finite():
 		# The blockout model has no moving parts: a small charging handle on the receiver's right side cycles with
 		# every shot and is pulled by hand at the end of a reload.
@@ -151,6 +196,20 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 
 func _process(delta: float) -> void:
 	_cycle += delta
+	if _lever:
+		load_blend = move_toward(load_blend, 1.0 if _loading else 0.0, delta / 0.25)
+		var open := maxf(lever_cycle(_cycle), smoothstep(0.0, 1.0, load_blend))
+		_lever.rotation.x = -LEVER_ANGLE * open
+		if open > 0.85:
+			_hammer_down = false  # the lever cocks it
+			if not _ejected and is_visible_in_tree():
+				var basis := _pivot.global_basis.orthonormalized()
+				# Up and back out of the open top, a little to the right (prefab -x).
+				Casings.eject(self, _pivot.global_transform * def.shell_port, -basis.x * 0.25, basis.y * 2.2,
+						basis.z * 0.6, true)
+			_ejected = true
+		if _hammer:
+			_hammer.rotation.x = HAMMER_DROP if _hammer_down else 0.0
 	if _handle:
 		# Bolt: slams back at once on a shot and runs forward again within 70 ms.
 		var back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 and def.handle_reciprocates else bolt_pull
@@ -197,11 +256,16 @@ func flash(show_flash := true) -> void:
 		_flash.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 		_flash.scale = Vector3.ONE * randf_range(0.7, 1.4)
 	_cycle = 0.0
+	_hammer_down = _hammer != null
+	_ejected = _lever == null
 	if def.ejection_port.is_finite() and is_visible_in_tree():
 		var port := _pivot.global_transform * def.ejection_port
 		var basis := _pivot.global_basis.orthonormalized()
 		# Prefab axes: -x is the shooter's right, +z the muzzle.
-		Casings.eject(self, port, -basis.x, basis.y, -basis.z)
+		if def.eject_down:
+			Casings.eject(self, port, -basis.y * 0.4, -basis.y, -basis.x * 0.3)  # dropped out of the bottom
+		else:
+			Casings.eject(self, port, -basis.x, basis.y, -basis.z)
 
 
 ## Where a hand holds the magazine (prefab space), or INF when the gun has none.
@@ -212,7 +276,109 @@ func mag_grip_point() -> Vector3:
 ## Moves the magazine off its seat by `shift` (prefab space); third-person reloads (Mannequin).
 func set_mag_shift(shift: Vector3) -> void:
 	if _mag:
+		_mag.basis = Basis.IDENTITY
 		_mag.position = _mag_rest + shift / def.model_scale
+
+
+func tips_mag() -> bool:
+	return _mag != null and def.mag_hinge.is_finite()
+
+
+## A magazine on top (P90; its origin on its catch) posed for a reload: tipped `tip` (0..1 of MAG_TIP) about its catch,
+## slid `slide` m (life size) back along itself, moved by `shift` (prefab space, model scale) while the hand carries it.
+func set_mag_tip(tip: float, slide: float, shift := Vector3.ZERO) -> void:
+	if _mag:
+		_mag.basis = Basis(Vector3.RIGHT, MAG_TIP * tip)
+		_mag.position = _mag_rest + _mag.basis * Vector3(0.0, 0.0, -slide) + shift / def.model_scale
+
+
+## Where the left hand holds a magazine on top posed so (prefab space, model scale).
+func mag_tip_grip(tip: float, slide: float) -> Vector3:
+	return def.mag_hinge + Basis(Vector3.RIGHT, MAG_TIP * tip) * (MAG_TOP_GRIP + Vector3(0.0, 0.0, -slide)) * def.model_scale
+
+
+func breaks_open() -> bool:
+	return _break != null
+
+
+## A break-open's reload (`r` 0..1, -1: none): how far the barrel is down, 0..1 - dropped by the left hand on the
+## fore-end (0.1-0.2), held open, swung shut (0.74-0.8; faster to the end: it snaps closed). Mannequin.break_hand
+## follows the same times.
+static func break_open(r: float) -> float:
+	if r < 0.0:
+		return 0.0
+	var shut := clampf((r - 0.74) / 0.06, 0.0, 1.0)
+	return smoothstep(0.1, 0.2, r) * (1.0 - shut * shut)
+
+
+## Prefab point `p` on a break-open's barrel (model scale) with the barrel `open` (0..1) of the way down.
+func broken(p: Vector3, open: float) -> Vector3:
+	return def.break_hinge + Basis(Vector3.RIGHT, BREAK_ANGLE * open) * (p - def.break_hinge)
+
+
+## Where the left hand holds the round (prefab space, model scale) `back` m (life size) out of the chamber, the barrel
+## `open` of the way down.
+func round_grip_point(back: float, open: float) -> Vector3:
+	return broken(def.chamber - Vector3(0.0, 0.0, back * def.model_scale), open) + ROUND_GRIP * def.model_scale
+
+
+## Poses a break-open for reload progress `r` (-1: none): the barrel down, the spent case lifted by the extractor,
+## the round carried by the hand (`round_shift`: prefab space, model scale, from its seat in the dropped barrel; ZERO
+## while the hand does not hold it) and flicked away as a casing, the hammer cocked again at the end.
+func set_break(r: float, round_shift := Vector3.ZERO) -> void:
+	if _break == null:
+		return
+	_break.rotation.x = BREAK_ANGLE * break_open(r)
+	var lifted := EXTRACT * smoothstep(0.2, 0.26, r) if r >= 0.0 and r < 0.36 else 0.0
+	if round_shift != Vector3.ZERO:
+		lifted = 0.0  # the hand has it: the shift is from the seat
+	_round.position = _round_rest + Vector3(0.0, 0.0, -lifted) \
+			+ _break.basis.inverse() * round_shift / def.model_scale
+	if _break_r >= 0.0 and _break_r < 0.36 and r >= 0.36 and is_visible_in_tree():
+		var basis := _pivot.global_basis.orthonormalized()
+		Casings.eject(self, _round.global_position, basis.x * 0.5, -basis.y * 0.4, -basis.z * 0.3)  # flicked away left
+	_round.visible = r < 0.36 or r >= 0.47  # gone between the flick and the hand's coming back with a round
+	_bullet.visible = r < 0.0 or r >= 0.4
+	if _hammer:
+		if r >= 0.9:
+			_hammer_down = false
+		var cock := smoothstep(0.84, 0.9, r) if r >= 0.0 else 0.0  # the right thumb pulls it back
+		_hammer.rotation.x = HAMMER_DROP * (1.0 - cock) if _hammer_down else 0.0
+	_break_r = r
+
+
+## A lever action after a shot (`t` s since it): how far the lever is down, 0..1 - thrown down, the hull out, back up
+## (all within the time between shots: WeaponDef.fire_interval).
+static func lever_cycle(t: float) -> float:
+	return smoothstep(0.06, 0.2, t) * (1.0 - smoothstep(0.24, 0.4, t))
+
+
+## A point the right hand holds (prefab space, model scale), moved with a lever action's lever: the fingers in its loop
+## take the hand down with it (the palm half way, it stays round the wrist).
+func lever_hand(p: Vector3) -> Vector3:
+	if _lever == null:
+		return p
+	return def.lever_pivot + Basis(Vector3.RIGHT, _lever.rotation.x * 0.5) * (p - def.lever_pivot)
+
+
+func loads_shells() -> bool:
+	return _shell != null
+
+
+## Where the left hand holds a shell (prefab space, model scale) when it is at the open action's top.
+func shell_grip_point() -> Vector3:
+	return def.shell_port + SHELL_GRIP * def.model_scale
+
+
+## A lever action's loading at progress `r` of one shell (-1: none): the lever held down meanwhile (_process), the
+## shell carried by the hand (`shell_shift`: prefab space, model scale, from the action's top; INF: not held).
+func set_shell(r: float, shell_shift := Vector3.INF) -> void:
+	if _shell == null:
+		return
+	_loading = r >= 0.0
+	_shell.visible = shell_shift.is_finite()
+	if _shell.visible:
+		_shell.position = _shell_rest + shell_shift / def.model_scale
 
 
 ## Landing: the gun dips and tips forward, then settles (`strength` ~ 1 for a normal jump).
@@ -256,7 +422,28 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 
 	# Reload: the gun dips and cants (magazine well towards the left hand); the hand itself takes the magazine out
 	# and racks the handle (FirstPersonArms, Mannequin.reload_hand).
-	if reload_p >= 0.0:
+	if _shell:
+		# A lever action is loaded a shell at a time: canted, the open top towards the left hand, for the whole loading.
+		var dip := smoothstep(0.0, 1.0, load_blend)
+		pos += Vector3(-0.06, 0.05, 0.06) * dip
+		rot.x += dip * deg_to_rad(6.0)
+		rot.z -= dip * deg_to_rad(28.0)
+	elif reload_p >= 0.0 and _break:
+		# A break-open comes in close, muzzle up, so the dropped barrel's breech faces the eye.
+		var dip := smoothstep(0.0, 0.1, reload_p) * (1.0 - smoothstep(0.86, 1.0, reload_p))
+		pos += Vector3(-0.08, 0.06, 0.09) * dip
+		rot.x += dip * deg_to_rad(18.0)
+		rot.z -= dip * deg_to_rad(24.0)
+	elif reload_p >= 0.0 and tips_mag():
+		# A magazine on top: down off the cheek and out, muzzle up (the magazine's back, coming off, stays out of the
+		# face), canted the other way - its top towards the left hand reaching over it - and turned, its left side to
+		# the eye: seen end on, the magazine sliding back did not read.
+		var dip := smoothstep(0.0, 0.1, reload_p) * (1.0 - smoothstep(0.88, 1.0, reload_p))
+		pos += Vector3(-0.01, -0.04, -0.1) * dip
+		rot.x += dip * deg_to_rad(12.0)
+		rot.y += dip * deg_to_rad(28.0)
+		rot.z += dip * deg_to_rad(25.0)
+	elif reload_p >= 0.0:
 		var dip := smoothstep(0.0, 0.12, reload_p) * (1.0 - smoothstep(0.88, 1.0, reload_p))
 		pos += Vector3(-0.07, 0.05, 0.03) * dip  # up and in, so the magazine well comes into view
 		rot.x += dip * deg_to_rad(8.0)

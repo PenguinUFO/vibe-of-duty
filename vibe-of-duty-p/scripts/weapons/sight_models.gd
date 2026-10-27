@@ -23,6 +23,8 @@ static func build(sight: String) -> Node3D:
 			return _compm()
 		"acog":
 			return _acog()
+		"ring":
+			return _ring()
 	return null
 
 
@@ -232,7 +234,27 @@ static func _acog() -> Node3D:
 	# The field stop behind the objective: the view ~7 degrees across from the eye, as the real one's, and the folded
 	# front sight's base (32 mm under the axis) stays under it.
 	_prism(root, _arch(c, 0.0, 0.0, 40, 0.0186), 0.0288, 0.0294, hole, _arch(c, 0.0, 0.0, 40, 0.011))
-	_dot(root, Color(1.0, 0.1, 0.05), 0.0305, c, 0.011, 0.006, true)
+	_dot(root, Color(1.0, 0.1, 0.05), 0.0305, c, 0.011, 0.006, "chevron")
+	return root
+
+
+## The P90's integral ring sight (MC-10-80): no magnification, in the gun's own housing (tools/make_p90_blockout.py) -
+## here only its glass and the reticle: a ring with a dot in its middle, lit red (the daylight one is black; red reads
+## on any background). The window 26 x 19.5 mm, its middle on the aim line (0, 0.0871), from z -0.0272 to 0.1254.
+static func _ring() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sight_Ring"
+	var c := Vector2(0.0, 0.0871)
+	var glass := StandardMaterial3D.new()
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.albedo_color = Color(0.85, 0.55, 0.25, 0.12)  # the objective's amber coat
+	glass.roughness = 0.05
+	glass.metallic_specular = 1.0
+	_box(root, Vector3(-0.0128, c.y - 0.0096, 0.1225), Vector3(0.0128, c.y + 0.0096, 0.1235), glass)
+	var ocular := glass.duplicate() as StandardMaterial3D
+	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
+	_box(root, Vector3(-0.0128, c.y - 0.0096, -0.0262), Vector3(0.0128, c.y + 0.0096, -0.0256), ocular)
+	_dot(root, Color(1.0, 0.12, 0.06), 0.122, c, 0.0095, 0.014, "ring")
 	return root
 
 
@@ -309,17 +331,34 @@ static func _lathe(parent: Node3D, profile: PackedVector2Array, center: Vector3,
 	parent.add_child(node)
 
 
-## The red dot of a collimator (see the top of the file); its rest place is on the aim line at `z`. `chevron`: the
-## ACOG's red chevron instead, its tip on the aim line, DOT_RADIUS to each side (so `angle` sizes it as the dot).
+## The red dot of a collimator (see the top of the file); its rest place is on the aim line at `z`. `shape` "chevron":
+## the ACOG's red chevron instead, its tip on the aim line, DOT_RADIUS to each side (so `angle` sizes it as the dot);
+## "ring": the P90's ring, DOT_RADIUS across its outside, a dot in its middle.
 static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_radius: float, angle: float,
-		chevron := false) -> void:
+		shape := "dot") -> void:
 	var dot := MeshInstance3D.new()
 	dot.name = "Dot"
 	var red := StandardMaterial3D.new()
 	red.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	red.cull_mode = BaseMaterial3D.CULL_DISABLED
 	red.albedo_color = color
-	if chevron:
+	if shape == "ring":
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var flat := func(radius: float, a: float) -> Vector3: return Vector3(cos(a), sin(a), 0.0) * radius
+		for i in 32:
+			var a0 := TAU * i / 32.0
+			var a1 := TAU * (i + 1) / 32.0
+			var outer := DOT_RADIUS
+			var inner := DOT_RADIUS * 0.86
+			var centre := DOT_RADIUS * 0.13
+			for v in [flat.call(outer, a0), flat.call(outer, a1), flat.call(inner, a1), flat.call(outer, a0),
+					flat.call(inner, a1), flat.call(inner, a0), Vector3.ZERO, flat.call(centre, a0), flat.call(centre, a1)]:
+				st.set_normal(Vector3.FORWARD)
+				st.add_vertex(v)
+		dot.mesh = st.commit()
+		dot.mesh.surface_set_material(0, red)
+	elif shape == "chevron":
 		var r := DOT_RADIUS
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)

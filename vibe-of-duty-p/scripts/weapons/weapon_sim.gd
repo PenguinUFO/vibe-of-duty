@@ -137,14 +137,22 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		cooldown -= 1.0
 	if switch_ticks > 0:
 		switch_ticks -= 1
+	if reload_ticks > 0 and def.reload_single and cmd.fire and not fire_prev and mags[index] > 0:
+		reload_ticks = 0  # a tube magazine: a shot stops the loading, what is in stays
+		events.append({"type": "reload_end"})
 	if reload_ticks > 0:
 		reload_ticks -= 1
 		if reload_ticks == 0:
 			var take := mini(def.mag_size - mags[index], reserves[index])
+			if def.reload_single:
+				take = mini(take, 1)
 			mags[index] += take
 			if not infinite_reserve:
 				reserves[index] -= take
-			events.append({"type": "reload_end"})
+			if def.reload_single and mags[index] < def.mag_size and reserves[index] > 0:
+				reload_ticks = _reload_ticks()  # the next round
+			else:
+				events.append({"type": "reload_end"})
 
 	# Hoof punch: the blow lands MELEE_WINDUP after the press, aimed where the player looks at that moment.
 	if melee_ticks > 0:
@@ -187,9 +195,18 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			var angle := spread_angle(ctx["speed"], ctx["crouched"], ctx["airborne"])
 			var rng := RandomNumberGenerator.new()
 			var dirs: Array[Vector3] = []
+			var pitch := cmd.pitch + recoil.x
+			var yaw := cmd.yaw + recoil.y
+			if def.pellet_spread > 0.0:
+				# A shotgun: the aim's spread moves the whole pattern, the pellets spread round its middle.
+				rng.seed = hash([ctx["peer_id"], shots, -1])
+				var middle := _spread_dir(pitch, yaw, angle, rng)
+				pitch = asin(clampf(middle.y, -1.0, 1.0))
+				yaw = atan2(-middle.x, -middle.z)
+				angle = def.pellet_spread
 			for i in def.pellets:
 				rng.seed = hash([ctx["peer_id"], shots, i])
-				dirs.append(_spread_dir(cmd.pitch + recoil.x, cmd.yaw + recoil.y, angle, rng))
+				dirs.append(_spread_dir(pitch, yaw, angle, rng))
 			events.append({"type": "shot", "weapon": index, "dirs": dirs})
 			rng.seed = hash([ctx["peer_id"], shots, 99])
 			recoil.x = minf(recoil.x + def.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)

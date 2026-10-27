@@ -6,6 +6,12 @@ const CASES := {  # name -> [weapon index, modules, the optic's middle in prefab
 	"ak_kobra": [0, ["ak.sight.kobra"], Vector3(0.0, 0.12, 0.06)],
 	"pdw_compm": [1, ["pdw.sight.compm"], Vector3(0.0, 0.09, 0.0)],
 	"acr_acog": [3, ["acr.sight.acog"], Vector3(0.0, 0.115, 0.0)],
+	"acr_compm": [3, ["acr.sight.compm"], Vector3(0.0, 0.115, 0.0)],
+	"pdw_acog": [1, ["pdw.sight.acog"], Vector3(0.0, 0.09, 0.0)],
+	"mp7_compm": [4, ["mp7.sight.compm"], Vector3(0.0, 0.09, 0.0)],
+	"mp7_acog": [4, ["mp7.sight.acog"], Vector3(0.0, 0.09, 0.0)],
+	"mk14_compm": [7, ["mk14.sight.compm"], Vector3(0.0, 0.11, 0.13)],
+	"mk14_acog": [7, ["mk14.sight.acog"], Vector3(0.0, 0.11, 0.13)],
 }
 ## Camera offsets from the optic in prefab space (+x the gun's left, +z the muzzle): left front, right rear, left,
 ## right, from behind along the aim line.

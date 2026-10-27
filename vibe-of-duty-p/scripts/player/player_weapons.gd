@@ -62,7 +62,7 @@ func _on_shot(event: Dictionary) -> void:
 		if target != null:
 			var t_head: bool = r["zone"] == "head"
 			var t_entry: Dictionary = target_hits.get_or_add(target, {"damage": 0.0, "head": false, "marks": []})
-			t_entry["damage"] += hit_damage * (NetWorld.HEAD_DAMAGE_MULT if t_head else 1.0)
+			t_entry["damage"] += hit_damage * (def.head_mult if t_head else 1.0)
 			t_entry["head"] = t_entry["head"] or t_head
 			t_entry["marks"].append([r["pos"], t_head])
 		var victim: Player = r["player"]
@@ -70,7 +70,7 @@ func _on_shot(event: Dictionary) -> void:
 			var head: bool = r["zone"] == "head"
 			hits.append({"player_id": victim.peer_id, "zone": r["zone"], "pos": r["pos"]})
 			var entry: Dictionary = damage_by_victim.get_or_add(victim.peer_id, {"player": victim, "damage": 0.0, "head": false})
-			entry["damage"] += hit_damage * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
+			entry["damage"] += hit_damage * (def.head_mult if head else 1.0)
 			entry["head"] = entry["head"] or head
 	if is_server:
 		shots_total += 1

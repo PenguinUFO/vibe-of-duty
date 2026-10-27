@@ -17,7 +17,11 @@ extends SceneTree
 ## upper and the tall lower split at a slant, the tops bevelled to the rail, the long deep handguard (short with 10.5"), the
 ## MOE grip, the two-part telescoping stock.
 ## MP7 - after the owner's photos: the one-block receiver with its sloping front, the L guard, the upright grip, the butt
-## plate.
+## plate. Contender - after the owner's photos: the frame with its standing breech, the raked walnut grip with the finger
+## shelf, the fore-end, the guard with its spur. Winchester 1887 - after the owner's photos: the tall receiver, the
+## stock with its deep drop, the fore-end round the barrel and the tube. Mk 14 Mod 1 EBR - after the owner's drawing: the
+## chassis, the deep handguard, the receiver, the raked grip, the butt. P90 - traced off the owner's photo: the body, the
+## lower and the front round the two holes, the sight's housing.
 
 const DIR := "res://prefabs/weapons/"
 ## weapon -> {profiles: name -> {points (z, y) in order round it, width [z, hw] along z (linear between), chamfer},
@@ -152,6 +156,141 @@ const PARTS := {
 		},
 		"sections": {},
 	},
+	"contender": {
+		"profiles": {
+			# After the owner's photos of a 14" Contender (Docs/LOADOUT.md, "Contender"; 0.826 mm a pixel of the left
+			# side): the frame under the barrel, the standing breech up to the bore's top behind it, the tang into the grip.
+			"frame": {"points": [Vector2(-0.019, 0.0545), Vector2(-0.019, 0.033), Vector2(0.0396, 0.033),
+					Vector2(0.0396, 0.0), Vector2(-0.0083, -0.0099), Vector2(-0.0165, 0.0), Vector2(-0.0281, 0.033),
+					Vector2(-0.0314, 0.0496), Vector2(-0.0264, 0.0545)], "width": [Vector2(0.0, 0.0115)], "chamfer": 0.002},
+			# The walnut grip, raked, chunky, its finger shelf under the guard and the flared heel.
+			"grip": {"points": [Vector2(-0.0702, 0.0273), Vector2(-0.0438, 0.033), Vector2(-0.0248, 0.0314),
+					Vector2(-0.0173, 0.0207), Vector2(-0.0132, 0.0083), Vector2(-0.0165, -0.0058), Vector2(-0.0231, -0.0207),
+					Vector2(-0.0281, -0.0264), Vector2(-0.0496, -0.0297), Vector2(-0.0529, -0.0512), Vector2(-0.0644, -0.0743),
+					Vector2(-0.0661, -0.0909), Vector2(-0.0686, -0.1008), Vector2(-0.0727, -0.1074), Vector2(-0.1198, -0.1049),
+					Vector2(-0.1239, -0.0942), Vector2(-0.114, -0.0826), Vector2(-0.1016, -0.0413), Vector2(-0.0851, -0.0058),
+					Vector2(-0.0776, 0.0149)], "width": [Vector2(-0.03, 0.0165), Vector2(-0.11, 0.0185)], "chamfer": 0.006},
+			# The fore-end under the barrel (its top at the bore's middle), deep at the frame, thinning to the rounded tip.
+			# Its back slants so it clears the frame as the barrel drops about the hinge.
+			"forend": {"points": [Vector2(0.0339, 0.0413), Vector2(0.223, 0.0413), Vector2(0.2247, 0.0347),
+					Vector2(0.223, 0.0273), Vector2(0.2172, 0.0223), Vector2(0.1156, 0.0083), Vector2(0.062, 0.002),
+					Vector2(0.05, 0.012), Vector2(0.04, 0.03)], "width": [Vector2(0.04, 0.0165), Vector2(0.22, 0.0145)],
+					"chamfer": 0.005},
+			# The trigger guard: a thin band round the trigger, its rear spur down in front of the grip (the lever that
+			# unlocks the barrel); the opening is a notch, as the MP7's.
+			"guard": {"points": [Vector2(0.0355, 0.0), Vector2(0.0405, 0.0), Vector2(0.0413, -0.0149),
+					Vector2(0.0388, -0.0273), Vector2(0.0297, -0.0347), Vector2(0.0132, -0.0413), Vector2(0.0058, -0.0463),
+					Vector2(0.0033, -0.0653), Vector2(-0.0008, -0.0653), Vector2(-0.0017, -0.0471), Vector2(-0.0058, -0.0355),
+					Vector2(-0.0116, -0.0149), Vector2(-0.0124, -0.0083), Vector2(-0.0074, -0.0083), Vector2(-0.0033, -0.0231),
+					Vector2(0.0017, -0.038), Vector2(0.0083, -0.0388), Vector2(0.0248, -0.0322), Vector2(0.0339, -0.0248),
+					Vector2(0.0363, -0.0149)], "width": [Vector2(0.0, 0.004)], "chamfer": 0.001},
+		},
+		"sections": {},
+	},
+	"winchester": {
+		"profiles": {
+			# After the owner's photos of a Winchester 1887 with a 22" barrel (Docs/LOADOUT.md, "Winchester 1887";
+			# 2.026 mm a pixel of the left side): the tall receiver, its top falling behind the hammer to the tang.
+			"receiver": {"points": [Vector2(0.1195, 0.0851), Vector2(0.0608, 0.0831), Vector2(0.0365, 0.0729),
+					Vector2(0.0, 0.0486), Vector2(-0.0284, 0.0284), Vector2(-0.0284, 0.0041), Vector2(-0.0041, -0.0041),
+					Vector2(0.0365, -0.0041), Vector2(0.0669, 0.0041), Vector2(0.0972, 0.0203), Vector2(0.1195, 0.0284)],
+					"width": [Vector2(0.0, 0.0195)], "chamfer": 0.003},
+			# The stock: the straight wrist with a little pistol swell, the comb's nose, the deep drop to the butt.
+			"stock": {"points": [Vector2(-0.0243, 0.0324), Vector2(-0.1216, 0.0041), Vector2(-0.1499, 0.0122),
+					Vector2(-0.3525, 0.0041), Vector2(-0.3627, -0.0041), Vector2(-0.3627, -0.1297), Vector2(-0.3485, -0.1317),
+					Vector2(-0.1499, -0.077), Vector2(-0.1256, -0.077), Vector2(-0.1013, -0.0588), Vector2(-0.0689, -0.0324),
+					Vector2(-0.0365, -0.0081), Vector2(-0.0243, 0.0)], "width": [Vector2(-0.03, 0.017), Vector2(-0.36, 0.021)],
+					"chamfer": 0.007},
+			# The fore-end round the barrel and the tube under it, its front end rounded off.
+			"forend": {"points": [Vector2(0.4, 0.077), Vector2(0.1216, 0.077), Vector2(0.1216, 0.0304),
+					Vector2(0.4, 0.0324), Vector2(0.407, 0.037), Vector2(0.409, 0.055), Vector2(0.407, 0.072)],
+					"width": [Vector2(0.0, 0.019)], "chamfer": 0.008},
+		},
+		"sections": {},
+	},
+	"mk14": {
+		"profiles": {
+			# After the owner's drawing of the Mk 14 Mod 1 EBR (Docs/LOADOUT.md, "Mk 14"; 1.4 mm a pixel, the stock in):
+			# the chassis round the action down to the magazine well and the trigger guard.
+			"chassis": {"points": [Vector2(-0.0448, 0.0392), Vector2(0.2016, 0.0448), Vector2(0.2016, 0.0),
+					Vector2(0.1736, -0.0028), Vector2(0.098, 0.0014), Vector2(0.042, -0.0028), Vector2(0.0308, -0.0028),
+					Vector2(-0.0322, 0.0), Vector2(-0.0448, 0.0112)], "width": [Vector2(0.0, 0.026)], "chamfer": 0.003},
+			# The deep handguard round the barrel and the gas cylinder.
+			"handguard": {"points": [Vector2(0.2016, 0.0812), Vector2(0.4816, 0.0812), Vector2(0.4872, 0.0742),
+					Vector2(0.4872, 0.0126), Vector2(0.476, 0.007), Vector2(0.21, 0.007), Vector2(0.2016, 0.014)],
+					"width": [Vector2(0.0, 0.0285)], "chamfer": 0.004},
+			# The M14 receiver over the chassis, its heel under the rear sight.
+			"receiver": {"points": [Vector2(-0.0322, 0.0448), Vector2(-0.0224, 0.0672), Vector2(-0.0084, 0.0714),
+					Vector2(0.1008, 0.0714), Vector2(0.1428, 0.0658), Vector2(0.2016, 0.0658), Vector2(0.2016, 0.0434)],
+					"width": [Vector2(0.0, 0.015)], "chamfer": 0.003},
+			# The pistol grip, raked, its base flared.
+			"grip": {"points": [Vector2(-0.1022, 0.0112), Vector2(-0.0322, 0.0112), Vector2(-0.0294, 0.0),
+					Vector2(-0.0448, -0.084), Vector2(-0.0434, -0.0952), Vector2(-0.0532, -0.0994), Vector2(-0.0952, -0.0994),
+					Vector2(-0.0924, -0.084), Vector2(-0.0784, -0.0392)], "width": [Vector2(0.0, 0.0155)], "chamfer": 0.004},
+			# The butt: the stock's tall back end, its front slanting down and back.
+			"butt": {"points": [Vector2(-0.2534, 0.0392), Vector2(-0.1792, 0.0392), Vector2(-0.1862, 0.0112),
+					Vector2(-0.2002, -0.042), Vector2(-0.2156, -0.0756), Vector2(-0.2212, -0.0812), Vector2(-0.2534, -0.0812)],
+					"width": [Vector2(0.0, 0.022)], "chamfer": 0.004},
+		},
+		"sections": {},
+	},
+	"p90": {
+		# Traced off the owner's photo of the P90's left side (tools/make_p90_blockout.py --parts writes this; 0.2864 mm a
+		# pixel): the body over the holes and the butt, the lower round the thumb hole, the front round the trigger hole
+		# with the hook; the sight's housing in pieces round its window.
+		"profiles": {
+			"body": {"points": [Vector2(-0.3308, 0.0538), Vector2(-0.3265, 0.057), Vector2(-0.181, 0.057),
+					Vector2(-0.181, 0.0361), Vector2(0.0859, 0.0361), Vector2(0.0859, 0), Vector2(-0.2005, 0),
+					Vector2(-0.2005, -0.0567), Vector2(-0.2033, -0.0616), Vector2(-0.3265, -0.0619), Vector2(-0.3305, -0.059)],
+					"width": [Vector2(0.0, 0.0275)], "chamfer": 0.005},
+			"lower": {"points": [Vector2(-0.2005, 0), Vector2(-0.1117, 0), Vector2(-0.1208, -0.0034),
+					Vector2(-0.1249, -0.0069), Vector2(-0.1277, -0.0103), Vector2(-0.1294, -0.0137), Vector2(-0.1303, -0.0172),
+					Vector2(-0.1306, -0.0206), Vector2(-0.1306, -0.0241), Vector2(-0.13, -0.0275), Vector2(-0.1294, -0.0309),
+					Vector2(-0.1277, -0.0344), Vector2(-0.1249, -0.0378), Vector2(-0.1208, -0.0412), Vector2(-0.1128, -0.0452),
+					Vector2(-0.1037, -0.045), Vector2(-0.0951, -0.0412), Vector2(-0.0876, -0.0378), Vector2(-0.0802, -0.0344),
+					Vector2(-0.0727, -0.0309), Vector2(-0.0676, -0.0275), Vector2(-0.0653, -0.0241), Vector2(-0.0636, -0.0206),
+					Vector2(-0.063, -0.0172), Vector2(-0.063, -0.0137), Vector2(-0.0641, -0.0103), Vector2(-0.0659, -0.0069),
+					Vector2(-0.0687, -0.0034), Vector2(-0.075, 0), Vector2(-0.0158, 0), Vector2(-0.0158, -0.0444),
+					Vector2(-0.0229, -0.0455), Vector2(-0.0344, -0.0564), Vector2(-0.0458, -0.0653), Vector2(-0.0573, -0.0719),
+					Vector2(-0.0687, -0.0762), Vector2(-0.0802, -0.0793), Vector2(-0.0974, -0.0808), Vector2(-0.126, -0.0808),
+					Vector2(-0.1317, -0.0796), Vector2(-0.1375, -0.0739), Vector2(-0.1489, -0.0704), Vector2(-0.1604, -0.0667),
+					Vector2(-0.1718, -0.063), Vector2(-0.1833, -0.0596), Vector2(-0.189, -0.0578), Vector2(-0.1947, -0.0564)],
+					"width": [Vector2(0.0, 0.0265)], "chamfer": 0.003},
+			"front": {"points": [Vector2(-0.0158, -0.0389), Vector2(0.0372, -0.0389), Vector2(0.0412, -0.0361),
+					Vector2(0.0444, -0.0326), Vector2(0.047, -0.0258), Vector2(0.0458, -0.0189), Vector2(0.0412, -0.012),
+					Vector2(0.0344, -0.0057), Vector2(0.0286, -0.0006), Vector2(0.0859, 0), Vector2(0.1246, 0.0043),
+					Vector2(0.1246, -0.0395), Vector2(0.1226, -0.0415), Vector2(0.11, -0.0415), Vector2(0.106, -0.0235),
+					Vector2(0.1002, -0.0206), Vector2(0.0859, -0.0198), Vector2(0.0808, -0.0223), Vector2(0.075, -0.0478),
+					Vector2(0.0687, -0.059), Vector2(0.063, -0.0659), Vector2(0.0573, -0.071), Vector2(0.0515, -0.0745),
+					Vector2(0.0458, -0.0773), Vector2(0.0344, -0.0802), Vector2(0.0029, -0.0805), Vector2(-0.0017, -0.0779),
+					Vector2(-0.002, -0.0693), Vector2(0.0011, -0.0659), Vector2(0, -0.0464), Vector2(-0.0029, -0.0447),
+					Vector2(-0.0158, -0.0444)],
+					"width": [Vector2(0.0, 0.025)], "chamfer": 0.003},
+			"strap": {"points": [Vector2(-0.0473, 0.02), Vector2(-0.0478, 0.0358), Vector2(-0.0315, 0.0773),
+					Vector2(-0.0029, 0.0773), Vector2(-0.0029, 0.071), Vector2(-0.012, 0.0664), Vector2(-0.0126, 0.02)],
+					"width": [Vector2(0.0, 0.0285)], "chamfer": 0.004},
+			"optic_wall": {"points": [Vector2(-0.0315, 0.0773), Vector2(-0.0301, 0.0945), Vector2(-0.0272, 0.0977),
+					Vector2(-0.0172, 0.0979), Vector2(0.0057, 0.0982), Vector2(0.1145, 0.0977), Vector2(0.1254, 0.083),
+					Vector2(0.1254, 0.0773)],
+					"width": [Vector2(0.0, 0.0008)], "chamfer": 0.0003},
+			"optic_top": {"points": [Vector2(-0.0286, 0.0968), Vector2(-0.0278, 0.0977), Vector2(-0.0172, 0.0979),
+					Vector2(0.0057, 0.0982), Vector2(0.1145, 0.0977), Vector2(0.1163, 0.0968)],
+					"width": [Vector2(0.0, 0.013)], "chamfer": 0.0005},
+			"optic_bottom": {"points": [Vector2(-0.0029, 0.0773), Vector2(0.0859, 0.0773), Vector2(0.0859, 0.0573),
+					Vector2(0.0745, 0.0573), Vector2(0.0687, 0.0607), Vector2(-0.0029, 0.071)],
+					"width": [Vector2(0.0, 0.0185)], "chamfer": 0.003},
+			"sight_front": {"points": [Vector2(0.0859, 0.0773), Vector2(0.1254, 0.0773), Vector2(0.1254, 0.0043),
+					Vector2(0.0859, 0.0043)],
+					"width": [Vector2(0.0, 0.0185)], "chamfer": 0.004},
+			"cover": {"points": [Vector2(0.01, 0.0979), Vector2(0.012, 0.1017), Vector2(0.0939, 0.1017),
+					Vector2(0.0956, 0.0977)],
+					"width": [Vector2(0.0, 0.0145)], "chamfer": 0.002},
+			"trigger": {"points": [Vector2(-0.0137, -0.0029), Vector2(-0.0029, -0.0029), Vector2(0.0086, -0.0172),
+					Vector2(0.0074, -0.0269), Vector2(0, -0.0281), Vector2(-0.0137, -0.02)],
+					"width": [Vector2(0.0, 0.006)], "chamfer": 0.002},
+		},
+		"sections": {},
+	},
 	"luger": {
 		"profiles": {
 			# After the photos of a WE P08 6" (Docs/LOADOUT.md, "Люгер"; 0.402 mm a pixel): the trigger guard's small round
@@ -207,6 +346,8 @@ static func _profile_solid(points: PackedVector2Array, width: Array, chamfer: fl
 	if _area(points) < 0.0:
 		points.reverse()  # counter-clockwise in (z, y): the outward normal of an edge (dz, dy) is (dy, -dz)
 	var inset := _inset(points, chamfer)
+	if Geometry2D.triangulate_polygon(inset).is_empty():
+		inset = _inset(points, chamfer, 1.0)  # a spike's long mitre crossed its neighbours (the P90's holes' mouths)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for side in [1.0, -1.0]:
@@ -280,8 +421,9 @@ static func _area(points: PackedVector2Array) -> float:
 	return sum * 0.5
 
 
-## The outline moved `by` inwards, a mitred corner for each (counter-clockwise outline; the corners stay matched).
-static func _inset(points: PackedVector2Array, by: float) -> PackedVector2Array:
+## The outline moved `by` inwards, a mitred corner for each (counter-clockwise outline; the corners stay matched); a
+## sharp corner's mitre at most `cap` x `by` long.
+static func _inset(points: PackedVector2Array, by: float, cap := 3.0) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var n := points.size()
 	for k in n:
@@ -290,7 +432,7 @@ static func _inset(points: PackedVector2Array, by: float) -> PackedVector2Array:
 		var n1 := Vector2(-e1.y, e1.x)  # inward normals
 		var n2 := Vector2(-e2.y, e2.x)
 		var mid := (n1 + n2).normalized()
-		out.append(points[k] + mid * minf(by / maxf(mid.dot(n1), 0.2), by * 3.0))
+		out.append(points[k] + mid * minf(by / maxf(mid.dot(n1), 0.2), by * cap))
 	return out
 
 

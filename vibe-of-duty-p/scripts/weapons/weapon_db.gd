@@ -26,8 +26,26 @@ const MODULE_GEOMETRY := {
 	# (the real one's relief is ~4 cm): the cheek where it is with the irons, give or take.
 	"acr.sight.acog": {"sight": "acog", "model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.131, -0.075),
 			"front_sight": Vector3(0.0, 0.131, 0.05), "eye_relief": 0.06},
+	# The same ACOG on the PH IDW's rail (0.027 lower; its fixed irons stay, under the ACOG's 7 degrees) and the MP7's
+	# (0.0239 lower, the flip-ups folded). The eye as on the ACR, 6 cm behind the eyepiece.
+	"pdw.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.027, 0.0),
+			"rear_sight": Vector3(0.0, 0.104, -0.075), "front_sight": Vector3(0.0, 0.104, 0.05), "eye_relief": 0.06},
+	"mp7.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.0239, 0.0), "model_variants": {"Sights": "Down"},
+			"rear_sight": Vector3(0.0, 0.1071, -0.075), "front_sight": Vector3(0.0, 0.1071, 0.05), "eye_relief": 0.06},
+	# The PH IDW's CompM on the ACR's rail (0.027 higher), the flip-ups folded (the rear's ears would be in its ocular).
+	# The eye where it is with the irons (0.15 behind the rear sight at z -0.05).
+	"acr.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.027, 0.0), "model_variants": {"Sights": "Down"},
+			"rear_sight": Vector3(0.0, 0.125, -0.06), "front_sight": Vector3(0.0, 0.125, 0.06), "eye_relief": 0.14},
 	"pdw.sight.compm": {"sight": "compm", "rear_sight": Vector3(0.0, 0.098, -0.06),
 			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
+	# The PH IDW's CompM and the ACR's ACOG on the Mk 14's rail (its top 0.0896: 0.0216 over the PH IDW's, 0.0054 under
+	# the ACR's), forward over the receiver's front (z +0.13), the aperture cranked down; the eye where it is with the
+	# irons, ACOG: 6 cm behind its eyepiece, as on the ACR.
+	"mk14.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0216, 0.13), "model_variants": {"Sights": "Down"},
+			"rear_sight": Vector3(0.0, 0.1196, 0.07), "front_sight": Vector3(0.0, 0.1196, 0.19), "eye_relief": 0.205},
+	"mk14.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.0054, 0.13),
+			"model_variants": {"Sights": "Down", "FrontSight": "Off"},  # the post showed at the 4x view's bottom
+			"rear_sight": Vector3(0.0, 0.1256, 0.055), "front_sight": Vector3(0.0, 0.1256, 0.18), "eye_relief": 0.06},
 	"pdw.stock.folded": {"model_variants": {"Stock": "Folded"}},
 	"ak.mag.rpk40": {"model_variants": {"Mags": "AK_Mag_40"}},
 	"acr.mag.40": {"model_variants": {"Mags": "ACR_Mag_40"}},
@@ -56,7 +74,7 @@ const MODULE_GEOMETRY := {
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
-		"ejection_port", "charging_handle"]
+		"ejection_port", "charging_handle", "break_hinge", "chamber", "forend", "lever_pivot", "shell_port", "mag_hinge"]
 const MODULE_SLOT_NAMES := {"suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
@@ -220,6 +238,8 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.info = str(v.get("info", def.info))
 	def.damage = float(v.get("damage", def.damage))
 	def.pellets = int(v.get("pellets", def.pellets))
+	def.pellet_spread = deg_to_rad(float(v.get("pellet_spread", rad_to_deg(def.pellet_spread))))
+	def.reload_single = bool(v.get("reload_single", def.reload_single))
 	if v.has("fire_rate"):
 		def.fire_interval = 60.0 / maxf(float(v["fire_rate"]), 1.0)
 	if v.has("fire_rate_max"):
@@ -251,6 +271,8 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.muzzle_flash = bool(v.get("muzzle_flash", def.muzzle_flash))
 	def.tracer = bool(v.get("tracer", def.tracer))
 	def.armor_piercing = bool(v.get("armor_piercing", def.armor_piercing))
+	def.head_mult = float(v.get("head_mult", def.head_mult))
+	def.regen_block = float(v.get("regen_block", def.regen_block))
 
 
 static func _build() -> void:
@@ -359,6 +381,78 @@ static func _build_geometry() -> void:
 	mp7.sound_shot = "shot"
 	mp7.hip_offset = Vector3(0.12, -0.155, -0.42)
 	_defs.append(mp7)
+
+	var contender := WeaponDef.new()
+	contender.id = "contender"
+	contender.display_name = "Contender"
+	contender.scene_path = "res://prefabs/weapons/contender_blockout.tscn"  # tools/make_contender_blockout.py
+	contender.muzzle = Vector3(0.0, 0.0438, 0.335)
+	contender.rear_sight = Vector3(0.0, 0.069, 0.002)   # the rear leaf's ears' tops (the blade's tip flush with them)
+	contender.front_sight = Vector3(0.0, 0.069, 0.314)  # the front blade's tip
+	contender.eye_relief = 0.48  # arms out, as the Luger's: the eye ~0.48 behind the trigger
+	contender.right_hand = Vector3(0.0, -0.03, -0.054)  # the middle of the grip
+	contender.left_hand = Vector3(0.0, -0.075, -0.07)   # cupped under the right hand
+	contender.break_hinge = Vector3(0.0, 0.0149, 0.0231)
+	contender.chamber = Vector3(0.0, 0.0438, -0.019)
+	contender.forend = Vector3(0.0, 0.0, 0.17)  # under the fore-end, two thirds along it
+	contender.sound_shot = "shot"
+	contender.hip_offset = Vector3(0.13, -0.15, -0.36)
+	_defs.append(contender)
+
+	var winchester := WeaponDef.new()
+	winchester.id = "winchester"
+	winchester.display_name = "Winchester 1887"
+	winchester.scene_path = "res://prefabs/weapons/winchester_blockout.tscn"  # tools/make_winchester_blockout.py
+	winchester.muzzle = Vector3(0.0, 0.073, 0.64)
+	winchester.rear_sight = Vector3(0.0, 0.0895, 0.09)   # over the receiver's top behind the barrel (no rear sight)
+	winchester.front_sight = Vector3(0.0, 0.0895, 0.625)  # the bead's top (the hammer's spur stays under the line)
+	winchester.eye_relief = 0.42  # over the comb; closer, the hand on the wrist filled the view
+	winchester.right_hand = Vector3(0.0, -0.024, -0.061)  # on the wrist, the fingers in the lever's loop
+	winchester.left_hand = Vector3(0.0, 0.028, 0.27)     # under the fore-end
+	winchester.lever_pivot = Vector3(0.0, 0.012, 0.07)
+	winchester.shell_port = Vector3(0.0, 0.092, 0.07)  # the open action's top
+	winchester.sound_shot = "shot_shotgun"
+	winchester.hip_offset = Vector3(0.15, -0.19, -0.36)
+	_defs.append(winchester)
+
+	var mk14 := WeaponDef.new()
+	mk14.id = "mk14"
+	mk14.display_name = "Mk 14"
+	mk14.scene_path = "res://prefabs/weapons/mk14_blockout.tscn"  # tools/make_mk14_blockout.py
+	mk14.model_variants = {"Mags": "Mk14_Mag_20", "Sights": "Up", "FrontSight": "On"}
+	mk14.muzzle = Vector3(0.0, 0.063, 0.647)
+	mk14.rear_sight = Vector3(0.0, 0.097, 0.025)   # the rear aperture's middle (the post's tip in it)
+	mk14.front_sight = Vector3(0.0, 0.097, 0.546)  # the front post's tip
+	mk14.eye_relief = 0.16  # cheek on the rest, the eye close behind the aperture
+	mk14.right_hand = Vector3(0.0, -0.042, -0.067)  # the middle of the grip
+	mk14.left_hand = Vector3(0.0, 0.003, 0.34)      # under the handguard
+	mk14.ejection_port = Vector3(-0.012, 0.072, 0.09)  # up and right out of the receiver's top
+	mk14.charging_handle = Vector3(-0.026, 0.05, 0.1)  # the op-rod handle on the right, rides the bolt
+	mk14.bolt_travel = 0.09
+	mk14.sound_shot = "shot"
+	mk14.hip_offset = Vector3(0.15, -0.19, -0.36)
+	_defs.append(mk14)
+
+	var p90 := WeaponDef.new()
+	p90.id = "p90"
+	p90.display_name = "P90"
+	p90.scene_path = "res://prefabs/weapons/p90_blockout.tscn"  # tools/make_p90_blockout.py
+	p90.sight = "ring"  # the integral ring sight: its housing is the gun's, SightModels draws the glass and the reticle
+	p90.muzzle = Vector3(0.0, 0.0209, 0.1678)
+	p90.rear_sight = Vector3(0.0, 0.0871, -0.0272)  # the sight window's middle, its back
+	p90.front_sight = Vector3(0.0, 0.0871, 0.1254)  # and its front
+	p90.eye_relief = 0.12  # cheek forward on the butt's top: at 0.2 the window was a slot in a black box
+	p90.right_hand = Vector3(0.0, -0.024, -0.038)  # the grip between the thumb hole and the trigger hole
+	p90.left_hand = Vector3(0.0, -0.024, 0.093)    # under the front, behind the hook
+	p90.ejection_port = Vector3(0.0, -0.063, -0.166)  # the chute in the bottom behind the grip
+	p90.eject_down = true
+	p90.charging_handle = Vector3(0.034, 0.0163, 0.0768)  # the left knob under the sight (the model's "Handle")
+	p90.handle_reciprocates = false
+	p90.bolt_travel = 0.08
+	p90.mag_hinge = Vector3(0.0, 0.0361, 0.0825)
+	p90.sound_shot = "shot"
+	p90.hip_offset = Vector3(0.12, -0.155, -0.42)
+	_defs.append(p90)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:
