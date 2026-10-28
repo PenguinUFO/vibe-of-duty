@@ -64,8 +64,9 @@ func _physics_process(delta: float) -> void:
 		for player: Player in _world.players.values():
 			if not player.alive or not (server or player.control == Player.Mode.LOCAL):
 				continue
-			if server and _rides(player):
-				_shove(player, Vector3(0.0, 0.0, moved), server)
+			if _rides(player):  # the server carries a rider; a client's own rider goes with the floor (no push on top)
+				if server:
+					_shove(player, Vector3(0.0, 0.0, moved), server)
 			else:
 				_push(player, signf(moved), server)
 
@@ -88,7 +89,8 @@ func offset_at(t: float) -> float:
 	return travel * (1.0 - smoothstep(0.0, 1.0, (tau - 2.0 * hold - move) / move))
 
 
-## Pushes a player out of the way of the load moving along z (side); a push the level blocks crushes them.
+## Pushes a player out of the way of the load moving along z (side): out ahead of each block that came at them; a push
+## the level blocks crushes them.
 func _push(player: Player, side: float, server: bool) -> void:
 	var feet := player.global_position
 	var height := Player.CROUCH_HEIGHT if player.is_crouched else Player.STAND_HEIGHT
@@ -103,6 +105,10 @@ func _push(player: Player, side: float, server: bool) -> void:
 			hi = aabb.end
 			if feet.x > lo.x and feet.x < hi.x and feet.z > lo.z and feet.z < hi.z:
 				continue
+		# Only a block coming at them: one moving away (a parapet they lean on as the load leaves) is not a push -
+		# pushing them past its far face threw them through it and over the side.
+		if (feet.z - (lo.z + hi.z) * 0.5) * side <= 0.0:
+			continue
 		if feet.x + r <= lo.x or feet.x - r >= hi.x or feet.z + r <= lo.z or feet.z - r >= hi.z \
 				or feet.y + height <= lo.y or feet.y >= hi.y - ON_TOP:
 			continue

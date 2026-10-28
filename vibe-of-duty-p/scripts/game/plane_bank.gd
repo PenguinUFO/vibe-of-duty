@@ -99,8 +99,9 @@ func _physics_process(delta: float) -> void:
 			for player: Player in _world.players.values():
 				if not player.alive or not (server or player.control == Player.Mode.LOCAL):
 					continue
-				if server and _rides(player, _cargo[i]):
-					_shove(player, _cargo[i], Vector3(moved, 0.0, 0.0), server)
+				if _rides(player, _cargo[i]):  # the server carries a rider; a client's own goes with the floor
+					if server:
+						_shove(player, _cargo[i], Vector3(moved, 0.0, 0.0), server)
 				else:
 					_push(player, _cargo[i], signf(moved), server)
 	_offsets = offsets
@@ -248,6 +249,8 @@ func _push(player: Player, cargo: Dictionary, side: float, server: bool) -> void
 		var hi := block.position + offset + block.size * 0.5
 		if feet.x + r <= lo.x or feet.x - r >= hi.x or feet.z + r <= lo.z or feet.z - r >= hi.z \
 				or feet.y + height <= lo.y or feet.y >= hi.y - ON_TOP:
+			continue
+		if (feet.x - (lo.x + hi.x) * 0.5) * side <= 0.0:  # moving away from them: not a push (it threw them through)
 			continue
 		need = maxf(need, (hi.x + r + 0.01 - feet.x) if side > 0.0 else (feet.x - (lo.x - r - 0.01)))
 	if need > 0.0:

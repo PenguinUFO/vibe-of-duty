@@ -171,22 +171,24 @@ func on_damaged_from(from: Vector3) -> void:
 
 
 ## F / d-pad up: the local player oinks. Heard at once here; the server passes it on to everyone else
-## (NetWorld.server_oink, which also enforces the cooldown).
+## (NetWorld.server_oink, which also enforces the cooldown). One press in FART_CHANCE farts instead; the presser
+## rolls it, so everyone hears the same thing.
 func _try_oink() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if not alive or world == null or now < _next_oink:
 		return
 	_next_oink = now + NetWorld.OINK_COOLDOWN
-	play_oink()
+	var fart := randf() < NetWorld.FART_CHANCE
+	play_oink(fart)
 	if multiplayer.is_server():
-		world.server_oink(peer_id)
+		world.server_oink(peer_id, fart)
 	else:
-		world.request_oink.rpc_id(1)
+		world.request_oink.rpc_id(1, fart)
 
 
-## Each player has their own pig voice (by peer id); others hear it from where the head is.
-func play_oink() -> void:
-	var voice: String = ["oink", "oink2", "oink3"][absi(peer_id) % 3]
+## Snort or fart (audioSFX/player); others hear it from where the head is.
+func play_oink(fart: bool = false) -> void:
+	var voice := "pig fart" if fart else "pig snort"
 	if not is_local:
 		Game.count("oinks_heard")
 	if Game.net_log:

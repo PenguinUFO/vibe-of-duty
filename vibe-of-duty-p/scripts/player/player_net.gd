@@ -181,7 +181,7 @@ func _update_puppet() -> void:
 		_step_distance += moved
 		if _step_distance >= STEP_STRIDE:
 			_step_distance = 0.0
-			Audio.play("step", global_position, -8.0 if is_crouched else 0.0)
+			Audio.play("pig step", global_position, -8.0 if is_crouched else 0.0)
 	if _stance_crouched != is_crouched:
 		_apply_stance()
 

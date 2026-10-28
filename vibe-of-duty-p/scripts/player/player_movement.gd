@@ -137,7 +137,7 @@ func _post_move(dt: float) -> void:
 		_step_distance += Vector2(velocity.x, velocity.z).length() * dt
 		if _step_distance >= STEP_STRIDE:
 			_step_distance = 0.0
-			_sfx("step", -8.0 if is_crouched else 0.0)
+			_sfx("pig step", -8.0 if is_crouched else 0.0)
 			if not _replaying:
 				_bob_side = -_bob_side
 

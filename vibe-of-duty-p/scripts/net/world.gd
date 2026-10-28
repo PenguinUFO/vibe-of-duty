@@ -21,6 +21,7 @@ const SPAWN_PROTECTION_TICKS := 120
 const HEAD_DAMAGE_MULT := 1.15
 const NAME_MAX := 24  # characters, like the main menu's name field
 const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
+const FART_CHANCE := 0.25   # share of oinks (F) that come out as a fart
 const SUMMARY_QUIT_DELAY := 5.0  # s between the --summary line and quitting
 const TOUGHNESS_SEND_INTERVAL := 0.25  # s; kid mode sliders dragged mid-match are sent at most this often
 
@@ -602,14 +603,14 @@ func _remote_melee(puncher_id: int, pos: Vector3) -> void:
 
 ## Client -> server: the sender pressed F (oink).
 @rpc("any_peer", "reliable")
-func request_oink() -> void:
+func request_oink(fart: bool) -> void:
 	if multiplayer.is_server():
-		server_oink(multiplayer.get_remote_sender_id())
+		server_oink(multiplayer.get_remote_sender_id(), fart)
 
 
 ## Passes an oink on to everyone but the player (who already heard it). The cooldown is checked here too, so a
 ## modified client cannot spam it.
-func server_oink(id: int) -> void:
+func server_oink(id: int, fart: bool) -> void:
 	if not players.has(id) or not (players[id] as Player).alive:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
@@ -618,15 +619,15 @@ func server_oink(id: int) -> void:
 	_last_oink[id] = now
 	for peer in _ready_peers:
 		if peer != id:
-			_oink.rpc_id(peer, id)
+			_oink.rpc_id(peer, id, fart)
 	if not Game.dedicated and id != multiplayer.get_unique_id():
-		(players[id] as Player).play_oink()  # the host machine hears clients too
+		(players[id] as Player).play_oink(fart)  # the host machine hears clients too
 
 
 @rpc("authority", "reliable")
-func _oink(id: int) -> void:
+func _oink(id: int, fart: bool) -> void:
 	if players.has(id) and id != multiplayer.get_unique_id():
-		(players[id] as Player).play_oink()
+		(players[id] as Player).play_oink(fart)
 
 
 @rpc("authority", "reliable")
