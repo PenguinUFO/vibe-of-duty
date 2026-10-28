@@ -1,7 +1,7 @@
 extends SceneTree
 ## Renders a map (SHOT_MAP, default the train) from a few views to ../shots/level_<view>.png and prints the GPU time of each view
 ## (vsync off, 1080p); SHOT_MOOD=1 - in the PSX style's lighting (Mood, without its dither); SHOT_BANK=s - the plane's
-## bank and cargo as at that time.
+## bank and cargo as at that time; SHOT_DAY=f - the killhouse's day at that share of the match (0..1, with SHOT_MOOD).
 ## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
 
 const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5, 25.5), ramp to 44; deck y 4.7 z -50 .. 30; belly y -3
@@ -45,12 +45,23 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"walk_entry": [Vector3(-13.0, 1.65, -13.6), Vector3(-3.0, -3.5, -16.5)],  # the walkways a floor below L0
 	"walk": [Vector3(-2.0, -2.35, -16.0), Vector3(40.0, -2.0, -16.0)],
 	"walk_out": [Vector3(20.0, 6.0, -26.0), Vector3(20.0, -3.0, -15.0)],
+}, "killhouse": {  # killhouse.tscn: x -17.25 .. 17.25, z -33.25 .. 33.25; platforms (y 3, rooms under them) north x -4 .. 3, south x 0 .. 7
+	"north": [Vector3(-14.0, 1.65, -30.0), Vector3(2.0, 1.0, -20.0)],
+	"middle": [Vector3(-12.0, 1.65, -9.0), Vector3(4.0, 1.0, 4.0)],
+	"from_platform": [Vector3(2.0, 4.65, -19.0), Vector3(0.0, 1.0, 5.0)],
+	"room": [Vector3(2.5, 1.65, -23.0), Vector3(-2.0, 1.3, -18.0)],  # under the north platform, to its windows
+	"room_door": [Vector3(-3.0, 1.65, -30.0), Vector3(0.5, 1.5, -22.0)],
+	"east_rooms": [Vector3(14.0, 1.65, -14.0), Vector3(16.0, 1.0, 4.0)],
+	"south": [Vector3(13.0, 1.65, 29.0), Vector3(-6.0, 1.0, 18.0)],
+	"hall": [Vector3(-15.0, 1.65, 30.0), Vector3(2.0, 8.0, -10.0)],  # up into the roof
+	"outside": [Vector3(45.0, 30.0, 60.0), Vector3(0.0, 6.0, 0.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
 	"plane": [Vector3(0.5, 0.05, -30), Vector3(-0.5, 4.75, -30), Vector3(0.0, -2.95, -20)],
 	"train": [Vector3(0.5, 0.05, -81.0), Vector3(2.0, 3.35, -14.0), Vector3(2.2, 0.05, 4.0)],
 	"tower": [Vector3(29.0, 0.05, 5.0), Vector3(39.0, 4.05, -5.0), Vector3(44.0, 8.05, -12.0)],
+	"killhouse": [Vector3(-6.0, 0.05, 6.0), Vector3(1.0, 3.05, -21.0), Vector3(15.0, 0.05, -7.0)],
 }
 const FRAMES := 120
 
@@ -115,6 +126,12 @@ func _initialize() -> void:
 	var bank = level.get_node_or_null("Bank")  # PlaneBank, untyped: naming its class would compile it before the autoloads
 	if bank and OS.has_environment("SHOT_BANK"):  # the plane's schedule read at this time (s): its bank, the cargo
 		bank.time_override = float(OS.get_environment("SHOT_BANK"))
+		for i in 3:
+			await physics_frame
+	var day = level.get_node_or_null("DayCycle")  # DayCycle, untyped like the bank
+	if day and OS.has_environment("SHOT_DAY"):  # the day read at this share of the match (0..1; needs SHOT_MOOD)
+		day.time_override = float(OS.get_environment("SHOT_DAY"))
+		day._apply(day.time_override)
 		for i in 3:
 			await physics_frame
 	var crane = level.get_node_or_null("Crane")  # CraneBridge, untyped like the bank

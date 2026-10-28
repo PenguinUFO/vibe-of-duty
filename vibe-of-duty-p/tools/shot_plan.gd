@@ -18,6 +18,8 @@ const PLANS := {
 			"decks": {"outside": [60.0, 0.0]}},
 	"tower": {"area": [-18.0, 48.0, -18.0, 18.0], "along_z": false,
 			"decks": {"walk": [-0.1, -4.0], "L0": [3.65, 0.0], "L1": [7.65, 4.0], "L2": [11.6, 8.0], "top": [80.0, 0.0]}},
+	"killhouse": {"area": [-18.0, 18.0, -34.0, 34.0], "along_z": false,
+			"decks": {"ground": [2.9, 0.0], "top": [40.0, 0.0]}},
 }
 const DEPTH := 60.0  # m the camera sees below the cut
 const HEIGHT_SPAN := 20.0  # m of heights the _h pass encodes, centred on the floor

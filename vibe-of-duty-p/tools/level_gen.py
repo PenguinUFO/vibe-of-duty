@@ -53,13 +53,16 @@ class Level:
         self.blocks.append((self.uniq(name), c, ((1, 0, 0), (0, 1, 0), (0, 0, 1)), (x1 - x0, y1 - y0, z1 - z0), color,
                             self.layers_at(c[1], decks), penetrable, self.group))
 
-    def rotated(self, name, center, size, color, rot_x=0.0, rot_z=0.0, decks=None):
-        """A box turned rot_x about X, then rot_z about Z (radians)."""
+    def rotated(self, name, center, size, color, rot_x=0.0, rot_z=0.0, decks=None, rot_y=0.0):
+        """A box turned rot_x about X, then rot_z about Z, then rot_y about Y (radians)."""
         cx, sx = math.cos(rot_x), math.sin(rot_x)
         cz, sz = math.cos(rot_z), math.sin(rot_z)
+        cy, sy = math.cos(rot_y), math.sin(rot_y)
         rx = ((1, 0, 0), (0, cx, -sx), (0, sx, cx))
         rz = ((cz, -sz, 0), (sz, cz, 0), (0, 0, 1))
-        rows = tuple(tuple(sum(rz[i][k] * rx[k][j] for k in range(3)) for j in range(3)) for i in range(3))
+        ry = ((cy, 0, sy), (0, 1, 0), (-sy, 0, cy))
+        mul = lambda a, b: tuple(tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)) for i in range(3))
+        rows = mul(ry, mul(rz, rx))
         self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks), False,
                             self.group))
 

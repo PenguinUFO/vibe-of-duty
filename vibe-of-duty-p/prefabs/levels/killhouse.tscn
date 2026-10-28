@@ -1,0 +1,347 @@
+[gd_scene format=3 uid="uid://dlhlh7uojv28o"]
+
+[ext_resource type="Script" uid="uid://cpr1l748quiwk" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+[ext_resource type="Shader" uid="uid://kb4cbwsy0nk3" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/killhouse_shell.tscn" id="5_shell"]
+[ext_resource type="Script" uid="uid://ctanygjum4bus" path="res://scripts/game/train_props.gd" id="6_props"]
+[ext_resource type="Script" uid="uid://bxgg2vbt76jr6" path="res://scripts/game/level_mood.gd" id="7_mood"]
+[ext_resource type="Script" path="res://scripts/game/day_cycle.gd" id="8_day"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_sky")
+shader_parameter/zenith_color = Color(0.22, 0.38, 0.6, 1)
+shader_parameter/horizon_color = Color(0.72, 0.77, 0.83, 1)
+shader_parameter/ground_color = Color(0.36, 0.41, 0.5, 1)
+shader_parameter/horizon_curve = 0.3
+shader_parameter/sun_size = 1.2
+shader_parameter/sun_glow = 0.5
+shader_parameter/sun_glow_size = 10.0
+shader_parameter/cloud_coverage = 0.3
+shader_parameter/cloud_softness = 0.12
+shader_parameter/cloud_scale = 1.6
+shader_parameter/cloud_detail = 0.8
+shader_parameter/cloud_light = Color(1, 0.99, 0.97, 1)
+shader_parameter/cloud_shadow = Color(0.6, 0.66, 0.74, 1)
+shader_parameter/cloud_shading = 9.0
+shader_parameter/cloud_thickness_dark = 0.2
+shader_parameter/cloud_horizon_fade = 0.18
+shader_parameter/cloud_offset = Vector2(2.1, -4.3)
+shader_parameter/sea_coverage = 0.82
+shader_parameter/sea_scale = 0.5
+shader_parameter/sea_light = Color(0.95, 0.95, 0.93, 1)
+shader_parameter/sea_shadow = Color(0.56, 0.61, 0.69, 1)
+shader_parameter/sea_offset = Vector2(0, 0)
+shader_parameter/sea_horizon_fade = 0.08
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.66, 0.72, 1)
+ambient_light_energy = 0.9
+reflected_light_source = 1
+tonemap_mode = 4
+tonemap_exposure = 1.1
+tonemap_white = 8.0
+fog_enabled = true
+fog_light_color = Color(0.75, 0.8, 0.86, 1)
+fog_density = 0.0015
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.08
+
+[node name="Killhouse" type="Node3D" unique_id=920348926]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1750406011]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1388438718]
+transform = Transform3D(-0.31547716, -0.173653, 0.9329088, 0.6542757, 0.6722631, 0.3463892, -0.68731165, 0.71965754, -0.09846667, 0, 30, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 2.4
+shadow_enabled = true
+shadow_bias = 0.05
+shadow_blur = 1.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 60.0
+
+[node name="Shell" parent="." unique_id=817557600 instance=ExtResource("5_shell")]
+
+[node name="Props" type="Node3D" parent="." unique_id=866167620]
+script = ExtResource("6_props")
+deck_splits = PackedFloat32Array()
+
+[node name="CarA" parent="Props" unique_id=309746626 instance=ExtResource("2_block")]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -5.4, 0.5, -7.1)
+size = Vector3(4.2, 1, 1.8)
+color = Color(0.3, 0.31, 0.31, 1)
+mesh_layers = 4
+
+[node name="CarACab" parent="Props" unique_id=627617880 instance=ExtResource("2_block")]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, -5.4, 1.2, -7.1)
+size = Vector3(2, 0.4, 1.6)
+color = Color(0.25, 0.26, 0.27, 1)
+mesh_layers = 4
+
+[node name="CarB" parent="Props" unique_id=1005729035 instance=ExtResource("2_block")]
+transform = Transform3D(0.766, 0, 0.6428, 0, 1, 0, -0.6428, 0, 0.766, 4.5, 0.5, 2.5)
+size = Vector3(4.2, 1, 1.8)
+color = Color(0.3, 0.31, 0.31, 1)
+mesh_layers = 4
+
+[node name="CarBCab" parent="Props" unique_id=235749275 instance=ExtResource("2_block")]
+transform = Transform3D(0.766, 0, 0.6428, 0, 1, 0, -0.6428, 0, 0.766, 4.5, 1.2, 2.5)
+size = Vector3(2, 0.4, 1.6)
+color = Color(0.25, 0.26, 0.27, 1)
+mesh_layers = 4
+
+[node name="Crate" parent="Props" unique_id=1004594245 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.6, -10.2)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.48, 0.33, 0.24, 1)
+mesh_layers = 4
+
+[node name="Crate1" parent="Props" unique_id=1170280422 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9, 0.5, -9.4)
+color = Color(0.48, 0.33, 0.24, 1)
+mesh_layers = 4
+
+[node name="Crate2" parent="Props" unique_id=1024916372 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.3, 0.6, -4.7)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.48, 0.33, 0.24, 1)
+mesh_layers = 4
+
+[node name="Table" parent="Props" unique_id=2032509146 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.1, 0.5, 11.4)
+size = Vector3(4.6, 1, 1.4)
+color = Color(0.4, 0.41, 0.41, 1)
+mesh_layers = 4
+
+[node name="Barrel" parent="Props" unique_id=901933260 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.3, 0.45, 8.3)
+size = Vector3(0.6, 0.9, 0.6)
+color = Color(0.36, 0.3, 0.26, 1)
+mesh_layers = 4
+
+[node name="Barrel1" parent="Props" unique_id=564636861 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.6, 0.45, 8.9)
+size = Vector3(0.6, 0.9, 0.6)
+color = Color(0.36, 0.3, 0.26, 1)
+mesh_layers = 4
+
+[node name="Debris" parent="Props" unique_id=1124336219 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.3, 0.4, 8.6)
+size = Vector3(2, 0.8, 1.4)
+color = Color(0.47, 0.44, 0.4, 1)
+mesh_layers = 4
+
+[node name="Debris1" parent="Props" unique_id=768799574 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 0.35, 3.8)
+size = Vector3(1.8, 0.7, 1.2)
+color = Color(0.47, 0.44, 0.4, 1)
+mesh_layers = 4
+
+[node name="Shelf" parent="Props" unique_id=1106106242 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, -32.75)
+size = Vector3(4, 2, 0.8)
+color = Color(0.4, 0.41, 0.41, 1)
+mesh_layers = 4
+
+[node name="Shelf1" parent="Props" unique_id=1289268581 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, -32.75)
+size = Vector3(4, 2, 0.8)
+color = Color(0.4, 0.41, 0.41, 1)
+mesh_layers = 4
+
+[node name="Shelf2" parent="Props" unique_id=100352732 instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.75, 1, 19.75)
+size = Vector3(0.8, 2, 3)
+color = Color(0.4, 0.41, 0.41, 1)
+mesh_layers = 4
+
+[node name="SpawnPoints" type="Node3D" parent="." unique_id=324904936]
+
+[node name="SpawnNorthWest" type="Marker3D" parent="SpawnPoints" unique_id=56752208]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -14.5, 0.05, -30)
+
+[node name="SpawnNorthEast" type="Marker3D" parent="SpawnPoints" unique_id=1307579559]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 14.5, 0.05, -30)
+
+[node name="SpawnNorthRoom" type="Marker3D" parent="SpawnPoints" unique_id=906449620]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14.5, 0.05, -22)
+
+[node name="SpawnEastT" type="Marker3D" parent="SpawnPoints" unique_id=2025786989]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 15.5, 0.05, -14)
+
+[node name="SpawnWest" type="Marker3D" parent="SpawnPoints" unique_id=1999653437]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -15.5, 0.05, -1)
+
+[node name="SpawnEastRoomN" type="Marker3D" parent="SpawnPoints" unique_id=1416935301]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 15.5, 0.05, -7)
+
+[node name="SpawnEastRoomS" type="Marker3D" parent="SpawnPoints" unique_id=1375005177]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 15.5, 0.05, 1.5)
+
+[node name="SpawnSouthWestRoom" type="Marker3D" parent="SpawnPoints" unique_id=1192293710]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14.5, 0.05, 19.75)
+
+[node name="SpawnSouthEast" type="Marker3D" parent="SpawnPoints" unique_id=1477329986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0.05, 29)
+
+[node name="SpawnRange" type="Marker3D" parent="SpawnPoints" unique_id=642287503]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -12.5, 0.05, 29.5)
+
+[node name="LevelMood" type="Node" parent="." unique_id=628108232]
+script = ExtResource("7_mood")
+values = {
+"ambient_color": Color(0.6, 0.65, 0.72, 1),
+"ambient_energy": 1.0,
+"contrast": 1.12,
+"fog_color": Color(0.66, 0.71, 0.78, 1),
+"fog_density": 0.0015,
+"fog_sky_affect": 0.0,
+"saturation": 0.8,
+"sky": {
+"cloud_coverage": 0.3,
+"cloud_light": Color(0.95, 0.95, 0.94, 1),
+"cloud_shadow": Color(0.55, 0.6, 0.68, 1),
+"ground_color": Color(0.3, 0.35, 0.42, 1),
+"horizon_color": Color(0.66, 0.71, 0.77, 1),
+"horizon_curve": 0.3,
+"sun_glow": 0.45,
+"sun_glow_size": 10.0,
+"zenith_color": Color(0.2, 0.32, 0.48, 1)
+},
+"sun_color": Color(1, 0.96, 0.9, 1),
+"sun_elevation": 55.0,
+"sun_energy": 2.4
+}
+
+[node name="DayCycle" type="Node" parent="."]
+script = ExtResource("8_day")
+keys = Array[Dictionary]([{
+"at": 0,
+"lamps": 1,
+"sun_elevation": 16,
+"sun_azimuth": 95,
+"sun_energy": 1.5,
+"sun_color": Color(1, 0.78, 0.56, 1),
+"ambient_energy": 0.75,
+"ambient_color": Color(0.66, 0.62, 0.62, 1),
+"fog_color": Color(0.8, 0.7, 0.62, 1),
+"fog_density": 0.002,
+"fog_sky_affect": 0,
+"saturation": 0.8,
+"contrast": 1.12,
+"sky": {
+"zenith_color": Color(0.26, 0.36, 0.52, 1),
+"horizon_color": Color(0.88, 0.7, 0.56, 1),
+"ground_color": Color(0.3, 0.3, 0.34, 1),
+"horizon_curve": 0.25,
+"cloud_coverage": 0.35,
+"cloud_light": Color(1, 0.84, 0.7, 1),
+"cloud_shadow": Color(0.5, 0.48, 0.55, 1),
+"sun_glow": 0.6,
+"sun_glow_size": 8
+}
+}, {
+"at": 0.3,
+"sun_elevation": 58,
+"sun_azimuth": 160,
+"sun_energy": 2.4,
+"sun_color": Color(1, 0.96, 0.9, 1),
+"ambient_energy": 1,
+"ambient_color": Color(0.6, 0.65, 0.72, 1),
+"fog_color": Color(0.66, 0.71, 0.78, 1),
+"fog_density": 0.0015,
+"sky": {
+"zenith_color": Color(0.2, 0.32, 0.48, 1),
+"horizon_color": Color(0.66, 0.71, 0.77, 1),
+"ground_color": Color(0.3, 0.35, 0.42, 1),
+"horizon_curve": 0.3,
+"cloud_coverage": 0.3,
+"cloud_light": Color(0.95, 0.95, 0.94, 1),
+"cloud_shadow": Color(0.55, 0.6, 0.68, 1),
+"sun_glow": 0.45,
+"sun_glow_size": 10
+}
+}, {
+"at": 0.6,
+"sun_elevation": 22,
+"sun_azimuth": 235,
+"sun_energy": 2,
+"sun_color": Color(1, 0.88, 0.72, 1),
+"ambient_energy": 0.9,
+"ambient_color": Color(0.64, 0.64, 0.68, 1),
+"fog_color": Color(0.74, 0.72, 0.72, 1)
+}, {
+"at": 0.74,
+"lamps": 1.2,
+"sun_elevation": 3,
+"sun_azimuth": 265,
+"sun_energy": 1.1,
+"sun_color": Color(1, 0.5, 0.3, 1),
+"ambient_energy": 0.6,
+"ambient_color": Color(0.6, 0.5, 0.55, 1),
+"fog_color": Color(0.6, 0.42, 0.38, 1),
+"sky": {
+"zenith_color": Color(0.14, 0.16, 0.3, 1),
+"horizon_color": Color(0.86, 0.46, 0.3, 1),
+"ground_color": Color(0.2, 0.18, 0.22, 1),
+"cloud_light": Color(0.95, 0.55, 0.4, 1),
+"cloud_shadow": Color(0.3, 0.25, 0.35, 1),
+"sun_glow": 0.9,
+"sun_glow_size": 6
+}
+}, {
+"at": 0.82,
+"lamps": 1.6,
+"sun_elevation": -3,
+"sun_azimuth": 275,
+"sun_energy": 0,
+"ambient_energy": 0.35,
+"ambient_color": Color(0.42, 0.44, 0.56, 1),
+"fog_color": Color(0.16, 0.17, 0.24, 1),
+"sky": {
+"zenith_color": Color(0.05, 0.06, 0.12, 1),
+"horizon_color": Color(0.3, 0.24, 0.32, 1),
+"ground_color": Color(0.06, 0.06, 0.09, 1),
+"cloud_light": Color(0.36, 0.32, 0.4, 1),
+"cloud_shadow": Color(0.1, 0.1, 0.15, 1),
+"sun_glow": 0.3,
+"sun_glow_size": 12
+}
+}, {
+"at": 0.82,
+"sun_elevation": 30,
+"sun_azimuth": 140,
+"sun_color": Color(0.62, 0.7, 0.84, 1)
+}, {
+"at": 0.9,
+"lamps": 1.8,
+"sun_energy": 0.6,
+"ambient_energy": 0.3,
+"ambient_color": Color(0.4, 0.45, 0.58, 1),
+"fog_color": Color(0.1, 0.12, 0.16, 1),
+"sky": {
+"zenith_color": Color(0.04, 0.05, 0.08, 1),
+"horizon_color": Color(0.2, 0.24, 0.31, 1),
+"ground_color": Color(0.05, 0.06, 0.08, 1),
+"cloud_coverage": 0.25,
+"cloud_light": Color(0.36, 0.4, 0.46, 1),
+"cloud_shadow": Color(0.09, 0.1, 0.13, 1),
+"sun_glow": 0.25,
+"sun_glow_size": 24
+}
+}])
+
+[node name="Players" type="Node3D" parent="." unique_id=1938420767]
+
+[node name="World" type="Node" parent="." unique_id=2142691935]
+script = ExtResource("1_world")
+kill_height = -10.0

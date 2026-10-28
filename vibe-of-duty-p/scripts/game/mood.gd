@@ -56,6 +56,21 @@ const LAMPS_NODE := "MoodLamps"
 
 static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bool) -> void:
 	Mannequin.set_rim(on)
+	apply_light(level, env, sun, on)
+	if level != null:
+		level.set_meta(&"mood_on", on)  # read by _build_lamps_later (not Settings: tools run without the autoloads)
+	if level != null and DisplayServer.get_name() != "headless":
+		var lamps := level.get_node_or_null(LAMPS_NODE)
+		if lamps != null:
+			level.remove_child(lamps)
+			lamps.queue_free()
+		if on:
+			_build_lamps_later(level)
+
+
+## The light alone (the environment, the sky, the sun), without rebuilding the lamps: cheap enough to call again and
+## again (DayCycle does, as it changes the level's LevelMood).
+static func apply_light(level: Node, env: Environment, sun: DirectionalLight3D, on: bool) -> void:
 	var own: Dictionary = {}  # the level's LevelMood overrides
 	var level_mood := level.get_node_or_null("LevelMood") as LevelMood if level != null else null
 	if level_mood != null:
@@ -84,22 +99,17 @@ static func apply(level: Node, env: Environment, sun: DirectionalLight3D, on: bo
 		var sun_base: Dictionary = _base(sun, ["light_energy", "light_color", "basis"])
 		sun.light_energy = own.get("sun_energy", SUN_ENERGY) if on else sun_base["light_energy"]
 		sun.light_color = own.get("sun_color", SUN_COLOR) if on else sun_base["light_color"]
-		sun.basis = _low_sun(sun_base["basis"], own.get("sun_elevation", SUN_ELEVATION)) if on else sun_base["basis"]
-	if level != null:
-		level.set_meta(&"mood_on", on)  # read by _build_lamps_later (not Settings: tools run without the autoloads)
-	if level != null and DisplayServer.get_name() != "headless":
-		var lamps := level.get_node_or_null(LAMPS_NODE)
-		if lamps != null:
-			level.remove_child(lamps)
-			lamps.queue_free()
-		if on:
-			_build_lamps_later(level)
+		sun.basis = _low_sun(sun_base["basis"], own.get("sun_elevation", SUN_ELEVATION), own.get("sun_azimuth", NAN)) 				if on else sun_base["basis"]
 
 
-## The sun turned to `elevation` degrees over the horizon, keeping the direction it shines from.
-static func _low_sun(basis: Basis, elevation: float) -> Basis:
+## The sun turned to `elevation` degrees over the horizon, keeping the direction it shines from - or standing at
+## `azimuth` degrees (0 north, -z; 90 east, +x) if one is given.
+static func _low_sun(basis: Basis, elevation: float, azimuth := NAN) -> Basis:
 	var dir := -basis.z
 	var flat := Vector3(dir.x, 0.0, dir.z)
+	if not is_nan(azimuth):  # it shines from there: away from it
+		var a := deg_to_rad(azimuth)
+		flat = -Vector3(sin(a), 0.0, -cos(a))
 	if flat.length() < 0.01:
 		flat = Vector3.FORWARD
 	var e := deg_to_rad(elevation)
