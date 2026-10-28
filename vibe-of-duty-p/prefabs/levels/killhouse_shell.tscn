@@ -2997,9 +2997,9 @@ metadata/shade = Vector3(0.5, 0.3, 0.5)
 [node name="RoomLamp" type="OmniLight3D" parent="Lamps"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 2.6, -21)
 light_color = Color(1, 0.86, 0.66, 1)
-light_energy = 0.8
+light_energy = 1.8
 light_specular = 0.0
-omni_range = 6
+omni_range = 7.5
 omni_attenuation = 1.4
 light_cull_mask = 7
 metadata/shade = Vector3(0.4, 0.05, 0.4)
@@ -3007,9 +3007,9 @@ metadata/shade = Vector3(0.4, 0.05, 0.4)
 [node name="RoomLamp1" type="OmniLight3D" parent="Lamps"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 2.6, 18.25)
 light_color = Color(1, 0.86, 0.66, 1)
-light_energy = 0.8
+light_energy = 1.8
 light_specular = 0.0
-omni_range = 6
+omni_range = 7.5
 omni_attenuation = 1.4
 light_cull_mask = 7
 metadata/shade = Vector3(0.4, 0.05, 0.4)

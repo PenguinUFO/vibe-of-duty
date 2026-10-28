@@ -50,6 +50,7 @@ var bot_strafe := false    # --bot-strafe: --bot-ttk strafes left and right whil
 var bot_recoil := 1.0      # --bot-recoil=X: share of the recoil kick the bots pull down (1: all, 0: none)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
 var bot_melee := false     # --bot-melee: bots run at the nearest enemy and punch (melee test)
+var bot_statue := false    # --bot-statue: bots shoot the statue (PigStatue) now and then and strafe (statue test)
 var bot_idle := ""         # --bot-idle / --bot-idle=crouch: bots stand still (crouched) - the train's tunnel test
 var bot_climb := NAN       # --bot-climb=DEG: bots face this yaw, jump every 1.5 s and push on in the air (a hatch, a ledge step)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
@@ -58,7 +59,8 @@ var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its comm
 var sim_lag_ms := 0       # --lag=MS: artificial one-way delay on cmds (client) and snapshots (server)
 var summary_time := 0.0   # --summary=S: seconds after the level starts to print the [SUMMARY] line and quit (NetWorld)
 var record_stats := false  # the server records MatchStats (host panel -> Тестирование; --stats)
-## Test counters for the [SUMMARY] line (Game.count): laps, target_hits, oinks_heard, kill_cams, bags_dropped, bags_taken.
+## Test counters for the [SUMMARY] line (Game.count): laps, target_hits, oinks_heard, kill_cams, bags_dropped, bags_taken,
+## statue_shots, statue_hits, statue_kills.
 var stats := {}
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
@@ -102,6 +104,9 @@ func _ready() -> void:
 		elif arg == "--bot-melee":
 			bot_mode = true
 			bot_melee = true
+		elif arg == "--bot-statue":
+			bot_mode = true
+			bot_statue = true
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true
@@ -211,7 +216,7 @@ static func is_map(path: String) -> bool:
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
+const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "chernobyl": "Чернобыль", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()

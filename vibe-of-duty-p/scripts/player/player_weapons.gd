@@ -3,6 +3,9 @@ extends PlayerMantle
 ## Player, part 3 of 9: weapon tick, shots, hoof punches, hit tests (hitscan against LagComp hitboxes), shot cosmetics.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
+const SHOT_LISTENER := &"on_shot"
+
+
 func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 	var ctx := {
 		"peer_id": peer_id,
@@ -82,6 +85,7 @@ func _on_shot(event: Dictionary) -> void:
 			for victim_id in damage_by_victim:
 				var entry: Dictionary = damage_by_victim[victim_id]
 				world.server_apply_damage(self, entry["player"], entry["damage"], entry["head"], event["weapon"])
+		_tell_shot_level(results)
 		for target in target_hits:
 			var t_entry: Dictionary = target_hits[target]
 			for mark in t_entry["marks"]:
@@ -110,6 +114,18 @@ func _on_shot(event: Dictionary) -> void:
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
+
+
+## Server: level pieces that react to being shot (PigStatue) carry a Callable in their collider's SHOT_LISTENER
+## metadata; it gets the shooter once per shot, however many pellets hit.
+func _tell_shot_level(results: Array) -> void:
+	var told := {}
+	for r in results:
+		var collider: Object = r.get("collider")
+		if r["player"] != null or collider == null or told.has(collider) or not collider.has_meta(SHOT_LISTENER):
+			continue
+		told[collider] = true
+		(collider.get_meta(SHOT_LISTENER) as Callable).call(self)
 
 
 ## The blow of a hoof punch: the nearest player or target in a fan of short rays around the view (easier to land
@@ -195,13 +211,14 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0,
 			var behind := space.intersect_ray(PhysicsRayQueryParameters3D.create(exit + dir * 0.01, end, Layers.WORLD))
 			if not behind.is_empty():
 				best = origin.distance_to(behind["position"])
-				result = {"pos": behind["position"], "normal": behind["normal"], "hit": true, "player": null, "zone": ""}
+				result = {"pos": behind["position"], "normal": behind["normal"], "hit": true, "player": null, "zone": "",
+						"collider": behind["collider"]}
 			result["through"] = true
 			result["entry"] = entry
 		else:
 			best = origin.distance_to(entry)
 			result = {"pos": entry, "normal": world_hit["normal"], "hit": true, "player": null, "zone": "",
-					"through": false}
+					"through": false, "collider": world_hit["collider"]}
 	if world == null:
 		return result
 	# Players are hit-tested analytically (see LagComp), at their rewound position when `tick` >= 0.

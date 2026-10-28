@@ -1,7 +1,8 @@
 extends SceneTree
 ## Renders a map (SHOT_MAP, default the train) from a few views to ../shots/level_<view>.png and prints the GPU time of each view
 ## (vsync off, 1080p); SHOT_MOOD=1 - in the PSX style's lighting (Mood, without its dither); SHOT_BANK=s - the plane's
-## bank and cargo as at that time; SHOT_DAY=f - the killhouse's day at that share of the match (0..1, with SHOT_MOOD).
+## bank and cargo as at that time; SHOT_DAY=f - the killhouse's day at that share of the match (0..1, with SHOT_MOOD);
+## SHOT_STATUE=s - Chernobyl's statue shot by Bot0 s ago (turned on it, shooting).
 ## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
 
 const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5, 25.5), ramp to 44; deck y 4.7 z -50 .. 30; belly y -3
@@ -55,6 +56,36 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"south": [Vector3(13.0, 1.65, 29.0), Vector3(-6.0, 1.0, 18.0)],
 	"hall": [Vector3(-15.0, 1.65, 30.0), Vector3(2.0, 8.0, -10.0)],  # up into the roof
 	"outside": [Vector3(45.0, 30.0, 60.0), Vector3(0.0, 6.0, 0.0)],
+}, "chernobyl": {  # chernobyl.tscn: the statue at the origin (facing +z), the yard x -9 .. 9, z -11 .. 11; "1" west, "2" east
+	"statue": [Vector3(0.5, 1.65, 9.5), Vector3(0.5, 6.5, -0.3)],
+	"statue_side": [Vector3(9.0, 6.0, 2.0), Vector3(0.5, 6.5, -0.3)],  # the gun hand, the grip
+	"statue_close": [Vector3(4.5, 9.5, 3.0), Vector3(0.5, 7.0, -0.3)],
+	"statue_back": [Vector3(-5.0, 8.0, -8.0), Vector3(1.0, 5.5, 2.0)],
+	"yard": [Vector3(-8.0, 1.65, -9.5), Vector3(6.0, 1.5, 9.0)],
+	"street_1": [Vector3(-11.5, 1.65, -14.0), Vector3(-11.5, 1.5, 14.0)],
+	"balconies": [Vector3(-5.0, 1.65, 2.0), Vector3(14.0, 8.0, -2.0)],
+	"north": [Vector3(12.0, 1.65, -64.0), Vector3(2.0, 3.0, -30.0)],
+	"south": [Vector3(-11.0, 1.65, 70.0), Vector3(0.0, 3.0, 40.0)],
+	"wheel": [Vector3(10.0, 1.65, -52.0), Vector3(40.0, 32.0, -140.0)],
+	"wheel_out": [Vector3(-10.0, 45.0, -70.0), Vector3(40.0, 32.0, -140.0)],
+	"above": [Vector3(70.0, 80.0, 95.0), Vector3(0.0, 0.0, 0.0)],
+	"h1_out": [Vector3(-10.0, 1.65, -15.5), Vector3(-14.0, 3.0, 2.0)],
+	"h2_out": [Vector3(10.0, 1.65, 15.5), Vector3(14.0, 3.0, -2.0)],
+	"h1_corridor": [Vector3(-19.4, 1.65, -11.0), Vector3(-19.4, 1.4, 10.0)],
+	"h1_room": [Vector3(-17.8, 1.65, 0.0), Vector3(-13.0, 1.4, 4.0)],
+	"h1_stairs": [Vector3(-15.0, 1.65, 13.5), Vector3(-23.0, 2.0, 15.6)],
+	"h1_upper": [Vector3(-18.5, 4.65, 2.0), Vector3(-12.0, 4.2, 3.5)],
+	"h1_landing": [Vector3(-19.0, 4.65, 10.0), Vector3(-21.0, 3.2, 16.0)],
+	"h1_balcony": [Vector3(-13.0, 4.65, 2.0), Vector3(6.0, 1.0, 2.0)],
+	"h1_barricade": [Vector3(-19.4, 1.65, -0.5), Vector3(-19.4, 1.1, 6.0)],
+	"h2_barricade": [Vector3(19.7, 1.65, -10.0), Vector3(19.7, 1.1, -4.0)],
+	"crawl_north": [Vector3(13.0, 1.65, 18.9), Vector3(14.9, 0.6, 21.6)],
+	"crawl_south": [Vector3(16.5, 1.65, 26.0), Vector3(14.9, 0.6, 21.6)],
+	"h1_breach": [Vector3(-16.0, 1.65, 9.5), Vector3(-16.0, 1.2, 3.0)],
+	"h1_breach_up": [Vector3(-22.6, 4.65, -11.0), Vector3(-22.6, 4.0, -4.0)],
+	"h2_hall_up": [Vector3(17.0, 4.65, 1.5), Vector3(22.0, 4.0, 10.0)],
+	"h2_breach": [Vector3(16.5, 1.65, -3.5), Vector3(16.5, 1.2, 3.0)],
+	"h2_door": [Vector3(22.0, 1.65, -23.5), Vector3(15.5, 1.2, -18.4)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
@@ -62,6 +93,7 @@ const SPOTS := {
 	"train": [Vector3(0.5, 0.05, -81.0), Vector3(2.0, 3.35, -14.0), Vector3(2.2, 0.05, 4.0)],
 	"tower": [Vector3(29.0, 0.05, 5.0), Vector3(39.0, 4.05, -5.0), Vector3(44.0, 8.05, -12.0)],
 	"killhouse": [Vector3(-6.0, 0.05, 6.0), Vector3(1.0, 3.05, -21.0), Vector3(15.0, 0.05, -7.0)],
+	"chernobyl": [Vector3(3.0, 0.05, 6.0), Vector3(-19.4, 0.05, -2.0), Vector3(-16.0, 3.05, 3.5)],
 }
 const FRAMES := 120
 
@@ -138,6 +170,11 @@ func _initialize() -> void:
 	if crane and OS.has_environment("SHOT_CRANE"):  # the crane's schedule read at this time (s): where its load is
 		crane.time_override = float(OS.get_environment("SHOT_CRANE"))
 		for i in 3:
+			await physics_frame
+	var statue = level.get_node_or_null("Statue")  # PigStatue, untyped like the bank
+	if statue and OS.has_environment("SHOT_STATUE"):  # shot by Bot0 (SPOTS[0]) this many s ago: turned on it, firing
+		statue._on_shot_by(world.players[20])
+		for i in int(float(OS.get_environment("SHOT_STATUE")) * 60.0):
 			await physics_frame
 	var scenery := level.get_node_or_null("Scenery")
 	var only := OS.get_environment("SHOT_VIEWS").split(",", false)  # just these views

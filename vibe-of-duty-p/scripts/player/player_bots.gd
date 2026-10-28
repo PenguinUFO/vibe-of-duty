@@ -24,6 +24,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		return _bot_aim_cmd(t)
 	if Game.bot_melee and world != null:
 		return _bot_melee_cmd(t)
+	if Game.bot_statue:
+		return _bot_statue_cmd(t)
 	if Game.bot_ttk != "":
 		return _bot_ttk_cmd()
 	if Game.bot_targets:
@@ -61,6 +63,22 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	if sel != _bot_select:
 		_bot_select = sel
 		cmd.select = sel
+	return cmd
+
+
+## Looks at the statue (PigStatue) all the time, fires at it for 0.4 s every 10 s and strafes left and right: the
+## statue should turn on it and shoot it dead.
+func _bot_statue_cmd(t: float) -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var statue := get_tree().get_first_node_in_group(PigStatue.GROUP) as PigStatue
+	if statue != null:
+		var dir := (statue.chest_point() - (global_position + Vector3.UP * STAND_EYE)).normalized()
+		look_yaw = atan2(-dir.x, -dir.z)
+		look_pitch = clampf(asin(dir.y), -MAX_PITCH, MAX_PITCH)
+		cmd.fire = fmod(t, 10.0) < 0.4 and alive and _bot_trigger()
+	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, 0.0)
+	cmd.yaw = look_yaw
+	cmd.pitch = look_pitch
 	return cmd
 
 

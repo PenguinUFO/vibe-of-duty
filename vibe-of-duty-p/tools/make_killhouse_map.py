@@ -173,7 +173,7 @@ wall_z(3.25, -23.75, -18.0, ROOM_H, "RoomWall")
 wall_z(-4.0, -26.0, -18.0, ROOM_H, "RoomWall")   # the stair's walls, then the room's
 wall_z(-1.5, -26.0, -21.0, ROOM_H, "RoomWall")
 wall_x_open(-18.0, -4.0, 3.25, [(-2.8, -1.2) + WINDOW_Y, (0.7, 2.3) + WINDOW_Y])
-lv.lamp("RoomLamp", (0.9, PLATFORM_H - PLATFORM_SLAB - 0.15, -21.0), energy=0.8, rng=6.0, shade=(0.4, 0.05, 0.4))
+lv.lamp("RoomLamp", (0.9, PLATFORM_H - PLATFORM_SLAB - 0.15, -21.0), energy=1.8, rng=7.5, shade=(0.4, 0.05, 0.4))
 wall_x(-18.0, -HX, -12.25)        # the line it stands on: a door, the wall, the room
 wall_x(-18.0, -10.25, -4.0)
 wall_x(-18.75, 3.25, 10.75)
@@ -219,7 +219,7 @@ wall_z(-0.25, 16.75, 22.75, ROOM_H, "RoomWall")
 wall_x_open(22.75, -0.25, 4.5, [(2.5, 4.0, 0.0, DOOR_H)])
 wall_z(4.5, 19.75, 25.0, ROOM_H, "RoomWall")    # the stair's walls
 wall_z(7.0, 16.75, 25.0, ROOM_H, "RoomWall")
-lv.lamp("RoomLamp", (2.1, PLATFORM_H - PLATFORM_SLAB - 0.15, 18.25), energy=0.8, rng=6.0, shade=(0.4, 0.05, 0.4))
+lv.lamp("RoomLamp", (2.1, PLATFORM_H - PLATFORM_SLAB - 0.15, 18.25), energy=1.8, rng=7.5, shade=(0.4, 0.05, 0.4))
 
 wall_x(13.25, 12.25, HX)          # the east wall's stubs
 wall_x(22.75, 9.5, HX)
