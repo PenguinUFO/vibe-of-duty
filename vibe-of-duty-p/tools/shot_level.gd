@@ -86,6 +86,20 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"h2_hall_up": [Vector3(17.0, 4.65, 1.5), Vector3(22.0, 4.0, 10.0)],
 	"h2_breach": [Vector3(16.5, 1.65, -3.5), Vector3(16.5, 1.2, 3.0)],
 	"h2_door": [Vector3(22.0, 1.65, -23.5), Vector3(15.5, 1.2, -18.4)],
+}, "elysium": {  # elysium.tscn: the disc round the origin (garden r < 10, rooms 16 .. 26, roof y 4, terrace to 33), the island east (x 27 .. 82), the observatory x 52 .. 68
+	"garden": [Vector3(-11.5, 1.65, 6.0), Vector3(4.0, 3.0, -4.0)],
+	"promenade": [Vector3(-2.0, 1.65, 13.0), Vector3(-12.5, 1.5, -2.0)],
+	"room": [Vector3(-19.0, 1.65, -14.0), Vector3(-24.0, 1.3, -3.0)],
+	"roof": [Vector3(-21.0, 5.65, 5.0), Vector3(6.0, 6.0, -18.0)],
+	"terrace": [Vector3(-29.5, 1.65, 7.0), Vector3(-16.0, 1.5, -26.0)],
+	"stair": [Vector3(-8.0, 1.65, 23.0), Vector3(1.0, 3.0, 29.0)],
+	"bridge": [Vector3(24.0, 5.65, 0.0), Vector3(52.0, 4.5, 0.0)],
+	"island": [Vector3(78.0, 1.65, -26.0), Vector3(40.0, 3.0, 0.0)],
+	"obs": [Vector3(53.5, 1.65, -6.5), Vector3(62.0, 1.0, 2.0)],
+	"obs_up": [Vector3(66.5, 5.65, -6.5), Vector3(53.0, 4.5, 2.0)],
+	"edge": [Vector3(-31.0, 1.65, -10.0), Vector3(-70.0, -40.0, -20.0)],
+	"outside": [Vector3(-60.0, 35.0, 70.0), Vector3(15.0, 4.0, 0.0)],
+	"above": [Vector3(25.0, 110.0, 60.0), Vector3(25.0, 0.0, 0.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
@@ -93,6 +107,7 @@ const SPOTS := {
 	"train": [Vector3(0.5, 0.05, -81.0), Vector3(2.0, 3.35, -14.0), Vector3(2.2, 0.05, 4.0)],
 	"tower": [Vector3(29.0, 0.05, 5.0), Vector3(39.0, 4.05, -5.0), Vector3(44.0, 8.05, -12.0)],
 	"killhouse": [Vector3(-6.0, 0.05, 6.0), Vector3(1.0, 3.05, -21.0), Vector3(15.0, 0.05, -7.0)],
+	"elysium": [Vector3(-7.0, 0.05, -9.0), Vector3(-20.0, 4.05, -2.0), Vector3(48.0, 0.05, 6.0)],
 	"chernobyl": [Vector3(3.0, 0.05, 6.0), Vector3(-19.4, 0.05, -2.0), Vector3(-16.0, 3.05, 3.5)],
 }
 const FRAMES := 120
