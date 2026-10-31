@@ -173,11 +173,9 @@ func _notification(what: int) -> void:
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		focus_losses += 1
 		_focus_lost_at = now
-		print("[focus] lost at %.2f s" % now)
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN and _focus_lost_at >= 0.0:
 		last_focus_loss = now - _focus_lost_at
 		_focus_lost_at = -1.0
-		print("[focus] back at %.2f s, after %.2f s" % [now, last_focus_loss])
 
 
 func focus_debug() -> String:
