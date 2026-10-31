@@ -14,6 +14,9 @@ const KINDS := {
 	"metal": {"octaves": [[2, 2, 0.35], [8, 8, 0.25], [SIZE, SIZE, 0.4]], "contrast": 0.55},
 	"wood": {"octaves": [[2, 2, 0.25], [2, 16, 0.35], [4, SIZE, 0.25], [SIZE, SIZE, 0.15]], "contrast": 0.55},
 	"polymer": {"octaves": [[4, 4, 0.5], [SIZE, SIZE, 0.5]], "contrast": 0.16},
+	# The pig's skin (Mannequin._material, every body part): blotchy, and the patches its dirt goes on.
+	"skin": {"octaves": [[4, 4, 0.35], [16, 16, 0.3], [SIZE, SIZE, 0.35]], "contrast": 0.3},
+	"dirt": {"octaves": [[4, 4, 0.6], [8, 8, 0.3], [SIZE, SIZE, 0.1]], "contrast": 1.0},
 }
 
 static var _textures := {}   # kind -> [ImageTexture, mean]
@@ -56,7 +59,7 @@ static func _skin(source: StandardMaterial3D) -> ShaderMaterial:
 	var kind := _kind(source)
 	var key := [kind, source.albedo_color, source.metallic, source.roughness]
 	if not _materials.has(key):
-		var texture: Array = _texture(kind)
+		var texture: Array = noise(kind)
 		var material := ShaderMaterial.new()
 		material.shader = SHADER
 		material.set_shader_parameter("grain", texture[0])
@@ -80,7 +83,7 @@ static func _kind(source: StandardMaterial3D) -> String:
 
 
 ## The kind's noise (as Block's: value noise on wrapping lattices, so the tile has no seams) and its mean brightness.
-static func _texture(kind: String) -> Array:
+static func noise(kind: String) -> Array:
 	if _textures.has(kind):
 		return _textures[kind]
 	var spec: Dictionary = KINDS[kind]

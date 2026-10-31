@@ -22,21 +22,22 @@ func _ready() -> void:
 		for i in 4:
 			await get_tree().process_frame
 		_report(id, panel, dir)
-		if panel is BuildPanel:  # every weapon: the stats and slots differ (a test launch: builds are not saved)
-			var parts: Array = Settings.builds[Settings.build_index]["parts"]
-			for i in PartDB.options("weapon", parts[0]).size():
-				panel._on_part("weapon", i)
-				for f in 3:
+		if panel is BuildPanel:  # every kit, then ACR крыса with the "Инженер": modules open, one focused, camera close
+			var kits := PartDB.for_slot("kit")
+			for i in kits.size():
+				panel._on_part("kit", i)
+				for f in 30:
 					await get_tree().process_frame
-				_report("build_" + str(Settings.builds[Settings.build_index]["parts"][0]), panel, dir)
-			var options := PartDB.options("weapon", parts[0])
-			panel._on_part("weapon", options.find(PartDB.get_part("acr")))  # the tallest: every card on
-			for slot: String in PartDB.CARD_SLOTS:
-				if PartDB.options(slot, "acr").size() > 1:
-					panel._on_part(slot, 1)
-			for f in 3:
+				_report("build_" + kits[i].id.trim_prefix("kit."), panel, dir)
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.acr_rat")))
+			panel._on_part("head", PartDB.options("head", "").find(PartDB.get_part(PartDB.ENGINEER)))
+			panel._modules_button.button_pressed = true
+			panel._on_part("sight", 1)  # CompM instead of the kit's ACOG: "кастом"
+			panel._pad = true
+			(panel._rows["mag"][1] as Control).get_child(1).grab_focus()  # the big magazine: focused, its difference shown
+			for f in 60:
 				await get_tree().process_frame
-			_report("build_acr_all", panel, dir)
+			_report("build_engineer", panel, dir)
 		holder.queue_free()
 		await get_tree().process_frame
 	get_tree().quit()

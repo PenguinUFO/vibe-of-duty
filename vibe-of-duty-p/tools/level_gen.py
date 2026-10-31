@@ -26,7 +26,7 @@ LAMP_COLOR = (1.0, 0.86, 0.66)   # Palette.EMBER as light, as on the train
 class Level:
     def __init__(self, splits):
         self.splits = list(splits)   # heights between the decks, lowest first
-        self.blocks = []             # (name, center, basis rows, size, color, layers, penetrable, group)
+        self.blocks = []             # (name, center, basis rows, size, color, layers, group)
         self.lights = []             # (name, position, energy, range, shade size, group)
         self.markers = {}            # group name -> [(name, position)]
         self.group = None            # blocks and lamps made now go under this node (see the module's doc)
@@ -48,10 +48,10 @@ class Level:
                 return DECK_LAYERS[i] | DECK_LAYERS[i + 1]
         return DECK_LAYERS[self.deck_of(y)]
 
-    def box(self, name, x0, x1, y0, y1, z0, z1, color, decks=None, penetrable=False):
+    def box(self, name, x0, x1, y0, y1, z0, z1, color, decks=None):
         c = ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
         self.blocks.append((self.uniq(name), c, ((1, 0, 0), (0, 1, 0), (0, 0, 1)), (x1 - x0, y1 - y0, z1 - z0), color,
-                            self.layers_at(c[1], decks), penetrable, self.group))
+                            self.layers_at(c[1], decks), self.group))
 
     def rotated(self, name, center, size, color, rot_x=0.0, rot_z=0.0, decks=None, rot_y=0.0):
         """A box turned rot_x about X, then rot_z about Z, then rot_y about Y (radians)."""
@@ -63,7 +63,7 @@ class Level:
         ry = ((cy, 0, sy), (0, 1, 0), (-sy, 0, cy))
         mul = lambda a, b: tuple(tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)) for i in range(3))
         rows = mul(ry, mul(rz, rx))
-        self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks), False,
+        self.blocks.append((self.uniq(name), center, rows, size, color, self.layers_at(center[1], decks),
                             self.group))
 
     def slab(self, name, rects, holes, y0, y1, color, decks=None):
@@ -120,7 +120,7 @@ class Level:
             out.append('\n[node name="%s" type="Node3D" parent="."]\n' % group)
             if any(light[-1] == group for light in self.lights):
                 out.append('\n[node name="Lamps" type="Node3D" parent="%s"]\n' % group)
-        for name, c, r, s, col, layers, pen, group in self.blocks:
+        for name, c, r, s, col, layers, group in self.blocks:
             out.append('\n[node name="%s" parent="%s" instance=ExtResource("2_block")]\n' % (name, group or "Geometry"))
             # Transform3D(basis rows..., origin): Godot writes the basis row by row (as make_train_map.py does).
             flat = [v for row in r for v in row]
@@ -128,8 +128,6 @@ class Level:
             out.append("size = Vector3(%s, %s, %s)\n" % tuple(map(f, s)))
             out.append("color = Color(%s, %s, %s, 1)\n" % tuple(map(f, col)))
             out.append("mesh_layers = %d\n" % layers)
-            if pen:
-                out.append("penetrable = true\n")
         if ground_y is not None:  # whoever falls lands on it (and dies: World.kill_height is just above)
             out.append('\n[node name="Ground" type="StaticBody3D" parent="."]\n')
             out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, %s, 0)\n" % f(ground_y))

@@ -13,6 +13,8 @@ var mods := {}            # PartDB.DEFAULT_MODS key -> value ("_mult" keys multi
 var requires := ""        # a weapon module: another part id the build must have (weapons.cfg "requires")
 var excludes := ""        # a weapon module: slots ("a,b") kept at their defaults while this part is in (weapons.cfg)
 var weapon := ""          # a weapon module: the weapon's id (it fits only that weapon); "" for every other part
+var kit_weapon := ""      # a kit (slot "kit"): its weapon's id...
+var kit_modules := []     # ...and its modules (full ids; the other slots have their defaults)
 
 
 static func make(p_id: String, p_slot: String, p_cost: int, p_name: String, p_info: String, p_mods := {}) -> PartDef:

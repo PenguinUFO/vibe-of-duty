@@ -941,7 +941,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 1.8, 5)
 size = Vector3(2, 3.6, 0.06)
 color = Color(0.36, 0.33, 0.27, 1)
 mesh_layers = 8
-penetrable = true
 
 [node name="HoldRoof" parent="Geometry" instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.55, 35.15)

@@ -39,11 +39,11 @@ run() {
 		$R --join=127.0.0.1 --bot-melee --name=M1 --summary=27 > "$O/melee_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-melee --name=M2 --summary=27 > "$O/melee_c2.log" 2>&1 &
 		wait;;
-	build)  # arena: aim bots with a non-native build (modules + organ), checks that builds load and play
+	build)  # arena: aim bots with kits - B1 changed with the "Инженер" (+ an organ the match leaves out), B2 a kit as is
 		$R --server --map=arena --summary=30 > "$O/build_srv.log" 2>&1 &
 		sleep 3
-		$R --join=127.0.0.1 --bot-aim --name=B1 --build=ak.suppressor.on,lead_heart --summary=27 > "$O/build_c1.log" 2>&1 &
-		$R --join=127.0.0.1 --bot-aim --name=B2 --summary=27 > "$O/build_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=B1 --build=kit.ak_kobra,engineer,ak.suppressor.on,lead_heart --summary=27 > "$O/build_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=B2 --build=kit.acr_rat --summary=27 > "$O/build_c2.log" 2>&1 &
 		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac

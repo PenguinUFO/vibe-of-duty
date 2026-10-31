@@ -53,6 +53,12 @@ func set_weapon(index: int, def: WeaponDef = null) -> void:
 		_mannequin.def = _weapon.def
 
 
+## The "Инженер"'s chip on the head (the build has PartDB.ENGINEER).
+func set_chip(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_chip(on)
+
+
 ## Aim pitch of the player in radians (positive = up).
 func set_aim_pitch(pitch: float) -> void:
 	_pitch = pitch

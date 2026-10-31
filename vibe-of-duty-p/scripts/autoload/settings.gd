@@ -323,7 +323,7 @@ func apply_sun(light: DirectionalLight3D) -> void:
 func current_build() -> Array:
 	if Game.is_test_launch():
 		return PartDB.sanitize(Game.test_build)
-	return builds[build_index]["parts"]
+	return PartDB.sanitize(builds[build_index]["parts"])  # without the organs the saved build keeps (INERT_SLOTS)
 
 
 func load_builds() -> void:
@@ -336,7 +336,7 @@ func load_builds() -> void:
 	for i in BUILD_COUNT:
 		var section := "build_%d" % i
 		builds[i]["name"] = str(cfg.get_value(section, "name", builds[i]["name"])).left(24)
-		builds[i]["parts"] = PartDB.sanitize(cfg.get_value(section, "parts", []))
+		builds[i]["parts"] = PartDB.sanitize(cfg.get_value(section, "parts", []), true)
 	build_index = clampi(int(cfg.get_value("builds", "index", 0)), 0, BUILD_COUNT - 1)
 
 

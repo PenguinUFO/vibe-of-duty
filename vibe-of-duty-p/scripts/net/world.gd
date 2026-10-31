@@ -322,7 +322,8 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3, build:
 		print("[SERVER] player %d joined as %s" % [id, player_name])
 	if random_weapons_on():
 		build = _random.next_build(id)
-	var xform := _pick_spawn(-1)
+	var spot := _pick_spawn(-1)
+	var xform: Transform3D = spot["xform"]
 	# Tell the newcomer about everyone already here (their current position), then add the newcomer.
 	if id != 1:
 		for other_id in players:
@@ -340,7 +341,7 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3, build:
 		_sync_scores.rpc_id(id, Game.scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	if _stats != null:
-		_stats.spawned(players[id])
+		_stats.spawned(players[id], spot)
 	_broadcast_scores()
 
 
@@ -383,33 +384,42 @@ func _send_snapshot_delayed(peer: int, tick: int, states: Array) -> void:
 		_receive_snapshot.rpc_id(peer, tick, states)
 
 
-## Spawn point farthest from living players (two best candidates, picked at random).
-func _pick_spawn(exclude_id: int) -> Transform3D:
+## Spawn point: first out of sight of living players (eye to eye through the world), then farthest from them by
+## straight line; of the two best, one at random - the second only if it is seen by as few. Returns {xform, pt (index
+## in SpawnPoints, -1: --test-spawn), near (m to the nearest living player, INF: none), seen (players that see it)}.
+func _pick_spawn(exclude_id: int) -> Dictionary:
 	if Game.test_spawn != Vector3.INF:
-		return Transform3D(Gravity.frame(Game.test_spawn), Game.test_spawn)
+		return {"xform": Transform3D(Gravity.frame(Game.test_spawn), Game.test_spawn), "pt": -1, "near": INF, "seen": 0}
+	var space := get_viewport().find_world_3d().direct_space_state
 	var scored: Array = []
-	for spawn in _spawns:
+	for i in _spawns.size():
+		var spawn: Node3D = _spawns[i]
+		var eye := spawn.global_position + spawn.global_basis.y * Player.STAND_EYE
 		var nearest := INF
+		var seen := 0
 		for id in players:
 			var other: Player = players[id]
-			if id != exclude_id and other.alive:
-				nearest = minf(nearest, other.global_position.distance_to(spawn.global_position))
-		scored.append({"xform": spawn.global_transform, "score": nearest})
-	scored.sort_custom(func(a, b): return a["score"] > b["score"])
-	return scored[randi() % mini(2, scored.size())]["xform"]
+			if id == exclude_id or not other.alive:
+				continue
+			nearest = minf(nearest, other.global_position.distance_to(spawn.global_position))
+			var other_eye := other.global_position + other.body_up() * (Player.CROUCH_EYE if other.is_crouched
+					else Player.STAND_EYE)
+			if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, other_eye, Layers.WORLD)).is_empty():
+				seen += 1
+		scored.append({"xform": spawn.global_transform, "pt": i, "near": nearest, "seen": seen})
+	scored.sort_custom(func(a, b): return a["seen"] < b["seen"] or a["seen"] == b["seen"] and a["near"] > b["near"])
+	var choices := 2 if scored.size() > 1 and scored[1]["seen"] == scored[0]["seen"] else 1
+	return scored[randi() % choices]
 
 
 ## Server: apply a shooter's damage to a victim (called by Player after a shot is judged).
 func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
 		return
-	var piercing := weapon >= 0 and attacker.weapons.def_at(weapon).armor_piercing  # a punch (MELEE) is not a bullet
-	if piercing and victim.damage_taken_mult(head) < 1.0:
-		Game.count("piercing_hits")  # tests: the protection was gone through
 	var hp_before := victim.health
 	var block := attacker.weapons.def_at(weapon).regen_block if weapon >= 0 else 0.0
 	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
-			* victim.damage_taken_mult(head, piercing), block)
+			* victim.damage_taken_mult(head), block)
 	if _stats != null:
 		_stats.damaged(attacker, victim, hp_before, head, weapon)
 	if attacker.control == Player.Mode.LOCAL:
@@ -454,7 +464,8 @@ func _server_respawn(id: int, force: bool) -> void:
 	var player: Player = players[id]
 	if not force and (player.alive or Game.is_frozen()):
 		return
-	var xform := _pick_spawn(id)
+	var spot := _pick_spawn(id)
+	var xform: Transform3D = spot["xform"]
 	player.spawn_protect = SPAWN_PROTECTION_TICKS
 	player.alive = true
 	lag_comp.clear(id)
@@ -463,7 +474,7 @@ func _server_respawn(id: int, force: bool) -> void:
 	for peer in _ready_peers:
 		_player_respawned.rpc_id(peer, id, xform, build)
 	if _stats != null:
-		_stats.spawned(player)
+		_stats.spawned(player, spot)
 
 
 # --- Match flow (server) ----------------------------------------------------------------------------

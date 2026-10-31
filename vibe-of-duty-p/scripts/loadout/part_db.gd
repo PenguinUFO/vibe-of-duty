@@ -1,26 +1,29 @@
 class_name PartDB
 extends RefCounted
 ## The parts a build is made of (Docs/LOADOUT.md) and the rules: one part per slot - the weapon, its modules
-## (from weapons.cfg, WeaponDB) and the body - and BUDGET tokens per build. A build travels as an Array of part ids in
-## SLOTS order; anything invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into
-## the native parts (sanitize), so the server never applies a build it did not check.
+## (from weapons.cfg, WeaponDB), the body and the kit - and BUDGET tokens per build. Players pick a kit (weapons.cfg
+## [kit.<id>]: a weapon with its modules, owner 2026-10-31); the weapons stay under the hood. The kit's modules can be
+## changed only with the "Инженер" in the head. A build travels as an Array of part ids in SLOTS order; anything
+## invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into the native parts
+## (sanitize), so the server never applies a build it did not check.
 
 const WEAPON_SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight",
 		"ammo"]
-## Slots the build editor shows as cards (on / off: the slot's second module or its first), right after the weapon
-## (owner, 2026-10-23, as Black Ops 2's attachments): the suppressor, a conversion (the Luger's "Хрюгер"), the stock
-## (fold it; the Luger's: put it on), the next magazine size up, the optic (owner, 2026-10-26: the AK's Kobra).
-const CARD_SLOTS: Array[String] = ["suppressor", "conversion", "stock", "mag", "sight"]
-## Slots hidden for now (owner, 2026-10-23): the editor does not show them and every build has their defaults - the
-## weapon's lists, and the whole body (the native one). The parts stay (weapons.cfg, _build); dropping a slot from here
-## brings it back.
-const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "ammo", "hands", "head", "chest", "belly", "legs"]
+## Slots hidden for now (owner, 2026-10-23): the editor does not show them and every build has their defaults. The
+## parts stay (weapons.cfg); dropping a slot from here brings it back.
+const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "ammo"]
+## Slots the editor shows and the saved builds keep, but no match plays yet (owner, 2026-10-31: the organs, buttons
+## only): sanitize puts the native part in unless asked to keep them. Their price counts in the editor's tokens.
+const INERT_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
+## Parts of the INERT_SLOTS a match does play (owner, 2026-10-31).
+const ENGINEER := "engineer"  # the head's chip: with it the kit's modules can be changed (free)
+const ACTIVE_PARTS: Array[String] = [ENGINEER]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 const SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
-		"head", "chest", "belly", "legs"]
+		"head", "chest", "belly", "legs", "kit"]
 const SLOT_NAMES := {"weapon": "Оружие", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
-		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги"}
+		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги", "kit": "Комплектация"}
 const BUDGET := 10
 ## Owner, 2026-10-23: everything costs 0 for now (balance testing). The prices stay in the data (PartDef.cost,
 ## weapons.cfg): false brings them back.
@@ -72,16 +75,52 @@ static func options(slot: String, weapon: String) -> Array[PartDef]:
 	return for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
 
 
-## The native build: no organs, no implants, the first weapon with its base modules (0 tokens), or with `weapon`
-## (an id). "" for a slot weapons.cfg has no modules for.
-static func default_build(weapon := "") -> Array:
-	if weapon == "":
-		weapon = for_slot("weapon")[0].id
+## The native build: no organs, no implants, the kit `kit` (an id; the first kit if it is not one) - its weapon with
+## its modules, the other slots at their defaults ("" for a slot weapons.cfg has no modules for).
+static func default_build(kit := "") -> Array:
+	var kit_part := get_part(kit)
+	if kit_part == null or kit_part.slot != "kit":
+		kit_part = for_slot("kit")[0]
+	var weapon := kit_part.kit_weapon
 	var parts := []
 	for slot in SLOTS:
 		var list := options(slot, weapon)
-		parts.append(weapon if slot == "weapon" else list[0].id if not list.is_empty() else "")
+		parts.append(weapon if slot == "weapon" else kit_part.id if slot == "kit" else list[0].id if not list.is_empty() else "")
+	for id: String in kit_part.kit_modules:
+		parts[SLOTS.find(get_part(id).slot)] = id
 	return parts
+
+
+## The kit a build saved before the kits gets: the weapon's kit without modules, else its first one, else the first.
+static func kit_for_weapon(weapon: String) -> PartDef:
+	var first: PartDef = null
+	for kit in for_slot("kit"):
+		if kit.kit_weapon == weapon:
+			if kit.kit_modules.is_empty():
+				return kit
+			if first == null:
+				first = kit
+	return first if first != null else for_slot("kit")[0]
+
+
+## The build's kit part.
+static func kit_of(parts: Array) -> PartDef:
+	var kit := get_part(str(parts[SLOTS.find("kit")])) if parts.size() == SLOTS.size() else null
+	return kit if kit != null and kit.slot == "kit" else for_slot("kit")[0]
+
+
+## True if the build's modules are not its kit's (changed with the "Инженер").
+static func is_custom(parts: Array) -> bool:
+	var kit := default_build(kit_of(parts).id)
+	for i in range(1, WEAPON_SLOTS.size()):
+		if str(parts[i]) != str(kit[i]):
+			return true
+	return false
+
+
+## The kit's name as players see it: "AK Кобра", "AK Кобра кастом" when its modules were changed.
+static func kit_name(parts: Array) -> String:
+	return kit_of(parts).display_name + (" кастом" if is_custom(parts) else "")
 
 
 static func cost(parts: Array) -> int:
@@ -93,28 +132,42 @@ static func cost(parts: Array) -> int:
 	return total
 
 
-## What a part costs in a build now: its price, or 0 while FREE.
+## What a part costs in a build now: its price, or 0 while FREE. Kits and modules are free (owner, 2026-10-31).
 static func price(part: PartDef) -> int:
-	return 0 if FREE else part.cost
+	return 0 if FREE or part.slot == "kit" or WEAPON_SLOTS.has(part.slot) else part.cost
 
 
-## A valid build from anything: wrong or missing parts become native, so do the HIDDEN_SLOTS, modules of another
-## weapon or whose "requires" is not in the build, and the slot another part "excludes" (the AK's suppressor card: the
-## muzzle); over budget, the whole build is native (with its weapon). Each id goes to its part's slot, so the order and
-## missing slots do not matter (--build=ak.suppressor.on,lead_heart).
-static func sanitize(parts: Variant) -> Array:
+## A valid build from anything: the kit's weapon with the kit's modules - other modules only with the ENGINEER in
+## (of that weapon, not hidden) - and the body; wrong or missing parts become native, so do the HIDDEN_SLOTS and the
+## INERT_SLOTS (but the ACTIVE_PARTS) unless `keep_inert` (a saved build keeps them, a played one does not), modules
+## whose "requires" is not in the build and the slot another part "excludes" (the AK's suppressor: the muzzle); over
+## budget, the whole build is the kit's native one. A build without a kit (saved before them) gets kit_for_weapon.
+## Each id goes to its part's slot, so the order and missing slots do not matter (--build=kit.ak_kobra,engineer).
+static func sanitize(parts: Variant, keep_inert := false) -> Array:
 	if not parts is Array:
 		return default_build()
+	var kit := ""
 	var weapon := ""
 	for id in parts:
 		var part := get_part(str(id))
-		if part != null and part.slot == "weapon":
+		if part != null and part.slot == "kit":
+			kit = part.id
+		elif part != null and part.slot == "weapon":
 			weapon = part.id
-	var clean := default_build(weapon)
+	if kit == "":
+		kit = kit_for_weapon(weapon).id
+	var clean := default_build(kit)
 	for id in parts:
 		var part := get_part(str(id))
-		if part != null and options(part.slot, clean[0]).has(part) and not part.slot in HIDDEN_SLOTS:
+		if part != null and BODY_SLOTS.has(part.slot) and not part.slot in HIDDEN_SLOTS \
+				and (keep_inert or not part.slot in INERT_SLOTS or part.id in ACTIVE_PARTS):
 			clean[SLOTS.find(part.slot)] = part.id
+	if clean.has(ENGINEER):
+		for id in parts:
+			var part := get_part(str(id))
+			if part != null and part.slot != "weapon" and WEAPON_SLOTS.has(part.slot) and part.weapon == clean[0] \
+					and not part.slot in HIDDEN_SLOTS:
+				clean[SLOTS.find(part.slot)] = part.id
 	for i in SLOTS.size():
 		var part := get_part(clean[i])
 		if part != null and part.excludes != "":
@@ -125,19 +178,19 @@ static func sanitize(parts: Variant) -> Array:
 		var part := get_part(clean[i])
 		if part != null and part.requires != "" and not clean.has(part.requires):
 			clean[i] = options(SLOTS[i], clean[0])[0].id
-	return clean if cost(clean) <= BUDGET else default_build(clean[0])
+	return clean if cost(clean) <= BUDGET else default_build(kit)
 
 
-## The weapon as a (sanitized) build plays it, for statistics (MatchStats): its id and the modules that are not its
-## default, without the weapon prefix - "ak", "acr+suppressor.on+mag.40".
+## The weapon as a (sanitized) build plays it, for statistics (MatchStats): its kit and the modules that are not the
+## kit's (the "Инженер"), without the weapon prefix - "ak_kobra", "ak_kobra+suppressor.on".
 static func variant_name(parts: Array) -> String:
-	var weapon := str(parts[0])
-	var variant := weapon
+	var kit := kit_of(parts)
+	var native := default_build(kit.id)
+	var variant := kit.id.trim_prefix("kit.")
 	for i in range(1, WEAPON_SLOTS.size()):
 		var id := str(parts[i])
-		var list := options(SLOTS[i], weapon)
-		if id != "" and not list.is_empty() and list[0].id != id:
-			variant += "+" + id.trim_prefix(weapon + ".")
+		if id != "" and id != str(native[i]):
+			variant += "+" + id.trim_prefix(str(parts[0]) + ".")
 	return variant
 
 
@@ -171,6 +224,7 @@ static func _build() -> void:
 		PartDef.make("sledge_hoof", "hands", 2, "Копыто-кувалда",
 				"Удар убивает сразу. Ходишь на 10% медленнее.", {"melee_damage_mult": 2.0, "speed_mult": 0.9}),
 		PartDef.make("head", "head", 0, "Своя голова", "Родная."),
+		PartDef.make(ENGINEER, "head", 0, "Инженер", "Чип у правого уха: модули комплектации можно менять."),
 		PartDef.make("lead_brow", "head", 1, "Свинцовый лоб",
 				"В голову бьют как в тело. Прицеливаешься на 40% дольше.",
 				{"head_taken_mult": 1.0 / 1.15, "ads_time_mult": 1.4}),  # 1.15: NetWorld.HEAD_DAMAGE_MULT
@@ -206,4 +260,25 @@ static func _build() -> void:
 				_parts.append(part)
 	_by_id.clear()
 	for part in _parts:
+		_by_id[part.id] = part
+	# The kits (weapons.cfg [kit.<id>], in its order); a config without them: one bare kit per weapon.
+	var kits: Array = WeaponDB.kits().duplicate()
+	if kits.is_empty():
+		for i in WeaponDB.count():
+			var def := WeaponDB.get_def(i)
+			kits.append({"id": "kit." + def.id, "name": def.display_name, "weapon": def.id, "modules": []})
+	for kit: Dictionary in kits:
+		var part := PartDef.make(kit["id"], "kit", 0, kit["name"], "")
+		part.kit_weapon = kit["weapon"]
+		var known: PartDef = _by_id.get(part.kit_weapon)
+		if known == null or known.slot != "weapon":
+			push_error("weapons.cfg: [%s] has no weapon '%s'" % [part.id, part.kit_weapon])
+			continue
+		for id: String in kit["modules"]:
+			var module: PartDef = _by_id.get(id)
+			if module == null or module.weapon != part.kit_weapon:
+				push_error("weapons.cfg: [%s] - no module '%s' (hidden or not there)" % [part.id, id])
+				continue
+			part.kit_modules.append(id)
+		_parts.append(part)
 		_by_id[part.id] = part

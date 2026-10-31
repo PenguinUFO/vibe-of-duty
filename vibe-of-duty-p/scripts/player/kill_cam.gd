@@ -227,6 +227,7 @@ func _play(delta: float) -> void:
 		ghost.show_melee(pose[9])
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
+		ghost.set_chip(_chip_for(id))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -298,6 +299,12 @@ func _def_for(id: int, weapon: int) -> WeaponDef:
 	return player.weapons.def_at(weapon) if player != null else WeaponDB.get_def(weapon)
 
 
+## The player has the "Инженер"'s chip (as of now, as _def_for).
+func _chip_for(id: int) -> bool:
+	var player: Player = world.players.get(id)
+	return player != null and player.build.has(PartDB.ENGINEER)
+
+
 func _show_ghost(ghost: PlayerVisual, shown: bool) -> void:
 	ghost.visible = shown
 	ghost.process_mode = Node.PROCESS_MODE_INHERIT if shown else Node.PROCESS_MODE_DISABLED
@@ -332,6 +339,7 @@ func _replay_shot(shot: Dictionary) -> void:
 	elif _ghosts.has(shot["id"]):
 		var ghost: PlayerVisual = _ghosts[shot["id"]]
 		ghost.set_weapon(shot["weapon"], def)
+		ghost.set_chip(_chip_for(shot["id"]))
 		ghost.show_shot(def.muzzle_flash)
 		muzzle = ghost.muzzle_global_position()
 		Audio.play(def.sound_shot, muzzle, def.loudness)

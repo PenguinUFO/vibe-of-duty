@@ -94,7 +94,7 @@ WINDOW_Y = (0.6, 2.5)      # the ground floor's: sill, top - the sill is climbed
 ROOM_LAMP = (0.9, 6.0)     # energy, range
 # Barricades across the ground floor's corridor (the owner): by house, v of the pile's north face (just south of a
 # street room's door, so the room is entered from the north half). Furniture to the ceiling's reach: nobody gets by -
-# over the top there is less than a crouch (1.1 m) to the ceiling; bullets that pierce cover go through (penetrable).
+# over the top there is less than a crouch (1.1 m) to the ceiling.
 BARRICADES = {"1": 23.4, "2": 13.7}
 # Breaches in the open houses' inner walls (the owner cut them out of the shell in the editor; a regeneration wiped
 # them, they were read back off his top-down shot): walls broken through, walked through standing. By house:
@@ -273,9 +273,9 @@ class Frame:
     def x(self, u):
         return self.yard_x - self.side * u
 
-    def box(self, name, u0, u1, y0, y1, v0, v1, color, penetrable=False):
+    def box(self, name, u0, u1, y0, y1, v0, v1, color):
         xa, xb = sorted((self.x(u0), self.x(u1)))
-        box(name, xa, xb, y0, y1, self.z0 + v0, self.z0 + v1, color, penetrable=penetrable)
+        box(name, xa, xb, y0, y1, self.z0 + v0, self.z0 + v1, color)
 
     def wall_u(self, name, v0, v1, u0, u1, y0, y1, holes, color):
         """A wall across v0 .. v1 (its thickness), running along u from u0 to u1, with holes [(u0, u1, y0, y1)]."""
@@ -412,7 +412,7 @@ def barricade(f, u0, u1, v):
             ("Drawers", 0.06, 0.68, 0.85, 1.65, 0.24, 0.74, WOOD),
             ("Crate", 0.7, 0.97, 0.85, 1.4, 0.25, 0.75, WOOD),
             ("Crate", 0.15, 0.45, 1.65, 2.15, 0.3, 0.7, WOOD)):
-        f.box(name, u0 + a * w, u0 + b * w, y0, y1, v + c, v + d, color, penetrable=True)   # wood and wadding
+        f.box(name, u0 + a * w, u0 + b * w, y0, y1, v + c, v + d, color)
     for tilt, y in ((0.35, 0.7), (-0.3, 1.3)):   # boards across the mattress
         lv.rotated("Board", (f.x((u0 + u1) / 2), y, f.z0 + v - 0.03), (w + 0.2, 0.14, 0.04), WOOD, rot_z=tilt)
 

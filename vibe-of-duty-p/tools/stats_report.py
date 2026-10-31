@@ -132,6 +132,41 @@ def main():
             row.append(f"{med(v):.2f} ({len(v)})" if v else "—")
         rows.append(row)
     print(table([""] + [f"{lo}–{hi:g} м" if hi < 1e9 else f"{lo}+ м" for lo, hi in BANDS], rows))
+    spawn_points(sessions)
+
+
+def spawn_points(sessions):
+    """Per map and spawn point (files from 2026-10-31 on: spawn.pt): how soon the spawned get into a fight."""
+    points = defaultdict(lambda: {"n": 0, "seen": 0, "near": [], "contact": [], "fast": 0, "dead": 0})
+    for f, events in sessions:
+        level = events[0]["map"]
+        for i, s in enumerate(events):
+            if s["e"] != "spawn" or "pt" not in s or s["pt"] < 0:
+                continue
+            p = points[(level, s["pt"])]
+            p["n"] += 1
+            p["seen"] += 1 if s["seen"] else 0
+            if s["near"] is not None:
+                p["near"].append(s["near"])
+            for e in events[i + 1:]:  # this life: up to the player's next spawn or death
+                if e["e"] == "spawn" and e["p"] == s["p"] or e.get("m") != s["m"]:
+                    break
+                if e["e"] == "hit" and s["p"] in (e["a"], e["v"]):
+                    p["contact"].append(e["t"] - s["t"])
+                    p["fast"] += 1 if e["t"] - s["t"] < 5 else 0
+                    break
+            for e in events[i + 1:]:
+                if e["e"] == "spawn" and e["p"] == s["p"] or e.get("m") != s["m"]:
+                    break
+                if e["e"] == "kill" and e["v"] == s["p"]:
+                    p["dead"] += 1 if e["t"] - s["t"] < 10 else 0
+                    break
+    if not points:
+        return
+    print("\n## Точки спавна (номер — порядок в SpawnPoints; бой — первое попадание, своё или по себе)\n")
+    rows = [[f"{level} {pt}", p["n"], p["seen"], med(p["near"]), med(p["contact"]), p["fast"], p["dead"]]
+            for (level, pt), p in sorted(points.items())]
+    print(table(["точка", "спавнов", "на виду", "до ближнего, м", "до боя, с", "бой < 5 с", "смерть < 10 с"], rows))
 
 
 if __name__ == "__main__":

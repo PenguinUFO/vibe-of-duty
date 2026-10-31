@@ -35,16 +35,16 @@ func _process(_delta: float) -> void:
 				describe(Settings.build_index)]
 
 
-## "Name: weapon   [paid parts]" of a saved build.
+## "Name: kit   [paid parts]" of a saved build, as played (the organs of PartDB.INERT_SLOTS left out).
 static func describe(index: int) -> String:
 	var build: Dictionary = Settings.builds[index]
-	var weapon := PartDB.get_part(build["parts"][0])
+	var parts := PartDB.sanitize(build["parts"])
 	var names: PackedStringArray = []
-	for id in build["parts"]:
+	for id in parts:
 		var part := PartDB.get_part(id)
-		if part != null and part.cost > 0:
+		if part != null and PartDB.BODY_SLOTS.has(part.slot) and part.id != PartDB.options(part.slot, "")[0].id:
 			names.append(part.display_name)
-	return "%s: %s   [%s]" % [build["name"], weapon.display_name if weapon != null else "?",
+	return "%s: %s   [%s]" % [build["name"], PartDB.kit_name(parts),
 			", ".join(names) if not names.is_empty() else "родная туша"]
 
 

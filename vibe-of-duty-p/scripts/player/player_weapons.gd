@@ -57,10 +57,8 @@ func _on_shot(event: Dictionary) -> void:
 	var frame := Gravity.frame(global_position)  # the shot's directions are in the gravity frame (like the look angles)
 	for local_dir in event["dirs"]:
 		var dir: Vector3 = frame * local_dir
-		var r := _trace(origin, dir, def.max_range, tick, def.penetration)
-		# Damage by distance (WeaponDef.falloff_*), less after going through cover.
-		var hit_damage := def.damage_at(origin.distance_to(r["pos"])) \
-				* (def.penetration_damage if r["through"] else 1.0)
+		var r := _trace(origin, dir, def.max_range, tick)
+		var hit_damage := def.damage_at(origin.distance_to(r["pos"]))  # by distance (WeaponDef.falloff_*)
 		results.append(r)
 		ends.append(r["pos"])
 		var target: Target = r.get("target")
@@ -111,8 +109,6 @@ func _on_shot(event: Dictionary) -> void:
 				(r["player"] as Player).react_to_shot(origin, r["pos"])
 			elif r.get("target") != null:
 				(r["target"] as Target).react_to_shot(origin, r["pos"])
-			if r.get("entry", Vector3.INF).is_finite():  # went through cover: a hole where it went in
-				ShotEffects.spawn_impact(scene_root, r["entry"], -(r["pos"] - origin).normalized())
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
 				Audio.play("impact", r["pos"])
@@ -196,32 +192,18 @@ func _judge_tick(view_tick: float, is_server: bool) -> float:
 	return clampf(view_tick, now - LagComp.MAX_REWIND_TICKS, now)
 
 
-## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. With
-## `penetration` > 0 it goes through one penetrable cover (Block.penetrable) up to that thick: then "through" is true
-## for what it hits behind, and "entry" is where it went in.
-func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0, penetration := 0.0) -> Dictionary:
+## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. Bullets do
+## not go through cover (owner, 2026-10-31: no penetration; a special weapon may get it, decided one by one).
+func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0) -> Dictionary:
 	var space := get_world_3d().direct_space_state
 	var end := origin + dir * max_range
 	var world_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, end, Layers.WORLD))
 	var best := max_range
-	var pierced_at := INF  # distance where the bullet went into the cover it went through
-	var result := {"pos": end, "normal": -dir, "hit": false, "player": null, "zone": "", "through": false}
+	var result := {"pos": end, "normal": -dir, "hit": false, "player": null, "zone": ""}
 	if not world_hit.is_empty():
-		var entry: Vector3 = world_hit["position"]
-		var exit := _cover_exit(world_hit["collider"], entry, dir, penetration)
-		if exit.is_finite():
-			pierced_at = origin.distance_to(entry)
-			var behind := space.intersect_ray(PhysicsRayQueryParameters3D.create(exit + dir * 0.01, end, Layers.WORLD))
-			if not behind.is_empty():
-				best = origin.distance_to(behind["position"])
-				result = {"pos": behind["position"], "normal": behind["normal"], "hit": true, "player": null, "zone": "",
-						"collider": behind["collider"]}
-			result["through"] = true
-			result["entry"] = entry
-		else:
-			best = origin.distance_to(entry)
-			result = {"pos": entry, "normal": world_hit["normal"], "hit": true, "player": null, "zone": "",
-					"through": false, "collider": world_hit["collider"]}
+		best = origin.distance_to(world_hit["position"])
+		result = {"pos": world_hit["position"], "normal": world_hit["normal"], "hit": true, "player": null, "zone": "",
+				"collider": world_hit["collider"]}
 	if world == null:
 		return result
 	# Players are hit-tested analytically (see LagComp), at their rewound position when `tick` >= 0.
@@ -245,8 +227,7 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0,
 			zone = "body"
 		if t >= 0.0 and t < best:
 			best = t
-			result = {"pos": origin + dir * t, "normal": -dir, "hit": true, "player": other, "zone": zone,
-					"through": t > pierced_at, "entry": result.get("entry", Vector3.INF)}
+			result = {"pos": origin + dir * t, "normal": -dir, "hit": true, "player": other, "zone": zone}
 	# Training targets: the same hitboxes, always at their live position (they are not networked).
 	for node in get_tree().get_nodes_in_group(Target.GROUP):
 		var target := node as Target
@@ -267,21 +248,8 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0,
 		if t_hit >= 0.0 and t_hit < best:
 			best = t_hit
 			result = {"pos": origin + dir * t_hit, "normal": -dir, "hit": true, "player": null, "zone": t_zone,
-					"target": target, "through": t_hit > pierced_at, "entry": result.get("entry", Vector3.INF)}
+					"target": target}
 	return result
-
-
-## Where a bullet that went into `collider` at `entry` comes out of it, or INF if it does not: the collider is not
-## penetrable cover, or is thicker than `penetration` (found by a ray back from that far inside).
-func _cover_exit(collider: Object, entry: Vector3, dir: Vector3, penetration: float) -> Vector3:
-	if penetration <= 0.0 or not (collider is Block and (collider as Block).penetrable):
-		return Vector3.INF
-	var from := entry + dir * penetration
-	var query := PhysicsRayQueryParameters3D.create(from, entry, Layers.WORLD)
-	var back := get_world_3d().direct_space_state.intersect_ray(query)
-	if back.is_empty() or back["collider"] != collider:
-		return Vector3.INF  # still inside it that far in (a ray started inside a shape does not hit it)
-	return back["position"]
 
 
 func _target_state(other: Player, tick: float) -> Dictionary:

@@ -67,8 +67,9 @@ func match_ended(players: Dictionary, reason: String) -> void:
 		_end_life(id, "match")
 
 
-## A new life (first spawn, respawn, a new match): what it plays. A life still running ends ("match").
-func spawned(player: Player) -> void:
+## A new life (first spawn, respawn, a new match): what it plays and where - `spot` from NetWorld._pick_spawn (the
+## point, the nearest living player, how many of them see it). A life still running ends ("match").
+func spawned(player: Player, spot: Dictionary) -> void:
 	if _lives.has(player.peer_id):
 		_end_life(player.peer_id, "match")
 	_lives[player.peer_id] = {"p": player.player_name, "start": _now(), "variant": PartDB.variant_name(player.build), "kills": 0, "shots": 0,
@@ -83,7 +84,8 @@ func spawned(player: Player) -> void:
 			by.erase(player.peer_id)
 	_bursts.erase(player.peer_id)
 	_write({"e": "spawn", "m": _match, "p": player.player_name, "id": player.peer_id,
-			"w": _lives[player.peer_id]["variant"], "build": player.build})
+			"w": _lives[player.peer_id]["variant"], "build": player.build, "pt": spot["pt"], "pos": _pos(player),
+			"near": snappedf(spot["near"], 0.1) if spot["near"] != INF else null, "seen": spot["seen"]})
 
 
 func shot(shooter: Player, hits: Array) -> void:
@@ -128,7 +130,7 @@ func killed(killer: Player, victim: Player, weapon: int, head: bool) -> void:
 	var now := _now()
 	var line := {"e": "kill", "m": _match, "k": killer.player_name, "v": victim.player_name, "kw": _variant(killer),
 			"vw": _variant(victim), "gun": _weapon_id(killer, weapon), "head": head,
-			"v_life": (now - int(_lives.get(victim.peer_id, {}).get("start", now))) / 1000.0}
+			"v_life": (now - int(_lives.get(victim.peer_id, {}).get("start", now))) / 1000.0, "v_pos": _pos(victim)}
 	if killer != victim:
 		var by: Dictionary = _engaged.get(victim.peer_id, {})
 		var mine: Dictionary = by.get(killer.peer_id, {"first": now, "hits": 0, "head": 0, "dmg": 0})
@@ -140,7 +142,7 @@ func killed(killer: Player, victim: Player, weapon: int, head: bool) -> void:
 		var back: Dictionary = _engaged.get(killer.peer_id, {}).get(victim.peer_id, {})
 		var burst: Dictionary = _bursts.get(killer.peer_id, {})
 		var opened := mini(int(burst.get("start", mine["first"])), int(mine["first"]))
-		line.merge({"dist": snappedf(_distance(killer, victim), 0.1),
+		line.merge({"dist": snappedf(_distance(killer, victim), 0.1), "k_pos": _pos(killer),
 				"ttk": (now - int(mine["first"])) / 1000.0,      # killer's first hit -> death
 				"ttk_fire": (now - opened) / 1000.0,             # killer opened fire (burst) -> death
 				"hits": mine["hits"], "head_hits": mine["head"], "shots": int(burst.get("shots", 0)),
@@ -182,6 +184,12 @@ static func _weapon_id(player: Player, weapon: int) -> String:
 	if weapon < 0:
 		return "self"
 	return player.weapons.def_at(weapon).id
+
+
+## Feet position, to 0.1 m: [x, y, z].
+static func _pos(p: Player) -> Array:
+	var at := p.global_position  # float components: a snapped Vector3 is float32 again (-18.2000007629395)
+	return [snappedf(at.x, 0.1), snappedf(at.y, 0.1), snappedf(at.z, 0.1)]
 
 
 static func _distance(a: Player, b: Player) -> float:

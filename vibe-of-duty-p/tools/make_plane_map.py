@@ -195,7 +195,7 @@ for z, (o0, o1) in BULKHEADS:
     if o1 < HW:
         box("Bulkhead", o1, HW, 0.0, HOLD_H, z - 0.15, z + 0.15, RIB)
     box("BulkheadLintel", o0, o1, 3.6, HOLD_H, z - 0.15, z + 0.15, RIB)
-box("CargoNet", NET[1][0], NET[1][1], 0.0, 3.6, NET[0] - 0.03, NET[0] + 0.03, NET_C, penetrable=True)
+box("CargoNet", NET[1][0], NET[1][1], 0.0, 3.6, NET[0] - 0.03, NET[0] + 0.03, NET_C)
 box("HoldRoof", -HW - T, HW + T, HOLD_H, UPPER, DECK[1] + T, HOLD_Z1, SKIN)
 
 box("Ramp", -HW, HW, -SLAB, 0.0, HOLD_Z1, RAMP_Z1, STEEL)

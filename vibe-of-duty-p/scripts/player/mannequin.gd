@@ -51,6 +51,8 @@ const RIGHT_POLE := Vector3(0.9, -1.0, 0.3)       # where the elbows point (mann
 const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
 const PUNCH_REACH := Vector3(0.14, -0.04, -0.55)  # the punching hoof from the left shoulder, aim frame (towards the middle)
 const BANDOLIER := Vector3(-0.12, 0.22, -0.16)    # chest frame: the loops on the left of the chest a break-open's rounds ride in
+const PRESENT_TILT := 0.45                        # rad: shown (present), the barrel up to the left across the chest...
+const PRESENT_AT := Vector3(0.0, 0.18, -0.26)     # ...the middle between the hands here (chest frame)
 
 # --- locomotion ---
 const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
@@ -85,6 +87,19 @@ const SKIN := Color(0.6, 0.45, 0.41)    # weathered, dirty pig skin: head, neck,
 const SNOUT := Color(0.5, 0.34, 0.32)   # snout and ears, a shade darker than the skin
 const HOOF := Color(0.36, 0.3, 0.26)   # weathered horn: hands and feet are cloven hooves; light enough for the dark gun
 const VISOR := Color(0.03, 0.025, 0.02) # eyes and nostrils
+const CHIP := Color(0.1, 0.105, 0.11)    # the "Инженер"'s plate (set_chip): dark metal
+const CHIP_SIZE := Vector3(0.064, 0.046, 0.012)
+## The chip's wires sticking out of it: colour and bend points, in the plate's frame (z out of the head, -x toward
+## the ear).
+const CHIP_WIRES := [
+	[Color(0.55, 0.1, 0.08), [Vector3(-0.018, 0.012, 0.006), Vector3(-0.022, 0.018, 0.03), Vector3(-0.05, 0.034, 0.042)]],
+	[Color(0.05, 0.05, 0.05), [Vector3(-0.024, -0.003, 0.006), Vector3(-0.03, -0.004, 0.026), Vector3(-0.064, -0.01, 0.03)]],
+	[Color(0.6, 0.5, 0.1), [Vector3(-0.012, -0.014, 0.006), Vector3(-0.016, -0.02, 0.024), Vector3(-0.04, -0.044, 0.022)]],
+]
+const CHIP_AT := Vector3(0.085, 0.045, -0.06)  # head frame: between the right ear and the right eye
+## The skin of every part (assets/shaders/pig_skin.gdshader): the guns' coarse pixel noise and patches of dirt over
+## the part's colour (owner, 2026-10-31).
+const SKIN_SHADER := preload("res://assets/shaders/pig_skin.gdshader")
 const PALETTE: Array[Color] = [
 	Color(0.5, 0.29, 0.17), Color(0.24, 0.34, 0.42), Color(0.36, 0.28, 0.4),
 	Color(0.33, 0.39, 0.22), Color(0.52, 0.44, 0.22), Color(0.45, 0.2, 0.19),
@@ -107,6 +122,7 @@ var mantle_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left a
 var mantle_top := Vector3.ZERO  # a world point at the height of the ledge's top
 var ads := 0.0        # 0..1
 var crouch := 0.0     # 0..1
+var present := 0.0    # 0..1: the gun held across the chest, its side to the front (the build editor's BuildStage)
 var weapon: WeaponView
 var def: WeaponDef
 
@@ -208,6 +224,51 @@ static func make_head(parent: Node3D) -> MeshInstance3D:
 	var head := _new_part(parent, "Head", _sphere(HEAD_RADIUS), SKIN)
 	_build_pig_face(head)
 	return head
+
+
+## The "Инженер"'s chip (PartDB.ENGINEER): a dark metal plate on the head between the right ear and the right eye,
+## wires sticking out of it.
+func set_chip(on: bool) -> void:
+	var head: Node3D = _parts["Head"]
+	var chip := head.get_node_or_null("Chip")
+	if on and chip == null:
+		var normal := CHIP_AT.normalized()
+		chip = Node3D.new()
+		chip.name = "Chip"
+		chip.transform = Transform3D(Basis.looking_at(-normal), normal * HEAD_RADIUS)
+		var box := BoxMesh.new()
+		box.size = CHIP_SIZE
+		var metal := StandardMaterial3D.new()
+		metal.albedo_color = CHIP
+		metal.metallic = 0.8  # sharp and dark: a softer plate catches the build screen's orange rim light as brown
+		metal.roughness = 0.25
+		metal.metallic_specular = 0.1
+		var plate := MeshInstance3D.new()
+		plate.mesh = box
+		plate.material_override = metal
+		chip.add_child(plate)
+		for wire: Array in CHIP_WIRES:
+			var rubber := StandardMaterial3D.new()
+			rubber.albedo_color = wire[0]
+			rubber.roughness = 0.6
+			var points: Array = wire[1]
+			for k in points.size() - 1:
+				var from: Vector3 = points[k]
+				var along: Vector3 = points[k + 1] - from
+				var tube := CylinderMesh.new()
+				tube.top_radius = 0.0022
+				tube.bottom_radius = 0.0022
+				tube.height = along.length() + 0.003  # overlap the bend
+				tube.radial_segments = 6
+				tube.rings = 1
+				var segment := MeshInstance3D.new()
+				segment.mesh = tube
+				segment.material_override = rubber
+				segment.transform = Transform3D(Basis(Quaternion(Vector3.UP, along.normalized())), from + along / 2)
+				chip.add_child(segment)
+		head.add_child(chip)
+	elif not on and chip != null:
+		chip.free()
 
 
 ## Anthropomorphic pig, mostly human: the head gets a snout, small dark eyes and floppy ears (cosmetic only - the head
@@ -506,6 +567,13 @@ func pose() -> void:
 		var butt_point := weapon_local * _view_point(BUTT)
 		var swing := Basis(Vector3.UP, -0.3 * punch.y) * Basis(Vector3.RIGHT, -0.35 * punch.y)
 		weapon_local = Transform3D(swing, butt_point - swing * butt_point) * weapon_local
+	if present > 0.0:
+		# Shown: across the chest, the barrel up to the body's left, the gun's right side to the front.
+		var tilt := Basis(Vector3(0.0, 0.0, -1.0), Vector3(sin(PRESENT_TILT), cos(PRESENT_TILT), 0.0),
+				Vector3(cos(PRESENT_TILT), -sin(PRESENT_TILT), 0.0))
+		var held := chest.basis * tilt
+		var shown := Transform3D(held, chest * PRESENT_AT - held * ((right_view + left_view) * 0.5))
+		weapon_local = weapon_local.interpolate_with(shown, present)
 	var right_palm := weapon_local * right_view
 	var left_palm := weapon_local * left_view
 	var right_fingers := weapon_local.basis * RIGHT_FINGERS
@@ -1079,14 +1147,24 @@ static func set_rim(on: bool) -> void:
 		_rim.shader = load("res://assets/shaders/player_rim.gdshader")
 	_rim_on = on
 	for material in _materials.values():
-		(material as StandardMaterial3D).next_pass = _rim if on else null
+		(material as Material).next_pass = _rim if on else null
 
 
-static func _material(color: Color) -> StandardMaterial3D:
+## A part's material: its colour under the skin texture (SKIN_SHADER) - matte, dirty; the eyes and nostrils (VISOR)
+## wet-looking and clean.
+static func _material(color: Color) -> ShaderMaterial:
 	if not _materials.has(color):
-		var material := StandardMaterial3D.new()
-		material.albedo_color = color
-		material.roughness = 0.92 if color != VISOR else 0.35  # matte cloth and skin, wet-looking eyes
+		var wet := color == VISOR
+		var grain: Array = WeaponSkin.noise("skin")
+		var material := ShaderMaterial.new()
+		material.shader = SKIN_SHADER
+		material.set_shader_parameter("grain", grain[0])
+		material.set_shader_parameter("gain", 1.0 / grain[1])
+		material.set_shader_parameter("dirt_noise", WeaponSkin.noise("dirt")[0])
+		material.set_shader_parameter("tint", color)
+		material.set_shader_parameter("dirt_amount", 0.0 if wet else 0.55)
+		material.set_shader_parameter("roughness_value", 0.35 if wet else 0.92)
+		material.set_shader_parameter("specular_value", 0.5 if wet else 0.3)
 		material.next_pass = _rim if _rim_on else null
 		_materials[color] = material
 	return _materials[color]

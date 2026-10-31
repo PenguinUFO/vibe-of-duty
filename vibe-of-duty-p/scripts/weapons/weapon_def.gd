@@ -66,12 +66,9 @@ var recoil_recover := 0.8           # rad/s back towards zero when not firing
 
 var falloff_ranges := PackedFloat32Array()  # m: beyond each, damage drops to the matching falloff_mults share
 var falloff_mults := PackedFloat32Array()
-var penetration := 0.0         # m of penetrable cover a bullet goes through (one per shot)
-var penetration_damage := 0.5  # damage x this after going through
 var loudness := 0.0            # dB on the shot sound
 var muzzle_flash := true
 var tracer := true             # others see the bullet's trail
-var armor_piercing := false    # the body parts' protection does not hold it (PlayerHealth.damage_taken_mult)
 var head_mult := 1.15          # damage x this on a head hit (NetWorld.HEAD_DAMAGE_MULT; 1: the head as the body)
 var regen_block := 0.0         # s a hit keeps the victim's health from coming back (0: their own delay)
 

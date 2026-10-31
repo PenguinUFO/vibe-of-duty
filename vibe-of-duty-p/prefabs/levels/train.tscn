@@ -262,14 +262,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.45, 1, -15)
 size = Vector3(0.6, 2, 3)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="MailRack1" parent="Props" unique_id=560241836 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.45, 1, -6.5)
 size = Vector3(0.6, 2, 3)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Sacks" parent="Props" unique_id=714426533 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.45, -14.25)
@@ -288,19 +286,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -10.7)
 size = Vector3(2, 0.9, 1)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Parcel" parent="Props" unique_id=625059099 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.8, -19.8)
 color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 8
-penetrable = true
 
 [node name="Parcel1" parent="Props" unique_id=1458023931 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 3.8, -1.6)
 color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 8
-penetrable = true
 
 [node name="VehicleChassis" parent="Props" unique_id=1217893396 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 10.7)
@@ -319,28 +314,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.6, 3.1)
 size = Vector3(1.2, 1.2, 1.2)
 color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Crate1" parent="Props" unique_id=1302319824 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.6, 18.2)
 size = Vector3(1.2, 1.2, 1.2)
 color = Color(0.56, 0.47, 0.36, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Desk" parent="Props" unique_id=1041594980 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.15, 0.4, 25)
 size = Vector3(1.1, 0.8, 2)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Desk1" parent="Props" unique_id=649534872 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.15, 0.4, 39)
 size = Vector3(1.1, 0.8, 2)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Lockers" parent="Props" unique_id=280545104 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.475, 1, 38.25)
@@ -353,14 +344,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.45, 30.5)
 size = Vector3(1.2, 0.9, 2)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="RadioDesk" parent="Props" unique_id=1161533945 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 3.7, 26)
 size = Vector3(1, 0.8, 2)
 color = Color(0.25, 0.24, 0.23, 1)
 mesh_layers = 8
-penetrable = true
 
 [node name="Cabinets" parent="Props" unique_id=1298490087 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 4, 37.75)
@@ -397,7 +386,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 77)
 size = Vector3(1, 0.6, 1)
 color = Color(0.48, 0.33, 0.24, 1)
 mesh_layers = 4
-penetrable = true
 
 [node name="Armchair" parent="Props" unique_id=1593127243 instance=ExtResource("2_block")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 3.8, 71.4)

@@ -82,6 +82,7 @@ static var _defs: Array[WeaponDef] = []
 static var _base := {}       # weapon id -> its config section (config units)
 static var _modules := {}    # "ak.mag.drum75" -> {id, weapon, slot, name, info, cost, requires, values}
 static var _module_ids: Array[String] = []  # in file order: the first of each slot is its default
+static var _kits := []        # [kit.<id>] sections in file order (kits())
 static var config_text := ""  # the config in play (sent to clients)
 static var _loaded := false
 static var version := 0       # +1 on every config loaded (PartDB rebuilds its module list)
@@ -159,6 +160,12 @@ static func modules_for(weapon_id: String, slot: String) -> Array:
 	return list
 
 
+## The kits (weapons.cfg [kit.<id>]), in the config's order: [{id, name, weapon, modules (full module ids)}].
+static func kits() -> Array:
+	_build()
+	return _kits
+
+
 static func get_module(id: String) -> Dictionary:
 	_build()
 	return _modules.get(id, {})
@@ -186,6 +193,7 @@ static func load_text(text: String) -> bool:
 	_base.clear()
 	_modules.clear()
 	_module_ids.clear()
+	_kits.clear()
 	for section in cfg.get_sections():
 		var values := {}
 		for key in cfg.get_section_keys(section):
@@ -193,6 +201,12 @@ static func load_text(text: String) -> bool:
 		var path := section.split(".")
 		if path.size() == 1:
 			_base[section] = values
+		elif path.size() == 2 and path[0] == "kit":
+			var weapon := str(values.get("weapon", ""))
+			var modules := []
+			for module in values.get("modules", []):
+				modules.append(weapon + "." + str(module))
+			_kits.append({"id": section, "name": str(values.get("name", path[1])), "weapon": weapon, "modules": modules})
 		elif path.size() == 3 and MODULE_SLOTS.has(path[1]):
 			var module := {"id": section, "weapon": path[0], "slot": path[1],
 					"name": str(values.get("name", path[2])), "info": str(values.get("info", "")),
@@ -265,12 +279,9 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.max_range = float(v.get("range", def.max_range))
 	def.falloff_ranges = PackedFloat32Array(v.get("falloff_ranges", def.falloff_ranges))
 	def.falloff_mults = PackedFloat32Array(v.get("falloff_mults", def.falloff_mults))
-	def.penetration = float(v.get("penetration", def.penetration))
-	def.penetration_damage = float(v.get("penetration_damage", def.penetration_damage))
 	def.loudness = float(v.get("loudness", def.loudness))
 	def.muzzle_flash = bool(v.get("muzzle_flash", def.muzzle_flash))
 	def.tracer = bool(v.get("tracer", def.tracer))
-	def.armor_piercing = bool(v.get("armor_piercing", def.armor_piercing))
 	def.head_mult = float(v.get("head_mult", def.head_mult))
 	def.regen_block = float(v.get("regen_block", def.regen_block))
 
