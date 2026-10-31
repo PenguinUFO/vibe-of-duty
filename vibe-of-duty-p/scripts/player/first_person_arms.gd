@@ -12,6 +12,7 @@ const THICKNESS := 0.8      # and a bit slimmer, or they fill the screen
 const RIGHT_POLE := Vector3(1.0, -1.0, 0.25)
 const LEFT_POLE := Vector3(-0.6, -1.0, 0.0)
 const POUCH := Vector3(-0.2, -0.6, -0.2)  # camera space: where the left hand swaps magazines, below the view
+const BANDOLIER := Vector3(-0.15, -0.45, -0.05)  # camera space: the loops on the chest, below the view
 const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at full reach of a punch, just below the middle
 
 var _weapon: WeaponView
@@ -41,8 +42,7 @@ func _reload_hand(def: WeaponDef, handguard: Vector3, s: float) -> Vector3:
 		_weapon.set_shell(reload, with_shell[1])
 		return with_shell[0]
 	if _weapon.breaks_open():
-		var gun_from_arms := (transform.affine_inverse() * _weapon.transform).affine_inverse()
-		var hold := Mannequin.break_hand(reload, _weapon, handguard, gun_from_arms * POUCH, s)
+		var hold := Mannequin.break_hand(reload, _weapon, handguard, s)
 		_weapon.set_break(reload, hold[1])
 		return hold[0]
 	var xform := transform.affine_inverse() * _weapon.transform
@@ -78,6 +78,9 @@ func pose() -> void:
 		_weapon.set_mag_shift(Vector3.ZERO)
 		_weapon.set_break(-1.0)
 		_weapon.set_shell(-1.0)
+		var refill := _weapon.refill_progress()
+		if refill >= 0.0:
+			left = Mannequin.refill_hand(refill, left, xform.affine_inverse() * BANDOLIER)
 	var left_palm := xform * left
 	var right_fingers := xform.basis * Mannequin.RIGHT_FINGERS
 	var left_fingers := xform.basis * Mannequin.LEFT_FINGERS
@@ -91,8 +94,9 @@ func pose() -> void:
 	if ledge_weight > 0.0:
 		# Vaulting: palms flat on the ledge, fingers over its edge.
 		var to_arms := global_basis.inverse()
-		var forward := to_arms * (-global_basis.z).slide(Vector3.UP).normalized()
-		var down := to_arms * Vector3.DOWN
+		var up := Gravity.up(global_position)
+		var forward := to_arms * (-global_basis.z).slide(up).normalized()
+		var down := to_arms * -up
 		right_palm = right_palm.lerp(to_local(ledge_hands[1]), ledge_weight)
 		left_palm = left_palm.lerp(to_local(ledge_hands[0]), ledge_weight)
 		right_fingers = right_fingers.lerp(forward, ledge_weight)

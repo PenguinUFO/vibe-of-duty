@@ -1,9 +1,9 @@
-extends SceneTree
+extends Node
 ## Renders a map (SHOT_MAP, default the train) from a few views to ../shots/level_<view>.png and prints the GPU time of each view
 ## (vsync off, 1080p); SHOT_MOOD=1 - in the PSX style's lighting (Mood, without its dither); SHOT_BANK=s - the plane's
 ## bank and cargo as at that time; SHOT_DAY=f - the killhouse's day at that share of the match (0..1, with SHOT_MOOD);
 ## SHOT_STATUE=s - Chernobyl's statue shot by Bot0 s ago (turned on it, shooting).
-## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_level.gd
+## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_level
 
 const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5, 25.5), ramp to 44; deck y 4.7 z -50 .. 30; belly y -3
 	"hold_fwd": [Vector3(0.5, 1.65, -38.0), Vector3(0.0, 1.2, -16.0)],
@@ -100,6 +100,17 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"edge": [Vector3(-31.0, 1.65, -10.0), Vector3(-70.0, -40.0, -20.0)],
 	"outside": [Vector3(-60.0, 35.0, 70.0), Vector3(15.0, 4.0, 0.0)],
 	"above": [Vector3(25.0, 110.0, 60.0), Vector3(25.0, 0.0, 0.0)],
+}, "station": {  # station.tscn: a drum round the axis (0, 26, z) - views from tools/make_station_map.py's (s, h, z): dock s 0, housing A 27, greenhouse 54, plant 82 (the top), housing B 109, canteen 136
+	"dock": [Vector3(-10.84, 4.20, -2.00), Vector3(9.19, 3.29, 2.00)],
+	"up": [Vector3(0.00, 1.65, -4.00), Vector3(-12.48, 48.81, 2.00)],
+	"street": [Vector3(13.46, 5.71, 0.00), Vector3(23.77, 22.68, 0.00)],
+	"roof": [Vector3(14.94, 11.96, 8.00), Vector3(21.96, 24.64, -4.00)],
+	"green": [Vector3(24.30, 27.51, 0.00), Vector3(16.17, 43.73, 0.00)],
+	"plant": [Vector3(7.38, 46.46, 0.00), Vector3(-9.44, 46.97, 0.00)],
+	"hall": [Vector3(-23.97, 21.70, 6.00), Vector3(-17.85, 9.22, -4.00)],
+	"cap": [Vector3(0.00, 1.65, -8.00), Vector3(0.00, 9.00, 12.00)],
+	"ahead": [Vector3(-5.57, 2.30, 0.00), Vector3(25.99, 25.16, 0.00)],
+	"axis": [Vector3(0.0, 22.0, 11.5), Vector3(0.0, 26.0, -12.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
@@ -109,21 +120,22 @@ const SPOTS := {
 	"killhouse": [Vector3(-6.0, 0.05, 6.0), Vector3(1.0, 3.05, -21.0), Vector3(15.0, 0.05, -7.0)],
 	"elysium": [Vector3(-7.0, 0.05, -9.0), Vector3(-20.0, 4.05, -2.0), Vector3(48.0, 0.05, 6.0)],
 	"chernobyl": [Vector3(3.0, 0.05, 6.0), Vector3(-19.4, 0.05, -2.0), Vector3(-16.0, 3.05, 3.5)],
+	"station": [Vector3(7.86, 1.27, -2.00), Vector3(-0.02, 51.95, 1.00), Vector3(16.55, 11.35, 8.00)],
 }
 const FRAMES := 120
 
 
-func _initialize() -> void:
-	await process_frame  # Settings applies vsync after the first frame
+func _ready() -> void:
+	await get_tree().process_frame  # Settings applies vsync after the first frame
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	DisplayServer.window_set_size(Vector2i(1920, 1080))
-	root.size = Vector2i(1920, 1080)
+	get_tree().root.size = Vector2i(1920, 1080)
 	var map := OS.get_environment("SHOT_MAP") if OS.has_environment("SHOT_MAP") else "train"
 	var views: Dictionary = VIEWS[map]
 	var level: Node = load("res://prefabs/levels/%s.tscn" % map).instantiate()
-	root.add_child(level)
-	await process_frame
-	await process_frame
+	get_tree().root.add_child(level)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	var world = level.get_node("World")
 	var scene: PackedScene = load("res://prefabs/player/player.tscn")
 	var spots: Array = SPOTS[map]
@@ -147,7 +159,7 @@ func _initialize() -> void:
 	cam.far = 300.0  # as the player's camera (prefabs/player/player.tscn); a level's SkyScenery may push it out
 	level.add_child(cam)
 	cam.current = true
-	RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
+	RenderingServer.viewport_set_measure_render_time(get_tree().root.get_viewport_rid(), true)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var tag := OS.get_environment("SHOT_TAG")
@@ -155,42 +167,43 @@ func _initialize() -> void:
 		var node := level.get_node_or_null(hide) as Node3D
 		if node:
 			node.visible = false
-	var sun := level.get_node("Sun") as DirectionalLight3D  # shadows as Settings.apply_sun gives them at high quality
-	sun.directional_shadow_max_distance = 70.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	RenderingServer.directional_shadow_atlas_set_size(4096, true)
+	var sun := level.get_node_or_null("Sun") as DirectionalLight3D  # shadows as Settings.apply_sun gives them at high quality
+	if sun:  # the station has none
+		sun.directional_shadow_max_distance = 70.0
+		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+		RenderingServer.directional_shadow_atlas_set_size(4096, true)
 	var shadow := OS.get_environment("SHOT_SHADOW").split(",", false)  # experiments: splits (2/4), distance, atlas px, blur
-	if shadow.size() == 4:
+	if shadow.size() == 4 and sun:
 		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if shadow[0] == "4" 				else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 		sun.directional_shadow_max_distance = float(shadow[1])
 		RenderingServer.directional_shadow_atlas_set_size(int(shadow[2]), true)
 		sun.shadow_blur = float(shadow[3])
 	if OS.has_environment("SHOT_MOOD"):  # the PSX style's lighting (Mood; the dither post-process is not applied)
 		Mood.apply(level, (level.get_node("WorldEnvironment") as WorldEnvironment).environment,
-				level.get_node("Sun") as DirectionalLight3D, true)
+				sun, true)
 		for i in 3:
-			await physics_frame
+			await get_tree().physics_frame
 	var bank = level.get_node_or_null("Bank")  # PlaneBank, untyped: naming its class would compile it before the autoloads
 	if bank and OS.has_environment("SHOT_BANK"):  # the plane's schedule read at this time (s): its bank, the cargo
 		bank.time_override = float(OS.get_environment("SHOT_BANK"))
 		for i in 3:
-			await physics_frame
+			await get_tree().physics_frame
 	var day = level.get_node_or_null("DayCycle")  # DayCycle, untyped like the bank
 	if day and OS.has_environment("SHOT_DAY"):  # the day read at this share of the match (0..1; needs SHOT_MOOD)
 		day.time_override = float(OS.get_environment("SHOT_DAY"))
 		day._apply(day.time_override)
 		for i in 3:
-			await physics_frame
+			await get_tree().physics_frame
 	var crane = level.get_node_or_null("Crane")  # CraneBridge, untyped like the bank
 	if crane and OS.has_environment("SHOT_CRANE"):  # the crane's schedule read at this time (s): where its load is
 		crane.time_override = float(OS.get_environment("SHOT_CRANE"))
 		for i in 3:
-			await physics_frame
+			await get_tree().physics_frame
 	var statue = level.get_node_or_null("Statue")  # PigStatue, untyped like the bank
 	if statue and OS.has_environment("SHOT_STATUE"):  # shot by Bot0 (SPOTS[0]) this many s ago: turned on it, firing
 		statue._on_shot_by(world.players[20])
 		for i in int(float(OS.get_environment("SHOT_STATUE")) * 60.0):
-			await physics_frame
+			await get_tree().physics_frame
 	var scenery := level.get_node_or_null("Scenery")
 	var only := OS.get_environment("SHOT_VIEWS").split(",", false)  # just these views
 	for view in views:
@@ -200,16 +213,16 @@ func _initialize() -> void:
 			var now: float = scenery._world.shared_time() if scenery._world else Time.get_ticks_usec() / 1e6
 			scenery._tunnel_start = now - (-40.0 - scenery.TUNNEL_START) / scenery.speed
 			scenery._last_time = now
-		cam.look_at_from_position(views[view][0], views[view][1])
+		cam.look_at_from_position(views[view][0], views[view][1], Gravity.up(views[view][0]))  # on the ring: its up
 		for i in 30:
-			await process_frame
+			await get_tree().process_frame
 		if bank:  # the player's camera leans with the bank
 			cam.look_at_from_position(views[view][0], views[view][1])
 			cam.rotate_object_local(Vector3.BACK, bank.lean())
 		var gpu := 0.0
 		for i in FRAMES:
-			await process_frame
-			gpu += RenderingServer.viewport_get_measured_render_time_gpu(root.get_viewport_rid())
+			await get_tree().process_frame
+			gpu += RenderingServer.viewport_get_measured_render_time_gpu(get_tree().root.get_viewport_rid())
 		print("%-8s gpu %.2f ms" % [view, gpu / FRAMES])
-		root.get_texture().get_image().save_png(dir.path_join("level_%s%s.png" % [view, tag]))
-	quit()
+		get_tree().root.get_texture().get_image().save_png(dir.path_join("level_%s%s.png" % [view, tag]))
+	get_tree().quit()

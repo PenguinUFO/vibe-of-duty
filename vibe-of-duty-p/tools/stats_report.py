@@ -59,10 +59,14 @@ def main():
     md5 = sessions[-1][1][0].get("weapons_md5")
     if not use_all:
         sessions = [s for s in sessions if s[1][0].get("weapons_md5") == md5]
-    kills, lives = [], []
-    for _, events in sessions:
+    kills, lives, landed = [], [], []
+    for f, events in sessions:
         kills += [e for e in events if e["e"] == "kill" and e["gun"] != "self"]
         lives += [e for e in events if e["e"] == "life"]
+        # Shots that landed: one "hit" per shot and victim, all with the same time, so a (shooter, time) pair is one
+        # shot. Older files count every pellet in life["hits"] (shotgun accuracy over 100%), so accuracy uses these.
+        landed += list({(f, e["m"], e["a"], e["t"]): e["aw"] for e in events
+                        if e["e"] == "hit" and e["gun"] not in ("melee", "self")}.values())
     print(f"# Статистика боёв\n\nСессий: {len(sessions)}, жизней: {len(lives)}, убийств: {len(kills)}"
           + ("" if use_all else f" (weapons.cfg {md5[:8]})") + "\n")
 
@@ -74,9 +78,10 @@ def main():
             a = agg[key(life["w"])]
             a["lives"] += 1
             a["shots"] += life["shots"]
-            a["hit"] += life["hits"]
             a["dmg_out"] += life["dmg_out"]
             a["dur"] += life["dur"]
+        for variant in landed:
+            agg[key(variant)]["hit"] += 1
         for k in kills:
             a, b = agg[key(k["kw"])], agg[key(k["vw"])]
             a["kills"] += 1

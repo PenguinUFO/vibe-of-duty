@@ -5,17 +5,17 @@ extends PlayerWeapons
 
 ## Teleports the player and resets all movement state.
 func teleport(xform: Transform3D) -> void:
-	global_transform = Transform3D(Basis.IDENTITY, xform.origin)
-	look_yaw = xform.basis.get_euler().y
+	global_position = xform.origin
+	look_yaw = (Gravity.frame(xform.origin).inverse() * xform.basis).get_euler().y  # the spawn's facing in its frame
 	look_pitch = 0.0
-	rotation.y = look_yaw
+	_orient(look_yaw)
 	_prev_pos = global_position
 	_curr_pos = global_position
-	_prev_yaw = rotation.y
-	_curr_yaw = rotation.y
+	_prev_yaw = body_yaw
+	_curr_yaw = body_yaw
 	velocity = Vector3.ZERO
 	is_mantling = false
-	_floor_y = global_position.y
+	_floor_y = Gravity.height(global_position)
 	_snapshots.clear()
 	_history.clear()
 	_pending_state = []
@@ -25,24 +25,28 @@ func teleport(xform: Transform3D) -> void:
 	_apply_stance()
 
 
-## Advances the simulation by one fixed tick.
+## Advances the simulation by one fixed tick. Velocities are worked out in the gravity frame at the feet (Gravity: x, z
+## along the floor, y up), so the same code walks a flat map and the inside of a ring station.
 func step(cmd: PlayerCmd, dt: float) -> void:
 	if not alive or Game.is_frozen():
 		var dead := PlayerCmd.new()  # a dead player keeps looking where they were, but can do nothing
 		dead.yaw = cmd.yaw
 		dead.pitch = cmd.pitch
 		cmd = dead
-	rotation.y = cmd.yaw
+	_orient(cmd.yaw)
 	if not is_local:
 		_head.rotation.x = cmd.pitch
 	var on_floor := is_on_floor()
-	var horiz := Vector3(velocity.x, 0.0, velocity.z)
+	var frame := Gravity.frame(global_position)
+	var v := frame.inverse() * velocity  # in the frame
+	var horiz := Vector3(v.x, 0.0, v.z)
 	_jumped_this_step = false
 
 	# A vault in progress overrides normal movement (and blocks shooting / aiming).
 	_mantle_cooldown = maxi(_mantle_cooldown - 1, 0)
 	if is_mantling:
 		_mantle_update(dt)
+		_orient(cmd.yaw)
 		_weapon_step(_mantle_weapon_cmd(cmd), dt)
 		return
 
@@ -84,8 +88,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 		return
 
 	# Horizontal movement.
-	var wish := global_transform.basis * Vector3(cmd.move.x, 0.0, cmd.move.y)
-	wish.y = 0.0
+	var wish := Basis(Vector3.UP, cmd.yaw) * Vector3(cmd.move.x, 0.0, cmd.move.y)
 	var wish_len := minf(wish.length(), 1.0)
 	wish = wish.normalized()
 	var firing := weapons.wants_fire(cmd)
@@ -102,24 +105,29 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	elif wish_len > 0.0:
 		var add := clampf(top_speed * wish_len - horiz.dot(wish), 0.0, AIR_ACCEL * dt)
 		horiz += wish * add
-	velocity.x = horiz.x
-	velocity.z = horiz.z
+	v.x = horiz.x
+	v.z = horiz.z
 
 	# Vertical movement.
 	if on_floor:
-		velocity.y = 0.0
+		v.y = 0.0
 		if cmd.jump:
-			velocity.y = JUMP_VELOCITY * mods["jump_mult"]
+			v.y = JUMP_VELOCITY * mods["jump_mult"]
 			_jumped_this_step = true
 			slide_finished = is_sliding or slide_finished
 			_sfx("jump")
 	else:
-		velocity.y -= GRAVITY * dt
+		v.y -= GRAVITY * dt
 	if slide_finished:
 		_end_slide()
 
-	_prev_vy = velocity.y
+	_prev_vy = v.y
+	velocity = frame * v
 	move_and_slide()
+	if Gravity.is_ring():
+		# The floor curves under us: carry the velocity round with the frame, so it stays the same in it.
+		velocity = Gravity.frame(global_position) * (frame.inverse() * velocity)
+		_orient(cmd.yaw)
 	_post_move(dt)
 	_weapon_step(cmd, dt)
 
@@ -132,9 +140,9 @@ func _post_move(dt: float) -> void:
 		_land_impact = maxf(_land_impact, -_prev_vy)
 	_prev_on_floor = on_floor
 	if on_floor:
-		_floor_y = global_position.y
+		_floor_y = Gravity.height(global_position)
 	if on_floor and not is_sliding:
-		_step_distance += Vector2(velocity.x, velocity.z).length() * dt
+		_step_distance += flat_speed() * dt
 		if _step_distance >= STEP_STRIDE:
 			_step_distance = 0.0
 			_sfx("pig step", -8.0 if is_crouched else 0.0)
@@ -149,7 +157,7 @@ func _end_slide() -> void:
 
 
 func _can_stand() -> bool:
-	return not test_move(global_transform, Vector3.UP * (STAND_HEIGHT - CROUCH_HEIGHT))
+	return not test_move(global_transform, body_up() * (STAND_HEIGHT - CROUCH_HEIGHT))
 
 
 func _apply_stance() -> void:

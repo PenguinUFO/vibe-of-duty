@@ -120,7 +120,7 @@ func step(delta: float) -> void:
 func _substep() -> float:
 	var start := pos.duplicate()
 	var keep := 1.0 - DRAG * STEP
-	var fall := Vector3.DOWN * GRAVITY * STEP * STEP
+	var fall := -Gravity.up(pos[PELVIS]) * GRAVITY * STEP * STEP
 	for i in COUNT:
 		var p := pos[i]
 		pos[i] = p + (p - _prev[i]) * keep + fall
@@ -182,7 +182,7 @@ func _bend_knee(hip: int, knee: int, ankle: int) -> void:
 func _collide(space: PhysicsDirectSpaceState3D, i: int, from: Vector3) -> void:
 	var r := RADIUS[i]
 	_query.from = from
-	_query.to = pos[i] + Vector3.DOWN * r
+	_query.to = pos[i] - Gravity.up(pos[i]) * r
 	var hit := space.intersect_ray(_query)
 	if hit.is_empty():
 		return

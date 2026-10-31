@@ -25,10 +25,11 @@ static func burst(context: Node, pos: Vector3, strength: float) -> void:
 		return
 	var count := clampi(roundi(4.0 + strength * 4.0), 3, 14)
 	var offset := randf() * TAU
+	var frame := Gravity.frame(pos)
 	for k in count:
 		var angle := offset + TAU * k / count
-		var out := Vector3(cos(angle), 0.0, sin(angle))
-		pool._puff(pos + out * 0.15, out * randf_range(0.8, 1.4) * (0.6 + strength * 0.5) + Vector3.UP * randf_range(0.2, 0.6),
+		var out := frame * Vector3(cos(angle), 0.0, sin(angle))
+		pool._puff(pos + out * 0.15, out * randf_range(0.8, 1.4) * (0.6 + strength * 0.5) + frame.y * randf_range(0.2, 0.6),
 				randf_range(0.18, 0.3) * (0.7 + strength * 0.3), randf_range(0.6, 0.9))
 
 
@@ -37,8 +38,9 @@ static func trail(context: Node, pos: Vector3, velocity: Vector3) -> void:
 	var pool := _pool(context)
 	if pool == null:
 		return
-	var side := Vector3(velocity.z, 0.0, -velocity.x).normalized() * randf_range(-0.6, 0.6)
-	pool._puff(pos, -velocity * 0.15 + side + Vector3.UP * randf_range(0.3, 0.6), randf_range(0.15, 0.25),
+	var up := Gravity.up(pos)
+	var side := velocity.cross(up).normalized() * randf_range(-0.6, 0.6)
+	pool._puff(pos, -velocity * 0.15 + side + up * randf_range(0.3, 0.6), randf_range(0.15, 0.25),
 			randf_range(0.5, 0.8))
 
 

@@ -1,5 +1,5 @@
-extends SceneTree
-## Renders the third-person body to ../shots/<case>_<view>.png: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot.gd
+extends Node
+## Renders the third-person body to ../shots/<case>_<view>.png: Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot
 
 const CASES := {  # name -> [local velocity (x right, z back), aim pitch, ads, crouched, on floor]
 	"run_f": [Vector3(0, 0, -5.25), 0.0, false, false, true],  # first: the body appears already running
@@ -19,13 +19,13 @@ const CASES := {  # name -> [local velocity (x right, z back), aim pitch, ads, c
 	"reload_load": [Vector3.ZERO, 0.0, false, false, true],
 }
 const PUNCH_PROGRESS := 0.27
-const RELOADS := {"reload_open": 0.25, "reload_load": 0.64}
+const RELOADS := {"reload_open": 0.25, "reload_load": 0.34}
 const VIEWS := {"front": Vector3(1.6, 1.4, -2.6), "side": Vector3(3.0, 1.3, 0.0), "left": Vector3(-1.8, 1.5, -1.8)}
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var root3d := Node3D.new()
-	get_root().add_child(root3d)
+	get_tree().root.add_child(root3d)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-50, 30, 0)
 	root3d.add_child(light)
@@ -56,6 +56,6 @@ func _initialize() -> void:
 			cam.look_at_from_position(VIEWS[view], Vector3(0, 1.0, 0))
 			for i in (6 if c == "run_f" and view == "front" else 25):
 				vis.update_motion(1.0 / 60.0, CASES[c][0], CASES[c][4])
-				await process_frame
-			get_root().get_texture().get_image().save_png(dir.path_join("%s_%s.png" % [c, view]))
-	quit()
+				await get_tree().process_frame
+			get_tree().root.get_texture().get_image().save_png(dir.path_join("%s_%s.png" % [c, view]))
+	get_tree().quit()

@@ -1,0 +1,141 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://cpr1l748quiwk" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="Shader" uid="uid://kb4cbwsy0nk3" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/station_shell.tscn" id="5_shell"]
+[ext_resource type="Script" uid="uid://bxgg2vbt76jr6" path="res://scripts/game/level_mood.gd" id="7_mood"]
+[ext_resource type="Script" path="res://scripts/game/ring_gravity.gd" id="8_ring"]
+[ext_resource type="Script" path="res://scripts/game/station_sky.gd" id="9_sky"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_sky")
+shader_parameter/zenith_color = Color(0.01, 0.012, 0.02, 1)
+shader_parameter/horizon_color = Color(0.02, 0.025, 0.035, 1)
+shader_parameter/ground_color = Color(0.01, 0.012, 0.02, 1)
+shader_parameter/horizon_curve = 0.3
+shader_parameter/sun_glow = 0.0
+shader_parameter/cloud_coverage = 0.0
+shader_parameter/sea_coverage = 0.0
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.86, 0.84, 0.8, 1)
+ambient_light_energy = 1.1
+reflected_light_source = 1
+tonemap_mode = 4
+tonemap_exposure = 1.1
+tonemap_white = 8.0
+adjustment_enabled = true
+adjustment_contrast = 1.05
+
+[sub_resource type="StandardMaterial3D" id="spindle_mat"]
+shading_mode = 0
+albedo_color = Color(1, 0.94, 0.82, 1)
+
+[sub_resource type="CylinderMesh" id="spindle_mesh"]
+material = SubResource("spindle_mat")
+top_radius = 2.6
+bottom_radius = 2.6
+height = 24.0
+radial_segments = 16
+rings = 1
+
+[node name="Station" type="Node3D"]
+
+[node name="RingGravity" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, 0)
+script = ExtResource("8_ring")
+radius = 26.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Shell" parent="." instance=ExtResource("5_shell")]
+
+[node name="Spindle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 26, 0)
+mesh = SubResource("spindle_mesh")
+cast_shadow = 0
+
+[node name="SpindleLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, 0)
+light_color = Color(1, 0.95, 0.86, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 36.0
+omni_attenuation = 0.4
+
+[node name="Sky" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, 0)
+script = ExtResource("9_sky")
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="SpawnDockWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0.4106, -0.9118, -0, 0.9118, 0.4106, 1, 0, 0, -10.6542, 2.338, 0)
+
+[node name="SpawnDockEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.4453, 0.8954, 0, 0.8954, 0.4453, -1, 0, 0, 11.5562, 2.7652, -3.5)
+
+[node name="SpawnDockGantry" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.1151, 0.9934, 0, 0.9934, 0.1151, -1, 0, 0, 2.9876, 0.2226, 3)
+
+[node name="SpawnHousingRoomA1" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.6596, -0.7516, 0, 0.7516, -0.6596, 1, 0, 0, 17.1164, 6.4953, 8.5)
+
+[node name="SpawnHousingRoomA2" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.9807, 0.1954, 0, 0.1954, 0.9807, -1, 0, 0, 25.4497, 20.9291, -8.5)
+
+[node name="SpawnHousingStreet" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.5366, -0.8438, 0, 0.8438, -0.5366, 1, 0, 0, 13.9253, 4.1028, 0)
+
+[node name="SpawnHousingRoof" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, -0.7545, 0.6563, 0, 0.6563, 0.7545, -1, 0, 0, 16.6744, 11.4957, 8)
+
+[node name="SpawnGreenWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, -0.9768, 0.2142, 0, -0.2142, -0.9768, 1, 0, 0, 25.3475, 31.5593, -2)
+
+[node name="SpawnGreenEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, -0.645, -0.7642, 0, -0.7642, 0.645, -1, 0, 0, 16.7382, 45.8302, 0)
+
+[node name="SpawnGreenPavilion" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, -0.8934, 0.4492, 0, -0.4492, -0.8934, 1, 0, 0, 23.1841, 37.6576, 5.8)
+
+[node name="SpawnPlantWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, -0.4106, 0.9118, 0, -0.9118, -0.4106, 1, 0, 0, 10.6542, 49.662, 4)
+
+[node name="SpawnPlantEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, 0.4106, -0.9118, -0, -0.9118, -0.4106, -1, 0, 0, -10.6542, 49.662, -4)
+
+[node name="SpawnPlantCatwalk" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, 0.0768, 0.997, -0, -0.997, 0.0768, 1, 0, 0, -1.7944, 49.281, 0)
+
+[node name="SpawnBlockB1" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, 0.7287, 0.6848, -0, -0.6848, 0.7287, 1, 0, 0, -18.9099, 43.7713, 0)
+
+[node name="SpawnAlleyB" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, 0.5844, 0.8115, -0, -0.8115, 0.5844, 1, 0, 0, -15.1648, 47.0578, -8)
+
+[node name="SpawnBlockB2" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-0, 0.9768, -0.2142, -0, -0.2142, -0.9768, -1, 0, 0, -25.3475, 31.5593, -9)
+
+[node name="SpawnHallWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0.9678, -0.2516, -0, 0.2516, 0.9678, 1, 0, 0, -25.115, 19.4701, 4)
+
+[node name="SpawnHallEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0.7018, 0.7123, -0, 0.7123, -0.7018, -1, 0, 0, -18.2126, 7.5147, -4)
+
+[node name="LevelMood" type="Node" parent="."]
+script = ExtResource("7_mood")
+values = {"ambient_energy": 1.0, "ambient_color": Color(0.86, 0.84, 0.8, 1), "ambient_sky": 0.0, "fog_density": 0.0, "saturation": 0.85, "contrast": 1.05, "sky": {"zenith_color": Color(0.01, 0.012, 0.02, 1), "horizon_color": Color(0.02, 0.025, 0.035, 1), "ground_color": Color(0.01, 0.012, 0.02, 1), "cloud_coverage": 0.0, "sun_glow": 0.0}}
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="World" type="Node" parent="."]
+script = ExtResource("1_world")
+kill_height = -3.0

@@ -9,7 +9,7 @@ const SHOT_LISTENER := &"on_shot"
 func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 	var ctx := {
 		"peer_id": peer_id,
-		"speed": Vector2(velocity.x, velocity.z).length(),
+		"speed": flat_speed(),
 		"crouched": is_crouched,
 		"airborne": not is_on_floor(),
 		"sprinting": is_sprinting,
@@ -46,7 +46,7 @@ func _on_shot(event: Dictionary) -> void:
 	if _replaying:
 		return
 	var def := weapons.def_at(event["weapon"])
-	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
+	var origin := eye_position()
 	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	var tick := _judge_tick(event["view_tick"], is_server)
 	var results: Array = []
@@ -54,7 +54,9 @@ func _on_shot(event: Dictionary) -> void:
 	var hits: Array = []
 	var damage_by_victim := {}  # peer_id -> {player, damage, head}
 	var target_hits := {}  # Target -> {damage, head, marks: [[pos, head]]} (training targets)
-	for dir in event["dirs"]:
+	var frame := Gravity.frame(global_position)  # the shot's directions are in the gravity frame (like the look angles)
+	for local_dir in event["dirs"]:
+		var dir: Vector3 = frame * local_dir
 		var r := _trace(origin, dir, def.max_range, tick, def.penetration)
 		# Damage by distance (WeaponDef.falloff_*), less after going through cover.
 		var hit_damage := def.damage_at(origin.distance_to(r["pos"])) \
@@ -134,12 +136,13 @@ func _tell_shot_level(results: Array) -> void:
 func _on_melee(event: Dictionary) -> void:
 	if _replaying:
 		return
-	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
+	var origin := eye_position()
 	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	var tick := _judge_tick(event["view_tick"], is_server)
 	var hit := {}
+	var frame := Gravity.frame(global_position)
 	for offset in MELEE_FAN:
-		var r := _trace(origin, Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) \
+		var r := _trace(origin, frame * Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) \
 				* Vector3.FORWARD, WeaponSim.MELEE_RANGE, tick)
 		if r["player"] != null or r.get("target") != null:
 			hit = r
@@ -173,7 +176,7 @@ func _on_melee(event: Dictionary) -> void:
 
 ## Cosmetics of somebody else's punch that landed at `pos` (called by World on clients and on the host).
 func show_remote_melee(pos: Vector3) -> void:
-	var origin := global_position + Vector3.UP * (CROUCH_EYE if is_crouched else STAND_EYE)
+	var origin := eye_position()
 	if world != null and world.kill_cam != null:
 		world.kill_cam.record_shot(peer_id, WeaponSim.MELEE, origin, PackedVector3Array([pos]))
 	Audio.play("punch_hit", pos)
@@ -291,8 +294,9 @@ func _target_state(other: Player, tick: float) -> Dictionary:
 ## Puppets report their displayed state, the server its simulation.
 func hitbox_state() -> Dictionary:
 	var vel := velocity if control != Mode.PUPPET else _puppet_velocity
-	return {"pos": global_position, "crouched": is_crouched, "yaw": rotation.y, "pitch": _head.rotation.x,
-			"vel": Vector3(vel.x, 0.0, vel.z), "ads": aiming, "sliding": is_sliding}
+	var local_vel := Gravity.frame(global_position).inverse() * vel  # in the gravity frame, like the yaw
+	return {"pos": global_position, "crouched": is_crouched, "yaw": body_yaw, "pitch": _head.rotation.x,
+			"vel": Vector3(local_vel.x, 0.0, local_vel.z), "ads": aiming, "sliding": is_sliding}
 
 
 ## A shot that ended at `end` (world) jerks this player's body if it ended on it (cosmetic).
@@ -316,7 +320,7 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) ->
 	for i in ends.size():
 		if def.tracer:
 			ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
-		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
+		ShotEffects.spawn_impact(scene_root, ends[i], Gravity.up(ends[i]))
 		if world != null:
 			for id in world.players:
 				if id != peer_id:

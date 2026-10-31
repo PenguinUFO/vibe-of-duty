@@ -76,21 +76,27 @@ static func head_offset(state: Dictionary) -> Vector3:
 	return head - Vector3(0.0, Mannequin.SLIDE_DROP if sliding else 0.0, 0.0)
 
 
+## The body's frame for a hitbox state: its facing ("yaw") in the gravity frame at its feet (Gravity; "vel" is in
+## that frame too).
+static func body_basis(state: Dictionary) -> Basis:
+	return Gravity.frame(state["pos"]) * Basis(Vector3.UP, state["yaw"])
+
+
 static func head_center(state: Dictionary) -> Vector3:
-	return (state["pos"] as Vector3) + Basis(Vector3.UP, state["yaw"]) * head_offset(state)
+	return (state["pos"] as Vector3) + body_basis(state) * head_offset(state)
 
 
 ## Bottom and top centre of the body capsule's axis (the capsule's end caps add BODY_RADIUS). The capsule stays
-## vertical but shifts with half of the head's lean, like the chest, and ends at the neck (NECK_GAP under the head
-## centre) so the head sphere is never buried in it.
+## upright (along up at the feet) but shifts with half of the head's lean, like the chest, and ends at the neck
+## (NECK_GAP under the head centre) so the head sphere is never buried in it.
 static func body_segment(state: Dictionary) -> Array[Vector3]:
 	var head := head_offset(state)
 	var lean := head - Mannequin.head_offset(0.0, 0.0, 0.0)
-	var shift: Vector3 = Basis(Vector3.UP, state["yaw"]) * Vector3(lean.x, 0.0, lean.z) * 0.5
-	var pos: Vector3 = state["pos"] + shift
+	var basis := body_basis(state)
+	var pos: Vector3 = state["pos"] + basis * Vector3(lean.x, 0.0, lean.z) * 0.5
 	var bottom := 0.05 + BODY_RADIUS
 	var top := maxf(bottom, head.y - NECK_GAP - BODY_RADIUS)
-	return [pos + Vector3(0.0, bottom, 0.0), pos + Vector3(0.0, top, 0.0)]
+	return [pos + basis.y * bottom, pos + basis.y * top]
 
 
 ## Distance along the ray to the sphere, or -1 for a miss. `dir` must be normalised.
@@ -106,23 +112,28 @@ static func ray_sphere(origin: Vector3, dir: Vector3, center: Vector3, radius: f
 	return maxf(-b - sqrt(disc), 0.0)
 
 
-## Distance along the ray to a vertical capsule (axis from `bottom` to `top`, same x/z), or -1 for a miss.
+## Distance along the ray to a capsule (axis from `bottom` to `top`), or -1 for a miss.
 static func ray_capsule(origin: Vector3, dir: Vector3, bottom: Vector3, top: Vector3, radius: float) -> float:
 	var best := INF
-	# Cylindrical side: a circle test in the XZ plane, clipped to the axis segment.
-	var ox := origin.x - bottom.x
-	var oz := origin.z - bottom.z
-	var a := dir.x * dir.x + dir.z * dir.z
-	if a > 1e-8:
-		var b := ox * dir.x + oz * dir.z
-		var c := ox * ox + oz * oz - radius * radius
-		var disc := b * b - a * c
-		if disc >= 0.0:
-			var t := (-b - sqrt(disc)) / a
-			if t >= 0.0:
-				var y := origin.y + dir.y * t
-				if y >= bottom.y and y <= top.y:
-					best = t
+	# Cylindrical side: a circle test across the axis, clipped to the axis segment.
+	var axis := top - bottom
+	var length := axis.length()
+	if length > 1e-6:
+		axis /= length
+		var o := origin - bottom
+		var o_across := o - axis * o.dot(axis)
+		var d_across := dir - axis * dir.dot(axis)
+		var a := d_across.length_squared()
+		if a > 1e-8:
+			var b := o_across.dot(d_across)
+			var c := o_across.length_squared() - radius * radius
+			var disc := b * b - a * c
+			if disc >= 0.0:
+				var t := (-b - sqrt(disc)) / a
+				if t >= 0.0:
+					var along := (o + dir * t).dot(axis)
+					if along >= 0.0 and along <= length:
+						best = t
 	# End caps (a union of convex pieces: the first hit is the minimum over the pieces).
 	var t_bottom := ray_sphere(origin, dir, bottom, radius)
 	if t_bottom >= 0.0:

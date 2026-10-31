@@ -94,7 +94,9 @@ func _ready() -> void:
 	if world_env:
 		_env = world_env.environment
 		_capture_env.call_deferred()  # after NetWorld has given the level its mood (Mood)
-		Settings.graphics_changed.connect(_capture_env, CONNECT_DEFERRED)
+		var settings := get_node_or_null(^"/root/Settings")  # absent under --script (tools/shot_level.gd)
+		if settings != null:
+			settings.graphics_changed.connect(_capture_env, CONNECT_DEFERRED)
 	var lamps := get_parent().find_child("Lamps", true, false)  # in the generated shell: Shell/Lamps
 	for lamp in lamps.get_children() if lamps else []:
 		_lamps.append(lamp)
@@ -242,7 +244,8 @@ func _build_posts() -> void:
 
 
 func _update_posts() -> void:
-	var on := Settings.psx_style
+	var on := _psx_style()
+	var settings := get_node_or_null(^"/root/Settings")
 	for post in _posts:
 		post.visible = on
 		if not on:
@@ -250,7 +253,7 @@ func _update_posts() -> void:
 		post.position.z = POST_FROM + fposmod(float(post.get_meta(&"offset")) + _scroll, POST_NEAR)
 		var light := post.get_child(0) as SpotLight3D
 		light.visible = post.position.z > train_z0 - POST_LIT_MARGIN and post.position.z < train_z1 + POST_LIT_MARGIN
-		light.shadow_enabled = Settings.shadow_quality > 0
+		light.shadow_enabled = settings == null or settings.shadow_quality > 0
 
 
 # --- forest -----------------------------------------------------------------------------------------------------------
@@ -476,8 +479,9 @@ func _update_tunnel(delta: float, time: float) -> void:
 		_env.fog_density = lerpf(_base_fog, TUNNEL_FOG_DENSITY, _darkness)
 		_env.fog_light_color = _base_fog_color.lerp(TUNNEL_FOG_COLOR, _darkness)
 	# The PSX style's dusk (Mood) keeps the lamps on all the time; otherwise they only burn in tunnels.
-	var lit := maxf(_darkness, 1.0 if Settings.psx_style else 0.0)
-	var energy := LAMP_ENERGY * (MOOD_LAMP_BOOST if Settings.psx_style else 1.0)
+	var psx := _psx_style()
+	var lit := maxf(_darkness, 1.0 if psx else 0.0)
+	var energy := LAMP_ENERGY * (MOOD_LAMP_BOOST if psx else 1.0)
 	for lamp in _lamps:
 		lamp.visible = lit > 0.01
 		lamp.light_energy = energy * lit
@@ -520,3 +524,9 @@ void fragment() {
 	ROUGHNESS = 1.0;
 }
 """
+
+
+## Settings.psx_style; on without the Settings autoload (tools/shot_level.gd runs under --script), as in DayCycle.
+func _psx_style() -> bool:
+	var settings := get_node_or_null(^"/root/Settings")
+	return settings.psx_style if settings != null else true

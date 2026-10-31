@@ -1,6 +1,6 @@
-extends SceneTree
+extends Node
 ## Close-ups of an optic on its gun (SightModels) from four sides to ../shots/sight_<case>_<view>.png:
-## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_sight.gd   (SHOT_CASE=pdw_compm: only that case)
+## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_sight   (SHOT_CASE=pdw_compm: only that case)
 
 const CASES := {  # name -> [weapon index, modules, the optic's middle in prefab space]
 	"ak_kobra": [0, ["ak.sight.kobra"], Vector3(0.0, 0.12, 0.06)],
@@ -21,9 +21,9 @@ const VIEWS := {
 }
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var root3d := Node3D.new()
-	get_root().add_child(root3d)
+	get_tree().root.add_child(root3d)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-40, -40, 0)
 	root3d.add_child(light)
@@ -46,13 +46,13 @@ func _initialize() -> void:
 		if OS.has_environment("SHOT_CASE") and OS.get_environment("SHOT_CASE") != c:
 			continue
 		view.set_weapon(CASES[c][0], WeaponDB.make_def(CASES[c][0], CASES[c][1]))
-		await process_frame
+		await get_tree().process_frame
 		var model: Node3D = view._model
 		for v in VIEWS:
 			var basis := model.global_transform.basis  # the prefab's axes in the world (WeaponView turns it round)
 			var target: Vector3 = model.global_transform * CASES[c][2]
 			cam.look_at_from_position(target + basis * VIEWS[v], target)
-			await process_frame
-			await process_frame
-			get_root().get_texture().get_image().save_png(dir.path_join("sight_%s_%s.png" % [c, v]))
-	quit()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			get_tree().root.get_texture().get_image().save_png(dir.path_join("sight_%s_%s.png" % [c, v]))
+	get_tree().quit()

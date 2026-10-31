@@ -87,18 +87,17 @@ func show_melee(progress: float) -> void:
 	_shown_melee = progress
 
 
-## Vaulting (from the snapshot flags); `top_y`: world height of the ledge's top. The hands go onto the ledge in
-## front of the body as it is when the vault starts.
-func set_mantling(mantling: bool, top_y: float) -> void:
+## Vaulting (from the snapshot flags); `top`: a world point at the height of the ledge's top. The hands go onto the
+## ledge in front of the body as it is when the vault starts.
+func set_mantling(mantling: bool, top: Vector3) -> void:
 	if mantling and not _mantling and _mannequin:
-		var forward := -global_basis.z
-		forward.y = 0.0
-		forward = forward.normalized()
-		var right := forward.cross(Vector3.UP)
-		var center := global_position + forward * 0.5  # just past the edge (the capsule, radius 0.35, stops short of the wall)
-		_mannequin.mantle_hands = [Vector3(center.x, top_y, center.z) - right * 0.2,
-				Vector3(center.x, top_y, center.z) + right * 0.2]
-		_mannequin.mantle_top = top_y
+		var up := global_basis.y
+		var forward := (-global_basis.z).slide(up).normalized()
+		var right := forward.cross(up)
+		# Just past the edge (the capsule, radius 0.35, stops short of the wall), at the ledge's height.
+		var center := global_position + forward * 0.5 + up * (top - global_position).dot(up)
+		_mannequin.mantle_hands = [center - right * 0.2, center + right * 0.2]
+		_mannequin.mantle_top = top
 	_mantling = mantling
 
 
@@ -199,8 +198,9 @@ func _update_air(on_floor: bool) -> void:
 
 
 func _floor_below(depth: float) -> bool:
-	var from := global_position + Vector3.UP * 0.3
-	var query := PhysicsRayQueryParameters3D.create(from, global_position + Vector3.DOWN * depth, Layers.WORLD)
+	var up := Gravity.up(global_position)
+	var from := global_position + up * 0.3
+	var query := PhysicsRayQueryParameters3D.create(from, global_position - up * depth, Layers.WORLD)
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 

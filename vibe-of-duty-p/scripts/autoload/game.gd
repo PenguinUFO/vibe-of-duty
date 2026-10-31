@@ -31,12 +31,14 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
 # --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests),
-# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats).
+# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats),
+# --tool=name (tools/run_tool.tscn runs tools/<name>.gd: screenshots with the autoloads).
 var dedicated := false
 var bot_mode := false
 var net_log := false
 var auto_join := ""
 var auto_training := ""   # --training=map: skip the menu, start that training map (e.g. --training=range)
+var tool_run := ""        # --tool=name: tools/run_tool.tscn runs tools/<name>.gd (shot_level etc.)
 var bot_vault := false     # --bot-vault: bots run back and forth over the test ledges (vault test)
 var test_spawn := Vector3.INF  # set by --bot-vault / --test-spawn=x,y,z: everybody spawns here
 var test_build: Array = []     # --build=part,part,...: the build bots play (PartDB ids, SLOTS order); native without it
@@ -53,6 +55,7 @@ var bot_melee := false     # --bot-melee: bots run at the nearest enemy and punc
 var bot_statue := false    # --bot-statue: bots shoot the statue (PigStatue) now and then and strafe (statue test)
 var bot_idle := ""         # --bot-idle / --bot-idle=crouch: bots stand still (crouched) - the train's tunnel test
 var bot_climb := NAN       # --bot-climb=DEG: bots face this yaw, jump every 1.5 s and push on in the air (a hatch, a ledge step)
+var bot_run := NAN         # --bot-run=DEG: bots run at this yaw, sprinting, jumping and sliding (laps of the ring station)
 var lag_comp_enabled := true  # --no-lagcomp: server judges shots at live positions (for comparison tests)
 var net_perturb := false  # --perturb: client injects fake prediction errors (reconciliation test)
 var sim_loss := 0.0        # --loss=PERCENT: client drops this share of its command packets (packet-loss test)
@@ -101,6 +104,11 @@ func _ready() -> void:
 		elif arg.begins_with("--bot-climb="):
 			bot_mode = true
 			bot_climb = deg_to_rad(arg.get_slice("=", 1).to_float())
+		elif arg.begins_with("--bot-run="):
+			bot_mode = true
+			bot_run = deg_to_rad(arg.get_slice("=", 1).to_float())
+		elif arg.begins_with("--tool="):
+			tool_run = arg.trim_prefix("--tool=")
 		elif arg == "--bot-melee":
 			bot_mode = true
 			bot_melee = true
@@ -200,10 +208,10 @@ static func list_training_maps() -> Array[String]:
 	return maps
 
 
-## Started by a test command line (bots, a dedicated server, --join / --training): nothing is saved to the player's
+## Started by a test command line (bots, a dedicated server, --join / --training, --tool): nothing is saved to the player's
 ## profile then (Settings.save_settings).
 func is_test_launch() -> bool:
-	return bot_mode or dedicated or auto_join != "" or auto_training != "" or summary_time > 0.0
+	return bot_mode or dedicated or auto_join != "" or auto_training != "" or summary_time > 0.0 or tool_run != ""
 
 
 ## Adds to a test counter (stats), printed by --summary.
@@ -216,7 +224,7 @@ static func is_map(path: String) -> bool:
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "chernobyl": "Чернобыль", "elysium": "Элизиум", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
+const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "chernobyl": "Чернобыль", "elysium": "Элизиум", "station": "Карусель", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()

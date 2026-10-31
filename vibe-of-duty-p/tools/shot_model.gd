@@ -1,6 +1,6 @@
-extends SceneTree
+extends Node
 ## Renders a weapon model in side profile (barrel to the left; "_r" cases from the other side) to ../shots/model_<case>.png:
-## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_model.gd
+## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_model
 
 const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a break-open's reload progress, loading shells]
 	"ak": [0, []],
@@ -41,9 +41,9 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 }
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var root3d := Node3D.new()
-	get_root().add_child(root3d)
+	get_tree().root.add_child(root3d)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-35, -60, 0)
 	root3d.add_child(light)
@@ -75,7 +75,7 @@ func _initialize() -> void:
 		# "_r" cases: seen from the gun's right (+X here), the barrel on the right, as most photos.
 		var side := 2.0 if c.ends_with("_r") else -2.0
 		cam.look_at_from_position(Vector3(side, 0.0, -0.1), Vector3(0.0, 0.0, -0.1))
-		await process_frame
-		await process_frame
-		get_root().get_texture().get_image().save_png(dir.path_join("model_%s.png" % c))
-	quit()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		get_tree().root.get_texture().get_image().save_png(dir.path_join("model_%s.png" % c))
+	get_tree().quit()

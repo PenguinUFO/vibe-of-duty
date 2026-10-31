@@ -25,7 +25,7 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	custom_minimum_size = Vector2(540, 0)
+	custom_minimum_size = Vector2(1080, 0)  # two columns: one would be taller than the 720 px screen
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -36,23 +36,33 @@ func _init() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.theme_type_variation = "PanelTitle"
 	box.add_child(title)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 32)
+	box.add_child(columns)
+	var left := VBoxContainer.new()  # controls and sound
+	var right := VBoxContainer.new()  # graphics
+	for column in [left, right]:
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.add_theme_constant_override("separation", 10)
+		columns.add_child(column)
 
-	add_slider(box, "Чувствительность мыши", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
+	add_heading(left, "Управление")
+	add_slider(left, "Чувствительность мыши", 0.1, 4.0, 0.05, Settings.mouse_sensitivity / SENSITIVITY_UNIT,
 			func(v: float) -> void: Settings.mouse_sensitivity = v * SENSITIVITY_UNIT, "%.2f")
-	add_slider(box, "Чувствительность стика", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
+	add_slider(left, "Чувствительность стика", 0.2, 3.0, 0.05, Settings.stick_sensitivity,
 			func(v: float) -> void: Settings.stick_sensitivity = v, "%.2f")
-	add_slider(box, "Помощь в прицеливании", 0.0, 1.0, 0.05, Settings.aim_assist,
+	add_slider(left, "Помощь в прицеливании", 0.0, 1.0, 0.05, Settings.aim_assist,
 			func(v: float) -> void: Settings.aim_assist = v, "%d%%", true)
-	add_slider(box, "Поле зрения", 60.0, 120.0, 1.0, Settings.fov,
+	add_slider(left, "Поле зрения", 60.0, 120.0, 1.0, Settings.fov,
 			func(v: float) -> void: Settings.fov = v, "%d")
-	add_slider(box, "Покачивание камеры", 0.0, 1.0, 0.05, Settings.view_bob,
+	add_slider(left, "Покачивание камеры", 0.0, 1.0, 0.05, Settings.view_bob,
 			func(v: float) -> void: Settings.view_bob = v, "%d%%", true)
 
-	add_heading(box, "Графика")
+	add_heading(right, "Графика")
 	var sizes: Array = []
 	for size in Settings.WINDOW_SIZES:
 		sizes.append("%d x %d" % [size.x, size.y])
-	var resolution := add_option(box, "Разрешение", sizes, maxi(Settings.WINDOW_SIZES.find(Settings.window_size), 0),
+	var resolution := add_option(right, "Разрешение", sizes, maxi(Settings.WINDOW_SIZES.find(Settings.window_size), 0),
 			func(i: int) -> void:
 				Settings.window_size = Settings.WINDOW_SIZES[i]
 				Settings.apply_display())
@@ -64,15 +74,15 @@ func _init() -> void:
 		Settings.fullscreen = on
 		resolution.disabled = on
 		Settings.apply_display())
-	box.add_child(fullscreen)
-	_preset = add_option(box, "Качество", PRESET_NAMES, _current_preset(), _on_preset)
-	_aa = add_option(box, "Сглаживание", ["Выкл", "FXAA"], Settings.antialiasing, func(i: int) -> void:
+	right.add_child(fullscreen)
+	_preset = add_option(right, "Качество", PRESET_NAMES, _current_preset(), _on_preset)
+	_aa = add_option(right, "Сглаживание", ["Выкл", "FXAA"], Settings.antialiasing, func(i: int) -> void:
 		Settings.antialiasing = i
 		_graphics_changed())
-	_shadows = add_option(box, "Тени", ["Выкл", "Средние", "Высокие"], Settings.shadow_quality, func(i: int) -> void:
+	_shadows = add_option(right, "Тени", ["Выкл", "Средние", "Высокие"], Settings.shadow_quality, func(i: int) -> void:
 		Settings.shadow_quality = i
 		_graphics_changed())
-	add_slider(box, "Масштаб рендера", 0.5, 1.0, 0.05, Settings.render_scale, func(v: float) -> void:
+	add_slider(right, "Масштаб рендера", 0.5, 1.0, 0.05, Settings.render_scale, func(v: float) -> void:
 		Settings.render_scale = v
 		Settings.apply_graphics(), "%d%%", true)
 	var psx := CheckBox.new()
@@ -81,18 +91,18 @@ func _init() -> void:
 	psx.toggled.connect(func(on: bool) -> void:
 		Settings.psx_style = on
 		Settings.apply_graphics())
-	box.add_child(psx)
+	right.add_child(psx)
 	var vsync := CheckBox.new()
 	vsync.text = "Вертикальная синхронизация"
 	vsync.button_pressed = Settings.vsync
 	vsync.toggled.connect(func(on: bool) -> void:
 		Settings.vsync = on
 		Settings.apply_graphics())
-	box.add_child(vsync)
+	right.add_child(vsync)
 
-	add_heading(box, "Звук")
+	add_heading(left, "Звук")
 	for bus in VOLUME_BUSES:
-		add_slider(box, VOLUME_NAMES[bus], 0.0, 1.0, 0.01, Settings.volumes.get(bus, 1.0),
+		add_slider(left, VOLUME_NAMES[bus], 0.0, 1.0, 0.01, Settings.volumes.get(bus, 1.0),
 				func(v: float) -> void: Settings.set_volume(bus, v), "%d%%", true, true)
 
 	var back := Button.new()

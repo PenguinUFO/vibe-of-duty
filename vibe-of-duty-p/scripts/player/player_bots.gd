@@ -43,6 +43,17 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		cmd.yaw = look_yaw
 		cmd.crouch = Game.bot_idle == "crouch"
 		return cmd
+	if not is_nan(Game.bot_run):
+		# Runs round the ring station (or straight on) at a fixed yaw, sprinting, jumping every 2 s (vaults anything in
+		# reach) and sliding now and then.
+		look_yaw = Game.bot_run
+		cmd.yaw = look_yaw
+		cmd.move = Vector2(0.0, -1.0)
+		cmd.sprint = fmod(t, 5.0) < 4.0
+		cmd.crouch = fmod(t, 5.0) > 4.4
+		cmd.jump = fmod(t, 2.0) < delta
+		cmd.jump_held = true
+		return cmd
 	if Game.bot_vault:
 		# Runs back and forth over the test ledges, jumping all the time (vaults whenever one is in reach).
 		look_yaw = PI if fmod(t, 7.0) >= 3.5 else 0.0  # 3.5 s each way (~18 m): crosses the ledges in both directions
@@ -72,7 +83,8 @@ func _bot_statue_cmd(t: float) -> PlayerCmd:
 	var cmd := PlayerCmd.new()
 	var statue := get_tree().get_first_node_in_group(PigStatue.GROUP) as PigStatue
 	if statue != null:
-		var dir := (statue.chest_point() - (global_position + Vector3.UP * STAND_EYE)).normalized()
+		var dir := (statue.chest_point() - (global_position + body_up() * STAND_EYE)).normalized()
+		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		look_yaw = atan2(-dir.x, -dir.z)
 		look_pitch = clampf(asin(dir.y), -MAX_PITCH, MAX_PITCH)
 		cmd.fire = fmod(t, 10.0) < 0.4 and alive and _bot_trigger()
@@ -138,8 +150,9 @@ func _bot_targets_cmd(t: float) -> PlayerCmd:
 		var state := target.hitbox_state()
 		var seg := LagComp.body_segment(state)
 		var point := LagComp.head_center(state) if (turn / targets.size()) % 2 == 1 else seg[0].lerp(seg[1], 0.6)
-		var eye := global_position + Vector3.UP * STAND_EYE
+		var eye := global_position + body_up() * STAND_EYE
 		var dir := (point - eye).normalized()
+		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
 		cmd.fire = weapons.ads > 0.95 and target.alive and _bot_trigger()
@@ -169,7 +182,8 @@ func _bot_ttk_cmd() -> PlayerCmd:
 		var aim: Vector3 = _ttk_aim_points[0]
 		if late > 0 and _ttk_aim_points.size() > 1:  # leads it as it was moving then: misses only its changes
 			aim += (_ttk_aim_points[1] - _ttk_aim_points[0]) * late
-		var dir := (aim - (global_position + Vector3.UP * STAND_EYE)).normalized()
+		var dir := (aim - (global_position + body_up() * STAND_EYE)).normalized()
+		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y * Game.bot_recoil
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x * Game.bot_recoil, -MAX_PITCH, MAX_PITCH)
 		var frame := Engine.get_physics_frames()
@@ -213,9 +227,10 @@ func _bot_melee_cmd(t: float) -> PlayerCmd:
 				best = d
 				target = other
 	if target != null and alive:
-		var eye := global_position + Vector3.UP * STAND_EYE
+		var eye := global_position + body_up() * STAND_EYE
 		var seg := LagComp.body_segment(target.hitbox_state())
 		var dir := ((seg[0] as Vector3).lerp(seg[1], 0.6) - eye).normalized()
+		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		look_yaw = atan2(-dir.x, -dir.z)
 		look_pitch = clampf(asin(dir.y), -MAX_PITCH, MAX_PITCH)
 		cmd.move = Vector2(0.4 if int(t / 2.0) % 2 == 0 else -0.4, -1.0 if best > 1.2 else 0.0)
@@ -241,8 +256,9 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, -1.0 if best > 12.0 else 0.0)
 	cmd.aim = true
 	if target != null and alive:
-		var eye := global_position + Vector3.UP * STAND_EYE
+		var eye := global_position + body_up() * STAND_EYE
 		var dir := (LagComp.head_center(target.hitbox_state()) - eye).normalized()  # headshots test the hitbox model
+		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)

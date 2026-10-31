@@ -126,7 +126,7 @@ func _bind_gamepad() -> void:
 		InputMap.action_add_event(action, event)
 	var buttons := {
 		"jump": [JOY_BUTTON_A], "crouch": [JOY_BUTTON_B], "sprint_toggle": [JOY_BUTTON_Y, JOY_BUTTON_LEFT_STICK],
-		"reload": [JOY_BUTTON_X], "weapon_next": [JOY_BUTTON_DPAD_RIGHT], "scoreboard": [JOY_BUTTON_BACK],
+		"reload": [JOY_BUTTON_X], "scoreboard": [JOY_BUTTON_BACK],
 		"pause": [JOY_BUTTON_START], "oink": [JOY_BUTTON_DPAD_UP], "melee": [JOY_BUTTON_RIGHT_STICK],
 	}
 	for action in buttons:

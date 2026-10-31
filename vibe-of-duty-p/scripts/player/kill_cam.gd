@@ -219,7 +219,7 @@ func _play(delta: float) -> void:
 		if pose.is_empty():
 			continue
 		ghost.global_position = pose[0]
-		ghost.global_rotation = Vector3(0.0, pose[1], 0.0)
+		ghost.global_basis = Gravity.frame(pose[0]) * Basis(Vector3.UP, pose[1])
 		ghost.set_aim_pitch(pose[2])
 		ghost.set_crouched(pose[3])
 		ghost.set_sliding(pose[8])
@@ -236,8 +236,9 @@ func _play(delta: float) -> void:
 		var dt := maxf(delta, 0.0001)
 		_eye = lerpf(_eye, Player.CROUCH_EYE if killer[3] else Player.STAND_EYE, 1.0 - exp(-14.0 * delta))
 		_ads = move_toward(_ads, 1.0 if killer[4] else 0.0, delta / PlayerVisual.ADS_BLEND_TIME)
-		_camera.global_transform = Transform3D(Basis.from_euler(Vector3(killer[2], killer[1], 0.0)),
-				killer[0] + Vector3.UP * _eye)
+		var frame := Gravity.frame(killer[0])
+		_camera.global_transform = Transform3D(frame * Basis.from_euler(Vector3(killer[2], killer[1], 0.0)),
+				killer[0] + frame.y * _eye)
 		var def := _def_for(_killer_id, killer[6])
 		_camera.fov = lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, _ads)
 		var look := Vector2(killer[1], killer[2])
@@ -339,7 +340,7 @@ func _replay_shot(shot: Dictionary) -> void:
 	for i in ends.size():
 		if own or def.tracer:
 			ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
-		ShotEffects.spawn_impact(scene_root, ends[i], Vector3.UP)
+		ShotEffects.spawn_impact(scene_root, ends[i], Gravity.up(ends[i]))
 		for id in _ghosts:
 			if id != shot["id"]:
 				(_ghosts[id] as PlayerVisual).react_to_shot(shot["origin"], ends[i])

@@ -14,8 +14,17 @@ func _stick_look(delta: float) -> void:
 		_pad_look = true
 	var turn := Vector2.ZERO
 	if _pad_look:
-		turn = _aim_assist.update(_head.global_position, look_yaw, look_pitch, weapons.ads,
-				Settings.effective_aim_assist(), _assist_targets(), _assist_visible,
+		# The look angles are in the gravity frame (Gravity): the assist gets the targets in that frame around the eye.
+		var eye := _head.global_position
+		var frame := Gravity.frame(eye)
+		var to_local := frame.inverse()
+		var targets := _assist_targets()
+		for target in targets:
+			target["a"] = eye + to_local * ((target["a"] as Vector3) - eye)
+			target["b"] = eye + to_local * ((target["b"] as Vector3) - eye)
+		var visible := func(from: Vector3, point: Vector3) -> bool: return _assist_visible(from, from + frame * (point - from))
+		turn = _aim_assist.update(eye, look_yaw, look_pitch, weapons.ads,
+				Settings.effective_aim_assist(), targets, visible,
 				Settings.aim_assist_reach(), Settings.aim_assist_range(), Settings.aim_assist_pull(), delta)
 	if stick != Vector2.ZERO:
 		stick = stick.normalized() * pow(stick.length(), STICK_CURVE)
@@ -119,7 +128,7 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	_dust_t -= dt
 	if is_sliding and is_on_floor() and _dust_t <= 0.0:
 		_dust_t = 0.05
-		Dust.trail(self, global_position, Vector3(velocity.x, 0.0, velocity.z))
+		Dust.trail(self, global_position, velocity.slide(body_up()))
 	var land := Mannequin.spring(Vector2(_cam_land, 0.0), Vector2(_cam_land_v, 0.0), Vector2.ZERO, 3.5, 0.55, dt)
 	_cam_land = clampf(land[0].x, -0.12, 0.05)
 	_cam_land_v = land[1].x
@@ -136,8 +145,8 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	_punch_v = punch[1]
 
 	if is_mantling and not _ledge_set:
-		var forward := Vector3(-sin(look_yaw), 0.0, -cos(look_yaw))
-		var right := forward.cross(Vector3.UP)
+		var forward := Gravity.frame(global_position) * Vector3(-sin(look_yaw), 0.0, -cos(look_yaw))
+		var right := forward.cross(body_up())
 		var center := _mantle_up + forward * 0.45
 		_arms.ledge_hands = [center - right * 0.22, center + right * 0.22]
 	_ledge_set = is_mantling
@@ -270,15 +279,15 @@ func _update_death_drift(delta: float) -> void:
 ## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none)].
 func drawn_pose() -> Array:
 	var pos := global_position
-	var yaw := rotation.y
+	var yaw := body_yaw
 	var pitch := _head.rotation.x
 	if is_local:
-		pos = _head.global_position - Vector3.UP * _eye_height
+		pos = _head.global_position - Gravity.up(_head.global_position) * _eye_height
 		yaw = look_yaw
 		pitch = look_pitch
 	elif control == Mode.REMOTE_SERVER:
 		pos = _visual.global_position
-		yaw = rotation.y + _visual.rotation.y
+		yaw = body_yaw + _visual.rotation.y
 		pitch = _shown_pitch
 	var reload := weapons.reload_progress() if control != Mode.PUPPET else _visual.reload_progress()
 	var melee := weapons.melee_progress() if control != Mode.PUPPET else _visual.melee_progress()

@@ -104,10 +104,11 @@ func _process(delta: float) -> void:
 			multimesh.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
 			continue
 		if not _resting[i]:
-			_vel[i] += Vector3.DOWN * GRAVITY * delta
+			var up := Gravity.up(_pos[i])
+			_vel[i] -= up * GRAVITY * delta
 			var to := _pos[i] + _vel[i] * delta
 			_query.from = _pos[i]
-			_query.to = to + Vector3.DOWN * RADIUS
+			_query.to = to - up * RADIUS
 			var hit := space.intersect_ray(_query)
 			if hit.is_empty():
 				_pos[i] = to
@@ -119,10 +120,10 @@ func _process(delta: float) -> void:
 				_pos[i] = hit["position"] + normal * RADIUS
 				_vel[i] = _vel[i].bounce(normal) * BOUNCE
 				_spin[i] *= 0.6
-				if _vel[i].length() < REST_SPEED and normal.y > 0.7:
+				if _vel[i].length() < REST_SPEED and normal.dot(up) > 0.7:
 					_resting[i] = true
 					# Lying on its side, any way round.
-					_basis[i] = Basis(Vector3.UP, randf() * TAU) * Basis(Vector3.FORWARD, PI * 0.5)
+					_basis[i] = Gravity.frame(_pos[i]) * Basis(Vector3.UP, randf() * TAU) * Basis(Vector3.FORWARD, PI * 0.5)
 		# Fade out at the end by shrinking.
 		var s := clampf(_life[i] / 0.3, 0.0, 1.0)
 		multimesh.set_instance_transform(i, Transform3D(_basis[i] * Basis.from_scale(_scale[i] * s), _pos[i]))

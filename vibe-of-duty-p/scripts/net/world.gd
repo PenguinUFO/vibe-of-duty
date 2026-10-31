@@ -13,8 +13,8 @@ const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
 const SNAPSHOT_INTERVAL := 1  # physics ticks between snapshots (60 Hz: others can be drawn only ~30 ms behind)
 const KILL_HEIGHT := -20.0
 
-## Below this height a living player dies (fell off the map). Maps may raise it: on the train the ground beside the
-## track is deadly (it rushes past at 80 km/h).
+## Below this height (Gravity.height: y, on the ring station how far in from the rim) a living player dies (fell off
+## the map). Maps may raise it: on the train the ground beside the track is deadly (it rushes past at 80 km/h).
 @export var kill_height := KILL_HEIGHT
 const RESPAWN_DELAY := 3.0
 const SPAWN_PROTECTION_TICKS := 120
@@ -73,7 +73,7 @@ func _ready() -> void:
 		var picker := BuildPicker.new()
 		picker.world = self
 		add_child(picker)
-		Audio.play_music_id("game")
+		Audio.stop_music()  # no soundtrack in a match (owner, 2026-10-31); music/game/ stays in the project
 		# Load everything the first shot / first opponent would otherwise load mid-match (a hitch).
 		WeaponDB.preload_scenes()
 		PlayerVisual.preload_scenes()
@@ -118,7 +118,7 @@ func _physics_process(delta: float) -> void:
 		var player: Player = players[id]
 		player.spawn_protect = maxi(player.spawn_protect - 1, 0)
 		player.server_regen(delta)
-		if player.alive and player.global_position.y < kill_height:
+		if player.alive and Gravity.height(player.global_position) < kill_height:  # y; on the ring: out past the rim
 			_server_suicide(player)
 		elif player.alive and _scenery and _scenery.hits_vault(player.global_position,
 				Player.CROUCH_HEIGHT if player.is_crouched else Player.STAND_HEIGHT):
@@ -249,7 +249,8 @@ func _server_want_build(id: int, build: Array) -> void:
 	if Game.training and player.alive and player.wanted_build != player.build:
 		# Training: no one to wait for - a new life with it where they stand, looking where they looked.
 		var pitch := player.look_pitch
-		var xform := Transform3D(Basis(Vector3.UP, player.look_yaw), player.global_position)
+		var xform := Transform3D(Gravity.frame(player.global_position) * Basis(Vector3.UP, player.look_yaw),
+				player.global_position)
 		_apply_respawn(id, xform, player.wanted_build)
 		for peer in _ready_peers:
 			_player_respawned.rpc_id(peer, id, xform, player.wanted_build)
@@ -385,7 +386,7 @@ func _send_snapshot_delayed(peer: int, tick: int, states: Array) -> void:
 ## Spawn point farthest from living players (two best candidates, picked at random).
 func _pick_spawn(exclude_id: int) -> Transform3D:
 	if Game.test_spawn != Vector3.INF:
-		return Transform3D(Basis.IDENTITY, Game.test_spawn)
+		return Transform3D(Gravity.frame(Game.test_spawn), Game.test_spawn)
 	var scored: Array = []
 	for spawn in _spawns:
 		var nearest := INF
@@ -415,7 +416,7 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
 		_hit_confirm.rpc_id(attacker.peer_id, killed, head)
-	var from := attacker.global_position + Vector3.UP * Player.STAND_EYE  # for the victim's damage direction arc
+	var from := attacker.global_position + attacker.body_up() * Player.STAND_EYE  # for the victim's damage direction arc
 	if victim.control == Player.Mode.LOCAL:
 		victim.on_damaged_from(from)  # the host is the victim
 	elif victim.peer_id in _ready_peers:
@@ -658,7 +659,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		killer_name = (players[killer_id] as Player).player_name
 	var from := Vector3.INF
 	if killer_name != "":
-		from = (players[killer_id] as Player).global_position + Vector3.UP * Player.STAND_EYE
+		var killer: Player = players[killer_id]
+		from = killer.global_position + killer.body_up() * Player.STAND_EYE
 	victim.die(killer_name, delay, from, head)
 	if kill_cam != null and victim.is_local and killer_name != "":
 		kill_cam.start(killer_id)

@@ -97,6 +97,7 @@ var is_local: bool:
 		return control == Mode.LOCAL
 
 var look_yaw := 0.0
+var body_yaw := 0.0  # the body's facing in the local gravity frame (Gravity.frame; on ordinary maps rotation.y)
 var _sprint_latched := false  # gamepad sprint (Y / L3) stays on until the player stops moving forward
 var _pad_look := false  # the gamepad was used last (not the mouse): aim assist is on
 var _next_oink := 0.0     # s (ticks clock) when F may oink again
@@ -235,6 +236,29 @@ var _correction := Vector3.ZERO   # visual offset hiding a position correction, 
 @onready var _debug: Label = $HUD/Debug
 var _debug_shown := false  # F3
 @onready var _visual: PlayerVisual = $Visual
+
+
+## Stands the body upright in the gravity frame at its position, facing `yaw` in that frame (Gravity).
+func _orient(yaw: float) -> void:
+	body_yaw = yaw
+	var frame := Gravity.frame(global_position)
+	global_basis = frame * Basis(Vector3.UP, yaw)
+	up_direction = frame.y
+
+
+## Up at the body (its gravity frame's y).
+func body_up() -> Vector3:
+	return global_basis.y
+
+
+## Where the eyes are (shots start there).
+func eye_position() -> Vector3:
+	return global_position + global_basis.y * (CROUCH_EYE if is_crouched else STAND_EYE)
+
+
+## Speed along the floor (without the up component).
+func flat_speed() -> float:
+	return velocity.slide(global_basis.y).length()
 
 
 func _sfx(id: String, volume_db: float = 0.0) -> void:

@@ -1,10 +1,10 @@
-extends SceneTree
+extends Node
 ## Top-down plans of the maps for drawing edits on: each deck seen from straight above with everything over it cut
 ## away (an orthographic camera at the cut height), flat colours (unshaded), to ../shots/plan_<map>_<deck>.png (and
 ## _h: the same with every surface's height for its colour, to tell walls, cover, floor and drops apart; walls the
 ## cut goes through come out solid, as in a section) plus a
 ## .json beside it (the mapping to metres, the spawns on that deck) that tools/plan_overlay.py draws a grid from.
-## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_plan.gd  (PLAN_MAPS=train,plane)
+## Run windowed: Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_plan  (PLAN_MAPS=train,plane)
 
 const PX_PER_M := 30.0
 ## Per map: the area (x0, x1, z0, z1), whether z runs along the image (long maps), the decks: name -> [cut height,
@@ -35,7 +35,7 @@ void fragment() { ALBEDO = vec3(FRONT_FACING ? clamp((world_y - base) / span, 0.
 """
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var only := OS.get_environment("PLAN_MAPS").split(",", false)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -51,8 +51,8 @@ func _initialize() -> void:
 			if node:
 				level.remove_child(node)
 				node.free()
-		root.add_child(level)
-		await process_frame
+		get_tree().root.add_child(level)
+		await get_tree().process_frame
 		for node in level.find_children("*", "MeshInstance3D", true, false):  # a wall the cut goes through shows
 			var mesh_node := node as MeshInstance3D                          # its inside: solid in section
 			var materials: Array = [mesh_node.material_override]
@@ -70,7 +70,7 @@ func _initialize() -> void:
 		view.size = Vector2i(roundi(width_m * PX_PER_M), roundi(height_m * PX_PER_M))
 		view.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
 		view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-		root.add_child(view)
+		get_tree().root.add_child(view)
 		var cam := Camera3D.new()
 		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
 		cam.keep_aspect = Camera3D.KEEP_HEIGHT
@@ -88,7 +88,7 @@ func _initialize() -> void:
 			var file := "plan_%s_%s" % [map, deck]
 			cam.global_transform = Transform3D(basis, center + Vector3.UP * cut)
 			for i in 8:
-				await process_frame
+				await get_tree().process_frame
 			view.get_texture().get_image().save_png(dir.path_join(file + ".png"))
 			# The heights (plan_overlay.py shades by them): every mesh its height for colour, the glows hidden.
 			var height := ShaderMaterial.new()
@@ -104,7 +104,7 @@ func _initialize() -> void:
 				geometry.material_override = height
 			RenderingServer.set_default_clear_color(Color.BLACK)
 			for i in 8:
-				await process_frame
+				await get_tree().process_frame
 			view.get_texture().get_image().save_png(dir.path_join(file + "_h.png"))
 			RenderingServer.set_default_clear_color(Color(0.07, 0.08, 0.1))
 			for geometry: GeometryInstance3D in saved:
@@ -125,8 +125,8 @@ func _initialize() -> void:
 			print("%s: %dx%d, %d spawns" % [file, view.size.x, view.size.y, spawns.size()])
 		view.queue_free()
 		level.queue_free()
-		await process_frame
-	quit()
+		await get_tree().process_frame
+	get_tree().quit()
 
 
 ## A lamp's halo or a beacon's glow: a billboard, nothing to stand on.

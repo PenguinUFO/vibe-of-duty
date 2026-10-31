@@ -1,6 +1,6 @@
-extends SceneTree
+extends Node
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
-## Godot_v4.7.2.exe --path vibe-of-duty-p --script res://tools/shot_fp.gd
+## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_fp
 
 const CASES := {  # [weapon, ads, punch progress, modules, reload progress]
 	"hip": [0, 0.0, -1.0, []], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
@@ -24,10 +24,10 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress]
 	"mp7_mods_ads": [4, 1.0, -1.0, ["mp7.grip.folded", "mp7.suppressor.on", "mp7.sight.compm"]],
 	"mp7_collapsed_ads": [4, 1.0, -1.0, ["mp7.stock.collapsed"]],
 	"contender_hip": [5, 0.0, -1.0, []], "contender_ads": [5, 1.0, -1.0, []],
-	"contender_r15": [5, 0.0, -1.0, [], 0.15], "contender_r25": [5, 0.0, -1.0, [], 0.25],
-	"contender_r33": [5, 0.0, -1.0, [], 0.33], "contender_r50": [5, 0.0, -1.0, [], 0.5],
-	"contender_r60": [5, 0.0, -1.0, [], 0.6], "contender_r66": [5, 0.0, -1.0, [], 0.66],
-	"contender_r77": [5, 0.0, -1.0, [], 0.77], "contender_r87": [5, 0.0, -1.0, [], 0.87],
+	"contender_r10": [5, 0.0, -1.0, [], 0.1], "contender_r22": [5, 0.0, -1.0, [], 0.22],
+	"contender_r30": [5, 0.0, -1.0, [], 0.3], "contender_r40": [5, 0.0, -1.0, [], 0.4],
+	"contender_r50": [5, 0.0, -1.0, [], 0.5], "contender_r60": [5, 0.0, -1.0, [], 0.6],
+	"contender_r75": [5, 0.0, -1.0, [], 0.75], "contender_r90": [5, 0.0, -1.0, [], 0.9],
 	"winchester_hip": [6, 0.0, -1.0, []], "winchester_ads": [6, 1.0, -1.0, []],
 	"winchester_r30": [6, 0.0, -1.0, [], 0.3], "winchester_r60": [6, 0.0, -1.0, [], 0.6],
 	"winchester_r78": [6, 0.0, -1.0, [], 0.78],
@@ -39,9 +39,9 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress]
 }
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var root3d := Node3D.new()
-	get_root().add_child(root3d)
+	get_tree().root.add_child(root3d)
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-50, 30, 0)
 	root3d.add_child(light)
@@ -84,14 +84,14 @@ func _initialize() -> void:
 		for i in 30:
 			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()
-			await process_frame
-		get_root().get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))
+			await get_tree().process_frame
+		get_tree().root.get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))
 		# Inspection view: the same pose from the left and below, close up.
 		var target := view.global_position
 		inspect.look_at_from_position(target + Vector3(-0.45, -0.2, -0.15), target + Vector3(0, -0.03, -0.1))
 		inspect.current = true
-		await process_frame
-		await process_frame
-		get_root().get_texture().get_image().save_png(dir.path_join("fp_%s_side.png" % c))
+		await get_tree().process_frame
+		await get_tree().process_frame
+		get_tree().root.get_texture().get_image().save_png(dir.path_join("fp_%s_side.png" % c))
 		cam.current = true
-	quit()
+	get_tree().quit()

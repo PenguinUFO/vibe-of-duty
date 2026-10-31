@@ -50,6 +50,7 @@ const LEFT_PALM := Vector3(0.0, 1.0, 0.0)         # palm up
 const RIGHT_POLE := Vector3(0.9, -1.0, 0.3)       # where the elbows point (mannequin space)
 const LEFT_POLE := Vector3(-0.8, -1.0, -0.1)
 const PUNCH_REACH := Vector3(0.14, -0.04, -0.55)  # the punching hoof from the left shoulder, aim frame (towards the middle)
+const BANDOLIER := Vector3(-0.12, 0.22, -0.16)    # chest frame: the loops on the left of the chest a break-open's rounds ride in
 
 # --- locomotion ---
 const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
@@ -103,7 +104,7 @@ var reload := -1.0    # reload progress 0..1, -1 = not reloading
 var melee := -1.0     # hoof punch progress 0..1, -1 = not punching
 var mantle := 0.0     # 0..1: vaulting pose weight
 var mantle_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left and right hand on the ledge
-var mantle_top := 0.0  # world height of the ledge's top
+var mantle_top := Vector3.ZERO  # a world point at the height of the ledge's top
 var ads := 0.0        # 0..1
 var crouch := 0.0     # 0..1
 var weapon: WeaponView
@@ -458,7 +459,7 @@ func pose() -> void:
 		var foot := _feet[i]
 		if mantle > 0.0 and i == 0:
 			# Vaulting: near the top the left knee comes up and the foot goes onto the ledge.
-			var below := mantle_top - global_position.y
+			var below := (mantle_top - global_position).dot(global_basis.y)
 			var knee_up := mantle * smoothstep(1.0, 0.35, below)
 			var ledge := global_transform.affine_inverse() * ((mantle_hands[0] + mantle_hands[1]) * 0.5)
 			foot = foot.lerp(Vector3(-0.1, ledge.y, ledge.z + 0.1), knee_up)
@@ -495,6 +496,9 @@ func pose() -> void:
 		weapon.set_break(-1.0)
 		weapon.set_shell(-1.0)
 		weapon.bolt_pull = 0.0
+		var refill := weapon.refill_progress()
+		if refill >= 0.0:
+			left_view = refill_hand(refill, left_view, weapon_local.affine_inverse() * (chest * BANDOLIER))
 	var punch := punch_curve(melee)
 	if punch.y > 0.0:
 		# Hoof punch: the gun swings out to the side and down about the butt (the stock stays at the shoulder), out of
@@ -726,8 +730,7 @@ func _reload_pose(weapon_local: Transform3D, grip: Vector3, chest: Transform3D) 
 		weapon.set_shell(r, with_shell[1])
 		return weapon_local
 	if weapon.breaks_open():
-		var pouch_at := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
-		var hold := break_hand(r, weapon, handguard, pouch_at, 1.0)
+		var hold := break_hand(r, weapon, handguard, 1.0)
 		_reload_hand = hold[0]
 		weapon.set_break(r, hold[1])
 		return weapon_local
@@ -820,27 +823,32 @@ static func tip_mag_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vec
 	return [hand, tip, slide, carried]
 
 
-## A break-open's reload (`r` 0..1), the left hand in gun view space - shared as reload_hand: onto the fore-end and down
-## with it (the barrel drops, WeaponView.break_open), to the breech - plucks the spent case and flicks it away - down to
-## the pouch and back with a round, thumbs it into the chamber, swings the barrel shut, back to its hold. `scale`: the
-## gun's drawn scale. Returns [hand position, the round's shift (WeaponView.set_break: ZERO when the hand is empty)].
-static func break_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vector3, scale: float) -> Array:
+## A break-open's reload (`r` 0..1), the left hand in gun view space - shared as reload_hand: the right hand opens it
+## (WeaponView.break_open, the case kicks itself out) while the left, the next round already between its fingers,
+## goes from the fore-end to the breech, thumbs the round in and back to its hold; the right wrist flicks the barrel
+## shut. `scale`: the gun's drawn scale. Returns [hand position, the round's shift (WeaponView.set_break: ZERO when
+## the hand is empty)]. The hand then fetches the next round: refill_hand.
+static func break_hand(r: float, weapon: WeaponView, rest: Vector3, scale: float) -> Array:
 	var open := WeaponView.break_open(r)
-	var on_forend := _view_point(weapon.broken(weapon.def.forend, open)) * scale  # rides the fore-end as it moves
 	var seated := _view_point(weapon.round_grip_point(0.0, open)) * scale
-	var lifted := _view_point(weapon.round_grip_point(WeaponView.EXTRACT, open)) * scale
-	var drawn := _view_point(weapon.round_grip_point(0.04, open)) * scale
 	var loading := _view_point(weapon.round_grip_point(0.05, open)) * scale
-	var keys := [[0.0, rest], [0.1, on_forend], [0.27, on_forend], [0.31, lifted], [0.36, drawn], [0.47, pouch],
-			[0.52, pouch], [0.62, loading], [0.68, seated], [0.72, on_forend], [0.8, on_forend], [0.92, rest], [1.0, rest]]
+	var keys := [[0.0, rest], [0.24, loading], [0.38, seated], [0.42, seated], [0.66, rest], [1.0, rest]]
 	var hand: Vector3 = rest
 	for i in keys.size() - 1:
 		if r >= keys[i][0] and r < keys[i + 1][0]:
 			var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
 			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
 			break
-	var holds := (r >= 0.31 and r < 0.36) or (r >= 0.47 and r < 0.68)
+	var holds := r >= WeaponView.EJECT_AT and r < 0.38
 	return [hand, _view_point((hand - seated) / scale) if holds else Vector3.ZERO]
+
+
+## After a break-open's reload (`t` 0..1, WeaponView.refill_progress): the left hand off its hold to the bandolier
+## (`bandolier`, gun view space), plucks the next round to hold between its fingers, and back.
+static func refill_hand(t: float, rest: Vector3, bandolier: Vector3) -> Vector3:
+	if t < 0.45:
+		return rest.lerp(bandolier, smoothstep(0.0, 0.45, t))
+	return bandolier.lerp(rest, smoothstep(0.55, 1.0, t))
 
 
 ## A lever action's loading, one shell (`r` 0..1), the left hand in gun view space - shared as reload_hand: off the

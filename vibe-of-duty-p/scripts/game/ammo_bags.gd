@@ -37,20 +37,22 @@ func _init() -> void:
 
 ## Drops a bag under `body_pos` (the killed player's feet). Nothing when there is no ground below (fell off).
 func server_drop(body_pos: Vector3) -> void:
-	var from := body_pos + Vector3.UP * DROP_HEIGHT
+	var frame := Gravity.frame(body_pos)  # up and the floor's directions there
+	var up := frame.y
+	var from := body_pos + up * DROP_HEIGHT
 	var space := get_world_3d().direct_space_state
-	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, body_pos + Vector3.DOWN * FIND_GROUND,
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, body_pos - up * FIND_GROUND,
 			Layers.WORLD))
-	if hit.is_empty() or (hit["position"] as Vector3).y < world.kill_height:
+	if hit.is_empty() or Gravity.height(hit["position"]) < world.kill_height:
 		return  # no ground, or the deadly one (beside the train: it rushes past, the bag would stand still on it)
-	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
-	var fall := sqrt(2.0 * maxf(from.y - (hit["position"] as Vector3).y, 0.05) / GRAVITY)
+	var side := frame * Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
+	var fall := sqrt(2.0 * maxf((from - (hit["position"] as Vector3)).dot(up), 0.05) / GRAVITY)
 	var to: Vector3 = hit["position"] + side * TOSS_SPEED * fall
 	# Keep it out of walls: the tossed spot must be reachable from the body and have ground under it.
-	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to + Vector3.UP * 0.1, Layers.WORLD)).is_empty():
+	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to + up * 0.1, Layers.WORLD)).is_empty():
 		to = hit["position"]
 	else:
-		var under := space.intersect_ray(PhysicsRayQueryParameters3D.create(to + Vector3.UP * 0.5, to + Vector3.DOWN * 1.0,
+		var under := space.intersect_ray(PhysicsRayQueryParameters3D.create(to + up * 0.5, to - up * 1.0,
 				Layers.WORLD))
 		to = under["position"] if not under.is_empty() else hit["position"]
 	if _bags.size() >= MAX_BAGS:
@@ -80,9 +82,8 @@ func server_tick(delta: float) -> void:
 			var player: Player = world.players[peer_id]
 			if not player.alive:
 				continue
-			var feet := player.global_position
-			var dy := pos.y - feet.y
-			if dy < -PICKUP_BELOW or dy > PICKUP_ABOVE or Vector2(pos.x - feet.x, pos.z - feet.z).length() > PICKUP_RADIUS:
+			var off := Gravity.frame(player.global_position).inverse() * (pos - player.global_position)  # y: up
+			if off.y < -PICKUP_BELOW or off.y > PICKUP_ABOVE or Vector2(off.x, off.z).length() > PICKUP_RADIUS:
 				continue
 			if player.server_take_ammo():
 				_server_remove(id, peer_id)
@@ -122,11 +123,12 @@ func _dropped(id: int, from: Vector3, to: Vector3, age: float) -> void:
 		return
 	var node := _make_bag()
 	add_child(node)
-	node.rotation.y = randf() * TAU
+	var lying := Gravity.frame(to) * Basis(Vector3.UP, randf() * TAU)  # upright on the floor, turned any way
+	node.global_basis = lying
 	node.global_position = from
-	var fall := sqrt(2.0 * maxf(from.y - to.y, 0.0) / GRAVITY)
+	var fall := sqrt(2.0 * maxf((from - to).dot(lying.y), 0.0) / GRAVITY)
 	_shown[id] = {"node": node, "from": from, "to": to, "t": 0.0 if fall > 0.0 else 1.0, "fall": maxf(fall, 0.001),
-			"age": age, "spin": randf_range(-6.0, 6.0)}
+			"age": age, "spin": randf_range(-6.0, 6.0), "basis": lying}
 	if fall <= 0.0:
 		node.global_position = to
 
@@ -154,12 +156,14 @@ func _process(delta: float) -> void:
 			bag["t"] = t
 			var from: Vector3 = bag["from"]
 			var to: Vector3 = bag["to"]
+			var lying: Basis = bag["basis"]
+			var up := lying.y
 			var p := from.lerp(to, t)
-			p.y = from.y - 0.5 * GRAVITY * pow(t * bag["fall"], 2.0)
-			node.global_position = Vector3(p.x, maxf(p.y, to.y), p.z)
-			node.rotation.x = (1.0 - t) * bag["spin"] * 0.3
+			var height := (from - to).dot(up) - 0.5 * GRAVITY * pow(t * bag["fall"], 2.0)
+			node.global_position = p + up * (maxf(height, 0.0) - (p - to).dot(up))
+			node.global_basis = lying * Basis(Vector3.RIGHT, (1.0 - t) * bag["spin"] * 0.3)
 			if t >= 1.0:
-				node.rotation.x = 0.0
+				node.global_basis = lying
 				node.global_position = to
 				Dust.burst(self, to, 0.3)
 		var left: float = LIFETIME - bag["age"]

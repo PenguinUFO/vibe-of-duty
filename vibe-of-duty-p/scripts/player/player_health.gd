@@ -117,15 +117,15 @@ static func clamp_toughness(t: Vector3) -> Vector3:
 
 
 ## Server: damage multiplier for a shot fired from `from` (world). Kid mode takes less from behind: none at the
-## sides (90 deg off the view: rotation.y, the yaw of the last command), fading to back_damage at BACK_FULL_ANGLE and
+## sides (90 deg off the view: body_yaw, the yaw of the last command), fading to back_damage at BACK_FULL_ANGLE and
 ## beyond.
 func damage_mult_from(from: Vector3) -> float:
 	if back_damage >= 1.0:
 		return 1.0
-	var to := from - global_position
+	var to := Gravity.frame(global_position).inverse() * (from - global_position)  # in the frame, like the yaw
 	if Vector2(to.x, to.z).length() < 0.01:
 		return 1.0
-	var off := absf(angle_difference(rotation.y, AimAssist.yaw_of(Vector3(to.x, 0.0, to.z).normalized())))
+	var off := absf(angle_difference(body_yaw, AimAssist.yaw_of(Vector3(to.x, 0.0, to.z).normalized())))
 	var behind := clampf((off - PI / 2.0) / (BACK_FULL_ANGLE - PI / 2.0), 0.0, 1.0)
 	return lerpf(1.0, back_damage, behind)
 

@@ -29,6 +29,7 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(46.0)
 	floor_stop_on_slope = true
 	look_yaw = rotation.y
+	body_yaw = rotation.y
 	weapons.infinite_reserve = Game.training  # training maps: ammo never runs out (only reloads)
 	_camera.current = is_local
 	_camera.fov = Settings.fov
@@ -97,7 +98,7 @@ func _physics_process(delta: float) -> void:
 			step(_pop_server_cmd(), delta)
 			_record_host_sample()
 	_curr_pos = global_position
-	_curr_yaw = rotation.y
+	_curr_yaw = body_yaw
 
 
 func _process(delta: float) -> void:
@@ -107,7 +108,7 @@ func _process(delta: float) -> void:
 		return
 	var eye := 0.35 if not alive else (CROUCH_EYE if is_crouched else STAND_EYE)
 	_eye_height = lerpf(_eye_height, eye, 1.0 - exp(-14.0 * delta))
-	var speed := Vector2(velocity.x, velocity.z).length()
+	var speed := flat_speed()
 	var def := weapons.current()
 	if is_local:
 		_stick_look(delta)
@@ -117,7 +118,8 @@ func _process(delta: float) -> void:
 			_update_death_drift(delta)
 		var pos := _prev_pos.lerp(_curr_pos, Engine.get_physics_interpolation_fraction()) + _correction + _death_drift
 		var view_angles := Vector3(look_pitch + _view_recoil.x, look_yaw + _view_recoil.y, 0.0)
-		_head.global_transform = Transform3D(Basis.from_euler(view_angles), pos + Vector3.UP * _eye_height)
+		var frame := Gravity.frame(pos)
+		_head.global_transform = Transform3D(frame * Basis.from_euler(view_angles), pos + frame.y * _eye_height)
 	else:
 		_head.position.y = _eye_height
 		# Server-simulated remote player seen on the host: drive its body like a puppet's. The physics body moves
@@ -126,7 +128,7 @@ func _process(delta: float) -> void:
 		var shown := _buffered_pose(delta)
 		if not shown.is_empty():
 			_visual.position = global_transform.basis.inverse() * (shown["pos"] - global_position)
-			_visual.rotation.y = angle_difference(rotation.y, shown["yaw"])
+			_visual.rotation.y = angle_difference(body_yaw, shown["yaw"])
 			shown_tick = shown["tick"]
 		_shown_pitch = shown.get("pitch", _head.rotation.x)
 		_visual.set_aim_pitch(_shown_pitch)
@@ -135,7 +137,7 @@ func _process(delta: float) -> void:
 		_visual.set_sliding(is_sliding)
 		_visual.set_reloading(weapons.is_reloading())
 		_visual.set_meleeing(weapons.is_meleeing())
-		_visual.set_mantling(is_mantling, _mantle_up.y)
+		_visual.set_mantling(is_mantling, _mantle_up)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov
@@ -170,18 +172,9 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 		cmd.melee = Input.is_action_just_pressed("melee")
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER_TIME
-		var count := WeaponDB.count()
-		for i in count:
-			var key := "weapon_%d" % (i + 1)
-			if InputMap.has_action(key) and Input.is_action_just_pressed(key):
-				cmd.select = i
-		if Input.is_action_just_pressed("weapon_next"):
-			cmd.select = (weapons.index + 1) % count
-		elif Input.is_action_just_pressed("weapon_prev"):
-			cmd.select = (weapons.index + count - 1) % count
 		# Any other action ends a latched sprint; press Y / L3 again to sprint on.
 		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("crouch") or cmd.fire or cmd.aim \
-				or cmd.reload or cmd.melee or cmd.select >= 0:
+				or cmd.reload or cmd.melee:
 			_sprint_latched = false
 		cmd.sprint = Input.is_action_pressed("sprint") or _sprint_latched
 	cmd.jump = _jump_buffer > 0.0

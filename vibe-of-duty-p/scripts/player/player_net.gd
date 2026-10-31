@@ -106,10 +106,10 @@ func _pop_server_cmd() -> PlayerCmd:
 
 
 ## The ledge height of a vault in a snapshot entry (get_net_state: extra -> mantle -> the pull-up point).
-static func _snapshot_mantle_top(state: Array) -> float:
+static func _snapshot_mantle_top(state: Array) -> Vector3:
 	var extra: Array = state[7]
 	var mantle: Array = extra[6]
-	return (mantle[5] as Vector3).y
+	return mantle[5]
 
 
 ## Server: compact per-player state for snapshots.
@@ -127,7 +127,7 @@ func get_net_state() -> Array:
 	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
 	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
-	return [peer_id, global_position, rotation.y, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
+	return [peer_id, global_position, body_yaw, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
 
 
 ## Client: feed a server snapshot entry for this player.
@@ -164,19 +164,19 @@ func _update_puppet() -> void:
 		return
 	var previous_pos := global_position
 	global_position = shown["pos"]
-	rotation.y = shown["yaw"]
+	_orient(shown["yaw"])
 	_head.rotation.x = shown["pitch"]
 	shown_tick = shown["tick"]
 	# Velocity of the displayed movement (smooth, unlike the snapshot velocity): drives the body and hitboxes.
 	if delta > 0.0 and previous_pos.distance_to(global_position) < 2.0:
 		var drawn_vel := (global_position - previous_pos) / delta
-		_puppet_velocity = _puppet_velocity.lerp(Vector3(drawn_vel.x, 0.0, drawn_vel.z), 1.0 - exp(-12.0 * delta))
+		_puppet_velocity = _puppet_velocity.lerp(drawn_vel.slide(body_up()), 1.0 - exp(-12.0 * delta))
 	_visual.set_crouched(is_crouched)
 	_visual.set_sliding(is_sliding)
 	_visual.set_aim_pitch(_head.rotation.x)
 	_visual.update_motion(delta, global_transform.basis.inverse() * _puppet_velocity, _puppet_on_floor)
 	# Footsteps of other players, from their displayed movement.
-	var moved := Vector2(global_position.x - previous_pos.x, global_position.z - previous_pos.z).length()
+	var moved := (global_position - previous_pos).slide(body_up()).length()
 	if _puppet_on_floor and not is_sliding and moved < 1.0:
 		_step_distance += moved
 		if _step_distance >= STEP_STRIDE:
@@ -193,7 +193,7 @@ func reset_interpolation() -> void:
 
 ## Host: buffers a remote player's pose after each of their commands (drawn by _process via _buffered_pose).
 func _record_host_sample() -> void:
-	_buffer_pose(_acked_seq, global_position, rotation.y, _head.rotation.x, float(world.server_tick) if world else 0.0)
+	_buffer_pose(_acked_seq, global_position, body_yaw, _head.rotation.x, float(world.server_tick) if world else 0.0)
 
 
 ## Puts a pose of another player into the buffer. `seq` counts their steady 60 Hz steps (their command number, or
@@ -302,13 +302,14 @@ func _apply_server_state(state: Array) -> void:
 	_mantle_dir = mantle[7]
 	_mantle_cooldown = mantle[8]
 	_floor_y = mantle[9]
+	_orient(body_yaw)
 	_apply_stance()
 
 
 ## Sounds of another player, derived from changes between snapshots (their simulation does not run here).
 func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	var on_floor := flags & STATE_ON_FLOOR != 0
-	if _puppet_on_floor and not on_floor and new_velocity.y > 2.0:
+	if _puppet_on_floor and not on_floor and new_velocity.dot(Gravity.up(global_position)) > 2.0:
 		Audio.play("jump", global_position)
 	elif on_floor and not _puppet_on_floor:
 		Audio.play("land", global_position, mods["land_db"])

@@ -97,9 +97,9 @@ func shot(shooter: Player, hits: Array) -> void:
 	var life: Dictionary = _lives.get(shooter.peer_id, {})
 	if not life.is_empty():
 		life["shots"] += 1
-		life["hits"] += hits.size()
-		for hit in hits:
-			life["head"] += 1 if hit["zone"] == "head" else 0
+		# Per shot, not per pellet: a shotgun blast that lands counts once (accuracy stays <= 100%).
+		life["hits"] += 1 if not hits.is_empty() else 0
+		life["head"] += 1 if hits.any(func(hit): return hit["zone"] == "head") else 0
 
 
 ## Damage the victim took (`hp_before` - their health now), with the state of both at that moment.

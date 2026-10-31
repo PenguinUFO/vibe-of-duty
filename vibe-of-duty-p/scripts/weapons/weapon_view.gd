@@ -12,7 +12,8 @@ const KICK_DECAY := 14.0
 const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
 const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
 const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
-const BREAK_ANGLE := 0.73     # rad: how far a break-open's barrel drops for a reload (~42 degrees)
+const BREAK_ANGLE := 0.5      # rad: how far a break-open's barrel drops for a reload (~29 degrees: room for a round)
+const REFILL_TIME := 0.45     # s after a break-open's reload: the left hand takes the next round from the bandolier
 const HAMMER_DROP := 0.45     # rad: a fired hammer leans forward this far until a reload cocks it
 ## A break-open's round: where the left hand's palm is when it holds it (prefab space from the case head, life size,
 ## along the frame - not the dropped barrel: to its left, below and ahead, the fingers up round the rim; from behind
@@ -58,6 +59,7 @@ var _bullet: Node3D       # "Break/Round/Bullet": gone while the round is the sp
 var _hammer: Node3D       # "Hammer": falls forward on a shot, cocked again at the end of a reload
 var _hammer_down := false
 var _break_r := -1.0      # the reload progress the break-open was last posed at
+var _refill_from := -1.0  # s (ticks): when the left hand went for the next round after a reload (-1: it is not)
 var _lever: Node3D        # a lever action's lever (Winchester 1887): "Lever", its origin on the pivot; cycled after a
 						  # shot, held down while loading; it cocks the hammer and throws the hull out
 var _shell: Node3D        # "Shell": a shell at the open action's top, shown while the left hand pushes it in
@@ -301,14 +303,37 @@ func breaks_open() -> bool:
 	return _break != null
 
 
-## A break-open's reload (`r` 0..1, -1: none): how far the barrel is down, 0..1 - dropped by the left hand on the
-## fore-end (0.1-0.2), held open, swung shut (0.74-0.8; faster to the end: it snaps closed). Mannequin.break_hand
-## follows the same times.
+## A break-open's reload (`r` 0..1, -1: none): how far the barrel is down, 0..1 - the right hand's finger pulls the
+## trigger guard's spur and the barrel drops (0.02-0.22) while the left hand brings the next round, already between
+## its fingers, to the breech; the spent case kicked out at EJECT_AT (owner, 2026-10-29: it ejects itself - the real
+## one only lifts it), held open, flicked shut by the right wrist once the round is in (0.44-0.56; faster to the end:
+## it snaps closed). Mannequin.break_hand follows the same times. The round between the fingers is taken from the
+## bandolier after the reload (refill_progress), the gun already loaded.
+const EJECT_AT := 0.22
 static func break_open(r: float) -> float:
 	if r < 0.0:
 		return 0.0
-	var shut := clampf((r - 0.74) / 0.06, 0.0, 1.0)
-	return smoothstep(0.1, 0.2, r) * (1.0 - shut * shut)
+	var shut := clampf((r - 0.44) / 0.12, 0.0, 1.0)
+	return smoothstep(0.02, 0.22, r) * (1.0 - shut * shut)
+
+
+## The wrist's flick that swings a break-open shut (0..1..0 over 0.4-0.6): the gun jerks up.
+static func break_flick(r: float) -> float:
+	if r < 0.4 or r > 0.6:
+		return 0.0
+	return sin((r - 0.4) / 0.2 * PI)
+
+
+## How far the left hand is through taking the next round from the bandolier after a break-open's reload, 0..1
+## (-1: not now). Cosmetic: the gun is loaded and fires meanwhile.
+func refill_progress() -> float:
+	if _refill_from < 0.0:
+		return -1.0
+	var t := (Time.get_ticks_msec() * 0.001 - _refill_from) / REFILL_TIME
+	if t >= 1.0:
+		_refill_from = -1.0
+		return -1.0
+	return t
 
 
 ## Prefab point `p` on a break-open's barrel (model scale) with the barrel `open` (0..1) of the way down.
@@ -322,27 +347,32 @@ func round_grip_point(back: float, open: float) -> Vector3:
 	return broken(def.chamber - Vector3(0.0, 0.0, back * def.model_scale), open) + ROUND_GRIP * def.model_scale
 
 
-## Poses a break-open for reload progress `r` (-1: none): the barrel down, the spent case lifted by the extractor,
-## the round carried by the hand (`round_shift`: prefab space, model scale, from its seat in the dropped barrel; ZERO
-## while the hand does not hold it) and flicked away as a casing, the hammer cocked again at the end.
+## Poses a break-open for reload progress `r` (-1: none): the barrel down, the spent case lifted and kicked out of the
+## chamber as a casing, the new round carried by the hand (`round_shift`: prefab space, model scale, from its seat in
+## the dropped barrel; ZERO while the hand does not hold it), the hammer cocked again as the barrel shuts.
 func set_break(r: float, round_shift := Vector3.ZERO) -> void:
 	if _break == null:
 		return
 	_break.rotation.x = BREAK_ANGLE * break_open(r)
-	var lifted := EXTRACT * smoothstep(0.2, 0.26, r) if r >= 0.0 and r < 0.36 else 0.0
+	if r >= 0.0:
+		_refill_from = -1.0
+	elif _break_r >= 0.9:  # finished, not cut short: the hand goes for the next round
+		_refill_from = Time.get_ticks_msec() * 0.001
+	var lifted := EXTRACT * smoothstep(0.17, EJECT_AT, r) if r >= 0.0 and r < EJECT_AT else 0.0
 	if round_shift != Vector3.ZERO:
 		lifted = 0.0  # the hand has it: the shift is from the seat
 	_round.position = _round_rest + Vector3(0.0, 0.0, -lifted) \
 			+ _break.basis.inverse() * round_shift / def.model_scale
-	if _break_r >= 0.0 and _break_r < 0.36 and r >= 0.36 and is_visible_in_tree():
+	if _break_r >= 0.0 and _break_r < EJECT_AT and r >= EJECT_AT and is_visible_in_tree():
+		# Out of the chamber's mouth, back and up past the shoulder, a little to the left.
 		var basis := _pivot.global_basis.orthonormalized()
-		Casings.eject(self, _round.global_position, basis.x * 0.5, -basis.y * 0.4, -basis.z * 0.3)  # flicked away left
-	_round.visible = r < 0.36 or r >= 0.47  # gone between the flick and the hand's coming back with a round
-	_bullet.visible = r < 0.0 or r >= 0.4
+		var out := -_round.global_basis.z.normalized()
+		Casings.eject(self, _round.global_position, out * 0.55, basis.x * 0.3, basis.y * 0.6)
+	_bullet.visible = r < 0.0 or r >= EJECT_AT  # from the kick on it is the new round, in the hand's fingers
 	if _hammer:
-		if r >= 0.9:
+		if r >= 0.62:
 			_hammer_down = false
-		var cock := smoothstep(0.84, 0.9, r) if r >= 0.0 else 0.0  # the right thumb pulls it back
+		var cock := smoothstep(0.5, 0.62, r) if r >= 0.0 else 0.0  # the right thumb pulls it back
 		_hammer.rotation.x = HAMMER_DROP * (1.0 - cock) if _hammer_down else 0.0
 	_break_r = r
 
@@ -430,9 +460,9 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 		rot.z -= dip * deg_to_rad(28.0)
 	elif reload_p >= 0.0 and _break:
 		# A break-open comes in close, muzzle up, so the dropped barrel's breech faces the eye.
-		var dip := smoothstep(0.0, 0.1, reload_p) * (1.0 - smoothstep(0.86, 1.0, reload_p))
+		var dip := smoothstep(0.0, 0.1, reload_p) * (1.0 - smoothstep(0.7, 1.0, reload_p))
 		pos += Vector3(-0.08, 0.06, 0.09) * dip
-		rot.x += dip * deg_to_rad(18.0)
+		rot.x += dip * deg_to_rad(18.0) + break_flick(reload_p) * deg_to_rad(10.0)  # the wrist snaps it shut
 		rot.z -= dip * deg_to_rad(24.0)
 	elif reload_p >= 0.0 and tips_mag():
 		# A magazine on top: down off the cheek and out, muzzle up (the magazine's back, coming off, stays out of the

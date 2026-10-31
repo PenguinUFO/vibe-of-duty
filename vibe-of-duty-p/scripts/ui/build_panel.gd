@@ -15,6 +15,7 @@ extends PanelContainer
 
 signal closed
 
+const SCREEN_MARGIN := 16.0  # px kept free above and below the panel (the base screen is 720 px tall)
 
 var _tabs: Array[Button] = []
 var _name_edit := LineEdit.new()
@@ -22,6 +23,7 @@ var _pickers := {}            # slot -> OptionButton (all but the card's)
 var _cards := {}              # card slot (PartDB.CARD_SLOTS) -> [its Label, its row of Buttons: one per 'on' module]
 var _tokens := Label.new()
 var _stats := Label.new()
+var _scroll := ScrollContainer.new()  # the slots, numbers and picture: scrolls when they are taller than the screen
 var _info := Label.new()
 var _note := Label.new()
 var _preview := WeaponPreview.new()
@@ -68,7 +70,12 @@ func _init() -> void:
 
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 24)
-	box.add_child(columns)
+	columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.follow_focus = true  # gamepad: the focused picker scrolls into view
+	box.add_child(_scroll)
+	_scroll.add_child(columns)
+	columns.minimum_size_changed.connect(_fit_height, CONNECT_DEFERRED)
 	for slots in [PartDB.WEAPON_SLOTS, PartDB.BODY_SLOTS]:
 		var column := VBoxContainer.new()
 		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -119,6 +126,18 @@ func _init() -> void:
 	_select(Settings.build_index)
 	if Settings.has_gamepad():
 		_tabs[Settings.build_index].grab_focus.call_deferred()
+
+
+## The scroll as tall as the slots and numbers, but no taller than the screen leaves for it; the panel shrinks back too.
+func _fit_height() -> void:
+	if not is_inside_tree():
+		return
+	var columns := _scroll.get_child(0) as Control
+	var rest := get_combined_minimum_size().y - _scroll.custom_minimum_size.y  # title, tabs, note, Back, margins
+	var room := get_viewport_rect().size.y - 2.0 * SCREEN_MARGIN - rest
+	_scroll.custom_minimum_size.y = minf(columns.get_combined_minimum_size().y, room)
+	reset_size()
+	position.y = (get_viewport_rect().size.y - size.y) / 2.0  # reset_size keeps the top: centre again
 
 
 func _select(index: int) -> void:
