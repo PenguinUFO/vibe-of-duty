@@ -16,6 +16,7 @@ const REPLAY_BEFORE := 2.4   # s replayed before the kill...
 const REPLAY_AFTER := 0.5    # ...and after it
 const BAR_HEIGHT := 0.08     # letterbox bars, share of the screen height
 const REPLAY_SHADER := preload("res://assets/shaders/replay_screen.gdshader")
+const REPLAY_GRENADES := &"replay_grenades"  # grenades flown again in a replay (freed when it stops)
 
 var world: NetWorld
 
@@ -42,6 +43,7 @@ var _prev_pos := Vector3.ZERO
 var _camera := Camera3D.new()
 var _view: WeaponView
 var _arms: FirstPersonArms
+var _cannon := GrenadeCannon.new()  # the killer's chest cannon, seen while they launch
 var _ui := CanvasLayer.new()
 var _scope := ScopeOverlay.new()  # the killer looking through a scope
 var _title: Label
@@ -55,6 +57,9 @@ func _ready() -> void:
 	_view.is_viewmodel = true
 	_view.visible = false
 	_camera.add_child(_view)
+	_cannon.set_barrel_only()
+	_cannon.visible = false
+	_camera.add_child(_cannon)
 	_ui.layer = 6
 	_ui.visible = false
 	add_child(_ui)
@@ -138,6 +143,9 @@ func stop() -> void:
 	for id in _ghosts:
 		_show_ghost(_ghosts[id], false)
 	_view.visible = false
+	_cannon.visible = false
+	for node in get_tree().get_nodes_in_group(REPLAY_GRENADES):
+		node.queue_free()  # a replayed grenade still in the air: it is not in the match
 	_scope.set_amount(0.0)
 	if _arms:
 		_arms.visible = false
@@ -225,6 +233,8 @@ func _play(delta: float) -> void:
 		ghost.set_sliding(pose[8])
 		ghost.show_reload(pose[7])
 		ghost.show_melee(pose[9])
+		ghost.show_grenade(pose[10] if pose.size() > 10 else -1.0)
+		ghost.set_cannon(_cannon_for(id))
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
 		ghost.set_chip(_chip_for(id))
@@ -254,10 +264,14 @@ func _play(delta: float) -> void:
 		_view.visible = killer[5] and not _scope.hides_view()
 		_arms.visible = _view.visible
 		_view.melee = killer[9]
+		_view.grenade = killer[10] if killer.size() > 10 else -1.0
 		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
 		_arms.reload = killer[7]
 		_arms.melee = killer[9]
+		_view.grenade = killer[10] if killer.size() > 10 else -1.0
+		_arms.grenade = _view.grenade
 		_arms.pose()
+		PlayerView.pose_cannon_view(_cannon if _cannon_for(_killer_id) else null, _view.grenade)
 
 	for shot in _shots:
 		if shot["t"] > _shot_t and shot["t"] <= _replay_t:
@@ -299,6 +313,12 @@ func _def_for(id: int, weapon: int) -> WeaponDef:
 	return player.weapons.def_at(weapon) if player != null else WeaponDB.get_def(weapon)
 
 
+## The player has the "Гренадир"'s cannon (as of now, as _def_for).
+func _cannon_for(id: int) -> bool:
+	var player: Player = world.players.get(id)
+	return player != null and player.build.has(PartDB.GRENADIER)
+
+
 ## The player has the "Инженер"'s chip (as of now, as _def_for).
 func _chip_for(id: int) -> bool:
 	var player: Player = world.players.get(id)
@@ -321,6 +341,14 @@ func _arms_for(id: int) -> FirstPersonArms:
 
 
 func _replay_shot(shot: Dictionary) -> void:
+	if shot["weapon"] == WeaponSim.GRENADE:  # a launch (ends: [its velocity]): the same flight again, harmless
+		var grenade := Grenade.new()
+		grenade.cosmetic = true
+		grenade.add_to_group(REPLAY_GRENADES)
+		add_child(grenade)
+		grenade.launch(shot["origin"], shot["ends"][0], true)
+		Audio.play("grenade_launch", null if shot["id"] == _killer_id else shot["origin"])
+		return
 	if shot["weapon"] == WeaponSim.MELEE:  # a punch that landed: its sound and the flinch (the pose shows the swing)
 		for end in shot["ends"]:
 			Audio.play("punch_hit", end)

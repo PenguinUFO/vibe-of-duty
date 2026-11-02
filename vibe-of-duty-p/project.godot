@@ -17,10 +17,6 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 config/version_tag="alpha"
 
-[audio]
-
-buses/default_bus_layout="res://default_bus_layout.tres"
-
 [autoload]
 
 Settings="*res://scripts/autoload/settings.gd"

@@ -32,6 +32,10 @@ const PLACEHOLDERS := {
 	"impact": {"kind": "noise", "dur": 0.05, "decay": 60.0, "vol": 0.35},
 	"punch": {"kind": "noise", "dur": 0.18, "decay": 14.0, "vol": 0.3},     # hoof punch swing (whoosh)
 	"punch_hit": {"kind": "thump", "dur": 0.14, "freq": 160.0, "freq_end": 70.0, "decay": 22.0, "vol": 0.9},
+	"cannon_out": {"kind": "thump", "dur": 0.12, "freq": 320.0, "freq_end": 180.0, "decay": 26.0, "vol": 0.5},  # the chest cannon slides out
+	"grenade_launch": {"kind": "thump", "dur": 0.22, "freq": 120.0, "freq_end": 55.0, "decay": 16.0, "vol": 1.0},  # dull "bump"
+	"grenade_bounce": {"kind": "tone", "dur": 0.06, "freq": 700.0, "freq_end": 520.0, "decay": 40.0, "vol": 0.4},  # iron clank
+	"explosion": {"kind": "thump", "dur": 1.0, "freq": 90.0, "freq_end": 28.0, "decay": 4.5, "vol": 1.0},
 	"match_start": {"kind": "tone", "dur": 0.4, "freq": 440.0, "freq_end": 880.0, "decay": 5.0, "vol": 0.5},
 	"match_end": {"kind": "tone", "dur": 0.6, "freq": 880.0, "freq_end": 330.0, "decay": 4.0, "vol": 0.5},
 	"equip": {"kind": "tone", "dur": 0.1, "freq": 300.0, "freq_end": 600.0, "decay": 20.0, "vol": 0.4},

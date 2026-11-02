@@ -2,8 +2,8 @@ extends Node
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_fp
 
-const CASES := {  # [weapon, ads, punch progress, modules, reload progress]
-	"hip": [0, 0.0, -1.0, []], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
+const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress]
+	"hip": [0, 0.0, -1.0, []], "grenade": [0, 0.0, -1.0, [], -1.0, 0.43], "grenade_back": [0, 0.0, -1.0, [], -1.0, 0.75], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
 	"luger_hip": [2, 0.0, -1.0, []], "luger_ads": [2, 1.0, -1.0, []],
@@ -67,6 +67,9 @@ func _ready() -> void:
 	var arms := FirstPersonArms.new()
 	cam.add_child(arms)
 	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view)
+	var cannon := GrenadeCannon.new()
+	cannon.set_barrel_only()
+	cam.add_child(cannon)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
@@ -79,6 +82,10 @@ func _ready() -> void:
 		arms.melee = CASES[c][2]
 		var reload: float = CASES[c][4] if CASES[c].size() > 4 else -1.0
 		arms.reload = reload
+		var grenade: float = CASES[c][5] if CASES[c].size() > 5 else -1.0
+		view.grenade = grenade
+		arms.grenade = grenade
+		PlayerView.pose_cannon_view(cannon, grenade)
 		if reload >= 0.0:
 			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:

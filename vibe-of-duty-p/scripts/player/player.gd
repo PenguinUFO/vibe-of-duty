@@ -38,6 +38,9 @@ func _ready() -> void:
 	if not is_local:
 		_visual.setup(peer_id, player_name)
 		_visual.set_weapon(weapons.index, weapons.current())
+		# The first life's set_build came before the body existed (NetWorld._spawn_player): its parts go on now.
+		_visual.set_chip(build.has(PartDB.ENGINEER))
+		_visual.set_cannon(build.has(PartDB.GRENADIER))
 	_prev_pos = global_position
 	_curr_pos = global_position
 	_prev_yaw = rotation.y
@@ -55,6 +58,10 @@ func _ready() -> void:
 		_arms = FirstPersonArms.new()
 		_camera.add_child(_arms)
 		_arms.setup(peer_id, _view)
+		_cannon_view = GrenadeCannon.new()
+		_cannon_view.set_barrel_only()
+		_cannon_view.visible = false
+		_camera.add_child(_cannon_view)
 		_build_hud()
 		_prev_look = Vector2(look_yaw, look_pitch)
 
@@ -137,6 +144,7 @@ func _process(delta: float) -> void:
 		_visual.set_sliding(is_sliding)
 		_visual.set_reloading(weapons.is_reloading())
 		_visual.set_meleeing(weapons.is_meleeing())
+		_visual.set_launching(weapons.is_launching(), weapons.is_grenade_ready())
 		_visual.set_mantling(is_mantling, _mantle_up)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
@@ -170,11 +178,12 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 		cmd.aim = Input.is_action_pressed("aim")
 		cmd.reload = Input.is_action_just_pressed("reload")
 		cmd.melee = Input.is_action_just_pressed("melee")
+		cmd.grenade = Input.is_action_pressed("grenade")
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER_TIME
 		# Any other action ends a latched sprint; press Y / L3 again to sprint on.
 		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("crouch") or cmd.fire or cmd.aim \
-				or cmd.reload or cmd.melee:
+				or cmd.reload or cmd.melee or Input.is_action_just_pressed("grenade"):
 			_sprint_latched = false
 		cmd.sprint = Input.is_action_pressed("sprint") or _sprint_latched
 	cmd.jump = _jump_buffer > 0.0

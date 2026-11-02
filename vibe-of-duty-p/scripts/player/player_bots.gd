@@ -258,11 +258,14 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 	if target != null and alive:
 		var eye := global_position + body_up() * STAND_EYE
 		var dir := (LagComp.head_center(target.hitbox_state()) - eye).normalized()  # headshots test the hitbox model
+		if weapons.is_launching():
+			dir = (target.global_position - eye).normalized()  # a grenade: at the feet (the loft carries it on a bit)
 		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
 		cmd.fire = weapons.ads > 0.95 and _bot_trigger()
+		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the "Гренадир": once a life, mid range
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd

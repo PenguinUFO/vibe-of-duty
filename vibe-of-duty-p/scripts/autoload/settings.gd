@@ -108,7 +108,7 @@ func pick_nickname() -> String:
 ## Gamepad bindings (Xbox layout names; other pads map to the same positions). Added here rather than in the project's
 ## input map so the whole layout is readable in one place:
 ##   left stick move, right stick look, A jump, B crouch, Y or L3 sprint (latches until you stop), RT fire, LT aim,
-##   X reload, R3 hoof punch (V on the keyboard), d-pad right next weapon, d-pad up oink (F on the keyboard), Back
+##   X reload, R3 hoof punch (V on the keyboard), RB grenade (G), d-pad right next weapon, d-pad up oink (F on the keyboard), Back
 ##   scoreboard, Start pause menu. Menus: d-pad / left stick, A accept, B back.
 func _bind_gamepad() -> void:
 	var axes := {
@@ -128,6 +128,7 @@ func _bind_gamepad() -> void:
 		"jump": [JOY_BUTTON_A], "crouch": [JOY_BUTTON_B], "sprint_toggle": [JOY_BUTTON_Y, JOY_BUTTON_LEFT_STICK],
 		"reload": [JOY_BUTTON_X], "scoreboard": [JOY_BUTTON_BACK],
 		"pause": [JOY_BUTTON_START], "oink": [JOY_BUTTON_DPAD_UP], "melee": [JOY_BUTTON_RIGHT_STICK],
+		"grenade": [JOY_BUTTON_RIGHT_SHOULDER],
 	}
 	for action in buttons:
 		_ensure_action(action)
@@ -150,6 +151,9 @@ func _bind_gamepad() -> void:
 	var melee_key := InputEventKey.new()  # hoof punch, as melee in Call of Duty
 	melee_key.physical_keycode = KEY_V
 	InputMap.action_add_event("melee", melee_key)
+	var grenade_key := InputEventKey.new()  # the "Гренадир"'s chest cannon
+	grenade_key.physical_keycode = KEY_G
+	InputMap.action_add_event("grenade", grenade_key)
 
 
 func _ensure_action(action: String, deadzone: float = 0.5) -> void:

@@ -72,6 +72,7 @@ var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
 var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
 var lowered := 0.0        # 0..1: the gun is lowered out of view (first person, vaulting)
 var melee := -1.0         # hoof punch progress 0..1 (-1: none): the gun swings aside (first person)
+var grenade := -1.0       # grenade launch progress 0..1 (-1: none): the gun goes out to the right (first person)
 var _hip_pos := Vector3.ZERO
 var _ads_pos := Vector3.ZERO
 
@@ -485,6 +486,11 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	pos += Vector3(0.07, -0.09, 0.04) * aside
 	rot.y -= deg_to_rad(25.0) * aside
 	rot.x -= deg_to_rad(18.0) * aside
+	# Grenade: the gun swings far out to the right and down, the arms spread (Mannequin.grenade_curve).
+	var spread := Mannequin.grenade_curve(grenade)
+	pos += Vector3(0.2, -0.16, 0.06) * spread
+	rot.y -= deg_to_rad(40.0) * spread
+	rot.z -= deg_to_rad(20.0) * spread
 
 	# Equip: raise from below.
 	if equip_p >= 0.0:

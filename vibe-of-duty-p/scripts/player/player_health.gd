@@ -41,6 +41,7 @@ func server_regen(delta: float) -> void:
 	_regen_carry += REGEN_PER_SECOND * delta
 	var whole := int(_regen_carry)
 	if whole > 0:
+		healed_total += mini(whole, max_health - health)
 		health = mini(health + whole, max_health)
 		_regen_carry -= whole
 
@@ -54,7 +55,9 @@ func server_take_ammo() -> bool:
 	if mods["bag_heal"] > 0.0:  # second stomach: the bag is eaten - health, no rounds
 		if health >= max_health:
 			return false
+		healed_total += mini(roundi(mods["bag_heal"]), max_health - health)
 		health = mini(health + roundi(mods["bag_heal"]), max_health)
+		bags_total += 1
 		return true
 	var took := false
 	for i in WeaponDB.count():
@@ -63,6 +66,7 @@ func server_take_ammo() -> bool:
 		if room > 0:
 			weapons.reserves[i] += mini(def.mag_size, room)
 			took = true
+	bags_total += 1 if took else 0
 	return took
 
 
@@ -93,11 +97,13 @@ func set_build(parts: Array) -> void:
 	for i in WeaponDB.count():
 		weapons.defs.append(WeaponDB.make_def(i, PartDB.weapon_modules(build)))
 	weapons.build_weapon = WeaponDB.index_of(build[0])
+	weapons.grenades_max = 1 if build.has(PartDB.GRENADIER) else 0
 	weapons.reset()  # the weapon, its magazine and reserve as built (a first spawn has no respawn to reset them)
 	_apply_stats()
 	health = mini(health, max_health)
 	if _visual:
 		_visual.set_chip(build.has(PartDB.ENGINEER))
+		_visual.set_cannon(build.has(PartDB.GRENADIER))
 
 
 ## Max health and regeneration delay: kid mode's plus the build's.

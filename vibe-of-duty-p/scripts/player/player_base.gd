@@ -24,6 +24,11 @@ const STAND_HEIGHT := 1.8
 const CROUCH_HEIGHT := 1.1
 const STAND_EYE := 1.65
 const CROUCH_EYE := 0.95
+## The "Гренадир"'s grenade leaves the chest cannon this high over the feet (Mannequin.CANNON_AT, standing / crouched)
+## and this far in front of the body's axis.
+const GRENADE_CHEST := 1.33
+const GRENADE_CHEST_CROUCH := 0.85
+const GRENADE_OUT := 0.3
 
 const JUMP_BUFFER_TIME := 0.12
 const LAND_SOUND_MIN_SPEED := 4.0
@@ -52,6 +57,7 @@ const FLAG_CROUCH := 4
 const FLAG_FIRE := 8
 const FLAG_AIM := 16
 const FLAG_RELOAD := 32
+const FLAG_GRENADE := 64
 const FLAG_JUMP_HELD := 256
 const FLAG_MELEE := 512
 const FLAG_SELECT_SHIFT := 10  # 4 bits: weapon index + 1, 0 = no switch (up to 15 weapons; 3 bits until the 8th)
@@ -60,6 +66,8 @@ const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
 const STATE_SPRINTING := 4
 const STATE_ON_FLOOR := 8
+const STATE_GRENADE := 16  # launching a grenade (the cannon is out)
+const STATE_GRENADE_READY := 32  # ...and held out, waiting for G to be let go
 const STATE_WEAPON_SHIFT := 10  # 4 bits (SELECT_MASK): current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
@@ -174,9 +182,14 @@ var death_time_left := 0.0  # local HUD: respawn countdown
 var shots_total := 0   # server stats (for tests / netlog)
 var hits_total := 0
 var head_hits_total := 0
+var dry_total := 0       # server, for MatchStats: trigger pulls with no rounds left at all
+var bags_total := 0      # ammo bags picked up
+var healed_total := 0    # health regenerated or eaten from bags
+var judge_rewind_ms := 0.0  # how far back in time the last shot / punch was judged (LagComp)
 var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
 var _view: WeaponView
 var _arms: FirstPersonArms
+var _cannon_view: GrenadeCannon  # first person: the chest cannon, seen only while launching
 var _crosshair: Crosshair
 var _scope: ScopeOverlay  # looking through a scope (PSO)
 var _ammo_hud: HudAmmo
@@ -226,6 +239,7 @@ var _puppet_on_floor := true
 var _puppet_sliding := false
 var _puppet_reloading := false
 var _puppet_meleeing := false
+var _puppet_launching := false
 var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 

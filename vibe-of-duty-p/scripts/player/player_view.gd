@@ -3,6 +3,9 @@ extends PlayerNet
 ## Player, part 7 of 9: local camera effects, viewmodel, HUD, F3 overlay, stick look and aim assist.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
+const CANNON_VIEW := Vector3(0.0, -0.42, -0.2)      # camera space: the chest cannon's barrel below the view (hidden)...
+const CANNON_VIEW_OUT := Vector3(0.0, -0.25, -0.22)  # ...and come up into the bottom of it, launching
+
 ## Right-stick look (the mouse turns the view in _unhandled_input). Slower while aiming, like the mouse.
 ## With the stick (not the mouse) the aim assist slows it down over an enemy and follows a moving one.
 func _stick_look(delta: float) -> void:
@@ -183,6 +186,11 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_arms.reload = weapons.reload_progress() if alive else -1.0
 	_view.melee = weapons.melee_progress() if alive else -1.0
 	_arms.melee = _view.melee
+	_view.grenade = weapons.grenade_progress() if alive else -1.0
+	_arms.grenade = _view.grenade
+	pose_cannon_view(_cannon_view, _view.grenade)
+	if _cannon_view != null:
+		_cannon_view.loaded = weapons.grenades > 0
 	_arms.pose()  # the hands follow the gun
 
 
@@ -196,6 +204,7 @@ func _update_hud(speed: float, delta: float) -> void:
 	_crosshair.update_state(px if alive else 0.0, weapons.ads if alive else 1.0,
 			weapons.reload_progress() if alive else -1.0)
 	_ammo_hud.visible = alive
+	_ammo_hud.set_grenade(weapons.grenades > 0)
 	_health_hud.set_health(health, max_health)
 	if health < _last_health:
 		_hurt_alpha = minf(1.0, 0.45 + 2.0 * float(_last_health - health) / max_health)
@@ -275,8 +284,20 @@ func _update_death_drift(delta: float) -> void:
 	_death_drift += _death_drift_v * delta
 
 
+## First person: the chest cannon comes up into the bottom of the view only while launching (owner, 2026-11-02), the
+## barrel along the launch (the view lofted up).
+static func pose_cannon_view(cannon: GrenadeCannon, progress: float) -> void:
+	if cannon == null:
+		return
+	var out := Mannequin.grenade_curve(progress)
+	cannon.visible = out > 0.0
+	cannon.extend = Mannequin.cannon_curve(progress)
+	cannon.position = CANNON_VIEW.lerp(CANNON_VIEW_OUT, out)
+	cannon.rotation = Vector3(deg_to_rad(WeaponDB.grenade("loft", 10.0)) - 0.35 * (1.0 - out), 0.0, 0.0)
+
+
 ## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
-## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none)].
+## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none), grenade launch progress (-1: none)].
 func drawn_pose() -> Array:
 	var pos := global_position
 	var yaw := body_yaw
@@ -291,8 +312,9 @@ func drawn_pose() -> Array:
 		pitch = _shown_pitch
 	var reload := weapons.reload_progress() if control != Mode.PUPPET else _visual.reload_progress()
 	var melee := weapons.melee_progress() if control != Mode.PUPPET else _visual.melee_progress()
+	var grenade := weapons.grenade_progress() if control != Mode.PUPPET else _visual.grenade_progress()
 	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index, reload,
-			is_sliding, melee]
+			is_sliding, melee, grenade]
 
 
 ## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.

@@ -17,7 +17,8 @@ const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "ammo"]
 const INERT_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 ## Parts of the INERT_SLOTS a match does play (owner, 2026-10-31).
 const ENGINEER := "engineer"  # the head's chip: with it the kit's modules can be changed (free)
-const ACTIVE_PARTS: Array[String] = [ENGINEER]
+const GRENADIER := "grenadier"  # the chest cannon: one grenade a life (Docs/LOADOUT.md, "Гренадир")
+const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 const SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
 		"head", "chest", "belly", "legs", "kit"]
@@ -219,30 +220,15 @@ static func _build() -> void:
 		return
 	WeaponDB.count()  # loads the config
 	_weapons_version = WeaponDB.version
+	# The body: the native parts and the two augmentations - the other organs are gone (owner, 2026-11-02).
 	_parts.assign([
 		PartDef.make("hoof", "hands", 0, "Копыто", "Родное. Удар — 75 урона."),
-		PartDef.make("sledge_hoof", "hands", 2, "Копыто-кувалда",
-				"Удар убивает сразу. Ходишь на 10% медленнее.", {"melee_damage_mult": 2.0, "speed_mult": 0.9}),
-		PartDef.make("head", "head", 0, "Своя голова", "Родная."),
+		PartDef.make("head", "head", 0, "Ничего", "Родная."),  # the native organs: "Ничего" (owner, 2026-11-02)
 		PartDef.make(ENGINEER, "head", 0, "Инженер", "Чип у правого уха: модули комплектации можно менять."),
-		PartDef.make("lead_brow", "head", 1, "Свинцовый лоб",
-				"В голову бьют как в тело. Прицеливаешься на 40% дольше.",
-				{"head_taken_mult": 1.0 / 1.15, "ads_time_mult": 1.4}),  # 1.15: NetWorld.HEAD_DAMAGE_MULT
-		PartDef.make("chest", "chest", 0, "Своё сердце", "Родное."),
-		PartDef.make("lead_heart", "chest", 2, "Свинцовое сердце",
-				"+50 здоровья. Лечение начинается на 2 с позже.", {"health_add": 50.0, "regen_delay_add": 2.0}),
-		PartDef.make("adrenal", "chest", 2, "Адреналиновая железа",
-				"Лечение начинается на 1.5 с раньше. −30 здоровья.", {"regen_delay_add": -1.5, "health_add": -30.0}),
-		PartDef.make("belly", "belly", 0, "Своё брюхо", "Родное."),
-		PartDef.make("second_stomach", "belly", 1, "Второй желудок",
-				"Сумка с патронами лечит 75. Патронов из неё не получаешь.", {"bag_heal": 75.0}),
-		PartDef.make("lard", "belly", 2, "Сало", "Урон по тебе −15%. Ходишь на 10% медленнее.",
-				{"damage_taken_mult": 0.85, "speed_mult": 0.9}),
-		PartDef.make("legs", "legs", 0, "Свои окорока", "Родные."),
-		PartDef.make("spring_hooves", "legs", 1, "Пружинные копыта",
-				"Прыжок выше на 30%. Приземление слышно всем.", {"jump_mult": 1.3, "land_db": 12.0}),
-		PartDef.make("runner_hams", "legs", 2, "Беговые окорока",
-				"Спринт быстрее на 15%. Перезарядка на 30% дольше.", {"sprint_mult": 1.15, "reload_mult": 1.3}),
+		PartDef.make("chest", "chest", 0, "Ничего", "Родное."),
+		PartDef.make(GRENADIER, "chest", 0, "Гренадир", "Пушка в груди: одна граната за жизнь (G)."),
+		PartDef.make("belly", "belly", 0, "Ничего", "Родное."),
+		PartDef.make("legs", "legs", 0, "Ничего", "Родные."),
 	])
 	# The weapons (WeaponDB order: the first is the native one) and their modules, as weapons.cfg lists them (the
 	# first of a slot is its default).

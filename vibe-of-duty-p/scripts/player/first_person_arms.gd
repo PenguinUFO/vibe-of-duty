@@ -14,11 +14,13 @@ const LEFT_POLE := Vector3(-0.6, -1.0, 0.0)
 const POUCH := Vector3(-0.2, -0.6, -0.2)  # camera space: where the left hand swaps magazines, below the view
 const BANDOLIER := Vector3(-0.15, -0.45, -0.05)  # camera space: the loops on the chest, below the view
 const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at full reach of a punch, just below the middle
+const ARM_OUT := Vector3(-0.55, -0.3, -0.25)  # camera space: the left hoof thrown out to the side (grenade), off screen
 
 var _weapon: WeaponView
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
 var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
+var grenade := -1.0                                     # grenade launch progress 0..1 (-1: none): the left hoof flies out
 var ledge_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left, right
 var _right: Dictionary
 var _left: Dictionary
@@ -91,6 +93,11 @@ func pose() -> void:
 		left_palm = left_palm.lerp(PUNCH, punch.x)
 		left_fingers = left_fingers.lerp(Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
+	var launch := Mannequin.grenade_curve(grenade)
+	if launch > 0.0:
+		left_palm = left_palm.lerp(ARM_OUT, launch)
+		left_fingers = left_fingers.lerp(Vector3.LEFT, launch)
+		left_dir = left_dir.lerp(Vector3.FORWARD, launch)
 	if ledge_weight > 0.0:
 		# Vaulting: palms flat on the ledge, fingers over its edge.
 		var to_arms := global_basis.inverse()

@@ -13,6 +13,13 @@ const MELEE_RECOVER := 0.5     # s after the blow until the gun is back
 const MELEE_DAMAGE := 75.0     # 2 punches kill (150 HP)
 const MELEE_RANGE := 2.0       # m from the eye
 const MELEE_NAME := "копыто"   # kill feed
+## The "Гренадир"'s grenade (Docs/LOADOUT.md): G down - the cannon comes out of the chest and stays out while G is
+## held; G up - it launches (not before it is all the way out) and folds back. No shooting, aiming or reloading
+## meanwhile; a reload pauses and goes on after. One a life (grenades_max), not refilled.
+const GRENADE := -3            # "weapon" index of a grenade in damage and kill events
+const GRENADE_OUT := 0.15      # s from the press to the launch
+const GRENADE_BACK := 0.2      # s after the launch until the gun is back
+const GRENADE_NAME := "граната"  # kill feed
 
 var index := 0
 var mags := PackedInt32Array()
@@ -26,6 +33,8 @@ var ads := 0.0          # 0..1 aim-down-sights blend
 var recoil := Vector2.ZERO  # x: view pitch kick, y: view yaw kick (rad)
 var fire_prev := false
 var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
+var grenades := 0       # grenades left this life
+var grenade_ticks := 0  # ticks left in the current launch (0 = not launching); held at the launch while G is down
 ## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
 ## server (training is played alone, both are this machine); not part of to_array.
 var infinite_reserve := false
@@ -40,6 +49,8 @@ var defs: Array[WeaponDef] = []
 ## The build's weapon (WeaponDB index): the only one the player holds (one weapon per build, Docs/LOADOUT.md), set
 ## with defs. Switching to another is refused; PlayerCmd.select stays for a second weapon some day.
 var build_weapon := 0
+## Grenades a life starts with (the build's PartDB.GRENADIER: 1), set with defs; not part of to_array.
+var grenades_max := 0
 
 
 func _init() -> void:
@@ -62,6 +73,8 @@ func reset() -> void:
 	recoil = Vector2.ZERO
 	fire_prev = false
 	melee_ticks = 0
+	grenades = grenades_max
+	grenade_ticks = 0
 
 
 static func melee_total_ticks() -> int:
@@ -70,6 +83,14 @@ static func melee_total_ticks() -> int:
 
 static func melee_windup_ticks() -> int:
 	return roundi(MELEE_WINDUP * 60.0)
+
+
+static func grenade_total_ticks() -> int:
+	return roundi((GRENADE_OUT + GRENADE_BACK) * 60.0)
+
+
+static func grenade_out_ticks() -> int:
+	return roundi(GRENADE_OUT * 60.0)
 
 
 func current() -> WeaponDef:
@@ -92,6 +113,20 @@ func is_meleeing() -> bool:
 	return melee_ticks > 0
 
 
+func is_launching() -> bool:
+	return grenade_ticks > 0
+
+
+## The cannon is out and waits for G to be let go.
+func is_grenade_ready() -> bool:
+	return grenade_ticks > 0 and grenade_ticks == grenade_total_ticks() - grenade_out_ticks()
+
+
+## Launch progress 0..1 (-1: none); the grenade leaves at GRENADE_OUT / (GRENADE_OUT + GRENADE_BACK).
+func grenade_progress() -> float:
+	return 1.0 - float(grenade_ticks) / float(grenade_total_ticks()) if grenade_ticks > 0 else -1.0
+
+
 ## Punch progress 0..1 (-1: none); the blow lands at MELEE_WINDUP / (MELEE_WINDUP + MELEE_RECOVER).
 func melee_progress() -> float:
 	return 1.0 - float(melee_ticks) / float(melee_total_ticks()) if melee_ticks > 0 else -1.0
@@ -107,7 +142,8 @@ func equip_progress() -> float:
 
 ## True if holding fire this tick would shoot (used to cancel sprinting).
 func wants_fire(cmd: PlayerCmd) -> bool:
-	return cmd.fire and mags[index] > 0 and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0
+	return cmd.fire and mags[index] > 0 and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 \
+			and grenade_ticks == 0
 
 
 func speed_mult() -> float:
@@ -126,9 +162,10 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 	return s
 
 
-## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding}.
+## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding, mantling}.
 ## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_end", "equip",
-## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow).
+## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow), "grenade_start",
+## {"type": "grenade", "pitch": float, "yaw": float} (the launch).
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
 	var def := current()
@@ -137,10 +174,10 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		cooldown -= 1.0
 	if switch_ticks > 0:
 		switch_ticks -= 1
-	if reload_ticks > 0 and def.reload_single and cmd.fire and not fire_prev and mags[index] > 0:
+	if reload_ticks > 0 and def.reload_single and cmd.fire and not fire_prev and mags[index] > 0 and grenade_ticks == 0:
 		reload_ticks = 0  # a tube magazine: a shot stops the loading, what is in stays
 		events.append({"type": "reload_end"})
-	if reload_ticks > 0:
+	if reload_ticks > 0 and grenade_ticks == 0:  # a launch pauses the reload
 		reload_ticks -= 1
 		if reload_ticks == 0:
 			var take := mini(def.mag_size - mags[index], reserves[index])
@@ -154,18 +191,37 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			else:
 				events.append({"type": "reload_end"})
 
+	# Grenade: the cannon is out GRENADE_OUT after G goes down and stays out while it is held; it fires when G is let go
+	# (owner, 2026-11-02), aimed where the player looks at that moment. Not while vaulting (the hands are on the ledge)
+	# or punching.
+	if grenade_ticks > 0:
+		if is_grenade_ready() and cmd.grenade:
+			pass  # held: the cannon waits
+		elif is_grenade_ready():
+			grenade_ticks -= 1
+			events.append({"type": "grenade", "pitch": cmd.pitch, "yaw": cmd.yaw})
+		else:
+			grenade_ticks -= 1
+			if is_grenade_ready() and not cmd.grenade:
+				grenade_ticks -= 1  # let go before it was out: it fires the moment it is
+				events.append({"type": "grenade", "pitch": cmd.pitch, "yaw": cmd.yaw})
+	elif cmd.grenade and grenades > 0 and melee_ticks == 0 and switch_ticks == 0 and not ctx["mantling"]:
+		grenades -= 1
+		grenade_ticks = grenade_total_ticks()
+		events.append({"type": "grenade_start"})
+
 	# Hoof punch: the blow lands MELEE_WINDUP after the press, aimed where the player looks at that moment.
 	if melee_ticks > 0:
 		melee_ticks -= 1
 		if melee_ticks == melee_total_ticks() - melee_windup_ticks():
 			events.append({"type": "melee", "pitch": cmd.pitch, "yaw": cmd.yaw})
-	elif cmd.melee and switch_ticks == 0 and not ctx["sliding"]:
+	elif cmd.melee and switch_ticks == 0 and grenade_ticks == 0 and not ctx["sliding"]:
 		melee_ticks = melee_total_ticks()
 		reload_ticks = 0
 		events.append({"type": "melee_start"})
 
 	# Weapon switch.
-	if melee_ticks == 0 and cmd.select >= 0 and cmd.select != index and cmd.select == build_weapon:
+	if melee_ticks == 0 and grenade_ticks == 0 and cmd.select >= 0 and cmd.select != index and cmd.select == build_weapon:
 		index = cmd.select
 		def = current()
 		switch_ticks = def.equip_ticks()
@@ -175,18 +231,21 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "equip"})
 
 	# Aim down sights (not while sprinting, reloading or equipping).
-	var want_ads: bool = cmd.aim and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and not ctx["sprinting"]
+	var want_ads: bool = cmd.aim and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+			and not ctx["sprinting"]
 	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / (def.ads_time * ads_time_mult))
 
 	# Manual reload.
-	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and mags[index] < def.mag_size and reserves[index] > 0:
+	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+			and mags[index] < def.mag_size and reserves[index] > 0:
 		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
 	# Fire.
 	var fired := false
 	burst = burst + 1 if wants_fire(cmd) else 0
-	if cmd.fire and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and cooldown <= 0.0 and (def.automatic or not fire_prev):
+	if cmd.fire and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 and cooldown <= 0.0 \
+			and (def.automatic or not fire_prev):
 		if mags[index] > 0:
 			fired = true
 			mags[index] -= 1
@@ -241,7 +300,7 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
-			melee_ticks, burst]
+			melee_ticks, burst, grenades, grenade_ticks]
 
 
 func from_array(a: Array) -> void:
@@ -257,3 +316,5 @@ func from_array(a: Array) -> void:
 	fire_prev = a[9]
 	melee_ticks = a[10]
 	burst = a[11]
+	grenades = a[12]
+	grenade_ticks = a[13]

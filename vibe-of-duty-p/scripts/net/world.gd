@@ -39,6 +39,7 @@ var hud: GameHud
 var kill_cam: KillCam
 var pause_menu: PauseMenu
 var ammo_bags: AmmoBags
+var grenades: Grenades
 var _log_timer := 0.0
 var _started_at := 0.0  # s (ticks clock) when this level started (--summary)
 var _toughness_sent := Vector3.ZERO  # local player: Settings.toughness() last sent to the server
@@ -60,6 +61,10 @@ func _ready() -> void:
 	ammo_bags.name = "AmmoBags"  # the same path on every peer (its RPCs)
 	ammo_bags.world = self
 	add_child(ammo_bags)
+	grenades = Grenades.new()
+	grenades.name = "Grenades"  # the same path on every peer (its RPCs)
+	grenades.world = self
+	add_child(grenades)
 	if not Game.dedicated:
 		hud = GameHud.new()
 		hud.world = self
@@ -119,11 +124,13 @@ func _physics_process(delta: float) -> void:
 		player.spawn_protect = maxi(player.spawn_protect - 1, 0)
 		player.server_regen(delta)
 		if player.alive and Gravity.height(player.global_position) < kill_height:  # y; on the ring: out past the rim
-			_server_suicide(player)
+			_server_suicide(player, "fall")
 		elif player.alive and _scenery and _scenery.hits_vault(player.global_position,
 				Player.CROUCH_HEIGHT if player.is_crouched else Player.STAND_HEIGHT):
-			_server_suicide(player)  # the train's tunnel swept them off a roof
+			_server_suicide(player, "tunnel")  # the train's tunnel swept them off a roof
 	ammo_bags.server_tick(delta)
+	if _stats != null:
+		_stats.tick(players)
 	lag_comp.record(server_tick, players)
 	if server_tick % SNAPSHOT_INTERVAL == 0:
 		_broadcast_snapshot()
@@ -245,7 +252,10 @@ func _server_want_build(id: int, build: Array) -> void:
 	if not players.has(id):
 		return
 	var player: Player = players[id]
+	var was := player.wanted_build
 	player.wanted_build = PartDB.sanitize(build)
+	if _stats != null and player.wanted_build != was:
+		_stats.build_changed(player, was)
 	if Game.training and player.alive and player.wanted_build != player.build:
 		# Training: no one to wait for - a new life with it where they stand, looking where they looked.
 		var pitch := player.look_pitch
@@ -341,6 +351,7 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3, build:
 		_sync_scores.rpc_id(id, Game.scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	if _stats != null:
+		_stats.joined(players[id])
 		_stats.spawned(players[id], spot)
 	_broadcast_scores()
 
@@ -356,8 +367,8 @@ func _on_peer_left(id: int) -> void:
 	_ready_peers.erase(id)
 	lag_comp.forget(id)
 	_random.forget(id)
-	if _stats != null:
-		_stats.left(id)
+	if _stats != null and players.has(id):
+		_stats.left(players[id])
 	_despawn_player(id)
 	for peer in _ready_peers:
 		_despawn_player.rpc_id(peer, id)
@@ -412,21 +423,23 @@ func _pick_spawn(exclude_id: int) -> Dictionary:
 	return scored[randi() % choices]
 
 
-## Server: apply a shooter's damage to a victim (called by Player after a shot is judged).
-func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int) -> void:
+## Server: apply a shooter's damage to a victim (called by Player after a shot is judged). `from`: where it came from
+## (world) when not from the attacker (a grenade).
+func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int,
+		from := Vector3.INF) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
 		return
 	var hp_before := victim.health
 	var block := attacker.weapons.def_at(weapon).regen_block if weapon >= 0 else 0.0
-	var killed := victim.server_damage(amount * victim.damage_mult_from(attacker.global_position)
-			* victim.damage_taken_mult(head), block)
+	if from == Vector3.INF:
+		from = attacker.global_position + attacker.body_up() * Player.STAND_EYE  # for the victim's damage direction arc
+	var killed := victim.server_damage(amount * victim.damage_mult_from(from) * victim.damage_taken_mult(head), block)
 	if _stats != null:
 		_stats.damaged(attacker, victim, hp_before, head, weapon)
 	if attacker.control == Player.Mode.LOCAL:
 		attacker.on_hit_confirmed(killed, head)  # the host is the shooter
 	elif attacker.peer_id in _ready_peers:
 		_hit_confirm.rpc_id(attacker.peer_id, killed, head)
-	var from := attacker.global_position + attacker.body_up() * Player.STAND_EYE  # for the victim's damage direction arc
 	if victim.control == Player.Mode.LOCAL:
 		victim.on_damaged_from(from)  # the host is the victim
 	elif victim.peer_id in _ready_peers:
@@ -435,15 +448,34 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 		_server_kill(attacker, victim, weapon, head)
 
 
-func _server_suicide(player: Player) -> void:
+## Server: a grenade's blast at `pos` hurts `victim` - its shooter too (owner, 2026-11-02: full damage; dying of it is
+## a suicide, -1).
+func server_apply_blast(attacker: Player, victim: Player, amount: float, pos: Vector3) -> void:
+	if victim != attacker:
+		server_apply_damage(attacker, victim, amount, false, WeaponSim.GRENADE, pos)
+		return
+	if not victim.alive or victim.spawn_protect > 0:
+		return
+	var killed := victim.server_damage(amount * victim.damage_taken_mult(false))
+	if victim.control == Player.Mode.LOCAL:
+		victim.on_damaged_from(pos)
+	elif victim.peer_id in _ready_peers:
+		_damaged_from.rpc_id(victim.peer_id, pos)
+	if killed:
+		_server_kill(victim, victim, WeaponSim.GRENADE, false, "grenade")
+
+
+## Server: the map killed `player`. `cause` (for MatchStats): "fall" (off the map), "tunnel" (the train's tunnel swept
+## them off a roof), "crushed" (moving cargo, the crane bridge).
+func _server_suicide(player: Player, cause: String) -> void:
 	player.server_damage(9999.0)
-	_server_kill(player, player, -1, false)
+	_server_kill(player, player, -1, false, cause)
 
 
-func _server_kill(killer: Player, victim: Player, weapon: int, head: bool) -> void:
+func _server_kill(killer: Player, victim: Player, weapon: int, head: bool, cause := "") -> void:
 	Game.add_kill(killer.peer_id, victim.peer_id)
 	if _stats != null:
-		_stats.killed(killer, victim, weapon, head)
+		_stats.killed(killer, victim, weapon, head, cause)
 	_broadcast_scores()
 	if killer != victim:
 		ammo_bags.server_drop(victim.global_position)  # not for falling off the map
@@ -678,7 +710,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	if hud:
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
-				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else "")
+				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else
+				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 
 

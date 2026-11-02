@@ -280,4 +280,4 @@ func _shove(player: Player, cargo: Dictionary, motion: Vector3, server: bool) ->
 		var game := get_node_or_null(^"/root/Game")  # not Game: tools load this without the autoloads
 		if game:
 			game.count("crushed")
-		_world._server_suicide(player)
+		_world._server_suicide(player, "crushed")

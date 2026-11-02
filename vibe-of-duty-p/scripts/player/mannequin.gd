@@ -53,6 +53,11 @@ const PUNCH_REACH := Vector3(0.14, -0.04, -0.55)  # the punching hoof from the l
 const BANDOLIER := Vector3(-0.12, 0.22, -0.16)    # chest frame: the loops on the left of the chest a break-open's rounds ride in
 const PRESENT_TILT := 0.45                        # rad: shown (present), the barrel up to the left across the chest...
 const PRESENT_AT := Vector3(0.0, 0.18, -0.26)     # ...the middle between the hands here (chest frame)
+## The "Гренадир"'s chest cannon (GrenadeCannon): on the breastbone, in the chest frame (Player.GRENADE_CHEST is its
+## height standing). Launching, the pig spreads its arms and pushes the chest out (grenade_curve).
+const CANNON_AT := Vector3(0.0, 0.27, -0.13)
+const CHEST_OUT := 0.035             # m the chest (and the cannon) pushes forward
+const ARM_OUT := Vector3(-0.42, -0.12, -0.12)  # chest frame: the free left hoof thrown out from the left shoulder
 
 # --- locomotion ---
 const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
@@ -123,6 +128,7 @@ var mantle_top := Vector3.ZERO  # a world point at the height of the ledge's top
 var ads := 0.0        # 0..1
 var crouch := 0.0     # 0..1
 var present := 0.0    # 0..1: the gun held across the chest, its side to the front (the build editor's BuildStage)
+var grenade := -1.0   # grenade launch progress 0..1, -1 = not launching
 var weapon: WeaponView
 var def: WeaponDef
 
@@ -165,6 +171,7 @@ var _head_kick_v := Vector2.ZERO
 var _jolt := 0.0                    # torso turn of a hit (rad about the vertical: the hit shoulder goes back)
 var _jolt_v := 0.0
 var _ragdoll: Ragdoll
+var _cannon: GrenadeCannon          # the "Гренадир"'s (set_cannon), null without it
 var _ragdoll_parts: Array = []      # [part, frame index, relative transform] for the rigid parts
 
 
@@ -269,6 +276,26 @@ func set_chip(on: bool) -> void:
 		head.add_child(chip)
 	elif not on and chip != null:
 		chip.free()
+
+
+## The "Гренадир"'s chest cannon (PartDB.GRENADIER), placed with the torso every pose; `loaded`: the lamp on it.
+func set_cannon(on: bool, loaded := true) -> void:
+	if on and _cannon == null:
+		_cannon = GrenadeCannon.new()
+		_cannon.name = "Cannon"
+		add_child(_cannon)
+	elif not on and _cannon != null:
+		_cannon.free()
+		_cannon = null
+	if _cannon != null:
+		_cannon.loaded = loaded
+
+
+## The cannon's muzzle (world), or the chest when there is none.
+func cannon_muzzle() -> Vector3:
+	if _cannon != null:
+		return _cannon.muzzle_global_position()
+	return global_transform * Vector3(0.0, PELVIS_STAND + SPINE_PIVOT + CANNON_AT.y, CANNON_AT.z)
 
 
 ## Anthropomorphic pig, mostly human: the head gets a snout, small dark eyes and floppy ears (cosmetic only - the head
@@ -494,7 +521,13 @@ func pose() -> void:
 	# Tail ring faces backwards (+Z), on the back of the pelvis; it flops up / down and wags.
 	_place(_parts["Tail"], Transform3D(Basis(Vector3.UP, _tail_flop.y) * Basis(Vector3.RIGHT, PI * 0.5 + _tail_flop.x)
 			.rotated(Vector3.FORWARD, 0.4), pelvis + twist * Vector3(_tail_flop.y * 0.02, 0.03, 0.135)))
-	_place(_parts["Torso"], chest * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
+	# Launching a grenade the chest pushes out (the torso only: the head and the hitbox stay).
+	var launch := grenade_curve(grenade)
+	var thrust := Transform3D(Basis(Vector3.RIGHT, 0.12 * launch), Vector3(0.0, 0.0, -CHEST_OUT * launch))
+	_place(_parts["Torso"], chest * thrust * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
+	if _cannon != null:
+		_cannon.transform = chest * thrust * Transform3D(Basis.IDENTITY, CANNON_AT)
+		_cannon.extend = cannon_curve(grenade)
 	var head := chest * (Vector3(0.0, HEAD_UP, 0.0) + ADS_HEAD * ads)
 	var neck_base := chest * Vector3(0.0, SHOULDER_UP + 0.02, 0.0)
 	_segment(_parts["Neck"], neck_base, head - Vector3(0.0, HEAD_RADIUS * 0.6, 0.0))
@@ -567,6 +600,12 @@ func pose() -> void:
 		var butt_point := weapon_local * _view_point(BUTT)
 		var swing := Basis(Vector3.UP, -0.3 * punch.y) * Basis(Vector3.RIGHT, -0.35 * punch.y)
 		weapon_local = Transform3D(swing, butt_point - swing * butt_point) * weapon_local
+	if launch > 0.0:
+		# Grenade: the gun goes out to the right side and down, barrel aside, the arms spread.
+		var butt_point := weapon_local * _view_point(BUTT)
+		var swing := Basis(Vector3.UP, -0.9 * launch) * Basis(Vector3.RIGHT, -0.5 * launch)
+		weapon_local = Transform3D(swing, butt_point - swing * butt_point + chest.basis * Vector3(0.12, -0.05, 0.05) \
+				* launch) * weapon_local
 	if present > 0.0:
 		# Shown: across the chest, the barrel up to the body's left, the gun's right side to the front.
 		var tilt := Basis(Vector3(0.0, 0.0, -1.0), Vector3(sin(PRESENT_TILT), cos(PRESENT_TILT), 0.0),
@@ -585,6 +624,10 @@ func pose() -> void:
 		left_palm = left_palm.lerp(fist, punch.x)
 		left_fingers = left_fingers.lerp(aim * Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(aim * Vector3.DOWN, punch.y)
+	if launch > 0.0:
+		left_palm = left_palm.lerp(shoulder_l + chest.basis * ARM_OUT, launch)
+		left_fingers = left_fingers.lerp(chest.basis * Vector3.LEFT, launch)
+		left_dir = left_dir.lerp(chest.basis * Vector3.FORWARD, launch)
 	if mantle > 0.0:
 		# Vaulting: the gun hangs at the right side, barrel down, both hands on the ledge pulling the body up.
 		var slung := chest * Transform3D(Basis(Vector3.RIGHT, -1.3).rotated(Vector3.UP, 0.25),
@@ -662,6 +705,8 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 	var rigid := [[_parts["Pelvis"], 0], [_parts["Torso"], 0], [_parts["Tail"], 0], [_parts["HipL"], 0],
 			[_parts["HipR"], 0], [_right_arm["shoulder"], 0], [_left_arm["shoulder"], 0], [_parts["Head"], 1],
 			[_parts["FootL"], 2], [_parts["FootR"], 3], [_left_arm["hand"], 4], [_right_arm["hand"], 5]]
+	if _cannon != null:
+		rigid.append([_cannon, 0])
 	for entry in rigid:
 		var part: Node3D = entry[0]
 		_ragdoll_parts.append([part, entry[1], frames[entry[1]].affine_inverse() * part.transform])
@@ -837,6 +882,23 @@ static func punch_curve(m: float) -> Vector2:
 		out = 1.0 - smoothstep(hit + 0.12, 0.8, m)
 	var aside := smoothstep(0.0, hit * 0.6, m) * (1.0 - smoothstep(0.7, 1.0, m))
 	return Vector2(out, aside)
+
+
+## Grenade launch at progress `g` (-1: none): how far the arms are spread and the chest pushed out, 0..1 - quickly out
+## by the launch (WeaponSim.GRENADE_OUT), held a moment, back. Shared with the first-person view.
+static func grenade_curve(g: float) -> float:
+	if g < 0.0:
+		return 0.0
+	var launch := WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK)
+	return smoothstep(0.0, launch * 0.8, g) * (1.0 - smoothstep(launch + 0.15, 1.0, g))
+
+
+## How far the cannon's barrel is out at launch progress `g`: all the way at the launch, folded by the end.
+static func cannon_curve(g: float) -> float:
+	if g < 0.0:
+		return 0.0
+	var launch := WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK)
+	return smoothstep(launch * 0.15, launch, g) * (1.0 - smoothstep(launch + 0.2, 0.95, g))
 
 
 ## The left hand's path through a reload (`r` 0..1), in gun view space - shared by the third-person body and the

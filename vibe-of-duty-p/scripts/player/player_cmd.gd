@@ -14,5 +14,6 @@ var fire := false    # held
 var aim := false     # held
 var reload := false  # one-tick event
 var melee := false   # one-tick event: hoof punch (the hands slot)
+var grenade := false  # held: the "Гренадир"'s cannon out (G); it fires when let go
 var select := -1     # one-tick event: weapon index to switch to, -1 = none
 var view_tick := 0.0  # server tick the shooter was looking at (lag compensation); 0 = unknown

@@ -117,8 +117,8 @@ func _init() -> void:
 	for slot: String in PartDB.WEAPON_SLOTS.slice(1):
 		if not slot in PartDB.HIDDEN_SLOTS:
 			_add_row(_weapon_column, slot)
-	for slot: String in PartDB.BODY_SLOTS:
-		if not slot in PartDB.HIDDEN_SLOTS:
+	for slot: String in PartDB.BODY_SLOTS:  # a slot with only its native part has nothing to pick: no row
+		if not slot in PartDB.HIDDEN_SLOTS and PartDB.options(slot, "").size() > 1:
 			_add_row(_body_column, slot)
 
 	var bottom := HBoxContainer.new()

@@ -14,6 +14,7 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 		"airborne": not is_on_floor(),
 		"sprinting": is_sprinting,
 		"sliding": is_sliding,
+		"mantling": is_mantling,
 	}
 	var events := weapons.tick(cmd, dt, ctx)
 	aiming = weapons.ads > 0.5
@@ -24,6 +25,8 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 				_on_shot(event)
 			"dry":
 				_local_sfx("empty")
+				if not _replaying and weapons.reserves[weapons.index] == 0 and multiplayer.has_multiplayer_peer() 						and multiplayer.is_server():
+					dry_total += 1
 			"reload_start":
 				_local_sfx("reload")
 			"equip":
@@ -35,6 +38,10 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 			"melee":
 				event["view_tick"] = cmd.view_tick
 				_on_melee(event)
+			"grenade_start":
+				_sfx("cannon_out")
+			"grenade":
+				_on_grenade(event)
 
 
 func _local_sfx(id: String) -> void:
@@ -182,14 +189,81 @@ func show_remote_melee(pos: Vector3) -> void:
 				(world.players[id] as Player).react_to_shot(origin, pos)
 
 
+## The launch of the "Гренадир"'s grenade (Docs/LOADOUT.md): out of the chest cannon, along the view lofted up, plus
+## the player's own velocity. The server launches it for everybody (Grenades); the shooter's client at once on its own
+## (prediction). It also ends the spawn protection, as shooting does not (owner, 2026-11-02).
+func _on_grenade(event: Dictionary) -> void:
+	if _replaying or world == null:
+		return
+	var launch := grenade_launch(event["pitch"], event["yaw"])
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		spawn_protect = 0
+		world.grenades.server_launch(self, launch[0], launch[1])
+	elif is_local:
+		world.grenades.predict(self, launch[0], launch[1])
+	if is_local:
+		Audio.play("grenade_launch")
+		_view.kick(2.0)
+		if world.kill_cam != null:
+			world.kill_cam.record_shot(peer_id, WeaponSim.GRENADE, launch[0], PackedVector3Array([launch[1]]))
+		cannon_smoke(launch[0], launch[1])
+
+
+## [where the grenade leaves the chest cannon (world), its velocity] for a launch at these look angles. The same on every
+## machine for the same state (the body's position and stance, not the drawn pose); not out of the far side of a wall
+## the chest is pressed against.
+func grenade_launch(pitch: float, yaw: float) -> Array[Vector3]:
+	var frame := Gravity.frame(global_position)
+	var chest := global_position + frame.y * (GRENADE_CHEST_CROUCH if is_crouched else GRENADE_CHEST)
+	var forward := frame * Basis(Vector3.UP, yaw) * Vector3.FORWARD
+	var origin := chest + forward * GRENADE_OUT
+	var blocked := get_world_3d().direct_space_state.intersect_ray(
+			PhysicsRayQueryParameters3D.create(chest, origin + forward * Grenade.RADIUS, Layers.WORLD))
+	if not blocked.is_empty():
+		origin = chest
+	var loft := deg_to_rad(WeaponDB.grenade("loft", 10.0))
+	var dir := frame * Basis.from_euler(Vector3(minf(pitch + loft, PI * 0.5), yaw, 0.0)) * Vector3.FORWARD
+	return [origin, dir * WeaponDB.grenade("speed", 18.0) + velocity]
+
+
+## Smoke out of the cannon after a launch at `origin` going off at `vel` (cosmetic): a puff at the muzzle, then the
+## empty barrel smokes for a moment.
+func cannon_smoke(origin: Vector3, vel: Vector3) -> void:
+	var out := vel.normalized()
+	Dust.puff(self, origin, out * 3.0, 0.35, 0.5)
+	MuzzleLights.flash(self, origin)
+	for k in 4:
+		get_tree().create_timer(0.15 + 0.2 * k).timeout.connect(func() -> void:
+			if is_inside_tree():
+				Dust.puff(self, _cannon_muzzle(), body_up() * 0.4, 0.12, 0.8))
+
+
+## Where the chest cannon's muzzle is now (world): on the drawn body, or in the first-person view.
+func _cannon_muzzle() -> Vector3:
+	if is_local and _cannon_view != null:
+		return _cannon_view.muzzle_global_position()
+	return _visual.cannon_muzzle_position()
+
+
+## Cosmetics of somebody else's launch (called by Grenades on clients and on the host).
+func show_remote_grenade(origin: Vector3, vel: Vector3) -> void:
+	if world != null and world.kill_cam != null:
+		world.kill_cam.record_shot(peer_id, WeaponSim.GRENADE, origin, PackedVector3Array([vel]))
+	Audio.play("grenade_launch", origin)
+	cannon_smoke(origin, vel)
+
+
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),
 ## or -1 to use everyone's live positions.
 func _judge_tick(view_tick: float, is_server: bool) -> float:
+	judge_rewind_ms = 0.0
 	# The host's own shots too: it sees remote players slightly in the past as well (_buffered_pose).
 	if not is_server or control == Mode.PUPPET or world == null or not world.lag_comp_enabled or view_tick <= 0.0:
 		return -1.0
 	var now := float(world.server_tick + 1)
-	return clampf(view_tick, now - LagComp.MAX_REWIND_TICKS, now)
+	var tick := clampf(view_tick, now - LagComp.MAX_REWIND_TICKS, now)
+	judge_rewind_ms = (now - tick) * 1000.0 / Engine.physics_ticks_per_second
+	return tick
 
 
 ## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. Bullets do

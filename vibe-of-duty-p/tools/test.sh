@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|build|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|build|grenade|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -20,7 +20,7 @@ R="timeout 90 $G --headless --path $PW --"
 run() {
 	case $1 in
 	arena)  # server + 2 aim bots, one with 40 ms lag, fake prediction errors and 10% lost command packets
-		$R --server --map=arena --summary=40 > "$O/arena_srv.log" 2>&1 &
+		$R --server --map=arena --summary=40 --stats > "$O/arena_srv.log" 2>&1 &
 		sleep 3
 		$R --join=127.0.0.1 --bot-aim --name=A --summary=37 > "$O/arena_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=B --lag=40 --perturb --loss=10 --summary=37 > "$O/arena_c2.log" 2>&1 &
@@ -39,11 +39,17 @@ run() {
 		$R --join=127.0.0.1 --bot-melee --name=M1 --summary=27 > "$O/melee_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-melee --name=M2 --summary=27 > "$O/melee_c2.log" 2>&1 &
 		wait;;
-	build)  # arena: aim bots with kits - B1 changed with the "Инженер" (+ an organ the match leaves out), B2 a kit as is
+	build)  # arena: aim bots with kits - B1 changed with the "Инженер", B2 a kit as is
 		$R --server --map=arena --summary=30 > "$O/build_srv.log" 2>&1 &
 		sleep 3
-		$R --join=127.0.0.1 --bot-aim --name=B1 --build=kit.ak_kobra,engineer,ak.suppressor.on,lead_heart --summary=27 > "$O/build_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=B1 --build=kit.ak_kobra,engineer,ak.suppressor.on --summary=27 > "$O/build_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=B2 --build=kit.acr_rat --summary=27 > "$O/build_c2.log" 2>&1 &
+		wait;;
+	grenade)  # arena: aim bots with the "Гренадир" - each launches its one grenade a life at mid range
+		$R --server --map=arena --summary=30 > "$O/grenade_srv.log" 2>&1 &
+		sleep 3
+		$R --join=127.0.0.1 --bot-aim --name=G1 --build=kit.ak_kobra,grenadier --summary=27 > "$O/grenade_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=G2 --build=kit.p90,grenadier --lag=40 --summary=27 > "$O/grenade_c2.log" 2>&1 &
 		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac
@@ -51,5 +57,5 @@ run() {
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee build; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee build grenade; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"

@@ -99,6 +99,12 @@ static func preload_scenes() -> void:
 		load(get_def(i).scene_path)
 
 
+## A number of the "Гренадир"'s grenade (weapons.cfg [grenade]: speed, fuse, blast_damage, ...), `fallback` if not set.
+static func grenade(key: String, fallback: float) -> float:
+	_build()
+	return float((_base.get("grenade", {}) as Dictionary).get(key, fallback))
+
+
 ## The base weapon (no modules).
 static func get_def(index: int) -> WeaponDef:
 	_build()

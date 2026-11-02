@@ -74,6 +74,7 @@ func show_build(parts: Array) -> void:
 	_weapon.set_weapon(index, WeaponDB.make_def(index, PartDB.weapon_modules(parts)))
 	_mannequin.def = _weapon.def
 	_mannequin.set_chip(parts.has(PartDB.ENGINEER))
+	_mannequin.set_cannon(parts.has(PartDB.GRENADIER))
 	_box_dirty = true
 
 

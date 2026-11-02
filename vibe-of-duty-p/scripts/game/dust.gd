@@ -33,6 +33,13 @@ static func burst(context: Node, pos: Vector3, strength: float) -> void:
 				randf_range(0.18, 0.3) * (0.7 + strength * 0.3), randf_range(0.6, 0.9))
 
 
+## One puff at `pos` (world) moving off at `velocity`, `size` m across at its biggest, for `life` s (smoke).
+static func puff(context: Node, pos: Vector3, velocity: Vector3, size: float, life: float) -> void:
+	var pool := _pool(context)
+	if pool != null:
+		pool._puff(pos, velocity, size, life)
+
+
 ## One puff behind something sliding along the ground at `pos` (world) with velocity `velocity`.
 static func trail(context: Node, pos: Vector3, velocity: Vector3) -> void:
 	var pool := _pool(context)

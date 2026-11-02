@@ -30,6 +30,12 @@ var _shown_reload := -2.0         # replay: reload progress given directly (show
 var _meleeing := false
 var _melee_t := -1.0              # s into the punch being shown, -1 = none
 var _shown_melee := -2.0          # replay: punch progress given directly (show_melee), -2 = not given
+var _cannon := false              # the "Гренадир"'s cannon on the chest
+var _spent := false               # its grenade is out this life (the lamp is dark)
+var _launching := false
+var _grenade_ready := false       # the cannon is held out (G down)
+var _grenade_t := -1.0            # s into the launch being shown, -1 = none
+var _shown_grenade := -2.0        # replay: launch progress given directly (show_grenade), -2 = not given
 var _ads_target := false
 
 
@@ -57,6 +63,41 @@ func set_weapon(index: int, def: WeaponDef = null) -> void:
 func set_chip(on: bool) -> void:
 	if _mannequin:
 		_mannequin.set_chip(on)
+
+
+## The "Гренадир"'s cannon on the chest (the build has PartDB.GRENADIER); a new life has its grenade in.
+func set_cannon(on: bool) -> void:
+	_cannon = on
+	_spent = false
+	if _mannequin:
+		_mannequin.set_cannon(on, true)
+
+
+## Launching a grenade (from the snapshot flags): plays the launch from its start over its full length, holding at
+## the launch while `ready` (the cannon held out, G down).
+func set_launching(launching: bool, ready := false) -> void:
+	_grenade_ready = launching and ready
+	if launching and not _launching and not _dead:
+		_grenade_t = 0.0
+		_spent = true
+		if _mannequin:
+			_mannequin.set_cannon(_cannon, false)
+	_launching = launching
+
+
+## Launch progress as shown (-1: none), e.g. for the kill cam's recording.
+func grenade_progress() -> float:
+	return _mannequin.grenade if _mannequin else -1.0
+
+
+## Replays (KillCam): shows the launch at exactly this progress (-1: none) instead of timing it here.
+func show_grenade(progress: float) -> void:
+	_shown_grenade = progress
+
+
+## The chest cannon's muzzle (world).
+func cannon_muzzle_position() -> Vector3:
+	return _mannequin.cannon_muzzle() if _mannequin else global_position
 
 
 ## Aim pitch of the player in radians (positive = up).
@@ -137,6 +178,7 @@ func update_motion(delta: float, _local_velocity: Vector3, on_floor: bool = true
 	_mannequin.mantle = move_toward(_mannequin.mantle, 1.0 if _mantling else 0.0, delta * (10.0 if _mantling else 5.0))
 	_update_reload(delta)
 	_update_melee(delta)
+	_update_grenade(delta)
 	_update_air(on_floor)
 	_mannequin.animate(delta, global_basis.inverse() * _velocity, not _air, _sliding)
 	_mannequin.pose()
@@ -182,6 +224,24 @@ func _update_melee(delta: float) -> void:
 		_mannequin.melee = -1.0
 	else:
 		_mannequin.melee = _melee_t / length
+
+
+func _update_grenade(delta: float) -> void:
+	if _shown_grenade > -2.0:
+		_mannequin.grenade = _shown_grenade
+		return
+	if _grenade_t < 0.0:
+		_mannequin.grenade = -1.0
+		return
+	_grenade_t += delta
+	if _grenade_ready:
+		_grenade_t = minf(_grenade_t, WeaponSim.GRENADE_OUT)  # held out until the snapshot says it fired
+	var length := WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK
+	if _grenade_t >= length:
+		_grenade_t = -1.0
+		_mannequin.grenade = -1.0
+	else:
+		_mannequin.grenade = _grenade_t / length
 
 
 ## In the air or not: the caller's `on_floor` (players know it) or this node's own vertical movement (replay
@@ -254,6 +314,10 @@ func set_dead(dead: bool, from := Vector3.INF, head_hit := false) -> void:
 	_reloading = false
 	_melee_t = -1.0
 	_meleeing = false
+	_grenade_t = -1.0
+	_launching = false
+	_grenade_ready = false
+	_mannequin.grenade = -1.0
 	_mantling = false
 	_mannequin.mantle = 0.0
 
