@@ -75,6 +75,7 @@ func show_build(parts: Array) -> void:
 	_mannequin.def = _weapon.def
 	_mannequin.set_chip(parts.has(PartDB.ENGINEER))
 	_mannequin.set_cannon(parts.has(PartDB.GRENADIER))
+	_mannequin.set_eye_gun(parts.has(PartDB.SKULL_PISTOL))
 	_box_dirty = true
 
 

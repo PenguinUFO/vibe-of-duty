@@ -102,6 +102,9 @@ const CHIP_WIRES := [
 	[Color(0.6, 0.5, 0.1), [Vector3(-0.012, -0.014, 0.006), Vector3(-0.016, -0.02, 0.024), Vector3(-0.04, -0.044, 0.022)]],
 ]
 const CHIP_AT := Vector3(0.085, 0.045, -0.06)  # head frame: between the right ear and the right eye
+## The "ЧМП"'s gun (set_eye_gun): in the left eye socket (head frame, -Z forward), where the eye was; its muzzle.
+const EYE_GUN_AT := Vector3(-0.042, 0.035, -0.098)
+const EYE_GUN_LENGTH := 0.05
 ## The skin of every part (assets/shaders/pig_skin.gdshader): the guns' coarse pixel noise and patches of dirt over
 ## the part's colour (owner, 2026-10-31).
 const SKIN_SHADER := preload("res://assets/shaders/pig_skin.gdshader")
@@ -278,6 +281,79 @@ func set_chip(on: bool) -> void:
 		chip.free()
 
 
+## The "ЧМП" (PartDB.SKULL_PISTOL): a short iron barrel in place of the left eye, its ring set into raw skin and
+## stapled round, the seam a scar - body horror without blood (owner, 2026-11-02). Barrel along the head's -Z.
+func set_eye_gun(on: bool) -> void:
+	var head: Node3D = _parts["Head"]
+	var eye := head.get_node_or_null("EyeL") as Node3D
+	if eye != null:
+		eye.visible = not on
+	var gun := head.get_node_or_null("EyeGun")
+	if on and gun == null:
+		gun = Node3D.new()
+		gun.name = "EyeGun"
+		gun.position = EYE_GUN_AT
+		head.add_child(gun)
+		var patch := _eye_gun_part(gun, _sphere(0.027), GrenadeCannon.SKIN_RAW, false)
+		patch.scale = Vector3(1.0, 1.0, 0.35)  # a flat swelling on the skin
+		var scar := TorusMesh.new()
+		scar.inner_radius = 0.018
+		scar.outer_radius = 0.023
+		scar.rings = 12
+		scar.ring_segments = 5
+		_eye_gun_part(gun, scar, GrenadeCannon.SCAR, false, Vector3(0.0, 0.0, -0.006))
+		var ring := TorusMesh.new()
+		ring.inner_radius = 0.008
+		ring.outer_radius = 0.017
+		ring.rings = 12
+		ring.ring_segments = 6
+		_eye_gun_part(gun, ring, GrenadeCannon.IRON, true, Vector3(0.0, 0.0, -0.008))
+		var barrel := CylinderMesh.new()
+		barrel.top_radius = 0.0085
+		barrel.bottom_radius = 0.0095
+		barrel.height = EYE_GUN_LENGTH
+		barrel.radial_segments = 8
+		barrel.rings = 1
+		_eye_gun_part(gun, barrel, GrenadeCannon.IRON, true, Vector3(0.0, 0.0, -EYE_GUN_LENGTH * 0.5))
+		var bore := CylinderMesh.new()
+		bore.top_radius = 0.0045
+		bore.bottom_radius = 0.0045
+		bore.height = 0.004
+		bore.radial_segments = 8
+		bore.rings = 1
+		_eye_gun_part(gun, bore, VISOR, false, Vector3(0.0, 0.0, -EYE_GUN_LENGTH - 0.0015))
+		for k in 6:  # staples across the seam
+			var angle := TAU * (k + 0.5) / 6.0
+			var staple := BoxMesh.new()
+			staple.size = Vector3(0.011, 0.0022, 0.0022)
+			var part := _eye_gun_part(gun, staple, GrenadeCannon.STAPLE, true,
+					Vector3(cos(angle), sin(angle), 0.0) * 0.0205 + Vector3(0.0, 0.0, -0.008))
+			part.basis = Basis(Vector3.BACK, angle)
+	elif not on and gun != null:
+		gun.free()
+
+
+## The ЧМП's muzzle (world): the end of the barrel in the left eye (the eye's place without it).
+func eye_gun_muzzle() -> Vector3:
+	return (_parts["Head"] as Node3D).global_transform * (EYE_GUN_AT + Vector3(0.0, 0.0, -EYE_GUN_LENGTH))
+
+
+## A piece of the ЧМП: a turned part along the barrel (the meshes' Y turned to -Z), plain material.
+static func _eye_gun_part(parent: Node3D, mesh: Mesh, color: Color, metal: bool, offset := Vector3.ZERO) -> MeshInstance3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.metallic = 0.8 if metal else 0.0
+	material.roughness = 0.35 if metal else 0.7
+	var instance := MeshInstance3D.new()
+	instance.mesh = mesh
+	instance.material_override = material
+	instance.position = offset
+	if mesh is CylinderMesh or mesh is TorusMesh:
+		instance.rotation.x = PI * 0.5
+	parent.add_child(instance)
+	return instance
+
+
 ## The "Гренадир"'s chest cannon (PartDB.GRENADIER), placed with the torso every pose; `loaded`: the lamp on it.
 func set_cannon(on: bool, loaded := true) -> void:
 	if on and _cannon == null:
@@ -313,7 +389,8 @@ static func _build_pig_face(head: Node3D) -> void:
 	for s in [-1.0, 1.0]:
 		var nostril := _attach(head, _sphere(0.011), VISOR, Vector3(0.018 * s, -0.025, -0.153))
 		nostril.scale = Vector3(0.8, 1.3, 0.5)
-		_attach(head, _sphere(0.014), VISOR, Vector3(0.042 * s, 0.035, -0.098))
+		var eye := _attach(head, _sphere(0.014), VISOR, Vector3(0.042 * s, 0.035, -0.098))
+		eye.name = "EyeL" if s < 0.0 else "EyeR"  # the left one gives way to the ЧМП (set_eye_gun)
 		# The ear hangs from a pivot at its base, so it can flop (animate) without leaving the head.
 		var ear := PrismMesh.new()
 		ear.size = Vector3(0.075, 0.09, 0.016)

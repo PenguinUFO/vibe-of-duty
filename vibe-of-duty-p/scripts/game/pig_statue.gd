@@ -305,7 +305,7 @@ func _hit(victim: Player, head: bool, distance: float, from: Vector3) -> void:
 		_world._damaged_from.rpc_id(victim.peer_id, from)
 	if killed:
 		Game.count("statue_kills")
-		_world._server_kill(victim, victim, -1, head)
+		_world._server_kill(victim, victim, -1, head, "statue")
 
 
 # --- everyone -----------------------------------------------------------------------------------------------------

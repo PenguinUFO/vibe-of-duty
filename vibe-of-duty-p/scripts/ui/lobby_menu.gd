@@ -2,12 +2,17 @@ class_name LobbyMenu
 extends Control
 ## The lobby screen (prefabs/ui/lobby.tscn; the state is the Lobby autoload's). Waiting for the host: the map and the
 ## rules, the host's "Начать". After a match: the ballot (a button per map with its votes, the own vote lit) and the
-## clock; the host can start before it runs out. Always: the players, "Сборка" (BuildPanel; not in the FFA random
+## clock; the host can start before it runs out. The host also has the mode and the map (after a match "Голосование"
+## first: the vote decides; a map overrides it, the ballot then hides for everyone). Always: the players, "Сборка" (BuildPanel; not in the FFA random
 ## weapon mode) and "Покинуть". A dedicated server loads the scene too, but shows nothing.
 
 var _box: VBoxContainer
 var _panel: PanelContainer
+var _rules: Label
 var _status: Label
+var _map: OptionButton   # host only
+var _mode: OptionButton  # host only
+var _builds: Button
 var _ballot: HBoxContainer
 var _players: VBoxContainer
 var _start: Button
@@ -42,12 +47,12 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.theme_type_variation = "PanelTitle"
 	_box.add_child(title)
-	var rules := Label.new()
-	rules.text = "До %d убийств · %d мин%s" % [Game.score_limit, roundi(Game.match_time / 60.0),
-			" · FFA рандомное оружие" if Game.random_weapons else ""]
-	rules.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rules.theme_type_variation = "Hint"
-	_box.add_child(rules)
+	_rules = Label.new()
+	_rules.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_rules.theme_type_variation = "Hint"
+	_box.add_child(_rules)
+	if Lobby.is_host():
+		_add_host_options()
 	_status = Label.new()
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status.theme_type_variation = "Heading"
@@ -68,8 +73,7 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 10)
 	_box.add_child(buttons)
 	_add_button(buttons, "Покинуть", Net.leave)  # Net.disconnected -> back to the main menu
-	if not Game.random_weapons:  # FFA random weapon: the server picks every life's weapon
-		_add_button(buttons, "Сборка", _open_builds)
+	_builds = _add_button(buttons, "Сборка", _open_builds)
 	if Lobby.is_host():
 		_start = _add_button(buttons, "Начать", Lobby.server_start)
 
@@ -80,7 +84,11 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _status != null and Lobby.phase == Lobby.Phase.VOTING:
+	if _status == null or Lobby.phase != Lobby.Phase.VOTING:
+		return
+	if Lobby.host_map != "":
+		_status.text = "Карта: %s (выбор хоста) · %d с" % [Game.map_name(Lobby.host_map), ceili(Lobby.time_left)]
+	else:
 		_status.text = "Голосование за карту: %d с" % ceili(Lobby.time_left)
 
 
@@ -88,11 +96,17 @@ func _refresh() -> void:
 	if _box == null:
 		return
 	var voting := Lobby.phase == Lobby.Phase.VOTING
+	_rules.text = "До %d убийств · %d мин · %s" % [Game.score_limit, roundi(Game.match_time / 60.0),
+			"FFA рандомное оружие" if Game.random_weapons else "FFA"]
+	_builds.visible = not Game.random_weapons  # FFA random weapon: the server picks every life's weapon
+	if _map != null:
+		_select_meta(_map, Lobby.host_map if voting else Game.map_scene)
+		_mode.select(1 if Game.random_weapons else 0)
 	if not voting:
 		_status.text = "Карта: %s" % Game.map_name(Game.map_scene)
 	if _start != null:
 		_start.text = "Начать сейчас" if voting else "Начать"
-	_build_ballot(voting)
+	_build_ballot(voting and Lobby.host_map == "")
 	_build_players()
 	if not _focused and Settings.has_gamepad() and _sub == null:
 		_focused = true
@@ -129,6 +143,47 @@ func _build_ballot(voting: bool) -> void:
 		_ballot.add_child(button)
 		if i == focus_index:
 			button.grab_focus.call_deferred()
+
+
+## Host: the map (after a match "Голосование" first - the vote decides) and the game mode.
+func _add_host_options() -> void:
+	_map = OptionButton.new()
+	if Lobby.phase == Lobby.Phase.VOTING:
+		_map.add_item("Голосование")
+		_map.set_item_metadata(0, "")
+	for path in Game.list_maps():
+		_map.add_item(Game.map_name(path))
+		_map.set_item_metadata(_map.item_count - 1, path)
+	_map.item_selected.connect(func(i: int) -> void:
+		Audio.play("ui_click")
+		Lobby.server_set_map(_map.get_item_metadata(i)))
+	_add_row("Карта", _map)
+	_mode = OptionButton.new()
+	_mode.add_item("FFA")
+	_mode.add_item("FFA рандомное оружие")
+	_mode.item_selected.connect(func(i: int) -> void:
+		Audio.play("ui_click")
+		Lobby.server_set_random_weapons(i == 1))
+	_add_row("Режим", _mode)
+
+
+func _add_row(text: String, control: Control) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(120, 0)
+	row.add_child(label)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(control)
+	_box.add_child(row)
+
+
+static func _select_meta(option: OptionButton, meta: String) -> void:
+	for i in option.item_count:
+		if option.get_item_metadata(i) == meta:
+			option.select(i)
+			return
 
 
 static func _votes_text(n: int) -> String:

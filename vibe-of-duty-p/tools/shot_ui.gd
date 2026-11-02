@@ -22,7 +22,8 @@ func _ready() -> void:
 		for i in 4:
 			await get_tree().process_frame
 		_report(id, panel, dir)
-		if panel is BuildPanel:  # every kit, then ACR крыса with the "Инженер": modules open, one focused, camera close
+		if panel is BuildPanel:  # every kit, then ACR крыса with the "Инженер": modules open, one focused, camera close;
+			# then the AUG командо with them
 			var kits := PartDB.for_slot("kit")
 			for i in kits.size():
 				panel._on_part("kit", i)
@@ -38,6 +39,11 @@ func _ready() -> void:
 			for f in 60:
 				await get_tree().process_frame
 			_report("build_engineer", panel, dir)
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.aug_commando")))  # the AUG's barrel and grip rows
+			panel._pad = false
+			for f in 60:
+				await get_tree().process_frame
+			_report("build_engineer_aug", panel, dir)
 		holder.queue_free()
 		await get_tree().process_frame
 	get_tree().quit()

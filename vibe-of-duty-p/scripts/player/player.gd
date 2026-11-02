@@ -41,6 +41,7 @@ func _ready() -> void:
 		# The first life's set_build came before the body existed (NetWorld._spawn_player): its parts go on now.
 		_visual.set_chip(build.has(PartDB.ENGINEER))
 		_visual.set_cannon(build.has(PartDB.GRENADIER))
+		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
 	_prev_pos = global_position
 	_curr_pos = global_position
 	_prev_yaw = rotation.y
@@ -179,6 +180,7 @@ func _gather_cmd(delta: float) -> PlayerCmd:
 		cmd.reload = Input.is_action_just_pressed("reload")
 		cmd.melee = Input.is_action_just_pressed("melee")
 		cmd.grenade = Input.is_action_pressed("grenade")
+		cmd.cmp = Game.training and Input.is_action_just_pressed("cmp")
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER_TIME
 		# Any other action ends a latched sprint; press Y / L3 again to sprint on.

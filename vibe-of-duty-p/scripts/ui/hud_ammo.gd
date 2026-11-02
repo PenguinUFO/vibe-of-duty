@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	draw_style_box(_plate, Rect2(Vector2.ZERO, SIZE))
 	var right := SIZE.x - 18.0
-	var low := float(_mag) <= _mag_size * LOW
+	var low := _mag != INFINITE and float(_mag) <= _mag_size * LOW
 	var mag_color := UiTheme.DANGER if low else UiTheme.TEXT
 
 	var small := UiTheme.bold_font()
@@ -72,7 +72,7 @@ func _draw() -> void:
 	draw_string(small, Vector2(right - reserve_width, 50), reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 			UiTheme.TEXT_DIM)
 	var big := UiTheme.heavy_font()
-	var mag_text := str(_mag)
+	var mag_text := "∞" if _mag == INFINITE else str(_mag)
 	var mag_width := big.get_string_size(mag_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36).x
 	var mag_pos := Vector2(right - reserve_width - 8.0 - mag_width, 50)
 	draw_string_outline(big, mag_pos, mag_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36, 5, Color(0, 0, 0, 0.6))

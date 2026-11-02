@@ -14,6 +14,7 @@ func _encode_cmd(cmd: PlayerCmd) -> Array:
 	flags |= FLAG_RELOAD if cmd.reload else 0
 	flags |= FLAG_MELEE if cmd.melee else 0
 	flags |= FLAG_GRENADE if cmd.grenade else 0
+	flags |= FLAG_CMP if cmd.cmp else 0
 	flags |= (cmd.select + 1) << FLAG_SELECT_SHIFT
 	return [_cmd_seq, cmd.move, cmd.yaw, cmd.pitch, flags, cmd.view_tick]
 
@@ -33,6 +34,7 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	cmd.reload = flags & FLAG_RELOAD != 0
 	cmd.melee = flags & FLAG_MELEE != 0
 	cmd.grenade = flags & FLAG_GRENADE != 0
+	cmd.cmp = flags & FLAG_CMP != 0
 	cmd.select = ((flags >> FLAG_SELECT_SHIFT) & SELECT_MASK) - 1
 	cmd.view_tick = entry[5]
 	return cmd
@@ -131,7 +133,8 @@ func get_net_state() -> Array:
 	flags |= STATE_GRENADE_READY if weapons.is_grenade_ready() else 0
 	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
-	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
+	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle,
+			_air_jumps]
 	return [peer_id, global_position, body_yaw, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
 
 
@@ -307,6 +310,7 @@ func _apply_server_state(state: Array) -> void:
 	_mantle_dir = mantle[7]
 	_mantle_cooldown = mantle[8]
 	_floor_y = mantle[9]
+	_air_jumps = extra[7]
 	_orient(body_yaw)
 	_apply_stance()
 

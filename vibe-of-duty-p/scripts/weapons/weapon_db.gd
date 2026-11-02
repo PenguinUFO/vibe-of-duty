@@ -7,7 +7,7 @@ extends RefCounted
 
 const CONFIG_PATH := "res://assets/data/weapons.cfg"
 const CONFIG_OVERRIDE := "weapons.cfg"  # next to the exported .exe
-const MODULE_SLOTS: Array[String] = ["suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo"]
+const MODULE_SLOTS: Array[String] = ["barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo"]
 ## The Luger drawn bigger than life: life size it is a toy next to a pig, and the two fists hid it.
 const LUGER_SCALE := 1.2
 ## The Luger's tangent rear sight on its 200 mm artillery barrel: this far (life size) ahead of the P08's notch on the
@@ -71,11 +71,33 @@ const MODULE_GEOMETRY := {
 	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.103 m longer than the brake.
 	"acr.suppressor.on": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
 			"Barrel/B185/Muzzle": "Can"}, "muzzle_add": Vector3(0.0, 0.0, 0.103), "sound_shot": "shot_suppressed"},
+	# AUG (tools/make_aug_blockout.py): the base is the A1 - 508 mm, the integral 1.5x scope, the Steyr grip. The
+	# Commando's barrel 158 mm shorter; the .300 BLK's can 0.131 longer than the hider.
+	"aug.barrel.b350": {"model_variants": {"Barrel": "B350"}, "muzzle": Vector3(0.0, 0.0361, 0.2296)},
+	"aug.suppressor.blk": {"model_variants": {"Barrel/B508/Muzzle": "Can", "Barrel/B350/Muzzle": "Can"},
+			"muzzle_add": Vector3(0.0, 0.0, 0.1313), "sound_shot": "shot_suppressed"},
+	# The A3 upper (its rail's top 0.0861) and, on the 508, the handguard with rails. The PDW's CompM 0.0181 higher,
+	# over the rail's back, the flip-ups folded; the eye at the cheek (z -0.215) as with the scope and the irons.
+	"aug.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0181, -0.07),
+			"model_variants": {"Upper": "A3", "Upper/A3/Sights": "Down", "Barrel/B508/Front": "Rail"},
+			"rear_sight": Vector3(0.0, 0.1161, -0.13), "front_sight": Vector3(0.0, 0.1161, -0.01), "eye_relief": 0.085},
+	"aug.sight.iron": {"sight": "",
+			"model_variants": {"Upper": "A3", "Upper/A3/Sights": "Up", "Barrel/B508/Front": "Rail"},
+			"rear_sight": Vector3(0.0, 0.1041, -0.1136), "front_sight": Vector3(0.0, 0.1041, 0.1172), "eye_relief": 0.1016},
+	# The ACR's ACOG on the A3's rail (0.0089 lower), over the rail's back: the eye at the cheek, 6 cm behind its
+	# eyepiece, as on the ACR.
+	"aug.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.0089, -0.08),
+			"model_variants": {"Upper": "A3", "Upper/A3/Sights": "Down", "Barrel/B508/Front": "Rail"},
+			"rear_sight": Vector3(0.0, 0.1221, -0.155), "front_sight": Vector3(0.0, 0.1221, -0.03), "eye_relief": 0.06},
+	# Off: the A1's grip folded forward under the barrel, the tactical one taken off; the left hand up under the barrel.
+	"aug.grip.off": {"model_variants": {"Barrel/B508/Front/Bare/Grip": "Folded", "Barrel/B508/Front/Rail/Grip": "Off",
+			"Barrel/B350/Grip": "Off"}, "left_hand_add": Vector3(0.0, 0.05, 0.03)},
+	"aug.mag.42": {"model_variants": {"Mags": "AUG_Mag_42"}},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
 		"ejection_port", "charging_handle", "break_hinge", "chamber", "forend", "lever_pivot", "shell_port", "mag_hinge"]
-const MODULE_SLOT_NAMES := {"suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
+const MODULE_SLOT_NAMES := {"barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
 
 static var _defs: Array[WeaponDef] = []
@@ -86,6 +108,8 @@ static var _kits := []        # [kit.<id>] sections in file order (kits())
 static var config_text := ""  # the config in play (sent to clients)
 static var _loaded := false
 static var version := 0       # +1 on every config loaded (PartDB rebuilds its module list)
+static var _cmp: WeaponDef    # cmp_def, made from the config of _cmp_version
+static var _cmp_version := -1
 
 
 static func count() -> int:
@@ -103,6 +127,18 @@ static func preload_scenes() -> void:
 static func grenade(key: String, fallback: float) -> float:
 	_build()
 	return float((_base.get("grenade", {}) as Dictionary).get(key, fallback))
+
+
+## The "ЧМП"'s numbers (weapons.cfg [cmp]; WeaponSim.CMP): a weapon of no list - no model, no modules, no kit.
+static func cmp_def() -> WeaponDef:
+	_build()
+	if _cmp == null or _cmp_version != version:
+		_cmp = WeaponDef.new()
+		_cmp.id = "cmp"
+		_cmp.display_name = WeaponSim.CMP_NAME
+		_write(_cmp, _base.get("cmp", {}))
+		_cmp_version = version
+	return _cmp
 
 
 ## The base weapon (no modules).
@@ -290,6 +326,7 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.tracer = bool(v.get("tracer", def.tracer))
 	def.head_mult = float(v.get("head_mult", def.head_mult))
 	def.regen_block = float(v.get("regen_block", def.regen_block))
+	def.sound_pitch = float(v.get("sound_pitch", def.sound_pitch))
 
 
 static func _build() -> void:
@@ -470,6 +507,28 @@ static func _build_geometry() -> void:
 	p90.sound_shot = "shot"
 	p90.hip_offset = Vector3(0.12, -0.155, -0.42)
 	_defs.append(p90)
+
+	var aug := WeaponDef.new()
+	aug.id = "aug"
+	aug.display_name = "AUG"
+	aug.scene_path = "res://prefabs/weapons/aug_blockout.tscn"  # tools/make_aug_blockout.py
+	aug.model_variants = {"Upper": "A1", "Upper/A3/Sights": "Up", "Barrel": "B508", "Barrel/B508/Muzzle": "Hider",
+			"Barrel/B350/Muzzle": "Hider", "Barrel/B508/Front": "Bare", "Barrel/B508/Front/Bare/Grip": "Unfolded",
+			"Barrel/B508/Front/Rail/Grip": "On", "Barrel/B350/Grip": "On", "Mags": "AUG_Mag_30"}
+	# The A1's integral 1.5x scope (SightModels "swarovski"), seen as the ACOG: the world through its tube.
+	aug.sight = "swarovski"
+	aug.muzzle = Vector3(0.0, 0.0361, 0.3874)
+	aug.rear_sight = Vector3(0.0, 0.1064, -0.1407)  # the scope's axis at the eyepiece
+	aug.front_sight = Vector3(0.0, 0.1064, 0.0678)  # and at the objective
+	aug.eye_relief = 0.0745  # the cheek on the butt, ~75 mm behind the eyepiece
+	aug.right_hand = Vector3(0.0, -0.043, -0.0598)  # the middle of the grip
+	aug.left_hand = Vector3(0.0, -0.043, 0.1367)    # on the support grip
+	aug.ejection_port = Vector3(-0.026, 0.0387, -0.1694)  # out of the butt's right, behind the grip
+	aug.charging_handle = Vector3(0.026, 0.0426, 0.1076)  # the olive hook on the left (the model's "Handle")
+	aug.bolt_travel = 0.08
+	aug.sound_shot = "shot"
+	aug.hip_offset = Vector3(0.12, -0.155, -0.42)  # a bullpup, as the P90
+	_defs.append(aug)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:

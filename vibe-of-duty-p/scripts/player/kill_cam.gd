@@ -238,6 +238,7 @@ func _play(delta: float) -> void:
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
 		ghost.set_chip(_chip_for(id))
+		ghost.set_eye_gun(_eye_gun_for(id))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -319,6 +320,12 @@ func _cannon_for(id: int) -> bool:
 	return player != null and player.build.has(PartDB.GRENADIER)
 
 
+## The player has the "ЧМП" in the eye (as of now, as _def_for).
+func _eye_gun_for(id: int) -> bool:
+	var player: Player = world.players.get(id)
+	return player != null and player.build.has(PartDB.SKULL_PISTOL)
+
+
 ## The player has the "Инженер"'s chip (as of now, as _def_for).
 func _chip_for(id: int) -> bool:
 	var player: Player = world.players.get(id)
@@ -359,18 +366,28 @@ func _replay_shot(shot: Dictionary) -> void:
 	var def := _def_for(shot["id"], shot["weapon"])
 	var muzzle: Vector3 = shot["origin"]
 	var own: bool = shot["id"] == _killer_id  # the killer's eyes: their own trail shows, as in play
+	var cmp: bool = shot["weapon"] == WeaponSim.CMP  # out of the left eye, the weapon in the hands as it was
 	if own:
-		_view.flash(def.muzzle_flash)
-		_view.kick(1.0 if def.pellets == 1 else 2.0)
-		Audio.play(def.sound_shot, null, def.loudness)
-		muzzle = _view.muzzle_global_position()
+		if cmp:
+			muzzle = _camera.global_transform * PlayerWeapons.CMP_VIEW
+		else:
+			_view.flash(def.muzzle_flash)
+			_view.kick(1.0 if def.pellets == 1 else 2.0)
+			muzzle = _view.muzzle_global_position()
+		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
 	elif _ghosts.has(shot["id"]):
 		var ghost: PlayerVisual = _ghosts[shot["id"]]
-		ghost.set_weapon(shot["weapon"], def)
 		ghost.set_chip(_chip_for(shot["id"]))
-		ghost.show_shot(def.muzzle_flash)
-		muzzle = ghost.muzzle_global_position()
-		Audio.play(def.sound_shot, muzzle, def.loudness)
+		ghost.set_eye_gun(_eye_gun_for(shot["id"]))
+		if cmp:
+			muzzle = ghost.eye_gun_muzzle_position()
+		else:
+			ghost.set_weapon(shot["weapon"], def)
+			ghost.show_shot(def.muzzle_flash)
+			muzzle = ghost.muzzle_global_position()
+		Audio.play(def.sound_shot, muzzle, def.loudness, def.sound_pitch)
+	if cmp and def.muzzle_flash:
+		MuzzleLights.flash(self, muzzle)
 	var scene_root := get_tree().current_scene
 	var ends: PackedVector3Array = shot["ends"]
 	for i in ends.size():

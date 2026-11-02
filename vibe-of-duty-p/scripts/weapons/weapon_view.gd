@@ -28,6 +28,10 @@ const MAG_TIP := 0.17         # rad: a magazine on top (P90) tips its back up th
 const MAG_SLIDE := 0.16       # m: then slides this far back along itself - its front out from under the sight's strap
 ## A magazine on top: the left hand's palm on it (from its catch, prefab space, life size) - on its top, near the back.
 const MAG_TOP_GRIP := Vector3(0.0, 0.03, -0.17)
+## A bullpup's reload (the magazine behind the grip): the gun's shift (view space) and turn (degrees: muzzle up, to the
+## left, canted) at the deepest.
+const BULLPUP_RELOAD_SHIFT := Vector3(-0.04, 0.05, -0.2)
+const BULLPUP_RELOAD_TURN := Vector3(0.0, 40.0, 10.0)
 
 var weapon_index := -1
 var def: WeaponDef  # the weapon shown, with its owner's modules (the sight model and aim line)
@@ -37,6 +41,12 @@ var _pivot := Node3D.new()
 var _model: Node3D
 var _mag: Node3D
 var _mag_rest := Vector3.ZERO
+## A see-through scope's surroundings (the AUG A1's, tools/make_aug_blockout.py): "Aimed" stands in for "Outside"
+## while aimed (_aim_dot; by the aim, not the eye's place - a shot's kick takes the eye off the axis for a moment) -
+## the parts in the eye's cone gone, the rest as it was.
+var _scope_outside: Node3D
+var _scope_aimed: Node3D
+var _ads := 0.0  # update_pose's
 var _muzzle := Marker3D.new()
 var _flash := MeshInstance3D.new()
 var _flash_timer := 0.0
@@ -125,6 +135,10 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	for node in _model.find_children("*_Mag_*", "Node3D", true, false):
 		_mag = node
 		_mag_rest = node.position
+	_scope_aimed = _model.find_child("Aimed", true, false) as Node3D
+	_scope_outside = _scope_aimed.get_parent().get_node("Outside") if _scope_aimed else null
+	if _scope_aimed:
+		_scope_aimed.visible = false
 	var optic := SightModels.build(def.sight)
 	_dot = null
 	if optic:
@@ -426,6 +440,7 @@ func kick(strength: float = 1.0) -> void:
 func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_blend: float,
 		speed: float, on_floor: bool, look_delta: Vector2, retract: float) -> void:
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-KICK_DECAY * dt))
+	_ads = ads
 
 	var pos := _hip_pos.lerp(_ads_pos, ads)
 	var rot := Vector3.ZERO
@@ -474,6 +489,14 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 		rot.x += dip * deg_to_rad(12.0)
 		rot.y += dip * deg_to_rad(28.0)
 		rot.z += dip * deg_to_rad(25.0)
+	elif reload_p >= 0.0 and _mag and _mag_rest.z < def.right_hand.z / def.model_scale:
+		# A bullpup (the AUG): the well behind the grip is under the cheek - the gun goes out off the shoulder, muzzle
+		# up and canted, so the well comes in front of the eye.
+		var dip := smoothstep(0.0, 0.12, reload_p) * (1.0 - smoothstep(0.88, 1.0, reload_p))
+		pos += BULLPUP_RELOAD_SHIFT * dip
+		rot.x += dip * deg_to_rad(BULLPUP_RELOAD_TURN.x)
+		rot.y += dip * deg_to_rad(BULLPUP_RELOAD_TURN.y)
+		rot.z -= dip * deg_to_rad(BULLPUP_RELOAD_TURN.z)
 	elif reload_p >= 0.0:
 		var dip := smoothstep(0.0, 0.12, reload_p) * (1.0 - smoothstep(0.88, 1.0, reload_p))
 		pos += Vector3(-0.07, 0.05, 0.03) * dip  # up and in, so the magazine well comes into view
@@ -527,5 +550,8 @@ func _aim_dot() -> void:
 	var through := eye + dir * ((plane - eye.z) / dir.z)
 	var off := Vector2(through.x, through.y).distance_to(optic.get_meta("window_center"))
 	_dot.visible = eye.z < plane and off <= float(optic.get_meta("window_radius"))
+	if _scope_aimed:  # aimed: the eye in the scope (it gets within 4 mm of the axis from ~0.9 on)
+		_scope_aimed.visible = _ads > 0.9
+		_scope_outside.visible = not _scope_aimed.visible
 	_dot.position = through
 	_dot.scale = Vector3.ONE * (eye.distance_to(through) * float(optic.get_meta("dot_angle")) / SightModels.DOT_RADIUS)

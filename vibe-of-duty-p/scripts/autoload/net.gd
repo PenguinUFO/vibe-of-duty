@@ -2,7 +2,7 @@ extends Node
 ## Connection management (ENet). Gameplay replication lives in NetWorld (scripts/net/world.gd) and Player.
 
 const DEFAULT_PORT := 27015
-const MAX_PLAYERS := 4
+const MAX_PLAYERS := 8  # the host included when it plays (not --server)
 const TRAINING_PORT := 27120
 
 signal hosted
@@ -58,7 +58,7 @@ func _receive_map(path: String, rules: Dictionary) -> void:
 
 func host(port: int = DEFAULT_PORT) -> Error:
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, MAX_PLAYERS)
+	var err := peer.create_server(port, MAX_PLAYERS if Game.dedicated else MAX_PLAYERS - 1)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer

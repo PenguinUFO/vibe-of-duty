@@ -73,6 +73,7 @@ var head_mult := 1.15          # damage x this on a head hit (NetWorld.HEAD_DAMA
 var regen_block := 0.0         # s a hit keeps the victim's health from coming back (0: their own delay)
 
 var sound_shot := "shot"
+var sound_pitch := 1.0         # pitch of the shot sound (the ЧМП: lower)
 var hip_offset := Vector3(0.17, -0.19, -0.32)  # viewmodel position relative to the camera
 
 

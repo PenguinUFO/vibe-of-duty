@@ -196,8 +196,11 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 
 func _update_hud(speed: float, delta: float) -> void:
 	var def := weapons.current()
-	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size,
-			HudAmmo.INFINITE if weapons.infinite_reserve else weapons.reserves[weapons.index], weapons.is_reloading())
+	var reserve := HudAmmo.INFINITE if weapons.infinite_reserve else weapons.reserves[weapons.index]
+	if weapons.cmp:  # the ЧМП: "ЧМП ∞ / <the weapon's reserve>" - rounds from a bag wait for R
+		_ammo_hud.set_state(WeaponSim.CMP_NAME, HudAmmo.INFINITE, 1, reserve, weapons.is_reloading())
+	else:
+		_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size, reserve, weapons.is_reloading())
 	var spread := weapons.spread_angle(speed, is_crouched, not is_on_floor())
 	var fov_rad := deg_to_rad(_camera.fov)
 	var px := tan(spread) / tan(fov_rad * 0.5) * get_viewport().get_visible_rect().size.y * 0.5

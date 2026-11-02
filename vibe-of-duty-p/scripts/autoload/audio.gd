@@ -79,7 +79,7 @@ func _ready() -> void:
 
 
 ## Plays sound [param id]. If [param world_position] is a Vector3 the sound is positional.
-func play(id: String, world_position: Variant = null, volume_db: float = 0.0) -> void:
+func play(id: String, world_position: Variant = null, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	if _silent:
 		return
 	var stream := _get_stream(id)
@@ -91,12 +91,14 @@ func play(id: String, world_position: Variant = null, volume_db: float = 0.0) ->
 		p3.global_position = world_position
 		p3.stream = stream
 		p3.volume_db = volume_db
+		p3.pitch_scale = pitch
 		p3.play()
 	else:
 		var p2 := _free_player(_pool_2d) as AudioStreamPlayer
 		p2.bus = &"UI" if id.begins_with("ui_") else &"SFX"
 		p2.stream = stream
 		p2.volume_db = volume_db
+		p2.pitch_scale = pitch
 		p2.play()
 
 

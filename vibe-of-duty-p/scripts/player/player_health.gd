@@ -98,12 +98,16 @@ func set_build(parts: Array) -> void:
 		weapons.defs.append(WeaponDB.make_def(i, PartDB.weapon_modules(build)))
 	weapons.build_weapon = WeaponDB.index_of(build[0])
 	weapons.grenades_max = 1 if build.has(PartDB.GRENADIER) else 0
+	weapons.cmp_part = build.has(PartDB.SKULL_PISTOL)
 	weapons.reset()  # the weapon, its magazine and reserve as built (a first spawn has no respawn to reset them)
+	if Game.dry_reserve:
+		weapons.reserves.fill(0)
 	_apply_stats()
 	health = mini(health, max_health)
 	if _visual:
 		_visual.set_chip(build.has(PartDB.ENGINEER))
 		_visual.set_cannon(build.has(PartDB.GRENADIER))
+		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
 
 
 ## Max health and regeneration delay: kid mode's plus the build's.
@@ -154,6 +158,8 @@ func respawn(xform: Transform3D) -> void:
 	_death_drift = Vector3.ZERO
 	_death_drift_v = Vector3.ZERO
 	weapons.reset()
+	if Game.dry_reserve:  # test: the magazine only, then the ЧМП
+		weapons.reserves.fill(0)
 	teleport(xform)
 	_visual.set_dead(false)
 	if _view:

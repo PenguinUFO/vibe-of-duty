@@ -5,6 +5,9 @@ extends RefCounted
 ## replayed during reconciliation. All randomness is seeded from (peer_id, shot counter).
 
 const MAX_RECOIL := 0.2  # rad
+## A semi-automatic weapon: a press this long (s) before the next shot is allowed is kept and fires then, held or not
+## (fire_queued) - a tap during the cooldown is not lost.
+const FIRE_BUFFER := 0.2
 ## Hoof punch (the hands slot, Docs/LOADOUT.md): wind-up, the blow, recovery. No shooting, aiming or reloading
 ## meanwhile; it cancels a reload (the magazine is not lost, the reload starts over).
 const MELEE := -2              # "weapon" index of a punch in damage and kill events (-1 = suicide)
@@ -20,6 +23,11 @@ const GRENADE := -3            # "weapon" index of a grenade in damage and kill 
 const GRENADE_OUT := 0.15      # s from the press to the launch
 const GRENADE_BACK := 0.2      # s after the launch until the gun is back
 const GRENADE_NAME := "граната"  # kill feed
+## The "Черепно-мозговой пистолет" (Docs/LOADOUT.md): a gun in the left eye socket with endless rounds, weak. It takes
+## over when the weapon is empty to the last round of its reserve and gives it back once a reload (R, by hand) puts
+## rounds in it. From the hip only; it fires while the hands reload. Training (endless reserve): the key 1 toggles it.
+const CMP := -4                # "weapon" index of its shots in damage and kill events (its numbers: WeaponDB.cmp_def)
+const CMP_NAME := "ЧМП"        # kill feed
 
 var index := 0
 var mags := PackedInt32Array()
@@ -32,9 +40,11 @@ var shots := 0          # shots fired so far (seeds spread)
 var ads := 0.0          # 0..1 aim-down-sights blend
 var recoil := Vector2.ZERO  # x: view pitch kick, y: view yaw kick (rad)
 var fire_prev := false
+var fire_queued := false  # a semi-automatic press during the cooldown, fires when it ends (FIRE_BUFFER)
 var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
 var grenades := 0       # grenades left this life
 var grenade_ticks := 0  # ticks left in the current launch (0 = not launching); held at the launch while G is down
+var cmp := false        # the ЧМП shoots instead of the weapon
 ## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
 ## server (training is played alone, both are this machine); not part of to_array.
 var infinite_reserve := false
@@ -51,6 +61,8 @@ var defs: Array[WeaponDef] = []
 var build_weapon := 0
 ## Grenades a life starts with (the build's PartDB.GRENADIER: 1), set with defs; not part of to_array.
 var grenades_max := 0
+## The build has the ЧМП (PartDB.SKULL_PISTOL), set with defs; not part of to_array.
+var cmp_part := false
 
 
 func _init() -> void:
@@ -72,9 +84,11 @@ func reset() -> void:
 	ads = 0.0
 	recoil = Vector2.ZERO
 	fire_prev = false
+	fire_queued = false
 	melee_ticks = 0
 	grenades = grenades_max
 	grenade_ticks = 0
+	cmp = false
 
 
 static func melee_total_ticks() -> int:
@@ -98,7 +112,14 @@ func current() -> WeaponDef:
 
 
 func def_at(weapon: int) -> WeaponDef:
+	if weapon == CMP:
+		return WeaponDB.cmp_def()
 	return defs[weapon] if weapon >= 0 and weapon < defs.size() else WeaponDB.get_def(weapon)
+
+
+## What a pull of the trigger shoots: the ЧМП when it is on, else the weapon.
+func firing_def() -> WeaponDef:
+	return WeaponDB.cmp_def() if cmp else current()
 
 
 func is_reloading() -> bool:
@@ -142,7 +163,7 @@ func equip_progress() -> float:
 
 ## True if holding fire this tick would shoot (used to cancel sprinting).
 func wants_fire(cmd: PlayerCmd) -> bool:
-	return cmd.fire and mags[index] > 0 and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 \
+	return cmd.fire and (cmp or mags[index] > 0 and reload_ticks == 0) and switch_ticks == 0 and melee_ticks == 0 \
 			and grenade_ticks == 0
 
 
@@ -152,7 +173,7 @@ func speed_mult() -> float:
 
 ## Current cone half angle in radians for the HUD crosshair and for shooting.
 func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
-	var def := current()
+	var def := firing_def()
 	var s := lerpf(def.spread_hip * spread_hip_mult, def.spread_ads * spread_ads_mult, ads)
 	s += def.spread_move * clampf(speed / 5.0, 0.0, 1.6) * (1.0 - 0.6 * ads)
 	if airborne:
@@ -190,6 +211,17 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 				reload_ticks = _reload_ticks()  # the next round
 			else:
 				events.append({"type": "reload_end"})
+
+	# The ЧМП: on with the weapon empty to the last round, off once a reload put rounds in it. Training never runs dry:
+	# there the key 1 (cmd.cmp) toggles it.
+	if cmp_part:
+		if infinite_reserve:
+			if cmd.cmp:
+				cmp = not cmp
+		elif not cmp and mags[index] == 0 and reserves[index] == 0:
+			cmp = true
+		elif cmp and mags[index] > 0:
+			cmp = false
 
 	# Grenade: the cannon is out GRENADE_OUT after G goes down and stays out while it is held; it fires when G is let go
 	# (owner, 2026-11-02), aimed where the player looks at that moment. Not while vaulting (the hands are on the ledge)
@@ -231,7 +263,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "equip"})
 
 	# Aim down sights (not while sprinting, reloading or equipping).
-	var want_ads: bool = cmd.aim and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+	var want_ads: bool = cmd.aim and not cmp and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and not ctx["sprinting"]
 	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / (def.ads_time * ads_time_mult))
 
@@ -241,35 +273,42 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
-	# Fire.
+	# Fire (the ЧМП's while the hands reload too).
 	var fired := false
+	var gun := firing_def()
 	burst = burst + 1 if wants_fire(cmd) else 0
-	if cmd.fire and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 and cooldown <= 0.0 \
-			and (def.automatic or not fire_prev):
-		if mags[index] > 0:
+	if gun.automatic or switch_ticks > 0 or (reload_ticks > 0 and not cmp) or melee_ticks > 0 or grenade_ticks > 0:
+		fire_queued = false
+	elif cmd.fire and not fire_prev and cooldown > 0.0 and cooldown <= FIRE_BUFFER * 60.0:
+		fire_queued = true
+	if (cmd.fire or fire_queued) and switch_ticks == 0 and (reload_ticks == 0 or cmp) and melee_ticks == 0 and grenade_ticks == 0 \
+			and cooldown <= 0.0 and (gun.automatic or not fire_prev or fire_queued):
+		fire_queued = false
+		if cmp or mags[index] > 0:
 			fired = true
-			mags[index] -= 1
+			if not cmp:
+				mags[index] -= 1
 			shots += 1
-			cooldown += def.fire_ticks(burst / 60.0)
+			cooldown += gun.fire_ticks(burst / 60.0)
 			var angle := spread_angle(ctx["speed"], ctx["crouched"], ctx["airborne"])
 			var rng := RandomNumberGenerator.new()
 			var dirs: Array[Vector3] = []
 			var pitch := cmd.pitch + recoil.x
 			var yaw := cmd.yaw + recoil.y
-			if def.pellet_spread > 0.0:
+			if gun.pellet_spread > 0.0:
 				# A shotgun: the aim's spread moves the whole pattern, the pellets spread round its middle.
 				rng.seed = hash([ctx["peer_id"], shots, -1])
 				var middle := _spread_dir(pitch, yaw, angle, rng)
 				pitch = asin(clampf(middle.y, -1.0, 1.0))
 				yaw = atan2(-middle.x, -middle.z)
-				angle = def.pellet_spread
-			for i in def.pellets:
+				angle = gun.pellet_spread
+			for i in gun.pellets:
 				rng.seed = hash([ctx["peer_id"], shots, i])
 				dirs.append(_spread_dir(pitch, yaw, angle, rng))
-			events.append({"type": "shot", "weapon": index, "dirs": dirs})
+			events.append({"type": "shot", "weapon": CMP if cmp else index, "dirs": dirs})
 			rng.seed = hash([ctx["peer_id"], shots, 99])
-			recoil.x = minf(recoil.x + def.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)
-			recoil.y = clampf(recoil.y + rng.randf_range(-1.0, 1.0) * def.recoil_yaw, -MAX_RECOIL, MAX_RECOIL)
+			recoil.x = minf(recoil.x + gun.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)
+			recoil.y = clampf(recoil.y + rng.randf_range(-1.0, 1.0) * gun.recoil_yaw, -MAX_RECOIL, MAX_RECOIL)
 		else:
 			if not fire_prev:
 				events.append({"type": "dry"})
@@ -281,7 +320,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	if not fired:
 		cooldown = maxf(cooldown, 0.0)  # the carried remainder is for a burst, not a credit after a pause
 	if not fired and cooldown == 0.0:
-		recoil = recoil.move_toward(Vector2.ZERO, def.recoil_recover * dt)
+		recoil = recoil.move_toward(Vector2.ZERO, gun.recoil_recover * dt)
 	return events
 
 
@@ -300,7 +339,7 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
-			melee_ticks, burst, grenades, grenade_ticks]
+			melee_ticks, burst, grenades, grenade_ticks, cmp, fire_queued]
 
 
 func from_array(a: Array) -> void:
@@ -318,3 +357,5 @@ func from_array(a: Array) -> void:
 	burst = a[11]
 	grenades = a[12]
 	grenade_ticks = a[13]
+	cmp = a[14]
+	fire_queued = a[15]

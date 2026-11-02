@@ -61,7 +61,7 @@ def main():
         sessions = [s for s in sessions if s[1][0].get("weapons_md5") == md5]
     kills, lives, landed = [], [], []
     for f, events in sessions:
-        kills += [e for e in events if e["e"] == "kill" and e["gun"] != "self"]
+        kills += [e for e in events if e["e"] == "kill" and e["gun"] != "self" and e["k"] != e["v"]]  # own grenade: k = v
         lives += [e for e in events if e["e"] == "life"]
         # Shots that landed: one "hit" per shot and victim, all with the same time, so a (shooter, time) pair is one
         # shot. Older files count every pellet in life["hits"] (shotgun accuracy over 100%), so accuracy uses these.

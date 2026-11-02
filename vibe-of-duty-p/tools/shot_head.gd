@@ -40,6 +40,8 @@ func _ready() -> void:
 	body._parts["Head"] = head
 	if OS.get_environment("SHOT_CHIP") == "1":
 		body.set_chip(true)
+	if OS.get_environment("SHOT_EYE_GUN") == "1":
+		body.set_eye_gun(true)
 	var cam := Camera3D.new()
 	cam.fov = 30
 	root3d.add_child(cam)

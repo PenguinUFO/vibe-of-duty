@@ -25,6 +25,8 @@ static func build(sight: String) -> Node3D:
 			return _acog()
 		"ring":
 			return _ring()
+		"swarovski":
+			return _swarovski()
 	return null
 
 
@@ -258,6 +260,51 @@ static func _ring() -> Node3D:
 	return root
 
 
+## The AUG A1's integral Swarovski 1.5x (owner, 2026-11-02: seen as the ACOG - the model stays at full aim, the world
+## through it, magnified by weapons.cfg ads_zoom): only the tube, its axis at (0, 0.1064) over the bridge
+## (tools/make_aug_blockout.py: the knobs and the emergency irons are the gun's). From the back: the eyepiece (30.4 mm),
+## the 29 mm tube, 209 mm long. Its walls and front are drawn from outside only: from the eye the window is the
+## eyepiece's whole bore, as a real scope's picture fills it (an open 21 cm tube would show a pinhole); the objective's
+## lens faces forward only. The reticle: the A1's black circle, ~1.2 degrees across (the real one frames a man at
+## 300 m; larger, so it reads at our 10..30 m - my guess).
+static func _swarovski() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sight_Swarovski"
+	var paint := _material(Color(0.06, 0.06, 0.065), 0.4, 0.5)  # the gun's black (make_aug_blockout.py "black")
+	var y := 0.1064
+	var bore := 0.0125
+	_lathe(root, PackedVector2Array([Vector2(bore, -0.1407), Vector2(0.0152, -0.1407), Vector2(0.0152, -0.1256),
+			Vector2(0.0145, -0.1256), Vector2(0.0145, 0.0678), Vector2(bore, 0.0678)]), Vector3(0.0, y, 0.0), paint, 32,
+			false)
+	_disc(root, bore, Vector3(0.0, y, 0.0677), _material(Color(0.05, 0.08, 0.12), 0.9, 0.08), Vector3.BACK)
+	var ocular := StandardMaterial3D.new()
+	ocular.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
+	ocular.roughness = 0.05
+	ocular.metallic_specular = 1.0
+	_tube(root, bore, 0.001, Vector3(0.0, y, -0.14), ocular)
+	# The reticle's plane just in front of the eyepiece: its bore is the window (the objective's is no stop here).
+	_dot(root, Color(0.02, 0.02, 0.02), -0.138, Vector2(0.0, y), bore, 0.0105, "circle")
+	return root
+
+
+## A flat disc of `radius` round `center`, across the barrel, drawn only from the side `facing` points to.
+static func _disc(parent: Node3D, radius: float, center: Vector3, material: Material, facing: Vector3) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 32:
+		var a0 := TAU * i / 32.0
+		var a1 := TAU * (i + 1) / 32.0
+		_tri(st, Vector3.ZERO, Vector3(cos(a0), sin(a0), 0.0) * radius, Vector3(cos(a1), sin(a1), 0.0) * radius,
+				[facing, facing, facing])
+	var mesh := st.commit()
+	mesh.surface_set_material(0, material)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.position = center
+	parent.add_child(node)
+
+
 ## A knurled cap: a cylinder of `radius` and `length` along `axis` with `ridges` small ribs round it.
 static func _knurled(parent: Node3D, radius: float, length: float, center: Vector3, material: Material,
 		axis := Vector3.BACK, ridges := 18) -> void:
@@ -288,9 +335,10 @@ static func _rounded(c: Vector2, half: float, count: int) -> PackedVector2Array:
 
 ## A body turned round the barrel's axis through `center`: `profile` a closed loop of (radius, z) - round the outside
 ## and back along the bore for a hollow one. Smooth round the axis; along the profile sharp where it turns over 35
-## degrees (shoulders, ends), smooth where it bends gently.
+## degrees (shoulders, ends), smooth where it bends gently. Not `closed`: the last point does not join the first (no
+## bore - the Swarovski's tube, drawn from outside only).
 static func _lathe(parent: Node3D, profile: PackedVector2Array, center: Vector3, material: Material,
-		steps := 32) -> void:
+		steps := 32, closed := true) -> void:
 	var n := profile.size()
 	var area := 0.0
 	for i in n:
@@ -304,15 +352,16 @@ static func _lathe(parent: Node3D, profile: PackedVector2Array, center: Vector3,
 		normals.append(normal if area > 0.0 else -normal)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in n:
+	var segments := n if closed else n - 1
+	for i in segments:
 		var a := profile[i]
 		var b := profile[(i + 1) % n]
 		var own := normals[i]
 		var na := own
 		var nb := own
-		if own.dot(normals[(i - 1 + n) % n]) > cos(deg_to_rad(35.0)):
+		if (closed or i > 0) and own.dot(normals[(i - 1 + n) % n]) > cos(deg_to_rad(35.0)):
 			na = (own + normals[(i - 1 + n) % n]).normalized()
-		if own.dot(normals[(i + 1) % n]) > cos(deg_to_rad(35.0)):
+		if (closed or i < segments - 1) and own.dot(normals[(i + 1) % n]) > cos(deg_to_rad(35.0)):
 			nb = (own + normals[(i + 1) % n]).normalized()
 		for j in steps:
 			var dirs := []
@@ -333,7 +382,8 @@ static func _lathe(parent: Node3D, profile: PackedVector2Array, center: Vector3,
 
 ## The red dot of a collimator (see the top of the file); its rest place is on the aim line at `z`. `shape` "chevron":
 ## the ACOG's red chevron instead, its tip on the aim line, DOT_RADIUS to each side (so `angle` sizes it as the dot);
-## "ring": the P90's ring, DOT_RADIUS across its outside, a dot in its middle.
+## "ring": the P90's ring, DOT_RADIUS across its outside, a dot in its middle; "circle": the ring alone, thicker (the
+## AUG A1's).
 static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_radius: float, angle: float,
 		shape := "dot") -> void:
 	var dot := MeshInstance3D.new()
@@ -342,7 +392,7 @@ static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_r
 	red.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	red.cull_mode = BaseMaterial3D.CULL_DISABLED
 	red.albedo_color = color
-	if shape == "ring":
+	if shape == "ring" or shape == "circle":
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		var flat := func(radius: float, a: float) -> Vector3: return Vector3(cos(a), sin(a), 0.0) * radius
@@ -350,8 +400,8 @@ static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_r
 			var a0 := TAU * i / 32.0
 			var a1 := TAU * (i + 1) / 32.0
 			var outer := DOT_RADIUS
-			var inner := DOT_RADIUS * 0.86
-			var centre := DOT_RADIUS * 0.13
+			var inner := DOT_RADIUS * (0.86 if shape == "ring" else 0.8)
+			var centre := DOT_RADIUS * (0.13 if shape == "ring" else 0.0)
 			for v in [flat.call(outer, a0), flat.call(outer, a1), flat.call(inner, a1), flat.call(outer, a0),
 					flat.call(inner, a1), flat.call(inner, a0), Vector3.ZERO, flat.call(centre, a0), flat.call(centre, a1)]:
 				st.set_normal(Vector3.FORWARD)

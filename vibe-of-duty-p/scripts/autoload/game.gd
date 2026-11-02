@@ -48,6 +48,7 @@ var bot_targets := false   # --bot-targets: bots shoot the training targets in t
 var bot_ttk := ""          # --bot-ttk=NODE: --bot-targets shoot only that target's body and time each kill (balance test)
 var bot_react := 0.0       # --bot-react=S: --bot-ttk aims where the target was this long ago (a human's reaction)
 var bot_hip := false       # --bot-hip: --bot-ttk shoots from the hip
+var dry_reserve := false   # --dry-reserve: every life starts with an empty reserve (the ЧМП test; give it to all machines)
 var bot_strafe := false    # --bot-strafe: --bot-ttk strafes left and right while shooting
 var bot_recoil := 1.0      # --bot-recoil=X: share of the recoil kick the bots pull down (1: all, 0: none)
 var bot_oink := false      # --bot-oink: bots also oink (F) whenever the cooldown allows (oink network test)
@@ -151,6 +152,8 @@ func _ready() -> void:
 			bot_react = maxf(float(arg.trim_prefix("--bot-react=")), 0.0)
 		elif arg == "--bot-hip":
 			bot_hip = true
+		elif arg == "--dry-reserve":
+			dry_reserve = true
 		elif arg == "--bot-strafe":
 			bot_strafe = true
 		elif arg.begins_with("--bot-recoil="):

@@ -65,6 +65,17 @@ func set_chip(on: bool) -> void:
 		_mannequin.set_chip(on)
 
 
+## The "ЧМП"'s gun in the left eye socket (the build has PartDB.SKULL_PISTOL).
+func set_eye_gun(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_eye_gun(on)
+
+
+## The ЧМП's muzzle (world).
+func eye_gun_muzzle_position() -> Vector3:
+	return _mannequin.eye_gun_muzzle() if _mannequin else global_position
+
+
 ## The "Гренадир"'s cannon on the chest (the build has PartDB.GRENADIER); a new life has its grenade in.
 func set_cannon(on: bool) -> void:
 	_cannon = on

@@ -15,6 +15,7 @@ func teleport(xform: Transform3D) -> void:
 	_curr_yaw = body_yaw
 	velocity = Vector3.ZERO
 	is_mantling = false
+	_air_jumps = 0
 	_floor_y = Gravity.height(global_position)
 	_snapshots.clear()
 	_history.clear()
@@ -104,18 +105,36 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 		horiz = horiz.move_toward(wish * ground_speed, rate * dt)
 	elif wish_len > 0.0:
 		var add := clampf(top_speed * wish_len - horiz.dot(wish), 0.0, AIR_ACCEL * dt)
+		var was := horiz.length()
 		horiz += wish * add
+		if mods["bunny_hop"] <= 0.0:  # without the "Зайчик" strafing steers, but builds no speed past a run
+			horiz = horiz.limit_length(maxf(was, top_speed))
 	v.x = horiz.x
 	v.z = horiz.z
 
-	# Vertical movement.
+	# Vertical movement. In the air a new press of jump jumps again while the build has air jumps left (the
+	# "Реактивные копыта": one), counted back on the floor.
 	if on_floor:
-		v.y = 0.0
+		_air_jumps = 0
+	var air_jump: bool = not on_floor and cmd.jump and _air_jumps < int(mods["air_jumps"])
+	if on_floor or air_jump:
 		if cmd.jump:
+			if mods["bunny_hop"] <= 0.0 and not is_sliding:
+				# Without the "Зайчик" a hop off the ground is no faster than a run (a slide's jump keeps the slide):
+				# landing from a fast jump and hopping on does not carry the speed.
+				var run: float = top_speed * weapons.speed_mult()
+				horiz = horiz.limit_length(run)
+				v.x = horiz.x
+				v.z = horiz.z
 			v.y = JUMP_VELOCITY * mods["jump_mult"]
 			_jumped_this_step = true
 			slide_finished = is_sliding or slide_finished
+			if air_jump:
+				_air_jumps += 1
+				_floor_y = Gravity.height(global_position)  # a vault reaches from here, as from the ground
 			_sfx("jump")
+		else:
+			v.y = 0.0
 	else:
 		v.y -= GRAVITY * dt
 	if slide_finished:

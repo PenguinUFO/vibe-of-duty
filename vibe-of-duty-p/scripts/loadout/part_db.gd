@@ -7,22 +7,26 @@ extends RefCounted
 ## invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into the native parts
 ## (sanitize), so the server never applies a build it did not check.
 
-const WEAPON_SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight",
-		"ammo"]
+const WEAPON_SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle",
+		"sight", "ammo"]
 ## Slots hidden for now (owner, 2026-10-23): the editor does not show them and every build has their defaults. The
-## parts stay (weapons.cfg); dropping a slot from here brings it back.
-const HIDDEN_SLOTS: Array[String] = ["grip", "muzzle", "ammo"]
+## parts stay (weapons.cfg); dropping a slot from here brings it back. The grip is back for the AUG (2026-11-02); the
+## MP7's folded grip stays hidden by its module ("hidden" in weapons.cfg).
+const HIDDEN_SLOTS: Array[String] = ["muzzle", "ammo"]
 ## Slots the editor shows and the saved builds keep, but no match plays yet (owner, 2026-10-31: the organs, buttons
 ## only): sanitize puts the native part in unless asked to keep them. Their price counts in the editor's tokens.
 const INERT_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 ## Parts of the INERT_SLOTS a match does play (owner, 2026-10-31).
 const ENGINEER := "engineer"  # the head's chip: with it the kit's modules can be changed (free)
 const GRENADIER := "grenadier"  # the chest cannon: one grenade a life (Docs/LOADOUT.md, "Гренадир")
-const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER]
+const BUNNY := "bunny"  # the legs: bunny hopping (Docs/LOADOUT.md, "Зайчик")
+const JET_HOOVES := "jet_hooves"  # the legs: a double jump (Docs/LOADOUT.md, "Реактивные копыта")
+const SKULL_PISTOL := "skull_pistol"  # the head: the "ЧМП" (Docs/LOADOUT.md, "Черепно-мозговой пистолет")
+const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER, BUNNY, JET_HOOVES, SKULL_PISTOL]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
-const SLOTS: Array[String] = ["weapon", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
+const SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
 		"head", "chest", "belly", "legs", "kit"]
-const SLOT_NAMES := {"weapon": "Оружие", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
+const SLOT_NAMES := {"weapon": "Оружие", "barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
 		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги", "kit": "Комплектация"}
 const BUDGET := 10
@@ -45,6 +49,8 @@ const DEFAULT_MODS := {
 	"spread_ads_mult": 1.0,
 	"melee_damage_mult": 1.0,   # hoof punch damage
 	"bag_heal": 0.0,            # HP an ammo bag heals; > 0 also means it gives no ammo (server)
+	"bunny_hop": 0.0,           # > 0: hops and air strafing keep and build speed (the "Зайчик"); else not past a run
+	"air_jumps": 0.0,           # jumps in the air before the floor again (the "Реактивные копыта": a double jump)
 }
 
 static var _parts: Array[PartDef] = []
@@ -225,10 +231,14 @@ static func _build() -> void:
 		PartDef.make("hoof", "hands", 0, "Копыто", "Родное. Удар — 75 урона."),
 		PartDef.make("head", "head", 0, "Ничего", "Родная."),  # the native organs: "Ничего" (owner, 2026-11-02)
 		PartDef.make(ENGINEER, "head", 0, "Инженер", "Чип у правого уха: модули комплектации можно менять."),
+		PartDef.make(SKULL_PISTOL, "head", 0, "Черепно-мозговой пистолет",
+				"Ствол вместо левого глаза: кончились патроны — стреляет он. Бесконечный, слабый, только от бедра."),
 		PartDef.make("chest", "chest", 0, "Ничего", "Родное."),
 		PartDef.make(GRENADIER, "chest", 0, "Гренадир", "Пушка в груди: одна граната за жизнь (G)."),
 		PartDef.make("belly", "belly", 0, "Ничего", "Родное."),
 		PartDef.make("legs", "legs", 0, "Ничего", "Родные."),
+		PartDef.make(BUNNY, "legs", 0, "Зайчик", "Банни-хоп: прыжки и стрейф в воздухе разгоняют.", {"bunny_hop": 1.0}),
+		PartDef.make(JET_HOOVES, "legs", 0, "Реактивные копыта", "Второй прыжок в воздухе.", {"air_jumps": 1.0}),
 	])
 	# The weapons (WeaponDB order: the first is the native one) and their modules, as weapons.cfg lists them (the
 	# first of a slot is its default).

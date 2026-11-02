@@ -36,6 +36,14 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"p90_hip": [8, 0.0, -1.0, []], "p90_ads": [8, 1.0, -1.0, []], "p90_half": [8, 0.6, -1.0, []],
 	"p90_r12": [8, 0.0, -1.0, [], 0.12], "p90_r22": [8, 0.0, -1.0, [], 0.22], "p90_r40": [8, 0.0, -1.0, [], 0.4],
 	"p90_r62": [8, 0.0, -1.0, [], 0.62], "p90_r70": [8, 0.0, -1.0, [], 0.7], "p90_r85": [8, 0.0, -1.0, [], 0.85],
+	"aug_hip": [9, 0.0, -1.0, []], "aug_half": [9, 0.6, -1.0, []], "aug_r30": [9, 0.0, -1.0, [], 0.3],
+	"aug_r60": [9, 0.0, -1.0, [], 0.6], "aug_r75": [9, 0.0, -1.0, [], 0.75], "aug_r85": [9, 0.0, -1.0, [], 0.85],
+	"aug_tac_hip": [9, 0.0, -1.0, ["aug.suppressor.blk", "aug.sight.compm", "aug.grip.off"]],
+	"aug_tac_ads": [9, 1.0, -1.0, ["aug.suppressor.blk", "aug.sight.compm", "aug.grip.off"]],
+	"aug_com_hip": [9, 0.0, -1.0, ["aug.barrel.b350", "aug.sight.iron"]],
+	"aug_com_ads": [9, 1.0, -1.0, ["aug.barrel.b350", "aug.sight.iron"]],
+	"aug_ads": [9, 1.0, -1.0, []], "aug_acog_ads": [9, 1.0, -1.0, ["aug.sight.acog"]],
+	"aug_acog_hip": [9, 0.0, -1.0, ["aug.sight.acog"]],
 }
 
 

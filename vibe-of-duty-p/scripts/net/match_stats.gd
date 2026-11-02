@@ -274,6 +274,8 @@ static func _weapon_id(player: Player, weapon: int) -> String:
 		return "melee"
 	if weapon == WeaponSim.GRENADE:
 		return "grenade"
+	if weapon == WeaponSim.CMP:
+		return "cmp"
 	if weapon < 0:
 		return "self"
 	return player.weapons.def_at(weapon).id

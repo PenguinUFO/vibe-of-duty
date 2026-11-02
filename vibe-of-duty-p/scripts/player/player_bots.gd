@@ -96,7 +96,7 @@ func _bot_statue_cmd(t: float) -> PlayerCmd:
 
 ## Whether the trigger may be held this tick: a semi-automatic weapon needs it let go between shots.
 func _bot_trigger() -> bool:
-	return weapons.current().automatic or not weapons.fire_prev
+	return weapons.firing_def().automatic or not weapons.fire_prev
 
 
 ## Runs laps of the obstacle course: down the middle lane of each side (COURSE_LOOP corners, in order), jumping at
@@ -264,8 +264,9 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
-		cmd.fire = weapons.ads > 0.95 and _bot_trigger()
+		cmd.fire = (weapons.ads > 0.95 or weapons.cmp) and _bot_trigger()  # the ЧМП: from the hip only
 		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the "Гренадир": once a life, mid range
+	cmd.reload = weapons.cmp and weapons.reserves[weapons.index] > 0  # a bag picked up: R gives the weapon back
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd

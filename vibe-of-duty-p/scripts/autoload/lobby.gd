@@ -5,6 +5,8 @@ extends Node
 ## VOTING: after every match (NetWorld, at the end of the intermission) - VOTE_MAPS random maps and "random" on the
 ## ballot, VOTE_TIME s to vote, then the most voted map is played (a tie: one of the tied at random). The host may
 ## start it earlier; a dedicated server just waits for the clock.
+## In either phase the host may switch the game mode (Game.random_weapons) and pick the map itself: in WAITING that is
+## the map, in VOTING it overrides the ballot (host_map; "" = the vote decides).
 ## Every peer shows the lobby scene (LobbyMenu) while a phase is on; Start sends everybody to the map, where NetWorld
 ## takes over as on a normal join. Automated tests (bots, --summary) and training skip the lobby: the next match starts
 ## in place, as before (enabled()).
@@ -13,7 +15,7 @@ enum Phase { NONE, WAITING, VOTING }
 
 ## Scenes change deferred: the vote opens inside NetWorld's physics step, which must not lose its level halfway.
 const SCENE := "res://prefabs/ui/lobby.tscn"
-const VOTE_TIME := 20.0   # s to vote after a match
+const VOTE_TIME := 45.0   # s in the lobby after a match (vote, builds)
 const VOTE_MAPS := 2      # random maps on the ballot, plus RANDOM
 const RANDOM := "random"  # the ballot's "any map" choice
 
@@ -24,6 +26,7 @@ var roster := {}                 # peer_id -> name, the players in the lobby (se
 var options: Array[String] = []  # VOTING: map paths on the ballot, the last one RANDOM
 var votes := {}                  # VOTING: peer_id -> index in options
 var time_left := 0.0             # VOTING: seconds until the vote ends (clients count down locally between syncs)
+var host_map := ""               # VOTING: the map the host picked over the vote ("" = the vote decides)
 var _sync_timer := 0.0
 
 
@@ -82,6 +85,7 @@ func _open(new_phase: Phase, names: Dictionary) -> void:
 	roster = names.duplicate()
 	options.clear()
 	votes.clear()
+	host_map = ""
 	if not Game.dedicated and not roster.has(1):
 		roster[1] = NetWorld.unique_name(Settings.player_name, roster.values())
 	Game.set_state(Game.State.LOBBY)
@@ -104,7 +108,7 @@ func server_start() -> void:
 	if not Net.is_server() or phase == Phase.NONE:
 		return
 	if phase == Phase.VOTING:
-		Game.map_scene = _vote_result()
+		Game.map_scene = host_map if host_map != "" else _vote_result()
 	phase = Phase.NONE
 	if Game.net_log:
 		print("[LOBBY] start %s" % Game.map_scene)
@@ -142,7 +146,7 @@ func vote_counts() -> Array[int]:
 
 func _broadcast() -> void:
 	_sync_timer = 1.0
-	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene)
+	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.random_weapons)
 	changed.emit()
 
 
@@ -179,6 +183,26 @@ func _server_vote(id: int, index: int) -> void:
 	if phase != Phase.VOTING or index < 0 or index >= options.size() or not roster.has(id):
 		return
 	votes[id] = index
+	_broadcast()
+
+
+## Host: the next map. WAITING: `path` is the map; VOTING: it overrides the vote ("" gives the choice back to the vote).
+func server_set_map(path: String) -> void:
+	if not is_host() or phase == Phase.NONE or (path != "" and not Game.list_maps().has(path)):
+		return
+	if phase == Phase.WAITING:
+		if path != "":
+			Game.map_scene = path
+	else:
+		host_map = path
+	_broadcast()
+
+
+## Host: the game mode of the next match (Game.random_weapons: FFA random weapon).
+func server_set_random_weapons(on: bool) -> void:
+	if not is_host() or phase == Phase.NONE:
+		return
+	Game.random_weapons = on
 	_broadcast()
 
 
@@ -225,7 +249,7 @@ func _go_map(path: String) -> void:
 
 @rpc("authority", "reliable")
 func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes: Dictionary, new_time_left: float,
-		map: String) -> void:
+		map: String, new_host_map: String, random_weapons: bool) -> void:
 	if phase == Phase.NONE:  # already on the way to the map
 		return
 	phase = new_phase as Phase
@@ -233,6 +257,8 @@ func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes
 	options.assign(new_options)
 	votes = new_votes
 	time_left = new_time_left
+	host_map = new_host_map if Game.is_map(new_host_map) else ""
+	Game.random_weapons = random_weapons
 	if Game.is_map(map):
 		Game.map_scene = map
 	changed.emit()
@@ -243,3 +269,4 @@ func _reset() -> void:
 	roster.clear()
 	options.clear()
 	votes.clear()
+	host_map = ""

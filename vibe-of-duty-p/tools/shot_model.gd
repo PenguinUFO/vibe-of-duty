@@ -38,6 +38,14 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"mk14_r": [7, []],
 	"p90": [8, []],
 	"p90_r": [8, []],
+	"aug": [9, []],
+	"aug_r": [9, []],
+	"aug_tactical": [9, ["aug.suppressor.blk", "aug.sight.compm", "aug.grip.off"]],
+	"aug_commando": [9, ["aug.barrel.b350", "aug.sight.iron"]],
+	"aug_commando_r": [9, ["aug.barrel.b350", "aug.sight.iron"]],
+	"aug_folded": [9, ["aug.grip.off", "aug.mag.42"]],
+	"aug_a3": [9, ["aug.sight.iron", "aug.suppressor.blk"]],
+	"aug_acog": [9, ["aug.sight.acog"]],
 }
 
 

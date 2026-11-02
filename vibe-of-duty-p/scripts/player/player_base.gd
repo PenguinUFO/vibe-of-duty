@@ -58,6 +58,7 @@ const FLAG_FIRE := 8
 const FLAG_AIM := 16
 const FLAG_RELOAD := 32
 const FLAG_GRENADE := 64
+const FLAG_CMP := 128
 const FLAG_JUMP_HELD := 256
 const FLAG_MELEE := 512
 const FLAG_SELECT_SHIFT := 10  # 4 bits: weapon index + 1, 0 = no switch (up to 15 weapons; 3 bits until the 8th)
@@ -128,6 +129,7 @@ var _slide_speed := 0.0
 var _slide_time := 0.0
 var _slide_cooldown := 0.0
 var _prev_crouch := false
+var _air_jumps := 0  # jumps made since the floor (the "Реактивные копыта": PartDB mods "air_jumps")
 var _prev_on_floor := true
 var _prev_vy := 0.0
 var _step_distance := 0.0

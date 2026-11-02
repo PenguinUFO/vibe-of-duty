@@ -154,6 +154,10 @@ func _bind_gamepad() -> void:
 	var grenade_key := InputEventKey.new()  # the "Гренадир"'s chest cannon
 	grenade_key.physical_keycode = KEY_G
 	InputMap.action_add_event("grenade", grenade_key)
+	_ensure_action("cmp")
+	var cmp_key := InputEventKey.new()  # training only: the "ЧМП" on / off (WeaponSim.CMP)
+	cmp_key.physical_keycode = KEY_1
+	InputMap.action_add_event("cmp", cmp_key)
 
 
 func _ensure_action(action: String, deadzone: float = 0.5) -> void:

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|build|grenade|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|build|grenade|cmp|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -49,7 +49,14 @@ run() {
 		$R --server --map=arena --summary=30 > "$O/grenade_srv.log" 2>&1 &
 		sleep 3
 		$R --join=127.0.0.1 --bot-aim --name=G1 --build=kit.ak_kobra,grenadier --summary=27 > "$O/grenade_c1.log" 2>&1 &
-		$R --join=127.0.0.1 --bot-aim --name=G2 --build=kit.p90,grenadier --lag=40 --summary=27 > "$O/grenade_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=G2 --build=kit.p90,grenadier,bunny --lag=40 --summary=27 > "$O/grenade_c2.log" 2>&1 &
+		wait;;
+	cmp)  # arena: Contender bots with the "ЧМП" - out of rounds they shoot from the eye, a bag and R give the gun back
+		# --dry-reserve: lives start with the magazine only (else a Contender bot dies before its 16 rounds run out).
+		$R --server --map=arena --dry-reserve --summary=40 > "$O/cmp_srv.log" 2>&1 &
+		sleep 3
+		$R --join=127.0.0.1 --bot-aim --name=C1 --build=kit.contender,skull_pistol --dry-reserve --summary=37 > "$O/cmp_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=C2 --build=kit.contender,skull_pistol --dry-reserve --lag=40 --summary=37 > "$O/cmp_c2.log" 2>&1 &
 		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac
@@ -57,5 +64,5 @@ run() {
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee build grenade; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee build grenade cmp; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"

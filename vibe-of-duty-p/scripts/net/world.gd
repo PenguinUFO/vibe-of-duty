@@ -11,6 +11,7 @@ extends Node
 
 const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
 const SNAPSHOT_INTERVAL := 1  # physics ticks between snapshots (60 Hz: others can be drawn only ~30 ms behind)
+const VIEW_TICK_STALE := 0.5  # s: a shown pose this far behind the freshest one is a frozen one (get_view_tick)
 const KILL_HEIGHT := -20.0
 
 ## Below this height (Gravity.height: y, on the ring station how far in from the rim) a living player dies (fell off
@@ -206,15 +207,23 @@ func _sync_clock(tick: int) -> void:
 
 
 ## The server tick the local player sees the others at (they are drawn slightly in the past, Player._buffered_pose):
-## the average over them. Sent with every command so the server can rewind targets to what was on screen; 0 when
-## nobody else is shown (shots are then judged against live positions).
+## the average over the living ones. Sent with every command so the server can rewind targets to what was on screen;
+## 0 when nobody else is shown (shots are then judged against live positions). A dead player's (or one whose poses
+## stopped) shown_tick freezes: ticks more than VIEW_TICK_STALE behind the freshest are left out, or one corpse
+## pulled the average seconds back (playtest 2026-11-02: hits judged 1 s in the past).
 func get_view_tick() -> float:
-	var total := 0.0
-	var count := 0
+	var ticks: Array[float] = []
+	var freshest := 0.0
 	for id in players:
 		var p: Player = players[id]
-		if p.control != Player.Mode.LOCAL and p.shown_tick > 0.0:
-			total += p.shown_tick
+		if p.control != Player.Mode.LOCAL and p.alive and p.shown_tick > 0.0:
+			ticks.append(p.shown_tick)
+			freshest = maxf(freshest, p.shown_tick)
+	var total := 0.0
+	var count := 0
+	for tick in ticks:
+		if tick >= freshest - VIEW_TICK_STALE * Engine.physics_ticks_per_second:
+			total += tick
 			count += 1
 	return total / count if count > 0 else 0.0
 
@@ -466,7 +475,7 @@ func server_apply_blast(attacker: Player, victim: Player, amount: float, pos: Ve
 
 
 ## Server: the map killed `player`. `cause` (for MatchStats): "fall" (off the map), "tunnel" (the train's tunnel swept
-## them off a roof), "crushed" (moving cargo, the crane bridge).
+## them off a roof), "crushed" (moving cargo, the crane bridge); the pig statue passes "statue" to _server_kill.
 func _server_suicide(player: Player, cause: String) -> void:
 	player.server_damage(9999.0)
 	_server_kill(player, player, -1, false, cause)
@@ -711,7 +720,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
 				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else
-				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else "")
+				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else
+				WeaponSim.CMP_NAME if weapon == WeaponSim.CMP else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 
 

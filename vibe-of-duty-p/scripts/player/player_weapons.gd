@@ -4,6 +4,8 @@ extends PlayerMantle
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
 const SHOT_LISTENER := &"on_shot"
+## The ЧМП's shot seen from the eyes (camera frame): the flash and the trail start here, by the left eye, low.
+const CMP_VIEW := Vector3(-0.05, -0.03, -0.15)
 
 
 func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
@@ -87,6 +89,9 @@ func _on_shot(event: Dictionary) -> void:
 		hits_total += hits.size()
 		for hit in hits:
 			head_hits_total += 1 if hit["zone"] == "head" else 0
+		if event["weapon"] == WeaponSim.CMP:
+			Game.count("cmp_shots")
+			Game.count("cmp_hits", hits.size())
 		server_shot.emit(self, event["weapon"], origin, ends, hits)
 		if world != null:
 			for victim_id in damage_by_victim:
@@ -101,10 +106,12 @@ func _on_shot(event: Dictionary) -> void:
 			if is_local:
 				on_hit_confirmed(knocked, t_entry["head"])
 	if is_local:
-		_view.flash(def.muzzle_flash)
-		_view.kick(1.0 if def.pellets == 1 else 2.0)
-		Audio.play(def.sound_shot, null, def.loudness)
-		var muzzle := _view.muzzle_global_position()
+		var cmp: bool = event["weapon"] == WeaponSim.CMP  # the hands hold the empty weapon still: only a small flash
+		if not cmp:
+			_view.flash(def.muzzle_flash)
+			_view.kick(1.0 if def.pellets == 1 else 2.0)
+		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
+		var muzzle := _camera.global_transform * CMP_VIEW if cmp else _view.muzzle_global_position()
 		if def.muzzle_flash:
 			MuzzleLights.flash(self, muzzle)
 		if world != null and world.kill_cam != null:
@@ -352,11 +359,14 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) ->
 	var def := weapons.def_at(weapon)  # with this player's modules (their build is known everywhere)
 	if world != null and world.kill_cam != null:
 		world.kill_cam.record_shot(peer_id, weapon, origin, ends)
-	_visual.set_weapon(weapon, def)
-	Audio.play(def.sound_shot, origin, def.loudness)
+	var cmp := weapon == WeaponSim.CMP  # out of the left eye; the weapon in the hands stays as it is
+	if not cmp:
+		_visual.set_weapon(weapon, def)
+	Audio.play(def.sound_shot, origin, def.loudness, def.sound_pitch)
 	var scene_root := get_tree().current_scene
-	var muzzle := _visual.muzzle_global_position()
-	_visual.show_shot(def.muzzle_flash)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
+	var muzzle := _visual.eye_gun_muzzle_position() if cmp else _visual.muzzle_global_position()
+	if not cmp:
+		_visual.show_shot(def.muzzle_flash)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
 	if def.muzzle_flash:
 		MuzzleLights.flash(self, muzzle)
 	for i in ends.size():
