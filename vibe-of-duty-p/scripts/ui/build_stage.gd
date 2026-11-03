@@ -20,6 +20,7 @@ var _viewport := SubViewport.new()
 var _camera := Camera3D.new()
 var _mannequin := Mannequin.new()
 var _weapon := WeaponView.new()
+var _left_weapon := WeaponView.new()  # akimbo: the copy in the left hoof
 var _target := BODY_CENTRE   # where the camera looks now...
 var _distance := 0.0         # ...and from how far
 var _weapon_box := AABB()    # mannequin space, of the weapon as held
@@ -66,6 +67,10 @@ func _init() -> void:
 	_weapon.top_level = true  # placed by the mannequin
 	_viewport.add_child(_weapon)
 	_mannequin.weapon = _weapon
+	_left_weapon.top_level = true
+	_left_weapon.visible = false
+	_viewport.add_child(_left_weapon)
+	_mannequin.left_weapon = _left_weapon
 
 
 ## The weapon of `parts` (a sanitized build) with its modules, in the pig's hands.
@@ -73,6 +78,9 @@ func show_build(parts: Array) -> void:
 	var index := WeaponDB.index_of(parts[0])
 	_weapon.set_weapon(index, WeaponDB.make_def(index, PartDB.weapon_modules(parts)))
 	_mannequin.def = _weapon.def
+	_left_weapon.visible = _weapon.def.akimbo
+	if _left_weapon.visible:
+		_left_weapon.set_weapon(index, _weapon.def)
 	_mannequin.set_chip(parts.has(PartDB.ENGINEER))
 	_mannequin.set_cannon(parts.has(PartDB.GRENADIER))
 	_mannequin.set_eye_gun(parts.has(PartDB.SKULL_PISTOL))
@@ -102,12 +110,15 @@ func _process(delta: float) -> void:
 	_camera.look_at_from_position(_target + VIEW_DIR.normalized() * _distance, _target)
 
 
-## The held weapon's box in mannequin space; false while the last model is still on its way out.
+## The held weapon's (akimbo: both weapons') box in mannequin space; false while the last model is still on its way out.
 func _measure_weapon() -> bool:
 	var box := AABB()
 	var first := true
 	var to_local := _mannequin.global_transform.affine_inverse()
-	for node in _weapon.find_children("*", "VisualInstance3D", true, false):
+	var nodes := _weapon.find_children("*", "VisualInstance3D", true, false)
+	if _left_weapon.visible:  # akimbo: both guns in the frame
+		nodes.append_array(_left_weapon.find_children("*", "VisualInstance3D", true, false))
+	for node in nodes:
 		var instance := node as VisualInstance3D
 		if _going(instance):
 			return false

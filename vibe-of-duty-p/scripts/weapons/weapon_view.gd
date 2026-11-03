@@ -10,6 +10,10 @@ extends Node3D
 const FLASH_TIME := 0.04
 const KICK_DECAY := 14.0
 const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
+## Akimbo's sprint: each gun down and out to its side, muzzle a little down and out, canted outwards - not in across
+## the middle and turned in (mirrored, that crossed the two guns). Degrees: dip, turn out, cant out.
+const AKIMBO_SPRINT_OFFSET := Vector3(0.06, -0.06, 0.04)
+const AKIMBO_SPRINT_TURN := Vector3(15.0, 12.0, 22.0)
 const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
 const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
 const BREAK_ANGLE := 0.5      # rad: how far a break-open's barrel drops for a reload (~29 degrees: room for a round)
@@ -36,6 +40,10 @@ const BULLPUP_RELOAD_TURN := Vector3(0.0, 40.0, 10.0)
 var weapon_index := -1
 var def: WeaponDef  # the weapon shown, with its owner's modules (the sight model and aim line)
 var is_viewmodel := false
+## First person, the akimbo's left gun: posed as the right one mirrored across the view's middle (left of it, the
+## pose's sideways moves and turns the other way; the bob and the sway as the right one's). The model is not mirrored.
+var mirrored := false
+var akimbo := false  # first person, held with another one (both guns: the right one too) - its own sprint pose
 
 var _pivot := Node3D.new()
 var _model: Node3D
@@ -449,12 +457,13 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	if on_floor and speed > 0.5:
 		_bob_time += dt * speed * 1.7
 	var bob_amount := (1.0 - ads * 0.85) * clampf(speed / 5.0, 0.0, 1.4)
-	pos += Vector3(cos(_bob_time * 0.5) * 0.008, absf(sin(_bob_time)) * 0.01, 0.0) * bob_amount
+	# The bob and the sway move the whole body's hands: not mirrored (mirrored, akimbo's guns went apart on a turn).
+	var motion := Vector3(cos(_bob_time * 0.5) * 0.008, absf(sin(_bob_time)) * 0.01, 0.0) * bob_amount
 
 	# Sway: the weapon lags behind the view and settles back.
 	_sway = _sway.lerp(Vector2.ZERO, 1.0 - exp(-8.0 * dt)) - look_delta * 0.12
 	_sway = _sway.limit_length(0.06)
-	pos += Vector3(_sway.x, -_sway.y, 0.0) * (1.0 - ads * 0.7)
+	motion += Vector3(_sway.x, -_sway.y, 0.0) * (1.0 - ads * 0.7)
 
 	# Recoil kick (much weaker while aiming: the sights stay nearly still).
 	var kick := _kick * (1.0 - ads * ADS_KICK_CUT)
@@ -462,9 +471,15 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	rot.x += kick * deg_to_rad(2.5)
 
 	# Sprint pose.
-	pos += SPRINT_OFFSET * sprint_blend
-	rot.y += deg_to_rad(18.0) * sprint_blend
-	rot.x -= deg_to_rad(6.0) * sprint_blend
+	if akimbo:
+		pos += AKIMBO_SPRINT_OFFSET * sprint_blend
+		rot.x -= deg_to_rad(AKIMBO_SPRINT_TURN.x) * sprint_blend
+		rot.y -= deg_to_rad(AKIMBO_SPRINT_TURN.y) * sprint_blend
+		rot.z -= deg_to_rad(AKIMBO_SPRINT_TURN.z) * sprint_blend
+	else:
+		pos += SPRINT_OFFSET * sprint_blend
+		rot.y += deg_to_rad(18.0) * sprint_blend
+		rot.x -= deg_to_rad(6.0) * sprint_blend
 
 	# Reload: the gun dips and cants (magazine well towards the left hand); the hand itself takes the magazine out
 	# and racks the handle (FirstPersonArms, Mannequin.reload_hand).
@@ -531,7 +546,11 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	# Wall avoidance: pull the weapon back when something is right in front of the camera.
 	pos.z += retract
 
-	position = pos
+	if mirrored:
+		pos.x = -pos.x
+		rot.y = -rot.y
+		rot.z = -rot.z
+	position = pos + motion
 	rotation = rot
 	_aim_dot()
 

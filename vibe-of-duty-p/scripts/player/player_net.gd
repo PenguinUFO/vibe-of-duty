@@ -131,6 +131,7 @@ func get_net_state() -> Array:
 	flags |= STATE_MELEE if weapons.is_meleeing() else 0
 	flags |= STATE_GRENADE if weapons.is_launching() else 0
 	flags |= STATE_GRENADE_READY if weapons.is_grenade_ready() else 0
+	flags |= STATE_AKIMBO if weapons.is_akimbo() else 0
 	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
 	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle,
@@ -342,3 +343,8 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 		Audio.play("cannon_out", global_position)
 	_puppet_launching = launching
 	_visual.set_launching(launching, flags & STATE_GRENADE_READY != 0)
+	# The akimbo's left gun: in the hand, or thrown away (alive: dying keeps it, it falls with the body).
+	var akimbo := flags & STATE_AKIMBO != 0
+	if akimbo != _puppet_akimbo and alive:
+		_visual.set_akimbo(akimbo)
+	_puppet_akimbo = akimbo

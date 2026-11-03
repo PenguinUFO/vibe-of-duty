@@ -92,6 +92,15 @@ func _build_hud() -> void:
 	_ammo_hud.offset_bottom = -20.0
 	_hud.add_child(_ammo_hud)
 
+	_left_ammo_hud = HudAmmo.new()
+	_left_ammo_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_left_ammo_hud.offset_left = 24.0
+	_left_ammo_hud.offset_top = -HudHealth.SIZE.y - 20.0 - 8.0 - HudAmmo.SIZE.y
+	_left_ammo_hud.offset_right = 24.0 + HudAmmo.SIZE.x
+	_left_ammo_hud.offset_bottom = -HudHealth.SIZE.y - 20.0 - 8.0
+	_left_ammo_hud.visible = false
+	_hud.add_child(_left_ammo_hud)
+
 	_health_hud = HudHealth.new()
 	_health_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_health_hud.offset_left = 24.0
@@ -125,6 +134,7 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 		var impact := clampf(_land_impact, 0.0, 14.0)
 		_cam_land_v -= impact * 0.045
 		_view.land_jolt(impact / 8.0)
+		_left_view.land_jolt(impact / 8.0)
 		if impact > 3.0:
 			Dust.burst(self, global_position, (impact - 3.0) / 4.0)
 		_land_impact = 0.0
@@ -181,6 +191,8 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	if not hit.is_empty():
 		wanted = clampf(1.1 - cam_pos.distance_to(hit["position"]), 0.0, 0.45)
 	_retract = lerpf(_retract, wanted, 1.0 - exp(-18.0 * delta))
+	_view.akimbo = weapons.is_akimbo()
+	_left_view.akimbo = true
 	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
 	_arms.reload = weapons.reload_progress() if alive else -1.0
@@ -188,6 +200,14 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_arms.melee = _view.melee
 	_view.grenade = weapons.grenade_progress() if alive else -1.0
 	_arms.grenade = _view.grenade
+	# The akimbo's left gun: the right one mirrored, never aimed or reloaded (Docs/LOADOUT.md, "Акимбо").
+	_left_view.visible = _view.visible and weapons.is_akimbo()
+	if _left_view.visible:
+		_left_view.set_weapon(weapons.index, weapons.current())
+		_left_view.lowered = _view.lowered
+		_left_view.grenade = _view.grenade
+		_left_view.update_pose(delta, 0.0, -1.0, weapons.equip_progress(), _sprint_blend, speed, is_on_floor(),
+				_look_delta, _retract)
 	pose_cannon_view(_cannon_view, _view.grenade)
 	if _cannon_view != null:
 		_cannon_view.loaded = weapons.grenades > 0
@@ -208,6 +228,9 @@ func _update_hud(speed: float, delta: float) -> void:
 			weapons.reload_progress() if alive else -1.0)
 	_ammo_hud.visible = alive
 	_ammo_hud.set_grenade(weapons.grenades > 0)
+	# Akimbo: the left gun's own plate on the left, over the health bar; it goes with the gun.
+	_left_ammo_hud.visible = alive and weapons.is_akimbo()
+	_left_ammo_hud.set_state(def.display_name, weapons.left_mag, def.mag_size, HudAmmo.NONE, false)
 	_health_hud.set_health(health, max_health)
 	if health < _last_health:
 		_hurt_alpha = minf(1.0, 0.45 + 2.0 * float(_last_health - health) / max_health)
@@ -300,7 +323,8 @@ static func pose_cannon_view(cannon: GrenadeCannon, progress: float) -> void:
 
 
 ## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
-## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none), grenade launch progress (-1: none)].
+## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none), grenade launch progress (-1: none),
+## the akimbo's left gun in the hand].
 func drawn_pose() -> Array:
 	var pos := global_position
 	var yaw := body_yaw
@@ -316,8 +340,9 @@ func drawn_pose() -> Array:
 	var reload := weapons.reload_progress() if control != Mode.PUPPET else _visual.reload_progress()
 	var melee := weapons.melee_progress() if control != Mode.PUPPET else _visual.melee_progress()
 	var grenade := weapons.grenade_progress() if control != Mode.PUPPET else _visual.grenade_progress()
+	var akimbo := weapons.is_akimbo() if control != Mode.PUPPET else _puppet_akimbo
 	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index, reload,
-			is_sliding, melee, grenade]
+			is_sliding, melee, grenade, akimbo]
 
 
 ## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.

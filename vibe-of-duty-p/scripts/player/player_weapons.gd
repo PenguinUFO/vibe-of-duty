@@ -44,6 +44,12 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 				_sfx("cannon_out")
 			"grenade":
 				_on_grenade(event)
+			"akimbo_drop":
+				if not _replaying and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+					Game.count("akimbo_drops")
+				# Thrown away: the shooter's from the first-person gun (others' bodies - PlayerVisual.set_akimbo).
+				if is_local and not _replaying and _left_view != null:
+					DroppedGun.toss(self, _left_view, velocity)
 
 
 func _local_sfx(id: String) -> void:
@@ -55,6 +61,7 @@ func _on_shot(event: Dictionary) -> void:
 	if _replaying:
 		return
 	var def := weapons.def_at(event["weapon"])
+	var left: bool = event.get("left", false)  # the akimbo's left gun
 	var origin := eye_position()
 	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	var tick := _judge_tick(event["view_tick"], is_server)
@@ -92,7 +99,10 @@ func _on_shot(event: Dictionary) -> void:
 		if event["weapon"] == WeaponSim.CMP:
 			Game.count("cmp_shots")
 			Game.count("cmp_hits", hits.size())
-		server_shot.emit(self, event["weapon"], origin, ends, hits)
+		if left:
+			Game.count("akimbo_left_shots")
+			Game.count("akimbo_left_hits", hits.size())
+		server_shot.emit(self, event["weapon"], origin, ends, hits, left)
 		if world != null:
 			for victim_id in damage_by_victim:
 				var entry: Dictionary = damage_by_victim[victim_id]
@@ -107,15 +117,16 @@ func _on_shot(event: Dictionary) -> void:
 				on_hit_confirmed(knocked, t_entry["head"])
 	if is_local:
 		var cmp: bool = event["weapon"] == WeaponSim.CMP  # the hands hold the empty weapon still: only a small flash
+		var gun := _left_view if left else _view
 		if not cmp:
-			_view.flash(def.muzzle_flash)
-			_view.kick(1.0 if def.pellets == 1 else 2.0)
+			gun.flash(def.muzzle_flash)
+			gun.kick(1.0 if def.pellets == 1 else 2.0)
 		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
-		var muzzle := _camera.global_transform * CMP_VIEW if cmp else _view.muzzle_global_position()
+		var muzzle := _camera.global_transform * CMP_VIEW if cmp else gun.muzzle_global_position()
 		if def.muzzle_flash:
 			MuzzleLights.flash(self, muzzle)
 		if world != null and world.kill_cam != null:
-			world.kill_cam.record_shot(peer_id, event["weapon"], muzzle, ends)
+			world.kill_cam.record_shot(peer_id, event["weapon"], muzzle, ends, left)
 		var scene_root := get_tree().current_scene
 		for r in results:
 			ShotEffects.spawn_tracer(scene_root, muzzle, r["pos"])
@@ -354,19 +365,19 @@ func react_to_shot(origin: Vector3, end: Vector3) -> void:
 		_visual.react_to_shot(origin, end)
 
 
-## Cosmetics of somebody else's shot (called by World on clients and on the host).
-func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
+## Cosmetics of somebody else's shot (called by World on clients and on the host); `left`: the akimbo's left gun.
+func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array, left := false) -> void:
 	var def := weapons.def_at(weapon)  # with this player's modules (their build is known everywhere)
 	if world != null and world.kill_cam != null:
-		world.kill_cam.record_shot(peer_id, weapon, origin, ends)
+		world.kill_cam.record_shot(peer_id, weapon, origin, ends, left)
 	var cmp := weapon == WeaponSim.CMP  # out of the left eye; the weapon in the hands stays as it is
 	if not cmp:
 		_visual.set_weapon(weapon, def)
 	Audio.play(def.sound_shot, origin, def.loudness, def.sound_pitch)
 	var scene_root := get_tree().current_scene
-	var muzzle := _visual.eye_gun_muzzle_position() if cmp else _visual.muzzle_global_position()
+	var muzzle := _visual.eye_gun_muzzle_position() if cmp else _visual.muzzle_global_position(left)
 	if not cmp:
-		_visual.show_shot(def.muzzle_flash)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
+		_visual.show_shot(def.muzzle_flash, left)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
 	if def.muzzle_flash:
 		MuzzleLights.flash(self, muzzle)
 	for i in ends.size():

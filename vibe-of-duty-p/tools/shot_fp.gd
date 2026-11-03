@@ -2,7 +2,7 @@ extends Node
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_fp
 
-const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress]
+const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress, sprint 0..1]
 	"hip": [0, 0.0, -1.0, []], "grenade": [0, 0.0, -1.0, [], -1.0, 0.43], "grenade_back": [0, 0.0, -1.0, [], -1.0, 0.75], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
@@ -10,6 +10,9 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"luger_khruger_hip": [2, 0.0, -1.0, ["luger.conversion.khruger"]], "luger_khruger_ads": [2, 1.0, -1.0, ["luger.conversion.khruger"]],
 	"luger_mods": [2, 0.0, -1.0, ["luger.mag.32", "luger.stock.board"]],
 	"luger_mods_ads": [2, 1.0, -1.0, ["luger.mag.32", "luger.stock.board"]],
+	"luger_akimbo": [2, 0.0, -1.0, ["luger.akimbo.on"]],
+	"luger_akimbo_grenade": [2, 0.0, -1.0, ["luger.akimbo.on"], -1.0, 0.43],
+	"luger_akimbo_sprint": [2, 0.0, -1.0, ["luger.akimbo.on"], -1.0, -1.0, 1.0],
 	"pdw_compm": [1, 0.0, -1.0, ["pdw.sight.compm"]], "pdw_compm_ads": [1, 1.0, -1.0, ["pdw.sight.compm"]],
 	"pdw_compm_half": [1, 0.6, -1.0, ["pdw.sight.compm"]], "ak_kobra_ads": [0, 1.0, -1.0, ["ak.sight.kobra"]],
 	"ak_pbs": [0, 0.0, -1.0, ["ak.suppressor.on"]], "ak_pbs_ads": [0, 1.0, -1.0, ["ak.suppressor.on"]],
@@ -72,9 +75,14 @@ func _ready() -> void:
 	var view := WeaponView.new()
 	view.is_viewmodel = true
 	cam.add_child(view)
+	var left_view := WeaponView.new()  # akimbo (a module with "akimbo" in the case's)
+	left_view.is_viewmodel = true
+	left_view.mirrored = true
+	cam.add_child(left_view)
 	var arms := FirstPersonArms.new()
 	cam.add_child(arms)
 	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view)
+	arms.left_weapon = left_view
 	var cannon := GrenadeCannon.new()
 	cannon.set_barrel_only()
 	cam.add_child(cannon)
@@ -85,6 +93,12 @@ func _ready() -> void:
 			continue
 		var def := WeaponDB.make_def(CASES[c][0], CASES[c][3])
 		view.set_weapon(CASES[c][0], def)
+		left_view.visible = def.akimbo
+		view.akimbo = def.akimbo
+		left_view.akimbo = true
+		var sprint: float = CASES[c][6] if CASES[c].size() > 6 else 0.0
+		if def.akimbo:
+			left_view.set_weapon(CASES[c][0], def)
 		cam.fov = lerpf(75.0, 75.0 * def.ads_fov_mult, CASES[c][1])  # the sights' zoom, as Player
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
@@ -97,7 +111,9 @@ func _ready() -> void:
 		if reload >= 0.0:
 			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:
-			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, 0.0, 0.0, true, Vector2.ZERO, 0.0)
+			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
+			left_view.grenade = grenade
+			left_view.update_pose(1.0 / 60.0, 0.0, -1.0, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()
 			await get_tree().process_frame
 		get_tree().root.get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))

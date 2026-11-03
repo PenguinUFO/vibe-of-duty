@@ -162,6 +162,8 @@ func respawn(xform: Transform3D) -> void:
 		weapons.reserves.fill(0)
 	teleport(xform)
 	_visual.set_dead(false)
+	_visual.set_akimbo(weapons.is_akimbo(), false)  # a new life: the left gun is back in the hand, nothing thrown
+	_puppet_akimbo = weapons.is_akimbo()
 	if _view:
 		_view.set_weapon(weapons.index, weapons.current())
 	if is_local and world != null and world.kill_cam != null:

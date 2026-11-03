@@ -3,13 +3,14 @@ extends Control
 ## Bottom-right ammo readout: the weapon name (top right), the rounds in the magazine (big) and in reserve (small), and a row of
 ## round ticks that go out as the magazine empties (a plain bar for big magazines). The magazine count turns red when
 ## a quarter or less is left; while reloading the name line says so. The "Гренадир"'s grenade: a small ball in the top
-## left corner while it is in (no number: one a life).
+## left corner while it is in (no number: one a life). Akimbo: a second one for the left gun (PlayerView), no reserve.
 
 const SIZE := Vector2(160, 80)
 const LOW := 0.25
 const MAX_TICKS := 40       # bigger magazines get a bar instead of ticks
 const ROW := Rect2(18, 62, SIZE.x - 36.0, 8)
 const INFINITE := -1        # reserve that never runs out (training): shown as "/ ∞"
+const NONE := -2            # no reserve (the akimbo's left gun): not shown
 
 var _name := ""
 var _mag := 0
@@ -67,10 +68,12 @@ func _draw() -> void:
 		draw_circle(Vector2(26, 26), 2.5, UiTheme.DANGER)  # its lamp (Grenade.LAMP)
 
 	# "30 / 90": the reserve right-aligned, the magazine count in front of it.
-	var reserve_text := "/ ∞" if _reserve == INFINITE else "/ %d" % _reserve
-	var reserve_width := small.get_string_size(reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-	draw_string(small, Vector2(right - reserve_width, 50), reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
-			UiTheme.TEXT_DIM)
+	var reserve_text := "" if _reserve == NONE else "/ ∞" if _reserve == INFINITE else "/ %d" % _reserve
+	var reserve_width := small.get_string_size(reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x if reserve_text != "" \
+			else -8.0
+	if reserve_text != "":
+		draw_string(small, Vector2(right - reserve_width, 50), reserve_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
+				UiTheme.TEXT_DIM)
 	var big := UiTheme.heavy_font()
 	var mag_text := "∞" if _mag == INFINITE else str(_mag)
 	var mag_width := big.get_string_size(mag_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36).x

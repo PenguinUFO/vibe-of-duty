@@ -17,6 +17,7 @@ const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at ful
 const ARM_OUT := Vector3(-0.55, -0.3, -0.25)  # camera space: the left hoof thrown out to the side (grenade), off screen
 
 var _weapon: WeaponView
+var left_weapon: WeaponView  # the akimbo's left gun (WeaponView.mirrored): while it is shown, the left hoof holds it
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
 var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
@@ -98,6 +99,12 @@ func pose() -> void:
 		left_palm = left_palm.lerp(ARM_OUT, launch)
 		left_fingers = left_fingers.lerp(Vector3.LEFT, launch)
 		left_dir = left_dir.lerp(Vector3.FORWARD, launch)
+	if left_weapon != null and left_weapon.visible and left_weapon.def != null:
+		# Akimbo: the left hoof round the left gun's grip (it goes out to the side on its own for a grenade).
+		var left_xform := transform.affine_inverse() * left_weapon.transform
+		left_palm = left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s)
+		left_fingers = left_xform.basis * Mannequin.LEFT_GRIP_FINGERS
+		left_dir = left_xform.basis * Mannequin.LEFT_GRIP_PALM
 	if ledge_weight > 0.0:
 		# Vaulting: palms flat on the ledge, fingers over its edge.
 		var to_arms := global_basis.inverse()

@@ -265,6 +265,9 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
 		cmd.fire = (weapons.ads > 0.95 or weapons.cmp) and _bot_trigger()  # the ЧМП: from the hip only
+		if weapons.is_akimbo():  # no sights: both triggers from the hip, the left one let go between shots too
+			cmd.fire = _bot_trigger()
+			cmd.aim = weapons.current().automatic or not weapons.left_prev
 		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the "Гренадир": once a life, mid range
 	cmd.reload = weapons.cmp and weapons.reserves[weapons.index] > 0  # a bag picked up: R gives the weapon back
 	cmd.yaw = look_yaw

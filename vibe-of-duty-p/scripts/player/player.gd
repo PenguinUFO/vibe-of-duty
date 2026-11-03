@@ -42,6 +42,8 @@ func _ready() -> void:
 		_visual.set_chip(build.has(PartDB.ENGINEER))
 		_visual.set_cannon(build.has(PartDB.GRENADIER))
 		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
+		_visual.set_akimbo(weapons.is_akimbo(), false)
+		_puppet_akimbo = weapons.is_akimbo()
 	_prev_pos = global_position
 	_curr_pos = global_position
 	_prev_yaw = rotation.y
@@ -56,9 +58,15 @@ func _ready() -> void:
 		_camera.add_child(_view)
 		_view.set_weapon(weapons.index, weapons.current())
 		# First-person arms made from the same character as the body other players see.
+		_left_view = WeaponView.new()
+		_left_view.is_viewmodel = true
+		_left_view.mirrored = true
+		_left_view.visible = false
+		_camera.add_child(_left_view)
 		_arms = FirstPersonArms.new()
 		_camera.add_child(_arms)
 		_arms.setup(peer_id, _view)
+		_arms.left_weapon = _left_view
 		_cannon_view = GrenadeCannon.new()
 		_cannon_view.set_barrel_only()
 		_cannon_view.visible = false
@@ -146,6 +154,8 @@ func _process(delta: float) -> void:
 		_visual.set_reloading(weapons.is_reloading())
 		_visual.set_meleeing(weapons.is_meleeing())
 		_visual.set_launching(weapons.is_launching(), weapons.is_grenade_ready())
+		if alive:  # dying keeps the left gun: it falls with the body
+			_visual.set_akimbo(weapons.is_akimbo())
 		_visual.set_mantling(is_mantling, _mantle_up)
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0

@@ -58,6 +58,13 @@ const PRESENT_AT := Vector3(0.0, 0.18, -0.26)     # ...the middle between the ha
 const CANNON_AT := Vector3(0.0, 0.27, -0.13)
 const CHEST_OUT := 0.035             # m the chest (and the cannon) pushes forward
 const ARM_OUT := Vector3(-0.42, -0.12, -0.12)  # chest frame: the free left hoof thrown out from the left shoulder
+## Akimbo (left_weapon): a gun in each hoof, arms out in front, each palm here from its shoulder (aim frame) - straight
+## ahead of it and a little low, the guns a shoulder width apart, so both read from the front and the side.
+const AKIMBO_RIGHT := Vector3(0.0, -0.1, -0.5)
+const AKIMBO_LEFT := Vector3(0.0, -0.1, -0.5)
+const LEFT_GRIP_FINGERS := Vector3(0.3, -0.5, -0.8)  # the left hoof round a grip: RIGHT_FINGERS mirrored
+const LEFT_GRIP_PALM := Vector3(1.0, 0.0, 0.0)       # palm against the grip's left side
+const AKIMBO_PRESENT := Vector3(0.17, 0.1, -0.3)     # shown (present): each gun up by its shoulder (chest frame, x mirrored)
 
 # --- locomotion ---
 const STANCE_L := Vector3(-0.13, 0.0, -0.12)  # standing feet (a slightly staggered stance)
@@ -133,6 +140,7 @@ var crouch := 0.0     # 0..1
 var present := 0.0    # 0..1: the gun held across the chest, its side to the front (the build editor's BuildStage)
 var grenade := -1.0   # grenade launch progress 0..1, -1 = not launching
 var weapon: WeaponView
+var left_weapon: WeaponView  # the akimbo's left gun (the same def); posed only while visible
 var def: WeaponDef
 
 var _parts := {}      # name -> MeshInstance3D / Node3D
@@ -651,6 +659,9 @@ func pose() -> void:
 	var shoulder_l := chest * Vector3(-SHOULDER_X, SHOULDER_UP, 0.0)
 	if weapon == null or def == null or not weapon.visible:
 		return
+	if left_weapon != null and left_weapon.visible:
+		_pose_akimbo(chest, shoulder_r, shoulder_l, launch)
+		return
 	var aim := Basis(Vector3.RIGHT, pitch)
 	var right_view := _view_point(weapon.lever_hand(def.right_hand))
 	var hip_xform := Transform3D(aim, shoulder_r + aim * HIP_BUTT - aim * _view_point(BUTT))
@@ -728,6 +739,44 @@ func pose() -> void:
 	_joints["gun_top"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.1, 0.0))
 
 
+## Akimbo: each hoof holds its gun by the grip, arms out in front along the aim (no sights, no reload, no punch). A
+## grenade throws both arms out to the sides, a vault puts both hoofs - guns and all - on the ledge.
+func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, launch: float) -> void:
+	var aim := Basis(Vector3.RIGHT, pitch)
+	var grip := _view_point(def.right_hand)  # the left gun is a copy: held by the same point
+	var right_palm := shoulder_r + aim * AKIMBO_RIGHT
+	var left_palm := shoulder_l + aim * AKIMBO_LEFT
+	var right_basis := aim
+	var left_basis := aim
+	if launch > 0.0:
+		right_palm = right_palm.lerp(shoulder_r + chest.basis * Vector3(-ARM_OUT.x, ARM_OUT.y, ARM_OUT.z), launch)
+		left_palm = left_palm.lerp(shoulder_l + chest.basis * ARM_OUT, launch)
+		right_basis = Basis(Vector3.UP, -0.9 * launch) * right_basis
+		left_basis = Basis(Vector3.UP, 0.9 * launch) * left_basis
+	if present > 0.0:
+		var up := chest.basis * Basis(Vector3.RIGHT, 1.1)  # barrels up and a little forward
+		right_palm = right_palm.lerp(chest * AKIMBO_PRESENT, present)
+		left_palm = left_palm.lerp(chest * Vector3(-AKIMBO_PRESENT.x, AKIMBO_PRESENT.y, AKIMBO_PRESENT.z), present)
+		right_basis = right_basis.slerp(up, present)
+		left_basis = left_basis.slerp(up, present)
+	if mantle > 0.0:
+		var down := Basis(Vector3.RIGHT, -1.3)  # barrels down, the hoofs flat on the ledge
+		var to_local := global_transform.affine_inverse()
+		right_palm = right_palm.lerp(to_local * mantle_hands[1], mantle)
+		left_palm = left_palm.lerp(to_local * mantle_hands[0], mantle)
+		right_basis = right_basis.slerp(down, mantle)
+		left_basis = left_basis.slerp(down, mantle)
+	var right_gun := Transform3D(right_basis, right_palm - right_basis * grip)
+	var left_gun := Transform3D(left_basis, left_palm - left_basis * grip)
+	weapon.global_transform = global_transform * right_gun
+	left_weapon.global_transform = global_transform * left_gun
+	pose_arm(_right_arm, shoulder_r, right_palm, right_basis * RIGHT_FINGERS, right_basis * RIGHT_PALM, RIGHT_POLE)
+	pose_arm(_left_arm, shoulder_l, left_palm, left_basis * LEFT_GRIP_FINGERS, left_basis * LEFT_GRIP_PALM, LEFT_POLE)
+	_joints["gun_butt"] = right_gun * _view_point(BUTT)
+	_joints["gun_muzzle"] = right_gun * (_view_point(BUTT) + Vector3(0.0, 0.0, -0.55))
+	_joints["gun_top"] = right_gun * (_view_point(BUTT) + Vector3(0.0, 0.1, 0.0))
+
+
 # --- death ------------------------------------------------------------------------------------------------------------
 
 ## Turns the body into a ragdoll from its current pose. `body_velocity`: the body's world velocity at death; `from`:
@@ -790,6 +839,9 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 	if weapon != null:
 		var weapon_local := xf.affine_inverse() * weapon.global_transform
 		_ragdoll_parts.append([weapon, 6, frames[6].affine_inverse() * weapon_local])
+	if left_weapon != null and left_weapon.visible:  # the akimbo's left gun stays in the left hoof
+		var left_local := xf.affine_inverse() * left_weapon.global_transform
+		_ragdoll_parts.append([left_weapon, 4, frames[4].affine_inverse() * left_local])
 	_pose_ragdoll()
 
 
@@ -879,8 +931,8 @@ func _pose_ragdoll() -> void:
 	var frames := _ragdoll_frames(p)
 	for entry in _ragdoll_parts:
 		var xform: Transform3D = frames[entry[1]] * entry[2]
-		if entry[0] == weapon:
-			weapon.global_transform = global_transform * xform
+		if entry[0] == weapon or entry[0] == left_weapon:  # top level: placed in world space
+			(entry[0] as Node3D).global_transform = global_transform * xform
 		else:
 			(entry[0] as Node3D).transform = xform
 	var head_dir := (p[Ragdoll.HEAD] - p[Ragdoll.CHEST]).normalized()

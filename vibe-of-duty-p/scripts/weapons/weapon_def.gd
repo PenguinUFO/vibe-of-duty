@@ -71,6 +71,10 @@ var muzzle_flash := true
 var tracer := true             # others see the bullet's trail
 var head_mult := 1.15          # damage x this on a head hit (NetWorld.HEAD_DAMAGE_MULT; 1: the head as the body)
 var regen_block := 0.0         # s a hit keeps the victim's health from coming back (0: their own delay)
+## Akimbo (Docs/LOADOUT.md, "Акимбо"): a copy in the left hand, one magazine, never reloaded - thrown away once empty
+## (WeaponSim.left_mag). Fired by the aim button; no sights while it is in.
+var akimbo := false
+var akimbo_spread := 1.0       # spread_hip x this while the left gun is in
 
 var sound_shot := "shot"
 var sound_pitch := 1.0         # pitch of the shot sound (the ЧМП: lower)

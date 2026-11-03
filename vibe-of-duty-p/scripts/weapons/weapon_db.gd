@@ -7,7 +7,8 @@ extends RefCounted
 
 const CONFIG_PATH := "res://assets/data/weapons.cfg"
 const CONFIG_OVERRIDE := "weapons.cfg"  # next to the exported .exe
-const MODULE_SLOTS: Array[String] = ["barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo"]
+const MODULE_SLOTS: Array[String] = ["barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo",
+		"akimbo"]
 ## The Luger drawn bigger than life: life size it is a toy next to a pig, and the two fists hid it.
 const LUGER_SCALE := 1.2
 ## The Luger's tangent rear sight on its 200 mm artillery barrel: this far (life size) ahead of the P08's notch on the
@@ -98,7 +99,7 @@ const MODULE_GEOMETRY := {
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
 		"ejection_port", "charging_handle", "break_hinge", "chamber", "forend", "lever_pivot", "shell_port", "mag_hinge"]
 const MODULE_SLOT_NAMES := {"barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
-		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон"}
+		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "akimbo": "Акимбо"}
 
 static var _defs: Array[WeaponDef] = []
 static var _base := {}       # weapon id -> its config section (config units)
@@ -327,6 +328,8 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.head_mult = float(v.get("head_mult", def.head_mult))
 	def.regen_block = float(v.get("regen_block", def.regen_block))
 	def.sound_pitch = float(v.get("sound_pitch", def.sound_pitch))
+	def.akimbo = bool(v.get("akimbo", def.akimbo))
+	def.akimbo_spread = float(v.get("akimbo_spread", def.akimbo_spread))
 
 
 static func _build() -> void:

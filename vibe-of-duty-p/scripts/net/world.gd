@@ -94,9 +94,10 @@ func _ready() -> void:
 			_stats.open()
 			_stats.match_started(players)
 		if not Game.dedicated:
-			_server_add_player(1, _unique_name(Settings.player_name), _toughness_sent, Settings.current_build())
+			_server_add_player(1, _unique_name(Settings.player_name), Settings.player_uid, _toughness_sent,
+					Settings.current_build())
 	else:
-		_client_ready.rpc_id(1, Settings.player_name, _toughness_sent, Settings.current_build())
+		_client_ready.rpc_id(1, Settings.player_name, Settings.player_uid, _toughness_sent, Settings.current_build())
 
 
 func _exit_tree() -> void:
@@ -231,13 +232,14 @@ func get_view_tick() -> float:
 # --- Server --------------------------------------------------------------------------------------
 
 @rpc("any_peer", "reliable")
-func _client_ready(player_name: String, toughness: Vector3, build: Array) -> void:
+func _client_ready(player_name: String, uid: String, toughness: Vector3, build: Array) -> void:
 	if not multiplayer.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
 		return
-	_server_add_player(id, _unique_name(player_name), Player.clamp_toughness(toughness), PartDB.sanitize(build))
+	_server_add_player(id, _unique_name(player_name), uid.strip_edges().left(64), Player.clamp_toughness(toughness),
+			PartDB.sanitize(build))
 
 
 ## Local player: picked another build (BuildPicker after death or between matches, BuildMenu in the pause menu). It
@@ -336,7 +338,7 @@ static func unique_name(wanted: String, names: Array) -> String:
 	return base
 
 
-func _server_add_player(id: int, player_name: String, toughness: Vector3, build: Array) -> void:
+func _server_add_player(id: int, player_name: String, uid: String, toughness: Vector3, build: Array) -> void:
 	if Game.net_log:
 		print("[SERVER] player %d joined as %s" % [id, player_name])
 	if random_weapons_on():
@@ -350,6 +352,7 @@ func _server_add_player(id: int, player_name: String, toughness: Vector3, build:
 			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform,
 					Vector3(other.base_max_health, other.base_regen_delay, other.back_damage), other.build)
 	_spawn_player(id, player_name, xform, toughness, build)
+	(players[id] as Player).player_uid = uid
 	Game.ensure_player(id)
 	for peer in _ready_peers:
 		_spawn_player.rpc_id(peer, id, player_name, xform, toughness, build)
@@ -623,20 +626,21 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: 
 
 
 ## Server: relay a shot to everyone except the shooter, who already showed it (prediction).
-func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array) -> void:
+func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array,
+		left: bool) -> void:
 	if _stats != null:
 		_stats.shot(shooter, hits)
 	for peer in _ready_peers:
 		if peer != shooter.peer_id:
-			_remote_shot.rpc_id(peer, shooter.peer_id, weapon, origin, ends)
+			_remote_shot.rpc_id(peer, shooter.peer_id, weapon, origin, ends, left)
 	if not Game.dedicated and shooter.control != Player.Mode.LOCAL:
-		shooter.show_remote_shot(weapon, origin, ends)  # the host machine sees clients' shots too
+		shooter.show_remote_shot(weapon, origin, ends, left)  # the host machine sees clients' shots too
 
 
 @rpc("authority", "unreliable")
-func _remote_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
+func _remote_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array, left: bool) -> void:
 	if players.has(shooter_id) and shooter_id != multiplayer.get_unique_id():
-		(players[shooter_id] as Player).show_remote_shot(weapon, origin, ends)
+		(players[shooter_id] as Player).show_remote_shot(weapon, origin, ends, left)
 
 
 ## Server: relay a punch that landed to everyone except the puncher, who already showed it (prediction).

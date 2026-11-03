@@ -28,6 +28,10 @@ const GRENADE_NAME := "граната"  # kill feed
 ## rounds in it. From the hip only; it fires while the hands reload. Training (endless reserve): the key 1 toggles it.
 const CMP := -4                # "weapon" index of its shots in damage and kill events (its numbers: WeaponDB.cmp_def)
 const CMP_NAME := "ЧМП"        # kill feed
+## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with one magazine, fired by the
+## aim button (cmd.aim), never reloaded. Empty - or R, which then reloads the right one - it is thrown away and the
+## weapon plays as usual again. Meanwhile no sights, no punch, the spread x akimbo_spread; an empty right one only
+## clicks (no reload by itself: that would throw the left one away).
 
 var index := 0
 var mags := PackedInt32Array()
@@ -45,6 +49,11 @@ var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
 var grenades := 0       # grenades left this life
 var grenade_ticks := 0  # ticks left in the current launch (0 = not launching); held at the launch while G is down
 var cmp := false        # the ЧМП shoots instead of the weapon
+var left_mag := 0       # rounds in the akimbo's left gun (0: none in the hand)
+var left_cooldown := 0.0  # the left gun's cooldown, burst, trigger and queued press: as the right one's above
+var left_burst := 0
+var left_prev := false
+var left_queued := false
 ## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
 ## server (training is played alone, both are this machine); not part of to_array.
 var infinite_reserve := false
@@ -89,6 +98,11 @@ func reset() -> void:
 	grenades = grenades_max
 	grenade_ticks = 0
 	cmp = false
+	left_mag = current().mag_size if current().akimbo else 0
+	left_cooldown = 0.0
+	left_burst = 0
+	left_prev = false
+	left_queued = false
 
 
 static func melee_total_ticks() -> int:
@@ -134,6 +148,11 @@ func is_meleeing() -> bool:
 	return melee_ticks > 0
 
 
+## The akimbo's left gun is in the hand.
+func is_akimbo() -> bool:
+	return left_mag > 0
+
+
 func is_launching() -> bool:
 	return grenade_ticks > 0
 
@@ -174,7 +193,8 @@ func speed_mult() -> float:
 ## Current cone half angle in radians for the HUD crosshair and for shooting.
 func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 	var def := firing_def()
-	var s := lerpf(def.spread_hip * spread_hip_mult, def.spread_ads * spread_ads_mult, ads)
+	var hip := def.spread_hip * spread_hip_mult * (def.akimbo_spread if is_akimbo() else 1.0)
+	var s := lerpf(hip, def.spread_ads * spread_ads_mult, ads)
 	s += def.spread_move * clampf(speed / 5.0, 0.0, 1.6) * (1.0 - 0.6 * ads)
 	if airborne:
 		s += def.spread_air
@@ -186,13 +206,16 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 ## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding, mantling}.
 ## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_end", "equip",
 ## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow), "grenade_start",
-## {"type": "grenade", "pitch": float, "yaw": float} (the launch).
+## {"type": "grenade", "pitch": float, "yaw": float} (the launch), "akimbo_drop" (the left gun thrown away); a shot of the
+## akimbo's left gun has "left": true.
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
 	var def := current()
 
 	if cooldown > 0.0:
 		cooldown -= 1.0
+	if left_cooldown > 0.0:
+		left_cooldown -= 1.0
 	if switch_ticks > 0:
 		switch_ticks -= 1
 	if reload_ticks > 0 and def.reload_single and cmd.fire and not fire_prev and mags[index] > 0 and grenade_ticks == 0:
@@ -218,7 +241,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		if infinite_reserve:
 			if cmd.cmp:
 				cmp = not cmp
-		elif not cmp and mags[index] == 0 and reserves[index] == 0:
+		elif not cmp and mags[index] == 0 and reserves[index] == 0 and left_mag == 0:
 			cmp = true
 		elif cmp and mags[index] > 0:
 			cmp = false
@@ -247,7 +270,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		melee_ticks -= 1
 		if melee_ticks == melee_total_ticks() - melee_windup_ticks():
 			events.append({"type": "melee", "pitch": cmd.pitch, "yaw": cmd.yaw})
-	elif cmd.melee and switch_ticks == 0 and grenade_ticks == 0 and not ctx["sliding"]:
+	elif cmd.melee and switch_ticks == 0 and grenade_ticks == 0 and left_mag == 0 and not ctx["sliding"]:
 		melee_ticks = melee_total_ticks()
 		reload_ticks = 0
 		events.append({"type": "melee_start"})
@@ -263,13 +286,15 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "equip"})
 
 	# Aim down sights (not while sprinting, reloading or equipping).
-	var want_ads: bool = cmd.aim and not cmp and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+	var want_ads: bool = cmd.aim and not cmp and left_mag == 0 and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and not ctx["sprinting"]
 	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / (def.ads_time * ads_time_mult))
 
 	# Manual reload.
 	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and mags[index] < def.mag_size and reserves[index] > 0:
+		if left_mag > 0:
+			_drop_left(events)  # the hand is needed for the reload
 		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
@@ -288,40 +313,79 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			fired = true
 			if not cmp:
 				mags[index] -= 1
-			shots += 1
 			cooldown += gun.fire_ticks(burst / 60.0)
-			var angle := spread_angle(ctx["speed"], ctx["crouched"], ctx["airborne"])
-			var rng := RandomNumberGenerator.new()
-			var dirs: Array[Vector3] = []
-			var pitch := cmd.pitch + recoil.x
-			var yaw := cmd.yaw + recoil.y
-			if gun.pellet_spread > 0.0:
-				# A shotgun: the aim's spread moves the whole pattern, the pellets spread round its middle.
-				rng.seed = hash([ctx["peer_id"], shots, -1])
-				var middle := _spread_dir(pitch, yaw, angle, rng)
-				pitch = asin(clampf(middle.y, -1.0, 1.0))
-				yaw = atan2(-middle.x, -middle.z)
-				angle = gun.pellet_spread
-			for i in gun.pellets:
-				rng.seed = hash([ctx["peer_id"], shots, i])
-				dirs.append(_spread_dir(pitch, yaw, angle, rng))
-			events.append({"type": "shot", "weapon": CMP if cmp else index, "dirs": dirs})
-			rng.seed = hash([ctx["peer_id"], shots, 99])
-			recoil.x = minf(recoil.x + gun.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)
-			recoil.y = clampf(recoil.y + rng.randf_range(-1.0, 1.0) * gun.recoil_yaw, -MAX_RECOIL, MAX_RECOIL)
+			events.append(_shot(cmd, ctx, gun, false))
 		else:
 			if not fire_prev:
 				events.append({"type": "dry"})
-			if reserves[index] > 0:  # empty magazine: reload automatically
+			if reserves[index] > 0 and left_mag == 0:  # empty magazine: reload automatically
 				reload_ticks = _reload_ticks()
 				events.append({"type": "reload_start"})
 	fire_prev = cmd.fire
 
+	# The akimbo's left gun: the aim button is its trigger (the same rules as the right one's above).
+	var left_fired := false
+	if left_mag > 0:
+		var can_fire := switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0
+		left_burst = left_burst + 1 if cmd.aim and can_fire else 0
+		if gun.automatic or not can_fire:
+			left_queued = false
+		elif cmd.aim and not left_prev and left_cooldown > 0.0 and left_cooldown <= FIRE_BUFFER * 60.0:
+			left_queued = true
+		if (cmd.aim or left_queued) and can_fire and left_cooldown <= 0.0 and (gun.automatic or not left_prev or left_queued):
+			left_queued = false
+			left_fired = true
+			left_mag -= 1
+			left_cooldown += gun.fire_ticks(left_burst / 60.0)
+			events.append(_shot(cmd, ctx, gun, true))
+			if left_mag == 0:
+				_drop_left(events)  # empty: thrown away
+	left_prev = cmd.aim
+
 	if not fired:
 		cooldown = maxf(cooldown, 0.0)  # the carried remainder is for a burst, not a credit after a pause
-	if not fired and cooldown == 0.0:
+	if not left_fired:
+		left_cooldown = maxf(left_cooldown, 0.0)
+	if not fired and not left_fired and cooldown == 0.0 and left_cooldown == 0.0:
 		recoil = recoil.move_toward(Vector2.ZERO, gun.recoil_recover * dt)
 	return events
+
+
+## A shot of `gun` (`left`: the akimbo's left gun) along the view with this tick's spread; the kick goes into the view
+## (both guns' into the same one).
+func _shot(cmd: PlayerCmd, ctx: Dictionary, gun: WeaponDef, left: bool) -> Dictionary:
+	shots += 1
+	var angle := spread_angle(ctx["speed"], ctx["crouched"], ctx["airborne"])
+	var rng := RandomNumberGenerator.new()
+	var dirs: Array[Vector3] = []
+	var pitch := cmd.pitch + recoil.x
+	var yaw := cmd.yaw + recoil.y
+	if gun.pellet_spread > 0.0:
+		# A shotgun: the aim's spread moves the whole pattern, the pellets spread round its middle.
+		rng.seed = hash([ctx["peer_id"], shots, -1])
+		var middle := _spread_dir(pitch, yaw, angle, rng)
+		pitch = asin(clampf(middle.y, -1.0, 1.0))
+		yaw = atan2(-middle.x, -middle.z)
+		angle = gun.pellet_spread
+	for i in gun.pellets:
+		rng.seed = hash([ctx["peer_id"], shots, i])
+		dirs.append(_spread_dir(pitch, yaw, angle, rng))
+	rng.seed = hash([ctx["peer_id"], shots, 99])
+	recoil.x = minf(recoil.x + gun.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)
+	recoil.y = clampf(recoil.y + rng.randf_range(-1.0, 1.0) * gun.recoil_yaw, -MAX_RECOIL, MAX_RECOIL)
+	var event := {"type": "shot", "weapon": CMP if cmp else index, "dirs": dirs}
+	if left:
+		event["left"] = true
+	return event
+
+
+## The akimbo's left gun out of the hand (empty, or R): the weapon is a single one again.
+func _drop_left(events: Array) -> void:
+	left_mag = 0
+	left_cooldown = 0.0
+	left_burst = 0
+	left_queued = false
+	events.append({"type": "akimbo_drop"})
 
 
 func _reload_ticks() -> int:
@@ -339,7 +403,8 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
-			melee_ticks, burst, grenades, grenade_ticks, cmp, fire_queued]
+			melee_ticks, burst, grenades, grenade_ticks, cmp, fire_queued, left_mag, left_cooldown, left_burst, left_prev,
+			left_queued]
 
 
 func from_array(a: Array) -> void:
@@ -359,3 +424,8 @@ func from_array(a: Array) -> void:
 	grenade_ticks = a[13]
 	cmp = a[14]
 	fire_queued = a[15]
+	left_mag = a[16]
+	left_cooldown = a[17]
+	left_burst = a[18]
+	left_prev = a[19]
+	left_queued = a[20]

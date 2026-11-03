@@ -8,7 +8,7 @@ extends RefCounted
 ## (sanitize), so the server never applies a build it did not check.
 
 const WEAPON_SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle",
-		"sight", "ammo"]
+		"sight", "ammo", "akimbo"]
 ## Slots hidden for now (owner, 2026-10-23): the editor does not show them and every build has their defaults. The
 ## parts stay (weapons.cfg); dropping a slot from here brings it back. The grip is back for the AUG (2026-11-02); the
 ## MP7's folded grip stays hidden by its module ("hidden" in weapons.cfg).
@@ -24,10 +24,10 @@ const JET_HOOVES := "jet_hooves"  # the legs: a double jump (Docs/LOADOUT.md, "�
 const SKULL_PISTOL := "skull_pistol"  # the head: the "ЧМП" (Docs/LOADOUT.md, "Черепно-мозговой пистолет")
 const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER, BUNNY, JET_HOOVES, SKULL_PISTOL]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
-const SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo", "hands",
-		"head", "chest", "belly", "legs", "kit"]
+const SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo",
+		"akimbo", "hands", "head", "chest", "belly", "legs", "kit"]
 const SLOT_NAMES := {"weapon": "Оружие", "barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
-		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "hands": "Руки",
+		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "akimbo": "Акимбо", "hands": "Руки",
 		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги", "kit": "Комплектация"}
 const BUDGET := 10
 ## Owner, 2026-10-23: everything costs 0 for now (balance testing). The prices stay in the data (PartDef.cost,

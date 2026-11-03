@@ -176,6 +176,8 @@ func _ready() -> void:
 				map_scene = path
 			else:
 				push_error("Unknown map %s; maps: %s" % [path, ", ".join(list_maps())])
+	if is_test_launch():
+		Settings.player_uid = Settings.new_uid()  # bots share the player's profile: tell them apart in the stats
 	if dedicated:
 		var err := Net.host(launch_port)
 		if err != OK:

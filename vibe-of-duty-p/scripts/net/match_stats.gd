@@ -77,7 +77,8 @@ func match_ended(players: Dictionary, reason: String) -> void:
 
 ## A player joined the server (their first spawn follows).
 func joined(player: Player) -> void:
-	_write({"e": "join", "m": _match, "p": player.player_name, "id": player.peer_id, "ping": _ping(player),
+	_write({"e": "join", "m": _match, "p": player.player_name, "uid": player.player_uid, "id": player.peer_id,
+			"ping": _ping(player),
 			"playing": Game.state == Game.State.PLAYING})
 
 
@@ -89,7 +90,8 @@ func left(player: Player) -> void:
 	var place := 1
 	for other in Game.scores:
 		place += 1 if int(Game.scores[other]["kills"]) > int(entry["kills"]) else 0
-	_write({"e": "leave", "m": _match, "p": player.player_name, "id": id, "kills": entry["kills"],
+	_write({"e": "leave", "m": _match, "p": player.player_name, "uid": player.player_uid, "id": id,
+			"kills": entry["kills"],
 			"deaths": entry["deaths"], "place": place, "players": Game.scores.size(),
 			"playing": Game.state == Game.State.PLAYING, "time_left": snappedf(Game.time_left, 1.0),
 			"alive": player.alive})

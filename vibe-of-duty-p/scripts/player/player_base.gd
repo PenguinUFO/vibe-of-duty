@@ -74,6 +74,7 @@ const STATE_RELOADING := 64
 const STATE_ADS := 128
 const STATE_MANTLING := 256
 const STATE_MELEE := 512
+const STATE_AKIMBO := 16384  # the akimbo's left gun is in the hand (above the weapon index's bits)
 ## Hoof punch: ray directions as (yaw, pitch) offsets from the view, middle first. At the 2 m reach the outer ones are
 ## ~0.5 m to the side and ~0.45 m lower (a crouching or sliding target).
 const MELEE_FAN: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.13, 0.0), Vector2(-0.13, 0.0), Vector2(0.0, -0.23),
@@ -96,11 +97,13 @@ const CORRECTION_SNAP_DISTANCE := 2.0  # m; larger errors are shown instantly
 ## Server only: a hoof punch landed on a player or target at `pos` (NetWorld relays it for the cosmetics).
 signal server_melee(player: Player, pos: Vector3)
 ## Server only: a shot was fired. `hits` = [{player_id, zone, pos}] (NetWorld relays it; damage is applied separately).
-signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array)
+## `left`: the akimbo's left gun.
+signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array, left: bool)
 
 var control: Mode = Mode.LOCAL
 var peer_id := 1
 var player_name := "Игрок"
+var player_uid := ""  # server only: Settings.player_uid of whoever plays it (MatchStats)
 var is_local: bool:
 	get:
 		return control == Mode.LOCAL
@@ -190,11 +193,13 @@ var healed_total := 0    # health regenerated or eaten from bags
 var judge_rewind_ms := 0.0  # how far back in time the last shot / punch was judged (LagComp)
 var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
 var _view: WeaponView
+var _left_view: WeaponView  # first person: the akimbo's left gun (WeaponView.mirrored), shown while it is in the hand
 var _arms: FirstPersonArms
 var _cannon_view: GrenadeCannon  # first person: the chest cannon, seen only while launching
 var _crosshair: Crosshair
 var _scope: ScopeOverlay  # looking through a scope (PSO)
 var _ammo_hud: HudAmmo
+var _left_ammo_hud: HudAmmo  # the akimbo's left gun (no reserve: it is never reloaded)
 var _health_hud: HudHealth
 var _damage_dirs: DamageIndicator
 var _hurt_rect: ColorRect  # HURT_SHADER vignette
@@ -242,6 +247,7 @@ var _puppet_sliding := false
 var _puppet_reloading := false
 var _puppet_meleeing := false
 var _puppet_launching := false
+var _puppet_akimbo := false
 var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 

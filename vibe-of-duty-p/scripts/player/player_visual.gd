@@ -13,6 +13,7 @@ const ADS_BLEND_TIME := 0.15  # s to raise / lower the weapon
 
 var _mannequin: Mannequin
 var _weapon := WeaponView.new()
+var _left_weapon := WeaponView.new()  # the akimbo's left gun (set_akimbo)
 var _dead := false
 var _pitch := 0.0
 var _crouch_target := false
@@ -50,13 +51,31 @@ func setup(peer_id: int, _display_name: String) -> void:
 	_weapon.top_level = true  # placed by the mannequin every frame
 	add_child(_weapon)
 	_mannequin.weapon = _weapon
+	_left_weapon.top_level = true
+	_left_weapon.visible = false
+	add_child(_left_weapon)
+	_mannequin.left_weapon = _left_weapon
 
 
 ## `def`: the player's weapon with their modules (null: the base one).
 func set_weapon(index: int, def: WeaponDef = null) -> void:
 	_weapon.set_weapon(index, def)
+	if _left_weapon.visible:
+		_left_weapon.set_weapon(index, def)
 	if _mannequin:
 		_mannequin.def = _weapon.def
+
+
+## The akimbo's left gun (Docs/LOADOUT.md, "Акимбо"): a copy of the weapon in the left hand. Gone out of it with
+## `throw`, it is thrown away (DroppedGun); without (a new life, a replay) it just goes.
+func set_akimbo(on: bool, throw := true) -> void:
+	if on == _left_weapon.visible:
+		return
+	if on:
+		_left_weapon.set_weapon(_weapon.weapon_index, _weapon.def)
+	elif throw and is_visible_in_tree() and not _dead:
+		DroppedGun.toss(self, _left_weapon, _velocity)
+	_left_weapon.visible = on
 
 
 ## The "Инженер"'s chip on the head (the build has PartDB.ENGINEER).
@@ -300,12 +319,13 @@ func _measure(delta: float) -> void:
 	_last_pos = pos
 
 
-func show_shot(flash := true) -> void:
-	_weapon.flash(flash)
+## A shot (`left`: of the akimbo's left gun).
+func show_shot(flash := true, left := false) -> void:
+	(_left_weapon if left and _left_weapon.visible else _weapon).flash(flash)
 
 
-func muzzle_global_position() -> Vector3:
-	return _weapon.muzzle_global_position()
+func muzzle_global_position(left := false) -> Vector3:
+	return (_left_weapon if left and _left_weapon.visible else _weapon).muzzle_global_position()
 
 
 ## Death: the body falls as a ragdoll (Mannequin.start_ragdoll), away from `from` (the killer's position, world;

@@ -37,6 +37,9 @@ var player_name := "Игрок"
 ## The name is the player's: loaded from settings.cfg, or used to start / join a game. Until then it is a random
 ## nickname, picked anew every launch and not saved.
 var name_chosen := false
+## Who the player is, whatever their name: a random id made on the first launch and kept in settings.cfg (not shown
+## anywhere). Sent to the server on join, for the stats (MatchStats: join / leave). Test launches get a fresh one.
+var player_uid := ""
 var server_address := "127.0.0.1"  # last address typed in the join panel
 ## Servers connected to successfully, newest first, unique by address: [{"address": String, "name": String}].
 ## The name is the player's own label for it (JoinPanel); empty until they type one.
@@ -87,10 +90,17 @@ func _ready() -> void:
 	load_builds()
 	if not name_chosen:
 		player_name = pick_nickname()
+	if player_uid == "":
+		player_uid = new_uid()
 	apply_audio()
 	apply_graphics()
 	apply_display()
 	_bind_gamepad()
+
+
+## A random player id: 32 hex digits.
+static func new_uid() -> String:
+	return Crypto.new().generate_random_bytes(16).hex_encode()
 
 
 ## A random nickname from NICKNAMES_PATH ("Игрок" if the list is missing).
@@ -375,6 +385,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "window_size", window_size)
 	if name_chosen:
 		cfg.set_value("player", "name", player_name)
+	cfg.set_value("player", "uid", player_uid)
 	cfg.set_value("player", "server_address", server_address)
 	cfg.set_value("player", "recent_servers", recent_servers)
 	cfg.set_value("player", "kid_mode", kid_mode)
@@ -412,6 +423,7 @@ func load_settings() -> void:
 	if saved_name != "":
 		player_name = saved_name
 		name_chosen = true
+	player_uid = str(cfg.get_value("player", "uid", "")).strip_edges()
 	server_address = cfg.get_value("player", "server_address", server_address)
 	recent_servers = []
 	var saved_servers = cfg.get_value("player", "recent_servers", [])

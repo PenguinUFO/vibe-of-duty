@@ -37,7 +37,12 @@ func _ready() -> void:
 	var vis := PlayerVisual.new()
 	root3d.add_child(vis)
 	vis.setup(0, "T")
-	vis.set_weapon(int(OS.get_environment("SHOT_WEAPON")) if OS.has_environment("SHOT_WEAPON") else 0)  # WeaponDB index
+	var weapon := int(OS.get_environment("SHOT_WEAPON")) if OS.has_environment("SHOT_WEAPON") else 0  # WeaponDB index
+	# SHOT_MODULES=luger.akimbo.on,...: the weapon with these modules (akimbo: a gun in each hoof).
+	var modules := Array(OS.get_environment("SHOT_MODULES").split(",", false))
+	var def := WeaponDB.make_def(weapon, modules)
+	vis.set_weapon(weapon, def)
+	vis.set_akimbo(def.akimbo, false)
 	var cam := Camera3D.new()
 	cam.fov = 35
 	root3d.add_child(cam)

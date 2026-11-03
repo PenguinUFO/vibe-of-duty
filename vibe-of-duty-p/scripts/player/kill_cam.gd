@@ -42,6 +42,7 @@ var _prev_pos := Vector3.ZERO
 
 var _camera := Camera3D.new()
 var _view: WeaponView
+var _left_view: WeaponView  # the killer's akimbo left gun
 var _arms: FirstPersonArms
 var _cannon := GrenadeCannon.new()  # the killer's chest cannon, seen while they launch
 var _ui := CanvasLayer.new()
@@ -57,6 +58,11 @@ func _ready() -> void:
 	_view.is_viewmodel = true
 	_view.visible = false
 	_camera.add_child(_view)
+	_left_view = WeaponView.new()
+	_left_view.is_viewmodel = true
+	_left_view.mirrored = true
+	_left_view.visible = false
+	_camera.add_child(_left_view)
 	_cannon.set_barrel_only()
 	_cannon.visible = false
 	_camera.add_child(_cannon)
@@ -143,6 +149,7 @@ func stop() -> void:
 	for id in _ghosts:
 		_show_ghost(_ghosts[id], false)
 	_view.visible = false
+	_left_view.visible = false
 	_cannon.visible = false
 	for node in get_tree().get_nodes_in_group(REPLAY_GRENADES):
 		node.queue_free()  # a replayed grenade still in the air: it is not in the match
@@ -159,8 +166,9 @@ func is_playing() -> bool:
 
 
 ## A shot as this machine showed it (remote shots and our own). Replayed from the shooter's recorded pose.
-func record_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array) -> void:
-	_shots.append({"t": Time.get_ticks_usec() / 1e6, "id": shooter_id, "weapon": weapon, "origin": origin, "ends": ends})
+func record_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array, left := false) -> void:
+	_shots.append({"t": Time.get_ticks_usec() / 1e6, "id": shooter_id, "weapon": weapon, "origin": origin, "ends": ends,
+			"left": left})
 
 
 func _record(now: float, delta: float) -> void:
@@ -237,6 +245,7 @@ func _play(delta: float) -> void:
 		ghost.set_cannon(_cannon_for(id))
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
+		ghost.set_akimbo(pose.size() > 11 and pose[11], false)
 		ghost.set_chip(_chip_for(id))
 		ghost.set_eye_gun(_eye_gun_for(id))
 		if ghost._dead == pose[5]:
@@ -271,6 +280,14 @@ func _play(delta: float) -> void:
 		_arms.melee = killer[9]
 		_view.grenade = killer[10] if killer.size() > 10 else -1.0
 		_arms.grenade = _view.grenade
+		_left_view.visible = _view.visible and killer.size() > 11 and killer[11]
+		_view.akimbo = _left_view.visible
+		_left_view.akimbo = true
+		if _left_view.visible:
+			_left_view.set_weapon(killer[6], def)
+			_left_view.grenade = _view.grenade
+			_left_view.update_pose(delta, 0.0, -1.0, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+		_arms.left_weapon = _left_view
 		_arms.pose()
 		PlayerView.pose_cannon_view(_cannon if _cannon_for(_killer_id) else null, _view.grenade)
 
@@ -371,9 +388,10 @@ func _replay_shot(shot: Dictionary) -> void:
 		if cmp:
 			muzzle = _camera.global_transform * PlayerWeapons.CMP_VIEW
 		else:
-			_view.flash(def.muzzle_flash)
-			_view.kick(1.0 if def.pellets == 1 else 2.0)
-			muzzle = _view.muzzle_global_position()
+			var gun := _left_view if shot.get("left", false) and _left_view.visible else _view
+			gun.flash(def.muzzle_flash)
+			gun.kick(1.0 if def.pellets == 1 else 2.0)
+			muzzle = gun.muzzle_global_position()
 		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
 	elif _ghosts.has(shot["id"]):
 		var ghost: PlayerVisual = _ghosts[shot["id"]]
@@ -383,8 +401,8 @@ func _replay_shot(shot: Dictionary) -> void:
 			muzzle = ghost.eye_gun_muzzle_position()
 		else:
 			ghost.set_weapon(shot["weapon"], def)
-			ghost.show_shot(def.muzzle_flash)
-			muzzle = ghost.muzzle_global_position()
+			ghost.show_shot(def.muzzle_flash, shot.get("left", false))
+			muzzle = ghost.muzzle_global_position(shot.get("left", false))
 		Audio.play(def.sound_shot, muzzle, def.loudness, def.sound_pitch)
 	if cmp and def.muzzle_flash:
 		MuzzleLights.flash(self, muzzle)
