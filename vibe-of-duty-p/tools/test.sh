@@ -42,13 +42,13 @@ run() {
 	build)  # arena: aim bots with kits - B1 changed with the "Инженер", B2 a kit as is
 		$R --server --map=arena --summary=30 > "$O/build_srv.log" 2>&1 &
 		sleep 3
-		$R --join=127.0.0.1 --bot-aim --name=B1 --build=kit.ak_kobra,engineer,ak.suppressor.on --summary=27 > "$O/build_c1.log" 2>&1 &
-		$R --join=127.0.0.1 --bot-aim --name=B2 --build=kit.acr_rat --summary=27 > "$O/build_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=B1 --build=kit.ak,engineer,ak.suppressor.on --summary=27 > "$O/build_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=B2 --build=kit.acr --summary=27 > "$O/build_c2.log" 2>&1 &
 		wait;;
 	grenade)  # arena: aim bots with the "Гренадир" - each launches its one grenade a life at mid range
 		$R --server --map=arena --summary=30 > "$O/grenade_srv.log" 2>&1 &
 		sleep 3
-		$R --join=127.0.0.1 --bot-aim --name=G1 --build=kit.ak_kobra,grenadier --summary=27 > "$O/grenade_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=G1 --build=kit.ak,grenadier --summary=27 > "$O/grenade_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=G2 --build=kit.p90,grenadier,bunny --lag=40 --summary=27 > "$O/grenade_c2.log" 2>&1 &
 		wait;;
 	cmp)  # arena: Contender bots with the "ЧМП" - out of rounds they shoot from the eye, a bag and R give the gun back
@@ -58,12 +58,12 @@ run() {
 		$R --join=127.0.0.1 --bot-aim --name=C1 --build=kit.contender,skull_pistol --dry-reserve --summary=37 > "$O/cmp_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=C2 --build=kit.contender,skull_pistol --dry-reserve --lag=40 --summary=37 > "$O/cmp_c2.log" 2>&1 &
 		wait;;
-	akimbo)  # arena: Luger akimbo bots (the "Инженер" opens the module) - K1 from the Хрюгер (akimbo drops it), K2 from
-		# the Luger auto (the stock goes, the snail stays); the left gun is thrown away empty, a new life brings it back
+	akimbo)  # arena: the Хрюгер kit (a Luger in each hand) - K1 as it is, K2 with the snail (the "Инженер"); the left
+		# gun is thrown away empty, a new life brings it back
 		$R --server --map=arena --summary=40 > "$O/akimbo_srv.log" 2>&1 &
 		sleep 3
-		$R --join=127.0.0.1 --bot-aim --name=K1 --build=kit.khruger,engineer,luger.akimbo.on --summary=37 > "$O/akimbo_c1.log" 2>&1 &
-		$R --join=127.0.0.1 --bot-aim --name=K2 --build=kit.luger_auto,engineer,luger.akimbo.on --lag=40 --summary=37 > "$O/akimbo_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=K1 --build=kit.khruger --summary=37 > "$O/akimbo_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=K2 --build=kit.khruger,engineer,luger.mag.32 --lag=40 --summary=37 > "$O/akimbo_c2.log" 2>&1 &
 		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac

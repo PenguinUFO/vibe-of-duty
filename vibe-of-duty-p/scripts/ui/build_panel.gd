@@ -1,14 +1,15 @@
 class_name BuildPanel
 extends PanelContainer
 ## Builds, opened by the main menu's "Сборка" (Docs/LOADOUT.md "Экран сборки"): the BUILD_COUNT saved builds, one tab
-## each; the open one is also the one played (Settings.build_index). The whole screen: on the left the kits
-## (weapons.cfg [kit.<id>]; the weapons stay under the hood), the "Модули" button and the weapon's bars (StatBars), in
+## each; the open one is also the one played (Settings.build_index). The whole screen: on the left the drop-down list
+## of kits (weapons.cfg [kit.<id>], alphabetically; the weapons stay under the hood), the "Модули" button and the
+## weapon's bars (StatBars), in
 ## the middle the pig holding the build's weapon (BuildStage: it comes in on the weapon while the pointer or the
 ## gamepad's focus is on the left), on the right the organs (PartDB.INERT_SLOTS: saved, not played yet - but the
-## "Инженер"). Every slot is a row of buttons, one per part, the pressed one in the build; no numbers and no
+## "Инженер"). Every other slot is a row of buttons, one per part, the pressed one in the build; no numbers and no
 ## descriptions (owner, 2026-10-31). "Модули" opens the module slots under it - only with the "Инженер" (else grey);
-## a kit with changed modules reads "<name> кастом". Under the pointer (or focus) a kit or a module shows on the bars
-## what it would change. Another kit resets the modules to its own; a part that would go over PartDB.BUDGET is
+## a kit with changed modules reads "<name> кастом". Under the pointer (or focus) a module, or a kit in the open list,
+## shows on the bars what it would change. Another kit resets the modules to its own; a part that would go over PartDB.BUDGET is
 ## refused, a module whose "requires" is not in the build is greyed out, a slot the build's parts "exclude" is locked
 ## at its default. Saved to user://builds.cfg on every change.
 
@@ -27,6 +28,7 @@ var _weapon_side: Control   # the whole left side: the camera comes in on the we
 var _body_column := VBoxContainer.new()
 var _stats := StatBars.new()
 var _stage := BuildStage.new()
+var _kits := OptionButton.new()
 var _rows := {}               # slot -> [its Label, its HFlowContainer of buttons]
 var _rows_for := ""           # the weapon the module rows were made for
 var _modules_button := Button.new()
@@ -105,7 +107,14 @@ func _init() -> void:
 	_body_column.add_theme_constant_override("separation", 6)
 	body_side.add_child(_body_column)
 
-	_add_row(_weapon_column, "kit")
+	var kit_label := Label.new()
+	kit_label.text = PartDB.SLOT_NAMES["kit"]
+	kit_label.theme_type_variation = "Hint"
+	_weapon_column.add_child(kit_label)
+	for kit in PartDB.options("kit", ""):
+		_kits.add_item(kit.display_name)
+	_kits.item_selected.connect(func(index: int) -> void: _on_part("kit", index))
+	_weapon_column.add_child(_kits)
 	_modules_button.text = "Модули"
 	_modules_button.toggle_mode = true
 	_modules_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -223,9 +232,11 @@ func _refresh() -> void:
 			var part := options[i]
 			button.set_pressed_no_signal(parts.has(part.id))
 			button.disabled = (locked.has(slot) and i > 0) or (part.requires != "" and not parts.has(part.requires))
-			if slot == "kit":
-				button.text = PartDB.kit_name(parts) if button.button_pressed else part.display_name
 			i += 1
+	var kits := PartDB.options("kit", "")
+	for i in kits.size():
+		_kits.set_item_text(i, PartDB.kit_name(parts) if parts.has(kits[i].id) else kits[i].display_name)
+	_kits.select(kits.find(PartDB.kit_of(parts)))
 	_tokens.text = "Токены: %d / %d" % [PartDB.cost(parts), PartDB.BUDGET]
 	_stage.show_build(parts)
 	_show_stats()
@@ -268,6 +279,11 @@ static func _def_of(parts: Array) -> WeaponDef:
 
 
 func _process(_delta: float) -> void:
+	var list := _kits.get_popup()
+	if list.visible and list.get_focused_item() >= 0:
+		_hover("kit", list.get_focused_item())
+	elif _hover_slot == "kit":
+		_hover("", -1)
 	if _pad:
 		var focus := get_viewport().gui_get_focus_owner()
 		_stage.close = focus != null and _weapon_side.is_ancestor_of(focus)

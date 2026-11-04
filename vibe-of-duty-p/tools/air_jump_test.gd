@@ -38,7 +38,7 @@ func _initialize() -> void:
 	await physics_frame
 	var fails := 0
 	for hooves in [true, false]:
-		p.set_build(["kit.ak_kobra", "jet_hooves"] if hooves else ["kit.ak_kobra"])
+		p.set_build(["kit.ak", "jet_hooves"] if hooves else ["kit.ak"])
 		var yaw := -PI / 2.0  # facing +x, at the wall
 		p.teleport(Transform3D(Basis(Vector3.UP, yaw), Vector3(start.x, floor_y + 0.05, start.z)))
 		for i in 10:

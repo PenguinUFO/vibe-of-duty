@@ -2,7 +2,8 @@ extends Node
 ## Renders the first-person view (viewmodel weapon + arms) to ../shots/fp_<case>.png:
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_fp
 
-const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress, sprint 0..1]
+const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress, sprint 0..1,
+	# look delta every frame (a sharp turn: the sway)]
 	"hip": [0, 0.0, -1.0, []], "grenade": [0, 0.0, -1.0, [], -1.0, 0.43], "grenade_back": [0, 0.0, -1.0, [], -1.0, 0.75], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
@@ -45,8 +46,22 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"aug_tac_ads": [9, 1.0, -1.0, ["aug.suppressor.blk", "aug.sight.compm", "aug.grip.off"]],
 	"aug_com_hip": [9, 0.0, -1.0, ["aug.barrel.b350", "aug.sight.iron"]],
 	"aug_com_ads": [9, 1.0, -1.0, ["aug.barrel.b350", "aug.sight.iron"]],
-	"aug_ads": [9, 1.0, -1.0, []], "aug_acog_ads": [9, 1.0, -1.0, ["aug.sight.acog"]],
+	"aug_ads": [9, 1.0, -1.0, []], "aug_ads_sway": [9, 1.0, -1.0, [], -1.0, -1.0, 0.0, Vector2(40.0, 12.0)],
+	"aug_acog_ads": [9, 1.0, -1.0, ["aug.sight.acog"]],
 	"aug_acog_hip": [9, 0.0, -1.0, ["aug.sight.acog"]],
+	"m16_hip": [10, 0.0, -1.0, []], "m16_ads": [10, 1.0, -1.0, []], "m16_half": [10, 0.6, -1.0, []],
+	"m16_r30": [10, 0.0, -1.0, [], 0.3], "m16_r60": [10, 0.0, -1.0, [], 0.6], "m16_r85": [10, 0.0, -1.0, [], 0.85],
+	"m16_colt_hip": [10, 0.0, -1.0, ["m16.sight.colt"]], "m16_colt_ads": [10, 1.0, -1.0, ["m16.sight.colt"]],
+	"m16_colt_half": [10, 0.6, -1.0, ["m16.sight.colt"]],
+	"m16_napalm_hip": [10, 0.0, -1.0, ["m16.barrel.b368", "m16.suppressor.hel", "m16.stock.collapsed"]],
+	"m16_napalm_ads": [10, 1.0, -1.0, ["m16.barrel.b368", "m16.suppressor.hel", "m16.stock.collapsed"]],
+	"m16_653_colt_ads": [10, 1.0, -1.0, ["m16.barrel.b368", "m16.sight.colt"]],
+	"groza_hip": [11, 0.0, -1.0, []], "groza_ads": [11, 1.0, -1.0, []], "groza_half": [11, 0.6, -1.0, []],
+	"groza_r30": [11, 0.0, -1.0, [], 0.3], "groza_r60": [11, 0.0, -1.0, [], 0.6],
+	"groza_kit_hip": [11, 0.0, -1.0, ["groza.suppressor.on"]], "groza_kit_ads": [11, 1.0, -1.0, ["groza.suppressor.on"]],
+	"groza_grip_hip": [11, 0.0, -1.0, ["groza.grip.on"]],
+	"groza_po_hip": [11, 0.0, -1.0, ["groza.sight.po"]], "groza_po_ads": [11, 1.0, -1.0, ["groza.sight.po"]],
+	"groza_po_half": [11, 0.6, -1.0, ["groza.sight.po"]],
 }
 
 
@@ -63,8 +78,26 @@ func _ready() -> void:
 	env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color = Color(0.5, 0.5, 0.5)
 	root3d.add_child(env)
+	if OS.has_environment("SHOT_WALL"):  # something to go out of focus round an optic's window (ScopeBlur)
+		var wall := MeshInstance3D.new()
+		var quad := QuadMesh.new()
+		quad.size = Vector2(60.0, 40.0)
+		wall.mesh = quad
+		wall.position = Vector3(0.0, 1.65, -14.0)
+		var checker := NoiseTexture2D.new()
+		checker.noise = FastNoiseLite.new()
+		checker.noise.frequency = 0.08
+		checker.noise.fractal_octaves = 1
+		checker.noise.noise_type = FastNoiseLite.TYPE_CELLULAR
+		checker.width = 1024
+		checker.height = 1024
+		var paint := StandardMaterial3D.new()
+		paint.albedo_texture = checker
+		wall.material_override = paint
+		root3d.add_child(wall)
+		await checker.changed
 	var cam := Camera3D.new()
-	cam.fov = 75
+	cam.fov = Settings.fov
 	cam.position = Vector3(0, 1.65, 0)
 	root3d.add_child(cam)
 	var inspect := Camera3D.new()
@@ -72,20 +105,22 @@ func _ready() -> void:
 	inspect.near = 0.01
 	root3d.add_child(inspect)
 	cam.current = true
+	var space := ViewmodelSpace.new()
+	cam.add_child(space)
 	var view := WeaponView.new()
 	view.is_viewmodel = true
-	cam.add_child(view)
+	space.add_child(view)
 	var left_view := WeaponView.new()  # akimbo (a module with "akimbo" in the case's)
 	left_view.is_viewmodel = true
 	left_view.mirrored = true
-	cam.add_child(left_view)
+	space.add_child(left_view)
 	var arms := FirstPersonArms.new()
-	cam.add_child(arms)
+	space.add_child(arms)
 	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view)
 	arms.left_weapon = left_view
 	var cannon := GrenadeCannon.new()
 	cannon.set_barrel_only()
-	cam.add_child(cannon)
+	space.add_child(cannon)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
@@ -97,9 +132,11 @@ func _ready() -> void:
 		view.akimbo = def.akimbo
 		left_view.akimbo = true
 		var sprint: float = CASES[c][6] if CASES[c].size() > 6 else 0.0
+		var look: Vector2 = CASES[c][7] if CASES[c].size() > 7 else Vector2.ZERO
 		if def.akimbo:
 			left_view.set_weapon(CASES[c][0], def)
-		cam.fov = lerpf(75.0, 75.0 * def.ads_fov_mult, CASES[c][1])  # the sights' zoom, as Player
+		cam.fov = lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, CASES[c][1])  # the sights' zoom, as Player
+		space.fit(cam.fov, view.view_fov(CASES[c][1]))
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
 		var reload: float = CASES[c][4] if CASES[c].size() > 4 else -1.0
@@ -111,12 +148,16 @@ func _ready() -> void:
 		if reload >= 0.0:
 			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:
-			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
+			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, sprint, 0.0, true, look, 0.0)
 			left_view.grenade = grenade
 			left_view.update_pose(1.0 / 60.0, 0.0, -1.0, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()
 			await get_tree().process_frame
+		space.blur.follow(view, cam, CASES[c][1])
+		await get_tree().process_frame
+		await get_tree().process_frame
 		get_tree().root.get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))
+		space.blur.visible = false
 		# Inspection view: the same pose from the left and below, close up.
 		var target := view.global_position
 		inspect.look_at_from_position(target + Vector3(-0.45, -0.2, -0.15), target + Vector3(0, -0.03, -0.1))

@@ -4,12 +4,19 @@ extends RefCounted
 ## WeaponView. Prefab space as in tools/make_ak_blockout.py: the barrel to +Z, +Y up, +X the shooter's left (the AK's
 ## side rail is on the left). Each optic sits where WeaponDB.MODULE_GEOMETRY puts its aim line.
 ##
-## A red dot sight (collimator, not magnifying) has a node "Dot" and its window in the optic's metadata: "dot_z" (the
-## glass the dot shows on), "window_center" (x, y), "window_radius", "dot_angle" (the dot's angular radius, rad).
-## WeaponView puts the dot where the aim line from the eye crosses that glass (WeaponView._aim_dot): it is at
-## infinity, so it marks where the gun points from wherever the eye is, and is seen only through the window.
+## Every optic but the PSO has a window at its back end (_window), flat: aiming, the eye sees through it the world, not
+## the tube - no inside walls, no depth (owner, 2026-11-04, after screenshots of other shooters; WeaponView cuts what is
+## behind it) - and a mark (_dot) in its plane: a node "Dot", the metadata "dot_z", "window_center" (x, y),
+## "window_radius", "dot_share" (the mark's size as a share of the window's radius). WeaponView puts it where the aim
+## line from the eye crosses that plane (WeaponView._aim_dot): it is at infinity, so it marks where the gun points from
+## wherever the eye is, and is seen only through the window.
 
-const DOT_RADIUS := 0.0012  # the dot sphere's own radius (WeaponView scales it to dot_angle)
+const DOT_RADIUS := 0.0012  # the dot sphere's own radius (WeaponView scales it to dot_share)
+const LENS_CLEAR := 0.07  # the window's glass at full aim: a hint of a tint
+## The windows' share of the screen's height at full aim (WeaponView._ads_pos), as in the screenshots: a red dot small,
+## with the whole sight round it, magnifying ones larger.
+const DOT_WINDOW := 0.2
+const SCOPE_WINDOW := 0.34
 
 
 ## The optic's model, or null for iron sights / an unknown name.
@@ -27,6 +34,10 @@ static func build(sight: String) -> Node3D:
 			return _ring()
 		"swarovski":
 			return _swarovski()
+		"colt":
+			return _colt()
+		"po":
+			return _po()
 	return null
 
 
@@ -98,8 +109,9 @@ static func _kobra() -> Node3D:
 	glass.albedo_color = Color(0.95, 0.62, 0.12, 0.16)  # the amber coat
 	glass.roughness = 0.05
 	glass.metallic_specular = 1.0
-	_tube(root, 0.0145, 0.001, Vector3(c.x, c.y, 0.112), glass)
-	_dot(root, Color(1.0, 0.16, 0.08), 0.11, c, 0.0145, 0.004)
+	_disc(root, 0.0145, Vector3(c.x, c.y, 0.112), glass, Vector3.BACK)
+	_dot(root, Color(1.0, 0.16, 0.08), 0.0845, c, 0.0145, 0.035)
+	_window(root, 0.085, c, 0.0145, DOT_WINDOW)
 	return root
 
 
@@ -161,11 +173,10 @@ static func _compm() -> Node3D:
 	glass.albedo_color = Color(0.95, 0.3, 0.12, 0.16)  # the objective's red-amber coat
 	glass.roughness = 0.05
 	glass.metallic_specular = 1.0
-	_tube(root, 0.0175, 0.001, Vector3(0.0, y, 0.051), glass)
-	var ocular := glass.duplicate() as StandardMaterial3D
-	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
-	_tube(root, bore, 0.001, Vector3(0.0, y, -0.0585), ocular)
-	_dot(root, Color(1.0, 0.08, 0.05), 0.049, Vector2(0.0, y), 0.0135, 0.003)
+	_disc(root, 0.0175, Vector3(0.0, y, 0.051), glass, Vector3.BACK)
+	_lens(root, bore, Vector3(0.0, y, -0.0595))
+	_dot(root, Color(1.0, 0.08, 0.05), -0.0585, Vector2(0.0, y), bore, 0.035)
+	_window(root, -0.06, Vector2(0.0, y), bore, DOT_WINDOW)
 	return root
 
 
@@ -229,14 +240,10 @@ static func _acog() -> Node3D:
 	glass.albedo_color = Color(0.9, 0.35, 0.15, 0.14)  # the objective's coat
 	glass.roughness = 0.05
 	glass.metallic_specular = 1.0
-	_tube(root, 0.0186, 0.001, Vector3(0.0, y, 0.031), glass)
-	var ocular := glass.duplicate() as StandardMaterial3D
-	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
-	_tube(root, 0.0118, 0.001, Vector3(0.0, y, -0.0705), ocular)
-	# The field stop behind the objective: the view ~7 degrees across from the eye, as the real one's, and the folded
-	# front sight's base (32 mm under the axis) stays under it.
-	_prism(root, _arch(c, 0.0, 0.0, 40, 0.0186), 0.0288, 0.0294, hole, _arch(c, 0.0, 0.0, 40, 0.011))
-	_dot(root, Color(1.0, 0.1, 0.05), 0.0305, c, 0.011, 0.006, "chevron")
+	_disc(root, 0.0186, Vector3(0.0, y, 0.031), glass, Vector3.BACK)
+	_lens(root, 0.0118, Vector3(0.0, y, -0.075))
+	_dot(root, Color(1.0, 0.1, 0.05), -0.074, c, 0.0118, 0.12, "chevron")
+	_window(root, -0.0755, c, 0.0118, SCOPE_WINDOW)
 	return root
 
 
@@ -252,21 +259,28 @@ static func _ring() -> Node3D:
 	glass.albedo_color = Color(0.85, 0.55, 0.25, 0.12)  # the objective's amber coat
 	glass.roughness = 0.05
 	glass.metallic_specular = 1.0
-	_box(root, Vector3(-0.0128, c.y - 0.0096, 0.1225), Vector3(0.0128, c.y + 0.0096, 0.1235), glass)
+	var objective := MeshInstance3D.new()  # faces forward only: from the eye its smaller square showed in the window
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.0256, 0.0192)
+	quad.material = glass
+	objective.mesh = quad
+	objective.position = Vector3(0.0, c.y, 0.1235)
+	root.add_child(objective)
 	var ocular := glass.duplicate() as StandardMaterial3D
 	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
 	_box(root, Vector3(-0.0128, c.y - 0.0096, -0.0262), Vector3(0.0128, c.y + 0.0096, -0.0256), ocular)
-	_dot(root, Color(1.0, 0.12, 0.06), 0.122, c, 0.0095, 0.014, "ring")
+	_dot(root, Color(1.0, 0.12, 0.06), -0.0255, c, 0.0095, 0.2, "ring")
+	_window(root, -0.0262, c, 0.0128, 0.18)
+	root.set_meta("window_half", Vector2(0.0128, 0.0096))
 	return root
 
 
 ## The AUG A1's integral Swarovski 1.5x (owner, 2026-11-02: seen as the ACOG - the model stays at full aim, the world
 ## through it, magnified by weapons.cfg ads_zoom): only the tube, its axis at (0, 0.1064) over the bridge
 ## (tools/make_aug_blockout.py: the knobs and the emergency irons are the gun's). From the back: the eyepiece (30.4 mm),
-## the 29 mm tube, 209 mm long. Its walls and front are drawn from outside only: from the eye the window is the
-## eyepiece's whole bore, as a real scope's picture fills it (an open 21 cm tube would show a pinhole); the objective's
-## lens faces forward only. The reticle: the A1's black circle, ~1.2 degrees across (the real one frames a man at
-## 300 m; larger, so it reads at our 10..30 m - my guess).
+## the 29 mm tube, 209 mm long, its walls and front drawn from outside only; the objective's lens faces forward only.
+## The reticle: the A1's black circle (the real one frames a man at 300 m; larger, so it reads at our 10..30 m - my
+## guess).
 static func _swarovski() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Sight_Swarovski"
@@ -277,14 +291,108 @@ static func _swarovski() -> Node3D:
 			Vector2(0.0145, -0.1256), Vector2(0.0145, 0.0678), Vector2(bore, 0.0678)]), Vector3(0.0, y, 0.0), paint, 32,
 			false)
 	_disc(root, bore, Vector3(0.0, y, 0.0677), _material(Color(0.05, 0.08, 0.12), 0.9, 0.08), Vector3.BACK)
-	var ocular := StandardMaterial3D.new()
-	ocular.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ocular.albedo_color = Color(0.5, 0.6, 0.7, 0.08)
-	ocular.roughness = 0.05
-	ocular.metallic_specular = 1.0
-	_tube(root, bore, 0.001, Vector3(0.0, y, -0.14), ocular)
-	# The reticle's plane just in front of the eyepiece: its bore is the window (the objective's is no stop here).
-	_dot(root, Color(0.02, 0.02, 0.02), -0.138, Vector2(0.0, y), bore, 0.0105, "circle")
+	_lens(root, bore, Vector3(0.0, y, -0.14))
+	_dot(root, Color(0.02, 0.02, 0.02), -0.139, Vector2(0.0, y), bore, 0.11, "circle")
+	_window(root, -0.1407, Vector2(0.0, y), bore, SCOPE_WINDOW)
+	return root
+
+
+## The Colt 3x20 on the M16A1's carry handle (Docs/m16/09, 10): seen as the ACOG - the model stays at full aim, the
+## world through its tube, magnified by weapons.cfg ads_zoom. Its axis at (0, 0.142), 24 mm over the irons' line,
+## clear of the rear sight's ears; 145 mm long. From the back: the eyepiece (r 16.5 mm, ridged), the 1" tube, the
+## objective's bell;
+## the elevation turret on top, the windage one on the right; under the tube the mount on the handle's top, its thumb
+## screw on the left. The reticle: a black duplex cross (no photo of the real one - my guess).
+static func _colt() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sight_Colt"
+	var paint := _material(Color(0.06, 0.06, 0.065), 0.4, 0.5)  # the gun's black (make_m16_blockout.py "black")
+	var steel := _material(Color(0.13, 0.13, 0.14), 0.55, 0.45)
+	var hole := _material(Color(0.03, 0.03, 0.035), 0.2, 0.8)
+	var y := 0.142
+	var axis := Vector3(0.0, y, 0.0)
+	var bore := 0.0118
+	_lathe(root, PackedVector2Array([Vector2(bore, -0.07), Vector2(0.0165, -0.07), Vector2(0.0165, -0.046),
+			Vector2(0.0127, -0.036), Vector2(0.0127, 0.05), Vector2(0.0152, 0.057), Vector2(0.0152, 0.075),
+			Vector2(0.0138, 0.075), Vector2(0.0138, 0.057), Vector2(bore, 0.051)]), axis, paint)
+	var ring := func(radius: float, z0: float, z1: float) -> void:  # hollow: a solid one would plug the bore
+		_lathe(root, PackedVector2Array([Vector2(bore, z0), Vector2(radius, z0), Vector2(radius, z1),
+				Vector2(bore, z1)]), axis, paint, 24)
+	for i in 4:  # the eyepiece's grip rings
+		ring.call(0.0169, -0.0672 + i * 0.006, -0.0647 + i * 0.006)
+	var top := y + 0.0127
+	_tube(root, 0.0105, 0.012, Vector3(0.0, top - 0.002 + 0.006, 0.0), paint, Vector3.UP)       # elevation: base,
+	_knurled(root, 0.0085, 0.008, Vector3(0.0, top + 0.014, 0.0), paint, Vector3.UP, 24)       # ribbed cap,
+	_tube(root, 0.0078, 0.001, Vector3(0.0, top + 0.0185, 0.0), hole, Vector3.UP)              # its slotted top
+	_tube(root, 0.0105, 0.012, Vector3(-0.0127 + 0.002 - 0.006, y, 0.0), paint, Vector3.RIGHT)  # windage (right)
+	_knurled(root, 0.0085, 0.008, Vector3(-0.0267, y, 0.0), paint, Vector3.RIGHT, 24)
+	_tube(root, 0.0078, 0.001, Vector3(-0.0312, y, 0.0), hole, Vector3.RIGHT)
+	# The mount: a block on the handle's top under the tube, the rings' two clamps round it, the thumb screw on the
+	# left through the handle's slot.
+	_box(root, Vector3(-0.0085, 0.112, -0.012), Vector3(0.0085, y - 0.0125, 0.045), paint)  # ahead of the rear sight
+	for z in [-0.008, 0.038]:  # nothing inside the bore's radius: it is the window
+		ring.call(0.0142, z - 0.005, z + 0.005)
+		_box(root, Vector3(-0.0145, y - 0.0155, z - 0.005), Vector3(0.0145, y - 0.0125, z + 0.005), paint)
+	_knurled(root, 0.0085, 0.006, Vector3(0.0158, 0.12, 0.016), steel, Vector3.RIGHT, 16)
+	_tube(root, 0.003, 0.012, Vector3(0.011, 0.12, 0.016), steel, Vector3.RIGHT)
+	var glass := StandardMaterial3D.new()
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.albedo_color = Color(0.45, 0.35, 0.6, 0.12)  # the objective's purple coat
+	glass.roughness = 0.05
+	glass.metallic_specular = 1.0
+	_disc(root, 0.0138, Vector3(0.0, y, 0.074), glass, Vector3.BACK)
+	_lens(root, bore, Vector3(0.0, y, -0.0695))
+	_dot(root, Color(0.02, 0.02, 0.02), -0.0685, Vector2(0.0, y), bore, 1.15, "cross")
+	_window(root, -0.07, Vector2(0.0, y), bore, SCOPE_WINDOW)
+	return root
+
+
+## The PO 4x34 on the Groza's carry frame (Docs/groza/02, 08; owner, 2026-11-04: a PSO-style reticle, seen as the
+## ACOG or the Swarovski - the model stays at full aim, the world through it, 4x by weapons.cfg ads_zoom; no eye cup).
+## Its axis at (0, 0.1397), 17 mm over the irons' line; 294 mm long: the eyepiece's bell (r 21 mm), the tube (r 12.8),
+## the objective's bell (r 20.5); the elevation turret on top, the windage one on the left; the mount under the tube on
+## the frame's bar (its top at 0.113), the clamp's lever on the left. The walls drawn from outside only.
+static func _po() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Sight_PO"
+	var paint := _material(Color(0.06, 0.06, 0.065), 0.4, 0.5)
+	var steel := _material(Color(0.13, 0.13, 0.14), 0.55, 0.45)
+	var hole := _material(Color(0.03, 0.03, 0.035), 0.2, 0.8)
+	var y := 0.1397
+	var axis := Vector3(0.0, y, 0.0)
+	var bore := 0.0185  # the eyepiece's and the objective's inside
+	var back := -0.109
+	var front := 0.185
+	# In two: an open profile faces away from its closing line, and one line under the narrow tube and over the bells
+	# (r 18.5) turned the tube's wall inward.
+	_lathe(root, PackedVector2Array([Vector2(bore, back), Vector2(0.021, back), Vector2(0.021, -0.025),
+			Vector2(0.0128, -0.012)]), axis, paint, 32, false)
+	_lathe(root, PackedVector2Array([Vector2(0.0128, -0.012), Vector2(0.0128, 0.095), Vector2(0.0205, 0.119),
+			Vector2(0.0205, front), Vector2(0.0125, front)]), axis, paint, 32, false)
+	_disc(root, bore, Vector3(0.0, y, front - 0.0005), _material(Color(0.05, 0.08, 0.12), 0.9, 0.08), Vector3.BACK)
+	_lens(root, bore, Vector3(0.0, y, back + 0.0005))
+	for i in 3:  # the eyepiece's focusing rings
+		_lathe(root, PackedVector2Array([Vector2(bore, back + 0.005 + i * 0.006), Vector2(0.0215, back + 0.005 + i * 0.006),
+				Vector2(0.0215, back + 0.008 + i * 0.006), Vector2(bore, back + 0.008 + i * 0.006)]), axis, paint, 32)
+	# Turrets: elevation on top, windage on the left; the name plate on the right.
+	var top := y + 0.0128
+	_tube(root, 0.0105, 0.012, Vector3(0.0, top + 0.004, 0.043), paint, Vector3.UP)
+	_knurled(root, 0.0095, 0.008, Vector3(0.0, top + 0.014, 0.043), paint, Vector3.UP, 24)
+	_tube(root, 0.0085, 0.001, Vector3(0.0, top + 0.0185, 0.043), hole, Vector3.UP)
+	_tube(root, 0.0105, 0.012, Vector3(0.0168, y, 0.043), paint, Vector3.RIGHT)
+	_knurled(root, 0.0095, 0.008, Vector3(0.0268, y, 0.043), paint, Vector3.RIGHT, 24)
+	_box(root, Vector3(-0.0145, y - 0.008, 0.03), Vector3(-0.0125, y + 0.008, 0.056), paint)
+	_box(root, Vector3(-0.0148, y - 0.006, 0.033), Vector3(-0.0145, y + 0.006, 0.053), steel)
+	# The mount: rings round the tube, the block under them on the bar, the clamp's lever on the left.
+	for z in [-0.002, 0.07]:
+		_lathe(root, PackedVector2Array([Vector2(0.0128, z - 0.006), Vector2(0.0148, z - 0.006),
+				Vector2(0.0148, z + 0.006), Vector2(0.0128, z + 0.006)]), axis, paint, 24, false)
+	_box(root, Vector3(-0.009, 0.113, -0.012), Vector3(0.009, y - 0.0128, 0.08), paint)
+	_box(root, Vector3(-0.0055, 0.108, -0.012), Vector3(0.0055, 0.113, 0.08), steel)  # its foot in the bar's channel
+	_box(root, Vector3(0.009, 0.113, 0.01), Vector3(0.012, 0.121, 0.05), steel)
+	_tube(root, 0.003, 0.006, Vector3(0.0125, 0.117, 0.014), steel, Vector3.RIGHT)
+	_dot(root, Color(0.02, 0.02, 0.02), back + 0.001, Vector2(0.0, y), bore, 1.15, "pso")
+	_window(root, back, Vector2(0.0, y), bore, SCOPE_WINDOW)
 	return root
 
 
@@ -380,11 +488,12 @@ static func _lathe(parent: Node3D, profile: PackedVector2Array, center: Vector3,
 	parent.add_child(node)
 
 
-## The red dot of a collimator (see the top of the file); its rest place is on the aim line at `z`. `shape` "chevron":
-## the ACOG's red chevron instead, its tip on the aim line, DOT_RADIUS to each side (so `angle` sizes it as the dot);
+## The mark of a sight (see the top of the file), `share` of `window_radius` in size; its rest place is on the aim line
+## at `z`. `shape` "chevron": the ACOG's red chevron instead, its tip on the aim line, DOT_RADIUS to each side;
 ## "ring": the P90's ring, DOT_RADIUS across its outside, a dot in its middle; "circle": the ring alone, thicker (the
-## AUG A1's).
-static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_radius: float, angle: float,
+## AUG A1's); "cross": a duplex cross, its arms DOT_RADIUS long (the Colt 3x20's - `share` past the window: its edge
+## cuts the arms off); "pso": the PSO's chevrons, scale and rangefinder, cut as the cross (the PO 4x34's).
+static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_radius: float, share: float,
 		shape := "dot") -> void:
 	var dot := MeshInstance3D.new()
 	dot.name = "Dot"
@@ -408,6 +517,93 @@ static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_r
 				st.add_vertex(v)
 		dot.mesh = st.commit()
 		dot.mesh.surface_set_material(0, red)
+	elif shape == "cross" or shape == "pso":
+		var r := DOT_RADIUS
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var bar := func(x0: float, y0: float, x1: float, y1: float) -> void:
+			for v in [Vector3(x0, y0, 0.0), Vector3(x1, y0, 0.0), Vector3(x1, y1, 0.0), Vector3(x0, y0, 0.0),
+					Vector3(x1, y1, 0.0), Vector3(x0, y1, 0.0)]:
+				st.set_normal(Vector3.FORWARD)
+				st.add_vertex(v)
+		var thin := 0.012 * r
+		var thick := 0.04 * r
+		if shape == "cross":
+			bar.call(-r, -thin, r, thin)  # the fine cross over the whole window
+			bar.call(-thin, -r, thin, r)
+			for side in [-1.0, 1.0]:  # the heavy posts from halfway out (a duplex)
+				bar.call(side * 0.5 * r, -thick, side * r, thick)
+				bar.call(-thick, side * 0.5 * r, thick, side * r)
+		else:
+			# The PSO's: the aiming chevron (its tip the aim point), three smaller ones under it for the far
+			# ranges, the windage scale to each side at the tip's level (a tick a step, long at 5 and 10), the
+			# rangefinder lower left (a base line, a curve falling to the right over it; +x: the gun is turned round). Larger than the real
+			# one's, as the Swarovski's ring: it must read at our 10..30 m (my guess).
+			var line := 0.014 * r
+			var chevron := func(cy: float, half: float, tall: float) -> void:
+				for side in [-1.0, 1.0]:
+					var tip_out := Vector3(0.0, cy, 0.0)
+					var tip_in := Vector3(0.0, cy - line * 3.0, 0.0)
+					var end_out := Vector3(side * half, cy - tall, 0.0)
+					var end_in := Vector3(side * half, cy - tall - line * 3.0, 0.0)
+					for v in [tip_out, end_out, end_in, tip_out, end_in, tip_in]:
+						st.set_normal(Vector3.FORWARD)
+						st.add_vertex(v)
+			chevron.call(0.0, 0.07 * r, 0.12 * r)
+			for i in 3:
+				chevron.call(-0.2 * r - i * 0.11 * r, 0.04 * r, 0.07 * r)
+			for side in [-1.0, 1.0]:
+				bar.call(side * 0.12 * r, -line, side * 0.82 * r, line)
+				for k in range(1, 11):
+					var x: float = side * (0.12 + k * 0.07) * r
+					var tall := (0.09 if k % 5 == 0 else 0.045) * r
+					bar.call(x - line, line, x + line, tall)
+			var rf := [0.62 * r, 0.2 * r]  # the rangefinder's x span, from the left (prefab +x)
+			bar.call(rf[1], -0.55 * r - line, rf[0], -0.55 * r + line)
+			var steps := 8
+			for k in steps:
+				var t0 := float(k) / steps
+				var t1 := float(k + 1) / steps
+				var ya := -0.55 * r + 0.22 * r * pow(1.0 - t0, 1.6)
+				var yb := -0.55 * r + 0.22 * r * pow(1.0 - t1, 1.6)
+				var xa: float = lerpf(rf[0], rf[1], t0)
+				var xb: float = lerpf(rf[0], rf[1], t1)
+				for v in [Vector3(xa, ya - line, 0.0), Vector3(xb, yb - line, 0.0), Vector3(xb, yb + line, 0.0),
+						Vector3(xa, ya - line, 0.0), Vector3(xb, yb + line, 0.0), Vector3(xa, ya + line, 0.0)]:
+					st.set_normal(Vector3.FORWARD)
+					st.add_vertex(v)
+			for k in 5:  # the rangefinder's distance ticks over the base line
+				var x: float = lerpf(rf[0], rf[1], (k + 0.5) / 5.0)
+				bar.call(x - line, -0.55 * r, x + line, -0.52 * r)
+		# The field stop round it, in its plane as in a real scope: the round field moves with the cross (on a sway
+		# the tube's shadow eats one side), the cross stays in its middle. Its edge a little inside the bore at rest
+		# (the arms reach ~1.07 of the bore there), out past what the tube lets through.
+		var flat := func(radius: float, a: float) -> Vector3: return Vector3(cos(a), sin(a), 0.0) * radius
+		for i in 48:
+			var a0 := TAU * i / 48.0
+			var a1 := TAU * (i + 1) / 48.0
+			for v in [flat.call(0.9 * r, a0), flat.call(4.0 * r, a0), flat.call(4.0 * r, a1), flat.call(0.9 * r, a0),
+					flat.call(4.0 * r, a1), flat.call(0.9 * r, a1)]:
+				st.set_normal(Vector3.FORWARD)
+				st.add_vertex(v)
+		dot.mesh = st.commit()
+		# Cut at the window: the cross moves with the aim line (as a dot), its arms past the bore would show outside
+		# the tube on a sway. WeaponView._aim_dot sets the window in the cross's own space each frame.
+		var clip := ShaderMaterial.new()
+		clip.shader = Shader.new()
+		clip.shader.code = """shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform vec3 color;
+uniform vec2 window_center;
+uniform float window_radius = 1000.0;
+varying vec2 local;
+void vertex() { local = VERTEX.xy; }
+void fragment() {
+	if (distance(local, window_center) > window_radius) { discard; }
+	ALBEDO = color;
+}"""
+		clip.set_shader_parameter("color", Vector3(color.r, color.g, color.b))
+		dot.mesh.surface_set_material(0, clip)
 	elif shape == "chevron":
 		var r := DOT_RADIUS
 		var st := SurfaceTool.new()
@@ -435,7 +631,37 @@ static func _dot(root: Node3D, color: Color, z: float, center: Vector2, window_r
 	root.set_meta("dot_z", z)
 	root.set_meta("window_center", center)
 	root.set_meta("window_radius", window_radius)
-	root.set_meta("dot_angle", angle)
+	root.set_meta("dot_share", share)
+
+
+## The sight's window: a round hole of `radius` at `z`, `share` of the screen's height at full aim.
+static func _window(root: Node3D, z: float, center: Vector2, radius: float, share: float) -> void:
+	root.set_meta("see_through_z", z)
+	root.set_meta("see_through_radius", radius)
+	root.set_meta("window_share", share)
+	root.set_meta("window_center", center)
+
+
+## The dark glass in a sight's back end: closes the tube from outside, clears as the gun is aimed (WeaponView._cut_window).
+static func _lens(root: Node3D, radius: float, center: Vector3) -> void:
+	var lens := MeshInstance3D.new()
+	lens.name = "Lens"
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = 0.0005
+	mesh.radial_segments = 32
+	mesh.rings = 1
+	lens.mesh = mesh
+	lens.rotation.x = PI * 0.5
+	lens.position = center
+	var glass := StandardMaterial3D.new()
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.albedo_color = Color(0.05, 0.07, 0.1)
+	glass.metallic = 0.9
+	glass.roughness = 0.08
+	lens.material_override = glass
+	root.add_child(lens)
 
 
 ## PSO-1 4x: a side-rail bracket on the left and the scope over it, its axis at (0.035, 0.155): objective forward,

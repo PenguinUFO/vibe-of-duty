@@ -192,6 +192,7 @@ var bags_total := 0      # ammo bags picked up
 var healed_total := 0    # health regenerated or eaten from bags
 var judge_rewind_ms := 0.0  # how far back in time the last shot / punch was judged (LagComp)
 var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
+var _space: ViewmodelSpace  # first person: the gun's and the arms' own field of view
 var _view: WeaponView
 var _left_view: WeaponView  # first person: the akimbo's left gun (WeaponView.mirrored), shown while it is in the hand
 var _arms: FirstPersonArms

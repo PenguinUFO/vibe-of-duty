@@ -14,7 +14,16 @@ const SPRINT_OFFSET := Vector3(-0.06, -0.05, 0.02)
 ## the middle and turned in (mirrored, that crossed the two guns). Degrees: dip, turn out, cant out.
 const AKIMBO_SPRINT_OFFSET := Vector3(0.06, -0.06, 0.04)
 const AKIMBO_SPRINT_TURN := Vector3(15.0, 12.0, 22.0)
-const ADS_KICK_CUT := .6  # share of the model kick removed at full ADS
+const ADS_KICK_CUT := 0.93  # share of the model kick removed at full ADS: the view is narrow, the camera's recoil is enough
+const ADS_MOTION_CUT := 0.97  # share of the bob and the sway removed at full ADS: the gun all but still (owner, 2026-11-04)
+const HIP_MOTION := 0.6  # the bob and the sway from the hip: the gun is larger on the screen than in the camera's view
+## The first-person gun's own field of view (ViewmodelSpace), vertical, degrees. From the hip: the gun large, from the
+## screen's bottom right corner to near the crosshair. Aimed: narrow, nearly flat (owner, 2026-11-04, after screenshots
+## of other shooters) - the eye well back, the sight's whole outline round its window, no depth in it.
+const HIP_VIEW_FOV := 55.0
+const ADS_VIEW_FOV := 18.0
+const IRON_VIEW_FOV := 34.0  # aimed over iron sights: wider, or the rear sight fills the screen
+const LENS_CLEAR_FROM := 0.5  # ADS share: from here an optic's window is open and its lens clears
 const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than life (they sit very close to the eye)
 const BREAK_ANGLE := 0.5      # rad: how far a break-open's barrel drops for a reload (~29 degrees: room for a round)
 const REFILL_TIME := 0.45     # s after a break-open's reload: the left hand takes the next round from the bandolier
@@ -49,12 +58,12 @@ var _pivot := Node3D.new()
 var _model: Node3D
 var _mag: Node3D
 var _mag_rest := Vector3.ZERO
-## A see-through scope's surroundings (the AUG A1's, tools/make_aug_blockout.py): "Aimed" stands in for "Outside"
-## while aimed (_aim_dot; by the aim, not the eye's place - a shot's kick takes the eye off the axis for a moment) -
-## the parts in the eye's cone gone, the rest as it was.
-var _scope_outside: Node3D
-var _scope_aimed: Node3D
-var _ads := 0.0  # update_pose's
+## An optic's window (SightModels._window), first person: what the eye sees through it is not drawn while aiming
+## (_cut_window, WeaponSkin's shader's window_*) - the sight's own tube, the gun - so the window shows the world and no
+## inside. From the hip the sight's dark lens (SightModels._lens) closes it.
+var _see_through: Node3D
+var _lens: StandardMaterial3D
+var _cut_meshes: Array[GeometryInstance3D] = []
 var _muzzle := Marker3D.new()
 var _flash := MeshInstance3D.new()
 var _flash_timer := 0.0
@@ -91,6 +100,7 @@ var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
 var lowered := 0.0        # 0..1: the gun is lowered out of view (first person, vaulting)
 var melee := -1.0         # hoof punch progress 0..1 (-1: none): the gun swings aside (first person)
 var grenade := -1.0       # grenade launch progress 0..1 (-1: none): the gun goes out to the right (first person)
+var _ads_view_fov := IRON_VIEW_FOV
 var _hip_pos := Vector3.ZERO
 var _ads_pos := Vector3.ZERO
 
@@ -143,10 +153,6 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	for node in _model.find_children("*_Mag_*", "Node3D", true, false):
 		_mag = node
 		_mag_rest = node.position
-	_scope_aimed = _model.find_child("Aimed", true, false) as Node3D
-	_scope_outside = _scope_aimed.get_parent().get_node("Outside") if _scope_aimed else null
-	if _scope_aimed:
-		_scope_aimed.visible = false
 	var optic := SightModels.build(def.sight)
 	_dot = null
 	if optic:
@@ -198,6 +204,17 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 		_handle.position = _handle_rest
 		_model.add_child(_handle)
 	WeaponSkin.apply(_model, def.finish)
+	_see_through = optic if optic and optic.has_meta("see_through_z") and is_viewmodel else null
+	_cut_meshes.clear()
+	_lens = null
+	if _see_through:
+		var lens := _see_through.get_node_or_null("Lens") as MeshInstance3D
+		_lens = lens.material_override as StandardMaterial3D if lens else null
+		for node in _model.find_children("*", "MeshInstance3D", true, false):
+			var mesh := node as MeshInstance3D
+			var skin := mesh.get_surface_override_material(0) as ShaderMaterial if mesh.mesh else null
+			if skin and skin.shader == WeaponSkin.SHADER:
+				_cut_meshes.append(mesh)
 	if is_viewmodel:
 		# First person: the gun hangs in front of the camera, its shadow would float on the ground.
 		var meshes := _model.find_children("*", "GeometryInstance3D", true, false)
@@ -215,7 +232,18 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	# sight points matters.
 	var rear := Vector3(-def.rear_sight.x, def.rear_sight.y, -def.rear_sight.z) * scale_factor
 	var front := Vector3(-def.front_sight.x, def.front_sight.y, -def.front_sight.z) * scale_factor
-	var eye := rear - (front - rear).normalized() * def.eye_relief
+	var aim := (front - rear).normalized()
+	var eye := rear - aim * def.eye_relief
+	_ads_view_fov = ADS_VIEW_FOV if _see_through else IRON_VIEW_FOV
+	if _see_through:
+		# An optic: the eye as far back as it takes for the window to fill its share of the screen (the cheek, as
+		# others see it, stays on eye_relief). The aim line runs through the window's middle.
+		var center: Vector2 = optic.get_meta("window_center")
+		var at := (def.sight_offset + Vector3(center.x, center.y, optic.get_meta("see_through_z"))) * def.model_scale
+		var window := Vector3(-at.x, at.y, -at.z) * scale_factor
+		var radius := float(optic.get_meta("see_through_radius")) * def.model_scale * scale_factor
+		var away := radius / (float(optic.get_meta("window_share")) * tan(deg_to_rad(ADS_VIEW_FOV) * 0.5))
+		eye = rear + aim * (aim.dot(window - rear) - away)
 	_ads_pos = -eye
 
 
@@ -434,6 +462,30 @@ func set_shell(r: float, shell_shift := Vector3.INF) -> void:
 		_shell.position = _shell_rest + shell_shift / def.model_scale
 
 
+## The gun's own field of view (ViewmodelSpace) at this much aim.
+func view_fov(ads: float) -> float:
+	return lerpf(HIP_VIEW_FOV, _ads_view_fov, ads)
+
+
+## An optic's window on `camera`'s screen: position its centre in screen shares, size its half sizes in the screen's
+## height (equal: a round one); empty with no window.
+func window_on_screen(camera: Camera3D) -> Rect2:
+	if _see_through == null:
+		return Rect2()
+	var at := _see_through.global_transform
+	var center: Vector2 = _see_through.get_meta("window_center")
+	var middle := at * Vector3(center.x, center.y, float(_see_through.get_meta("see_through_z")))
+	var rim := middle + at.basis.x * float(_see_through.get_meta("see_through_radius"))
+	var screen := camera.get_viewport().get_visible_rect().size
+	var on_screen := camera.unproject_position(middle)
+	var radius := on_screen.distance_to(camera.unproject_position(rim)) / screen.y
+	var box: Vector2 = _see_through.get_meta("window_half", Vector2.ZERO)
+	var half := Vector2(radius, radius)
+	if box != Vector2.ZERO:
+		half.y *= box.y / box.x
+	return Rect2(on_screen / screen, half)
+
+
 ## Landing: the gun dips and tips forward, then settles (`strength` ~ 1 for a normal jump).
 func land_jolt(strength: float) -> void:
 	_drop = minf(_drop + strength, 1.8)
@@ -448,7 +500,6 @@ func kick(strength: float = 1.0) -> void:
 func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_blend: float,
 		speed: float, on_floor: bool, look_delta: Vector2, retract: float) -> void:
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-KICK_DECAY * dt))
-	_ads = ads
 
 	var pos := _hip_pos.lerp(_ads_pos, ads)
 	var rot := Vector3.ZERO
@@ -456,18 +507,20 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	# Walking bob (weaker while aiming).
 	if on_floor and speed > 0.5:
 		_bob_time += dt * speed * 1.7
-	var bob_amount := (1.0 - ads * 0.85) * clampf(speed / 5.0, 0.0, 1.4)
+	var still := HIP_MOTION * (1.0 - ads * ADS_MOTION_CUT)
+	var bob_amount := still * clampf(speed / 5.0, 0.0, 1.4)
 	# The bob and the sway move the whole body's hands: not mirrored (mirrored, akimbo's guns went apart on a turn).
 	var motion := Vector3(cos(_bob_time * 0.5) * 0.008, absf(sin(_bob_time)) * 0.01, 0.0) * bob_amount
 
 	# Sway: the weapon lags behind the view and settles back.
 	_sway = _sway.lerp(Vector2.ZERO, 1.0 - exp(-8.0 * dt)) - look_delta * 0.12
 	_sway = _sway.limit_length(0.06)
-	motion += Vector3(_sway.x, -_sway.y, 0.0) * (1.0 - ads * 0.7)
+	motion += Vector3(_sway.x, -_sway.y, 0.0) * still
 
 	# Recoil kick (much weaker while aiming: the sights stay nearly still).
 	var kick := _kick * (1.0 - ads * ADS_KICK_CUT)
-	pos.z += kick * 0.03
+	# Back towards the eye: none in an optic at full aim (the head rides the cheek weld): its window would pump.
+	pos.z += kick * 0.03 * (1.0 - ads if def and def.sight != "" else 1.0)
 	rot.x += kick * deg_to_rad(2.5)
 
 	# Sprint pose.
@@ -486,13 +539,13 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	if _shell:
 		# A lever action is loaded a shell at a time: canted, the open top towards the left hand, for the whole loading.
 		var dip := smoothstep(0.0, 1.0, load_blend)
-		pos += Vector3(-0.06, 0.05, 0.06) * dip
+		pos += Vector3(-0.06, 0.05, -0.14) * dip
 		rot.x += dip * deg_to_rad(6.0)
 		rot.z -= dip * deg_to_rad(28.0)
 	elif reload_p >= 0.0 and _break:
 		# A break-open comes in close, muzzle up, so the dropped barrel's breech faces the eye.
 		var dip := smoothstep(0.0, 0.1, reload_p) * (1.0 - smoothstep(0.7, 1.0, reload_p))
-		pos += Vector3(-0.08, 0.06, 0.09) * dip
+		pos += Vector3(-0.08, 0.06, -0.06) * dip
 		rot.x += dip * deg_to_rad(18.0) + break_flick(reload_p) * deg_to_rad(10.0)  # the wrist snaps it shut
 		rot.z -= dip * deg_to_rad(24.0)
 	elif reload_p >= 0.0 and tips_mag():
@@ -538,8 +591,8 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 
 	# Landing jolt, and lowered out of view (vaulting).
 	_drop = lerpf(_drop, 0.0, 1.0 - exp(-7.0 * dt))
-	pos.y -= _drop * 0.035 * (1.0 - ads * 0.6)
-	rot.x -= _drop * deg_to_rad(4.0)
+	pos.y -= _drop * 0.035 * (1.0 - ads * ADS_MOTION_CUT)
+	rot.x -= _drop * deg_to_rad(4.0) * (1.0 - ads * ADS_MOTION_CUT)
 	pos += Vector3(0.02, -0.55, 0.1) * lowered
 	rot.x -= deg_to_rad(50.0) * lowered
 
@@ -553,9 +606,10 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	position = pos + motion
 	rotation = rot
 	_aim_dot()
+	_cut_window(ads)
 
 
-## A red dot is at infinity (a collimator): the eye sees it along the aim line wherever the eye is, so it goes where
+## A sight's mark is at infinity: the eye sees it along the aim line wherever the eye is, so it goes where
 ## that line from the eye crosses the sight's glass - on a shot or a sway it shows where the gun points, not where the
 ## glass is - and is hidden when that is off the window (from the hip). First person only: others' dots are too small.
 func _aim_dot() -> void:
@@ -569,8 +623,35 @@ func _aim_dot() -> void:
 	var through := eye + dir * ((plane - eye.z) / dir.z)
 	var off := Vector2(through.x, through.y).distance_to(optic.get_meta("window_center"))
 	_dot.visible = eye.z < plane and off <= float(optic.get_meta("window_radius"))
-	if _scope_aimed:  # aimed: the eye in the scope (it gets within 4 mm of the axis from ~0.9 on)
-		_scope_aimed.visible = _ads > 0.9
-		_scope_outside.visible = not _scope_aimed.visible
 	_dot.position = through
-	_dot.scale = Vector3.ONE * (eye.distance_to(through) * float(optic.get_meta("dot_angle")) / SightModels.DOT_RADIUS)
+	var size := float(optic.get_meta("window_radius")) * float(optic.get_meta("dot_share")) / SightModels.DOT_RADIUS
+	_dot.scale = Vector3.ONE * size
+	var clip := _dot.mesh.surface_get_material(0) as ShaderMaterial
+	if clip:  # a reticle wider than the window (the Colt's cross, its field stop): cut at the window's edge, in its own
+		# space; shown far off the axis too - the stop blacks the window out, as a scope's shadow
+		_dot.visible = eye.z < plane
+		var center: Vector2 = optic.get_meta("window_center")
+		clip.set_shader_parameter("window_center", (center - Vector2(through.x, through.y)) / size)
+		clip.set_shader_parameter("window_radius", float(optic.get_meta("window_radius")) / size)
+
+
+## The optic's window in world space onto the gun's meshes while aiming: the shader drops what the eye sees through
+## it, wherever the eye is (aimed, swayed or kicked off the axis). Its lens clears as the gun comes up.
+func _cut_window(ads: float) -> void:
+	if _see_through == null:
+		return
+	var at := _see_through.global_transform
+	var center: Vector2 = _see_through.get_meta("window_center")
+	var world_center := at * Vector3(center.x, center.y, float(_see_through.get_meta("see_through_z")))
+	var axis := at.basis.z.normalized()
+	var scale_x := at.basis.get_scale().x
+	var radius := float(_see_through.get_meta("see_through_radius")) * scale_x
+	var box: Vector2 = _see_through.get_meta("window_half", Vector2.ZERO) * scale_x
+	for mesh in _cut_meshes:
+		mesh.set_instance_shader_parameter("window_right", at.basis.x.normalized())
+		mesh.set_instance_shader_parameter("window_half", box)
+		mesh.set_instance_shader_parameter("window_center", world_center)
+		mesh.set_instance_shader_parameter("window_axis", axis)
+		mesh.set_instance_shader_parameter("window_radius", radius if ads >= LENS_CLEAR_FROM else 0.0)
+	if _lens:
+		_lens.albedo_color.a = lerpf(1.0, SightModels.LENS_CLEAR, smoothstep(LENS_CLEAR_FROM, 0.95, ads))

@@ -6,7 +6,8 @@ extends SceneTree
 ## Two kinds of solid, flat-shaded (low poly, as the rest of the game):
 ## - a side profile (z, y) pushed out across the gun, its half width changing along z (the AK's stock thickens
 ##   towards the butt), the edges chamfered - stocks, grips, handguards, receivers;
-## - a cross-section (x, y) pushed along the barrel - the AK dust cover's rounded top.
+## - a cross-section (x, y) pushed along the barrel - the AK dust cover's rounded top; or lofted from it to another
+##   of as many points at the front end (the M16A1's triangular handguard, tapering).
 ## Prefab space as the guns': +Y up, +Z towards the muzzle, metres; the parts are built in place.
 ## AK - after the AKM, from memory: the stock drops and deepens to the butt, the grip rakes back with a finger groove,
 ## the lower handguard swells under the palm. PDW - after the Parker-Hale photos (Docs/LOADOUT.md, "PDW"): the
@@ -23,10 +24,16 @@ extends SceneTree
 ## chassis, the deep handguard, the receiver, the raked grip, the butt. P90 - traced off the owner's photo: the body, the
 ## lower and the front round the two holes, the sight's housing. AUG - traced off the owner's photo: the butt with the
 ## grip and the guard round the whole hand, the receiver, the A1's bridge, the A3's upper, the Steyr grip, the handguard.
+## M16A1 - traced off the owner's photo (tools/make_m16_blockout.py --parts): the A1 stock, the lower, the upper, the
+## carry handle (in three), the grip, the guard, the front sight's leg, the CAR stock's sleeve, the
+## curved 30-round magazine; the triangular handguard as a section lofted from the delta ring to the front sight.
+## Groza - traced off the owner's photo (tools/make_groza_blockout.py --parts): the receiver in the stock's shell, the
+## butt plate, the carry frame (in three), the front lower body, the AK grip, the guard, the sling loop, the muzzle
+## grip's housing and its grip.
 
 const DIR := "res://prefabs/weapons/"
 ## weapon -> {profiles: name -> {points (z, y) in order round it, width [z, hw] along z (linear between), chamfer},
-## sections: name -> {points (x, y) in order round it, z: from, to}}.
+## sections: name -> {points (x, y) in order round it, z: from, to; end_points: the section at z.y (optional)}}.
 const PARTS := {
 	"ak": {
 		"profiles": {
@@ -377,9 +384,6 @@ const PARTS := {
 			"handguard": {"points": [Vector2(0.2491, 0.0829), Vector2(0.1287, 0.0829), Vector2(0.1287, 0.008),
 					Vector2(0.2392, 0.008), Vector2(0.2491, 0.0128)],
 					"width": [Vector2(0.3886, 0.021)], "chamfer": 0.003},
-			"bridge_rear_aimed": {"points": [Vector2(-0.0112, 0.049), Vector2(-0.0123, 0.0669), Vector2(-0.0313, 0.0705),
-					Vector2(-0.0291, 0.0666), Vector2(-0.0259, 0.0566), Vector2(-0.0251, 0.049)],
-					"width": [Vector2(0.3886, 0.009)], "chamfer": 0.003},
 			"mag_30": {"points": [Vector2(-0.2192, -0.0223), Vector2(-0.1543, -0.0223), Vector2(-0.1543, -0.0271),
 					Vector2(-0.154, -0.0426), Vector2(-0.1533, -0.0581), Vector2(-0.1522, -0.0736), Vector2(-0.1505, -0.0891),
 					Vector2(-0.1484, -0.1044), Vector2(-0.1459, -0.1198), Vector2(-0.1429, -0.135), Vector2(-0.1394, -0.1501),
@@ -405,6 +409,129 @@ const PARTS := {
 		},
 		"sections": {},
 	},
+	"m16": {
+		"profiles": {
+			"stock": {"points": [Vector2(-0.081, 0.0655), Vector2(-0.3097, 0.0691), Vector2(-0.3181, 0.0655),
+					Vector2(-0.3216, 0.0584), Vector2(-0.3216, -0.0441), Vector2(-0.3181, -0.0536), Vector2(-0.3097, -0.0572),
+					Vector2(-0.2859, -0.05), Vector2(-0.2382, -0.031), Vector2(-0.1787, -0.0095), Vector2(-0.1191, 0.0095),
+					Vector2(-0.1013, 0.0143), Vector2(-0.081, 0.0167)],
+					"width": [Vector2(-0.081, 0.017), Vector2(-0.3216, 0.021)], "chamfer": 0.006},
+			"lower": {"points": [Vector2(-0.081, 0.0476), Vector2(0.112, 0.0476), Vector2(0.1167, 0.0429),
+					Vector2(0.1167, 0.0334), Vector2(0.1132, -0.0048), Vector2(0.1132, -0.0131), Vector2(0.0441, -0.0131),
+					Vector2(0.0441, -0.0012), Vector2(-0.0143, -0.0012), Vector2(-0.0334, 0.0024), Vector2(-0.05, 0.0048),
+					Vector2(-0.0643, 0.0095), Vector2(-0.0762, 0.0167), Vector2(-0.081, 0.025)],
+					"width": [Vector2(-0.3574, 0.0165)], "chamfer": 0.003},
+			"upper": {"points": [Vector2(-0.081, 0.0476), Vector2(-0.081, 0.0667), Vector2(-0.0762, 0.0703),
+					Vector2(-0.05, 0.0703), Vector2(-0.05, 0.0798), Vector2(0.1132, 0.0798), Vector2(0.1191, 0.075),
+					Vector2(0.1191, 0.0476)],
+					"width": [Vector2(-0.3574, 0.0155)], "chamfer": 0.003},
+			"handle_rear": {"points": [Vector2(-0.05, 0.0786), Vector2(-0.0441, 0.0977), Vector2(-0.0393, 0.1072),
+					Vector2(-0.0083, 0.1072), Vector2(-0.0155, 0.1036), Vector2(-0.0191, 0.0929), Vector2(-0.0203, 0.0786)],
+					"width": [Vector2(-0.3574, 0.0095)], "chamfer": 0.0015},
+			"handle_bar": {"points": [Vector2(-0.0179, 0.1227), Vector2(0.1048, 0.1108), Vector2(0.1072, 0.1048),
+					Vector2(-0.0179, 0.1072)],
+					"width": [Vector2(-0.3574, 0.0032)], "chamfer": 0.001},
+			"handle_front": {"points": [Vector2(0.1024, 0.1108), Vector2(0.1132, 0.106), Vector2(0.1179, 0.0965),
+					Vector2(0.1179, 0.0786), Vector2(0.1096, 0.0786), Vector2(0.1096, 0.1048), Vector2(0.1024, 0.1048)],
+					"width": [Vector2(-0.3574, 0.0095)], "chamfer": 0.0015},
+			"grip": {"points": [Vector2(-0.05, 0.0048), Vector2(-0.0155, -0.0012), Vector2(-0.0191, -0.0119),
+					Vector2(-0.025, -0.0298), Vector2(-0.0322, -0.0429), Vector2(-0.0393, -0.056), Vector2(-0.0465, -0.0679),
+					Vector2(-0.0524, -0.0798), Vector2(-0.056, -0.0929), Vector2(-0.0608, -0.0977), Vector2(-0.0739, -0.0965),
+					Vector2(-0.0905, -0.0929), Vector2(-0.1036, -0.0858), Vector2(-0.1036, -0.0798), Vector2(-0.0929, -0.0643),
+					Vector2(-0.081, -0.0453), Vector2(-0.0679, -0.025), Vector2(-0.0596, -0.0095)],
+					"width": [Vector2(-0.3574, 0.0145)], "chamfer": 0.005},
+			"guard": {"points": [Vector2(0.0453, -0.0095), Vector2(0.0453, -0.0298), Vector2(-0.0036, -0.0298),
+					Vector2(-0.0131, -0.0238), Vector2(-0.0179, -0.0119), Vector2(-0.0119, -0.0107), Vector2(-0.006, -0.0191),
+					Vector2(-0.0012, -0.0238), Vector2(0.0393, -0.0238), Vector2(0.0393, -0.0095)],
+					"width": [Vector2(-0.3574, 0.006)], "chamfer": 0.0015},
+			"trigger": {"points": [Vector2(0, -0.0012), Vector2(0.0071, -0.0012), Vector2(0.0107, -0.0083),
+					Vector2(0.0107, -0.0167), Vector2(0.0071, -0.0214), Vector2(0.0036, -0.0203), Vector2(0.006, -0.0131),
+					Vector2(0.0024, -0.006)],
+					"width": [Vector2(-0.3574, 0.003)], "chamfer": 0.001},
+			"fsb_leg": {"points": [Vector2(0.4574, 0.0548), Vector2(0.4693, 0.0548), Vector2(0.4896, 0.1001),
+					Vector2(0.4789, 0.1024)],
+					"width": [Vector2(-0.3574, 0.006)], "chamfer": 0.002},
+			"mag_30": {"points": [Vector2(0.0476, 0.0405), Vector2(0.1084, 0.0405), Vector2(0.1084, -0.0119),
+					Vector2(0.1084, -0.0269), Vector2(0.1084, -0.0419), Vector2(0.1087, -0.0558), Vector2(0.1094, -0.0697),
+					Vector2(0.1106, -0.0836), Vector2(0.1124, -0.0974), Vector2(0.1146, -0.1111), Vector2(0.1173, -0.1248),
+					Vector2(0.1205, -0.1383), Vector2(0.1242, -0.1517), Vector2(0.0659, -0.1688), Vector2(0.0617, -0.1533),
+					Vector2(0.058, -0.1377), Vector2(0.0548, -0.1219), Vector2(0.0522, -0.106), Vector2(0.0502, -0.0901),
+					Vector2(0.0488, -0.0741), Vector2(0.0479, -0.058), Vector2(0.0476, -0.0419), Vector2(0.0476, -0.0269),
+					Vector2(0.0476, -0.0119)],
+					"width": [Vector2(0, 0.011)], "chamfer": 0.003},
+			"mag_30_base": {"points": [Vector2(0.1242, -0.1517), Vector2(0.1251, -0.1548), Vector2(0.1261, -0.1579),
+					Vector2(0.0681, -0.176), Vector2(0.067, -0.1724), Vector2(0.0659, -0.1688)],
+					"width": [Vector2(0, 0.0125)], "chamfer": 0.002},
+			"car_stock": {"points": [Vector2(-0.166, 0.0693), Vector2(-0.307, 0.0693), Vector2(-0.307, -0.0272),
+					Vector2(-0.287, -0.0272), Vector2(-0.206, 0.0263), Vector2(-0.166, 0.0263)],
+					"width": [Vector2(0, 0.018)], "chamfer": 0.004},
+		},
+		"sections": {
+			"handguard": {"points": [Vector2(0.0101, 0.0732), Vector2(0.0077, 0.0767), Vector2(0.0041, 0.079),
+					Vector2(0, 0.0798), Vector2(-0.0041, 0.079), Vector2(-0.0077, 0.0767), Vector2(-0.0101, 0.0732),
+					Vector2(-0.0261, 0.0369), Vector2(-0.027, 0.0334), Vector2(-0.0267, 0.0297), Vector2(-0.0252, 0.0264),
+					Vector2(-0.0228, 0.0238), Vector2(-0.0196, 0.022), Vector2(-0.016, 0.0214), Vector2(0.016, 0.0214),
+					Vector2(0.0196, 0.022), Vector2(0.0228, 0.0238), Vector2(0.0252, 0.0264), Vector2(0.0267, 0.0297),
+					Vector2(0.027, 0.0334), Vector2(0.0261, 0.0369)],
+					"end_points": [Vector2(0.0069, 0.0747), Vector2(0.0051, 0.0768), Vector2(0.0027, 0.0781), Vector2(0, 0.0786),
+					Vector2(-0.0027, 0.0781), Vector2(-0.0051, 0.0768), Vector2(-0.0069, 0.0747), Vector2(-0.0199, 0.0526),
+					Vector2(-0.0209, 0.0499), Vector2(-0.0209, 0.0472), Vector2(-0.0199, 0.0445), Vector2(-0.0182, 0.0424),
+					Vector2(-0.0157, 0.041), Vector2(-0.013, 0.0405), Vector2(0.013, 0.0405), Vector2(0.0157, 0.041),
+					Vector2(0.0182, 0.0424), Vector2(0.0199, 0.0445), Vector2(0.0209, 0.0472), Vector2(0.0209, 0.0499),
+					Vector2(0.0199, 0.0526)],
+					"z": Vector2(0.1418, 0.461)},
+		},
+	},
+	"groza": {
+		"profiles": {
+			"body": {"points": [Vector2(-0.3914, 0.0646), Vector2(-0.1729, 0.0646), Vector2(-0.1681, 0.0722),
+					Vector2(-0.1092, 0.0722), Vector2(-0.1092, 0), Vector2(-0.1663, -0.0019), Vector2(-0.2356, -0.0038),
+					Vector2(-0.247, -0.0104), Vector2(-0.38, -0.0143), Vector2(-0.3914, -0.0143)],
+					"width": [Vector2(-0.437, 0.0165)], "chamfer": 0.003},
+			"butt": {"points": [Vector2(-0.417, 0.0636), Vector2(-0.4133, 0.0693), Vector2(-0.3952, 0.0703),
+					Vector2(-0.3914, 0.0655), Vector2(-0.3914, -0.0541), Vector2(-0.3971, -0.0608), Vector2(-0.4104, -0.0617),
+					Vector2(-0.417, -0.0551)],
+					"width": [Vector2(-0.437, 0.022)], "chamfer": 0.004},
+			"handle_rear": {"points": [Vector2(-0.1301, 0.0722), Vector2(-0.1301, 0.1092), Vector2(-0.1245, 0.1178),
+					Vector2(-0.1026, 0.1178), Vector2(-0.1026, 0.0959), Vector2(-0.1064, 0.0921), Vector2(-0.1064, 0.0722)],
+					"width": [Vector2(-0.437, 0.009)], "chamfer": 0.0015},
+			"handle_bar": {"points": [Vector2(-0.1064, 0.113), Vector2(0.0399, 0.113), Vector2(0.0399, 0.0969),
+					Vector2(-0.1064, 0.0959)],
+					"width": [Vector2(-0.437, 0.0028)], "chamfer": 0.001},
+			"handle_front": {"points": [Vector2(0.037, 0.113), Vector2(0.0389, 0.1178), Vector2(0.0522, 0.1178),
+					Vector2(0.0532, 0.0066), Vector2(0.0485, -0.0104), Vector2(0.0408, -0.0104), Vector2(0.0389, 0.0047),
+					Vector2(0.0389, 0.0959), Vector2(0.037, 0.0959)],
+					"width": [Vector2(-0.437, 0.009)], "chamfer": 0.0015},
+			"front": {"points": [Vector2(-0.1092, 0.0494), Vector2(0.038, 0.0494), Vector2(0.0428, 0.0447),
+					Vector2(0.0428, 0.0076), Vector2(0.038, 0.0019), Vector2(-0.1092, 0.0019)],
+					"width": [Vector2(-0.437, 0.0175)], "chamfer": 0.003},
+			"grip": {"points": [Vector2(-0.076, 0.0019), Vector2(-0.0143, 0.0019), Vector2(-0.0143, -0.0199),
+					Vector2(-0.0219, -0.0333), Vector2(-0.0323, -0.0599), Vector2(-0.0428, -0.0902), Vector2(-0.0475, -0.1074),
+					Vector2(-0.057, -0.114), Vector2(-0.0836, -0.114), Vector2(-0.0969, -0.1092), Vector2(-0.0988, -0.0998),
+					Vector2(-0.0902, -0.0712), Vector2(-0.0827, -0.0428), Vector2(-0.0779, -0.019)],
+					"width": [Vector2(-0.437, 0.0155)], "chamfer": 0.005},
+			"guard": {"points": [Vector2(-0.0143, 0.0019), Vector2(-0.0104, -0.0228), Vector2(-0.0029, -0.0304),
+					Vector2(0.0399, -0.0304), Vector2(0.0456, -0.0238), Vector2(0.0456, 0.0019), Vector2(0.0408, 0.0019),
+					Vector2(0.0408, -0.0209), Vector2(0.0361, -0.0256), Vector2(0.0009, -0.0256), Vector2(-0.0057, -0.0209),
+					Vector2(-0.0095, 0.0019)],
+					"width": [Vector2(-0.437, 0.0045)], "chamfer": 0.0012},
+			"trigger": {"points": [Vector2(-0.0038, 0.0019), Vector2(0.0019, 0.0019), Vector2(0.0066, -0.0066),
+					Vector2(0.0143, -0.019), Vector2(0.0133, -0.0247), Vector2(0.0066, -0.0181), Vector2(-0.0009, -0.0066)],
+					"width": [Vector2(-0.437, 0.003)], "chamfer": 0.001},
+			"sling": {"points": [Vector2(-0.3838, -0.0143), Vector2(-0.3771, -0.0143), Vector2(-0.3639, -0.0541),
+					Vector2(-0.3686, -0.0599), Vector2(-0.3781, -0.0599), Vector2(-0.3819, -0.0541), Vector2(-0.3762, -0.0541),
+					Vector2(-0.3724, -0.0551), Vector2(-0.3705, -0.0513)],
+					"width": [Vector2(-0.437, 0.002)], "chamfer": 0.0008},
+			"grip_housing": {"points": [Vector2(0.0732, 0.0399), Vector2(0.191, 0.0399), Vector2(0.1966, 0.0333),
+					Vector2(0.1966, -0.0095), Vector2(0.191, -0.0152), Vector2(0.1824, -0.0152), Vector2(0.1786, -0.0066),
+					Vector2(0.1786, 0.0057), Vector2(0.0732, 0.0057)],
+					"width": [Vector2(-0.437, 0.016)], "chamfer": 0.003},
+			"fore_grip": {"points": [Vector2(0.1159, 0.0057), Vector2(0.1587, 0.0057), Vector2(0.1577, -0.0855),
+					Vector2(0.153, -0.0921), Vector2(0.1216, -0.0921), Vector2(0.1168, -0.0855)],
+					"width": [Vector2(-0.437, 0.0155)], "chamfer": 0.005},
+		},
+		"sections": {},
+	},
 }
 
 
@@ -417,7 +544,8 @@ func _initialize() -> void:
 		var sections: Dictionary = PARTS[weapon]["sections"]
 		for name: String in sections:
 			var s: Dictionary = sections[name]
-			_save(_section_solid(PackedVector2Array(s["points"]), s["z"]), weapon, name)
+			_save(_section_solid(PackedVector2Array(s["points"]), s["z"], PackedVector2Array(s.get("end_points", []))),
+					weapon, name)
 	quit()
 
 
@@ -460,27 +588,35 @@ static func _profile_solid(points: PackedVector2Array, width: Array, chamfer: fl
 	return st.commit()
 
 
-## A cross-section pushed along the barrel from z.x to z.y: its sides and the two end caps.
-static func _section_solid(points: PackedVector2Array, z: Vector2) -> Mesh:
+## A cross-section pushed along the barrel from z.x to z.y (lofted to `end_points` there, if given - point k to point
+## k): its sides and the two end caps.
+static func _section_solid(points: PackedVector2Array, z: Vector2, end_points := PackedVector2Array()) -> Mesh:
+	if end_points.is_empty():
+		end_points = points.duplicate()
 	if _area(points) < 0.0:
 		points.reverse()  # counter-clockwise in (x, y): the outward normal of an edge (dx, dy) is (dy, -dx)
+		end_points.reverse()
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var n := points.size()
 	for k in n:
 		var a := points[k]
 		var b := points[(k + 1) % n]
+		var a2 := end_points[k]
+		var b2 := end_points[(k + 1) % n]
 		var edge := b - a
-		_quad(st, Vector3(a.x, a.y, z.x), Vector3(b.x, b.y, z.x), Vector3(b.x, b.y, z.y), Vector3(a.x, a.y, z.y),
-				Vector3(edge.y, -edge.x, 0.0).normalized())
-	var tris := Geometry2D.triangulate_polygon(points)
-	for end in [z.x, z.y]:
+		var taper := ((a + b) - (a2 + b2)).length() * 0.5 / (z.y - z.x)  # the side leans in towards the front
+		_quad(st, Vector3(a.x, a.y, z.x), Vector3(b.x, b.y, z.x), Vector3(b2.x, b2.y, z.y), Vector3(a2.x, a2.y, z.y),
+				(Vector3(edge.y, -edge.x, 0.0).normalized() + Vector3(0.0, 0.0, taper)).normalized())
+	for cap in [[points, z.x, -1.0], [end_points, z.y, 1.0]]:
+		var ring: PackedVector2Array = cap[0]
+		var tris := Geometry2D.triangulate_polygon(ring)
 		for i in range(0, tris.size(), 3):
-			var a := points[tris[i]]
-			var b := points[tris[i + 1]]
-			var c := points[tris[i + 2]]
-			_tri(st, Vector3(a.x, a.y, end), Vector3(b.x, b.y, end), Vector3(c.x, c.y, end),
-					Vector3(0.0, 0.0, -1.0 if end == z.x else 1.0))
+			var a := ring[tris[i]]
+			var b := ring[tris[i + 1]]
+			var c := ring[tris[i + 2]]
+			_tri(st, Vector3(a.x, a.y, cap[1]), Vector3(b.x, b.y, cap[1]), Vector3(c.x, c.y, cap[1]),
+					Vector3(0.0, 0.0, cap[2]))
 	return st.commit()
 
 

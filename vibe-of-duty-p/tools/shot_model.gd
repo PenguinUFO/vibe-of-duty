@@ -46,6 +46,22 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"aug_folded": [9, ["aug.grip.off", "aug.mag.42"]],
 	"aug_a3": [9, ["aug.sight.iron", "aug.suppressor.blk"]],
 	"aug_acog": [9, ["aug.sight.acog"]],
+	"m16": [10, []],
+	"m16_r": [10, []],
+	"m16_fired_r": [10, [], 1.0],
+	"m16_napalm": [10, ["m16.barrel.b368", "m16.suppressor.hel", "m16.stock.collapsed"]],
+	"m16_napalm_r": [10, ["m16.barrel.b368", "m16.suppressor.hel", "m16.stock.collapsed"]],
+	"m16_653": [10, ["m16.barrel.b368"]],
+	"m16_sniper": [10, ["m16.sight.colt"]],
+	"m16_sniper_r": [10, ["m16.sight.colt"]],
+	"m16_hel": [10, ["m16.suppressor.hel"]],
+	"groza": [11, []],
+	"groza_r": [11, []],
+	"groza_fired_r": [11, [], 1.0],
+	"groza_kit": [11, ["groza.suppressor.on"]],
+	"groza_grip": [11, ["groza.grip.on", "groza.mag.40"]],
+	"groza_po": [11, ["groza.sight.po"]],
+	"groza_po_r": [11, ["groza.sight.po", "groza.suppressor.on"]],
 }
 
 

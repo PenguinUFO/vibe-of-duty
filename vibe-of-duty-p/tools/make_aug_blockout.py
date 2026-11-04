@@ -41,8 +41,8 @@ MATERIALS = {
     "mag_end": ((0.05, 0.05, 0.05), 0.0, 0.7),
     "round": ((0.6, 0.42, 0.18), 0.6, 0.4),
 }
-MESHES = ["stock", "grip", "guard", "trigger", "receiver", "bridge_front", "bridge_rear", "bridge_rear_aimed",
-          "upper_a3", "steyr_grip", "handguard", "mag_30", "mag_42", "mag_30_base", "mag_42_base"]
+MESHES = ["stock", "grip", "guard", "trigger", "receiver", "bridge_front", "bridge_rear", "upper_a3",
+          "steyr_grip", "handguard", "mag_30", "mag_42", "mag_30_base", "mag_42_base"]
 K = 0.79 / 1982       # m a pixel: the photo's 1982 px are the gun's 790 mm
 PX0 = (975, 612)      # the photo's pixel at the origin (the guard's hole, its top, at the trigger)
 
@@ -134,31 +134,6 @@ def mag_outline(depth, s0=0.0, steps=10):
     top = [(MAG_BACK, MAG_TOP), (MAG_FRONT, MAG_TOP)] if s0 == 0.0 else []
     return top + front + back
 
-
-# Looking through the scope (SightModels "swarovski": its tube see-through from the eye) the eye sees all in the cone
-# from it through the eyepiece's bore (12.5 mm at 75 mm: slope 0.168; 0.19 with a margin). "Upper/A1/Aimed" - the
-# rear bridge cut under that cone (the front one is all in it), no knobs, no emergency irons - stands in for "Upper/A1/Outside" while the
-# eye is in the scope (WeaponView); outside the cone the two look the same.
-SCOPE_CONE = 0.19
-
-
-def under_cone(points):
-    """The profile (photo px) clipped to under the cone's bottom line (Sutherland-Hodgman, one edge)."""
-    f = lambda p: Y(p[1]) - (Y(SCOPE_Y) - SCOPE_CONE * (Z(p[0]) - Z(EYE_X)) - 0.001)
-    out = []
-    for i, a in enumerate(points):
-        b = points[(i + 1) % len(points)]
-        fa, fb = f(a), f(b)
-        if fa <= 0.0:
-            out.append(a)
-        if (fa <= 0.0) != (fb <= 0.0):
-            t = fa / (fa - fb)
-            out.append((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
-    return out
-
-
-PROFILES["bridge_rear_aimed"] = (under_cone(PROFILES["bridge_rear"][0]),) + PROFILES["bridge_rear"][1:]  # the front
-# one is all in the cone
 
 MAG_PROFILES = {}  # name -> (points (z, y) in metres, half width, chamfer)
 for _n, _d in MAG_DEPTHS.items():
@@ -291,8 +266,9 @@ pbox("Grip", 0.031, 0.034, 670, 742, 480, 530, "polymer", parent="Handle")
 # --- "Upper": A1 - the bridge and the scope; A3 - the rail and its flip-up sights.
 node("Upper")
 node("A1", "Upper")
-node("Outside", "Upper/A1")
-out = "Upper/A1/Outside"
+# "ScopeCut": what the eye sees of them through the scope's window is cut (WeaponView._cut_window).
+node("ScopeCut", "Upper/A1")
+out = "Upper/A1/ScopeCut"
 mesh("BridgeFront", "bridge_front", "black", parent=out)
 mesh("BridgeRear", "bridge_rear", "black", parent=out)
 sy = Y(SCOPE_Y)
@@ -305,8 +281,6 @@ top = sy + 0.014
 for side, x0, x1 in both(0.0012, 0.0045):
     box("NotchEar" + side, x0, x1, top - 0.001, top + 0.005, Z(1250), Z(1275), "black", parent=out)
 box("Blade", -0.0008, 0.0008, top - 0.001, top + 0.0045, Z(860), Z(872), "black", parent=out)
-node("Aimed", "Upper/A1")
-mesh("BridgeRear", "bridge_rear_aimed", "black", parent="Upper/A1/Aimed")
 
 node("A3", "Upper")
 mesh("Upper", "upper_a3", "black", parent="Upper/A3")

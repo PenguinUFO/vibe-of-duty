@@ -41,6 +41,7 @@ var _prev_look := Vector2.ZERO
 var _prev_pos := Vector3.ZERO
 
 var _camera := Camera3D.new()
+var _space := ViewmodelSpace.new()
 var _view: WeaponView
 var _left_view: WeaponView  # the killer's akimbo left gun
 var _arms: FirstPersonArms
@@ -54,18 +55,19 @@ var _caption: Label
 func _ready() -> void:
 	_camera.far = 300.0
 	add_child(_camera)
+	_camera.add_child(_space)
 	_view = WeaponView.new()
 	_view.is_viewmodel = true
 	_view.visible = false
-	_camera.add_child(_view)
+	_space.add_child(_view)
 	_left_view = WeaponView.new()
 	_left_view.is_viewmodel = true
 	_left_view.mirrored = true
 	_left_view.visible = false
-	_camera.add_child(_left_view)
+	_space.add_child(_left_view)
 	_cannon.set_barrel_only()
 	_cannon.visible = false
-	_camera.add_child(_cannon)
+	_space.add_child(_cannon)
 	_ui.layer = 6
 	_ui.visible = false
 	add_child(_ui)
@@ -150,6 +152,7 @@ func stop() -> void:
 		_show_ghost(_ghosts[id], false)
 	_view.visible = false
 	_left_view.visible = false
+	_space.blur.visible = false
 	_cannon.visible = false
 	for node in get_tree().get_nodes_in_group(REPLAY_GRENADES):
 		node.queue_free()  # a replayed grenade still in the air: it is not in the match
@@ -270,12 +273,14 @@ func _play(delta: float) -> void:
 		_prev_pos = killer[0]
 		var speed := Vector2(moved.x, moved.z).length() / dt
 		_view.set_weapon(killer[6], def)
+		_space.fit(_camera.fov, _view.view_fov(_ads))
 		_scope.set_amount(ScopeOverlay.amount_at(_ads) if killer[5] and def.scope else 0.0)
 		_view.visible = killer[5] and not _scope.hides_view()
 		_arms.visible = _view.visible
 		_view.melee = killer[9]
 		_view.grenade = killer[10] if killer.size() > 10 else -1.0
 		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+		_space.blur.follow(_view, _camera, _ads)
 		_arms.reload = killer[7]
 		_arms.melee = killer[9]
 		_view.grenade = killer[10] if killer.size() > 10 else -1.0
@@ -358,7 +363,7 @@ func _arms_for(id: int) -> FirstPersonArms:
 	if not _arms_by_id.has(id):
 		var arms := FirstPersonArms.new()
 		arms.visible = false
-		_camera.add_child(arms)
+		_space.add_child(arms)
 		arms.setup(id, _view)
 		_arms_by_id[id] = arms
 	return _arms_by_id[id]

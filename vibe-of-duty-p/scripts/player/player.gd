@@ -53,24 +53,26 @@ func _ready() -> void:
 		# position and takes mouse look directly, so view rotation never waits for a physics tick.
 		_head.top_level = true
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_space = ViewmodelSpace.new()
+		_camera.add_child(_space)
 		_view = WeaponView.new()
 		_view.is_viewmodel = true
-		_camera.add_child(_view)
+		_space.add_child(_view)
 		_view.set_weapon(weapons.index, weapons.current())
 		# First-person arms made from the same character as the body other players see.
 		_left_view = WeaponView.new()
 		_left_view.is_viewmodel = true
 		_left_view.mirrored = true
 		_left_view.visible = false
-		_camera.add_child(_left_view)
+		_space.add_child(_left_view)
 		_arms = FirstPersonArms.new()
-		_camera.add_child(_arms)
+		_space.add_child(_arms)
 		_arms.setup(peer_id, _view)
 		_arms.left_weapon = _left_view
 		_cannon_view = GrenadeCannon.new()
 		_cannon_view.set_barrel_only()
 		_cannon_view.visible = false
-		_camera.add_child(_cannon_view)
+		_space.add_child(_cannon_view)
 		_build_hud()
 		_prev_look = Vector2(look_yaw, look_pitch)
 

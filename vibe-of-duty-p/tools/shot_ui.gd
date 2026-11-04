@@ -22,28 +22,44 @@ func _ready() -> void:
 		for i in 4:
 			await get_tree().process_frame
 		_report(id, panel, dir)
-		if panel is BuildPanel:  # every kit, then ACR крыса with the "Инженер": modules open, one focused, camera close;
-			# then the AUG командо with them
-			var kits := PartDB.for_slot("kit")
+		if panel is BuildPanel:  # every kit, then the ACR with the "Инженер": modules open, one focused, camera close;
+			# then the AUG and the M16A1 with them
+			var kits := PartDB.options("kit", "")
 			for i in kits.size():
 				panel._on_part("kit", i)
 				for f in 30:
 					await get_tree().process_frame
 				_report("build_" + kits[i].id.trim_prefix("kit."), panel, dir)
-			panel._on_part("kit", kits.find(PartDB.get_part("kit.acr_rat")))
+			panel._kits.show_popup()  # the open list, the pointer on a kit: its difference on the bars
+			panel._kits.get_popup().set_focused_item(4)
+			for f in 30:
+				await get_tree().process_frame
+			_report("build_kit_list", panel, dir)
+			panel._kits.get_popup().index_pressed.emit(4)  # picked from the list, as a click does
+			panel._kits.get_popup().hide()
+			print("picked: ", PartDB.kit_name(Settings.builds[Settings.build_index]["parts"]))
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.acr")))
 			panel._on_part("head", PartDB.options("head", "").find(PartDB.get_part(PartDB.ENGINEER)))
 			panel._modules_button.button_pressed = true
-			panel._on_part("sight", 1)  # CompM instead of the kit's ACOG: "кастом"
+			panel._on_part("sight", 1)  # CompM instead of the kit's irons: "кастом"
 			panel._pad = true
 			(panel._rows["mag"][1] as Control).get_child(1).grab_focus()  # the big magazine: focused, its difference shown
 			for f in 60:
 				await get_tree().process_frame
 			_report("build_engineer", panel, dir)
-			panel._on_part("kit", kits.find(PartDB.get_part("kit.aug_commando")))  # the AUG's barrel and grip rows
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.aug")))  # the AUG's barrel and grip rows
 			panel._pad = false
 			for f in 60:
 				await get_tree().process_frame
 			_report("build_engineer_aug", panel, dir)
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.m16")))  # the M16's barrel, can, stock, sight
+			for f in 60:
+				await get_tree().process_frame
+			_report("build_engineer_m16", panel, dir)
+			panel._on_part("kit", kits.find(PartDB.get_part("kit.groza")))  # the Groza's can, grip, magazine, sight
+			for f in 60:
+				await get_tree().process_frame
+			_report("build_engineer_groza", panel, dir)
 		holder.queue_free()
 		await get_tree().process_frame
 	get_tree().quit()

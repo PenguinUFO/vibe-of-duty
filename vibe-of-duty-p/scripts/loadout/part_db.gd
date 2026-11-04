@@ -77,9 +77,14 @@ static func for_slot(slot: String, weapon := "") -> Array[PartDef]:
 	return list
 
 
-## The parts `slot` offers in a build with this weapon (an id): its modules, or the body parts / weapons.
+## The parts `slot` offers in a build with this weapon (an id): its modules, or the body parts / weapons. The kits go
+## alphabetically (owner, 2026-11-05); for_slot keeps weapons.cfg's order, whose first kit is a new build's.
 static func options(slot: String, weapon: String) -> Array[PartDef]:
-	return for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
+	var list := for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
+	if slot == "kit":
+		list.sort_custom(func(a: PartDef, b: PartDef) -> bool:
+			return a.display_name.naturalnocasecmp_to(b.display_name) < 0)
+	return list
 
 
 ## The native build: no organs, no implants, the kit `kit` (an id; the first kit if it is not one) - its weapon with
@@ -125,7 +130,7 @@ static func is_custom(parts: Array) -> bool:
 	return false
 
 
-## The kit's name as players see it: "AK Кобра", "AK Кобра кастом" when its modules were changed.
+## The kit's name as players see it: "Хрюгер", "Хрюгер кастом" when its modules were changed.
 static func kit_name(parts: Array) -> String:
 	return kit_of(parts).display_name + (" кастом" if is_custom(parts) else "")
 
@@ -149,7 +154,7 @@ static func price(part: PartDef) -> int:
 ## INERT_SLOTS (but the ACTIVE_PARTS) unless `keep_inert` (a saved build keeps them, a played one does not), modules
 ## whose "requires" is not in the build and the slot another part "excludes" (the AK's suppressor: the muzzle); over
 ## budget, the whole build is the kit's native one. A build without a kit (saved before them) gets kit_for_weapon.
-## Each id goes to its part's slot, so the order and missing slots do not matter (--build=kit.ak_kobra,engineer).
+## Each id goes to its part's slot, so the order and missing slots do not matter (--build=kit.ak,engineer).
 static func sanitize(parts: Variant, keep_inert := false) -> Array:
 	if not parts is Array:
 		return default_build()
@@ -189,7 +194,7 @@ static func sanitize(parts: Variant, keep_inert := false) -> Array:
 
 
 ## The weapon as a (sanitized) build plays it, for statistics (MatchStats): its kit and the modules that are not the
-## kit's (the "Инженер"), without the weapon prefix - "ak_kobra", "ak_kobra+suppressor.on".
+## kit's (the "Инженер"), without the weapon prefix - "ak", "ak+suppressor.on".
 static func variant_name(parts: Array) -> String:
 	var kit := kit_of(parts)
 	var native := default_build(kit.id)

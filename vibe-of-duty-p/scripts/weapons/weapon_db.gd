@@ -94,6 +94,29 @@ const MODULE_GEOMETRY := {
 	"aug.grip.off": {"model_variants": {"Barrel/B508/Front/Bare/Grip": "Folded", "Barrel/B508/Front/Rail/Grip": "Off",
 			"Barrel/B350/Grip": "Off"}, "left_hand_add": Vector3(0.0, 0.05, 0.03)},
 	"aug.mag.42": {"model_variants": {"Mags": "AUG_Mag_42"}},
+	# M16A1 (tools/make_m16_blockout.py): the base is the 603 - 20", the A1 stock, the irons on the carry handle. The
+	# 653's barrel brings its round handguard and the CAR stock, the front 140 mm shorter; the left hand on its handguard.
+	"m16.barrel.b368": {"model_variants": {"Barrel": "B368", "Stock": "CAR"}, "muzzle": Vector3(0.0, 0.0548, 0.5414),
+			"left_hand": Vector3(0.0, 0.0263, 0.235)},
+	"m16.stock.collapsed": {"model_variants": {"Stock/CAR/Slide": "In"}},  # slid in along the tube
+	# The HEL-E4A over the barrel's end, its collar just ahead of the front sight base: 0.1319 past the birdcage.
+	"m16.suppressor.hel": {"model_variants": {"Barrel/B508/Muzzle": "Can", "Barrel/B368/Muzzle": "Can"},
+			"muzzle_add": Vector3(0.0, 0.0, 0.1319), "sound_shot": "shot_suppressed"},
+	# The Colt 3x20 on the carry handle, its axis 24 mm over the irons' line (clear of the rear sight's ears); the eye
+	# 4 cm behind its eyepiece - the cheek off the comb, as with any optic on the handle.
+	"m16.sight.colt": {"sight": "colt", "rear_sight": Vector3(0.0, 0.142, -0.07), "front_sight": Vector3(0.0, 0.142, 0.075),
+			"eye_relief": 0.04},
+	# Гроза (tools/make_groza_blockout.py): the base is the short barrel with its compensator, the irons in the carry
+	# frame. The can 0.2519 past the compensator, the muzzle grip's housing 0.0807; the left hand on the fore grip.
+	"groza.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0295, 0.3678),
+			"sound_shot": "shot_suppressed"},
+	"groza.grip.on": {"model_variants": {"Muzzle": "Grip"}, "muzzle": Vector3(0.0, 0.0295, 0.1966),
+			"left_hand": Vector3(0.0, -0.0428, 0.1368)},
+	"groza.mag.40": {"model_variants": {"Mags": "Groza_Mag_40"}},
+	# The PO 4x34 on the carry frame's bar, its axis 17 mm over the irons' line; no eye cup (owner): the eye 8 cm
+	# behind the eyepiece (closer, its bell filled the screen).
+	"groza.sight.po": {"sight": "po", "rear_sight": Vector3(0.0, 0.1397, -0.109), "front_sight": Vector3(0.0, 0.1397, 0.0),
+			"eye_relief": 0.08},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
@@ -345,7 +368,7 @@ static func _build() -> void:
 static func _build_geometry() -> void:
 	var rifle := WeaponDef.new()
 	rifle.id = "ak"
-	rifle.display_name = "АК"
+	rifle.display_name = "Хрюкашников"
 	rifle.scene_path = "res://prefabs/weapons/ak_blockout.tscn"  # tools/make_ak_blockout.py
 	rifle.model_variants = {"Muzzle": "Slant", "Mags": "AK_Mag_30"}
 	rifle.muzzle = Vector3(0.0, 0.045, 0.565)
@@ -357,7 +380,7 @@ static func _build_geometry() -> void:
 	rifle.ejection_port = Vector3(-0.027, 0.058, 0.07)  # right side of the receiver (prefab -x = the shooter's right)
 	rifle.charging_handle = Vector3(-0.036, 0.062, 0.13)
 	rifle.sound_shot = "shot"
-	rifle.hip_offset = Vector3(0.15, -0.19, -0.36)
+	rifle.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(rifle)
 
 	var pdw := WeaponDef.new()
@@ -375,12 +398,12 @@ static func _build_geometry() -> void:
 	pdw.charging_handle = Vector3(-0.026, 0.03, 0.09)  # in the slot forward on the right (the photo shows the slot)
 	pdw.bolt_travel = 0.045
 	pdw.sound_shot = "shot_suppressed"
-	pdw.hip_offset = Vector3(0.12, -0.155, -0.42)  # short: further out than the AK, so its muzzle is where the AK's is
+	pdw.hip_offset = Vector3(0.16, -0.14, -0.3)  # short: further out than the AK, so its muzzle is where the AK's is
 	_defs.append(pdw)
 
 	var luger := WeaponDef.new()
 	luger.id = "luger"
-	luger.display_name = "Люгер"
+	luger.display_name = "Хрюгер"
 	luger.scene_path = "res://prefabs/weapons/luger_blockout.tscn"  # tools/make_luger_blockout.py
 	# The artillery model's 200 mm barrel (owner, 2026-10-23): its tangent sight replaces the toggle's notch.
 	luger.model_variants = {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain", "Stock": "None", "Mags": "Luger_Mag_8"}
@@ -395,7 +418,7 @@ static func _build_geometry() -> void:
 	luger.charging_handle = Vector3(-0.017, 0.0384, -0.059)  # the right knob: the hand racks the toggle (no handle added)
 	luger.bolt_travel = 0.045
 	luger.sound_shot = "shot_pistol"
-	luger.hip_offset = Vector3(0.13, -0.15, -0.36)
+	luger.hip_offset = Vector3(0.15, -0.13, -0.3)
 	_defs.append(luger)
 
 	var acr := WeaponDef.new()
@@ -416,7 +439,7 @@ static func _build_geometry() -> void:
 	acr.handle_reciprocates = false
 	acr.bolt_travel = 0.08
 	acr.sound_shot = "shot"
-	acr.hip_offset = Vector3(0.15, -0.19, -0.36)
+	acr.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(acr)
 
 	var mp7 := WeaponDef.new()
@@ -436,7 +459,7 @@ static func _build_geometry() -> void:
 	mp7.handle_reciprocates = false
 	mp7.bolt_travel = 0.04
 	mp7.sound_shot = "shot"
-	mp7.hip_offset = Vector3(0.12, -0.155, -0.42)
+	mp7.hip_offset = Vector3(0.16, -0.14, -0.3)
 	_defs.append(mp7)
 
 	var contender := WeaponDef.new()
@@ -453,7 +476,7 @@ static func _build_geometry() -> void:
 	contender.chamber = Vector3(0.0, 0.0438, -0.019)
 	contender.forend = Vector3(0.0, 0.0, 0.17)  # under the fore-end, two thirds along it
 	contender.sound_shot = "shot"
-	contender.hip_offset = Vector3(0.13, -0.15, -0.36)
+	contender.hip_offset = Vector3(0.15, -0.13, -0.3)
 	_defs.append(contender)
 
 	var winchester := WeaponDef.new()
@@ -469,12 +492,12 @@ static func _build_geometry() -> void:
 	winchester.lever_pivot = Vector3(0.0, 0.012, 0.07)
 	winchester.shell_port = Vector3(0.0, 0.092, 0.07)  # the open action's top
 	winchester.sound_shot = "shot_shotgun"
-	winchester.hip_offset = Vector3(0.15, -0.19, -0.36)
+	winchester.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(winchester)
 
 	var mk14 := WeaponDef.new()
 	mk14.id = "mk14"
-	mk14.display_name = "Mk 14"
+	mk14.display_name = "MK14"
 	mk14.scene_path = "res://prefabs/weapons/mk14_blockout.tscn"  # tools/make_mk14_blockout.py
 	mk14.model_variants = {"Mags": "Mk14_Mag_20", "Sights": "Up", "FrontSight": "On"}
 	mk14.muzzle = Vector3(0.0, 0.063, 0.647)
@@ -487,7 +510,7 @@ static func _build_geometry() -> void:
 	mk14.charging_handle = Vector3(-0.026, 0.05, 0.1)  # the op-rod handle on the right, rides the bolt
 	mk14.bolt_travel = 0.09
 	mk14.sound_shot = "shot"
-	mk14.hip_offset = Vector3(0.15, -0.19, -0.36)
+	mk14.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(mk14)
 
 	var p90 := WeaponDef.new()
@@ -508,7 +531,7 @@ static func _build_geometry() -> void:
 	p90.bolt_travel = 0.08
 	p90.mag_hinge = Vector3(0.0, 0.0361, 0.0825)
 	p90.sound_shot = "shot"
-	p90.hip_offset = Vector3(0.12, -0.155, -0.42)
+	p90.hip_offset = Vector3(0.16, -0.14, -0.3)
 	_defs.append(p90)
 
 	var aug := WeaponDef.new()
@@ -530,8 +553,46 @@ static func _build_geometry() -> void:
 	aug.charging_handle = Vector3(0.026, 0.0426, 0.1076)  # the olive hook on the left (the model's "Handle")
 	aug.bolt_travel = 0.08
 	aug.sound_shot = "shot"
-	aug.hip_offset = Vector3(0.12, -0.155, -0.42)  # a bullpup, as the P90
+	aug.hip_offset = Vector3(0.16, -0.14, -0.3)  # a bullpup, as the P90
 	_defs.append(aug)
+
+	var m16 := WeaponDef.new()
+	m16.id = "m16"
+	m16.display_name = "M16A1"
+	m16.scene_path = "res://prefabs/weapons/m16_blockout.tscn"  # tools/make_m16_blockout.py
+	m16.model_variants = {"Barrel": "B508", "Barrel/B508/Muzzle": "Hider", "Barrel/B368/Muzzle": "Hider",
+			"Stock": "A1", "Stock/CAR/Slide": "Out", "Mags": "M16_Mag_30"}
+	m16.muzzle = Vector3(0.0, 0.0548, 0.6814)
+	m16.rear_sight = Vector3(0.0, 0.1183, -0.0286)  # the A1 aperture's middle, on the handle's back (2.5" over the bore)
+	m16.front_sight = Vector3(0.0, 0.1183, 0.4926)  # the post's tip
+	m16.eye_relief = 0.09  # the cheek on the comb
+	m16.right_hand = Vector3(0.0, -0.0405, -0.0655)  # the middle of the grip
+	m16.left_hand = Vector3(0.0, 0.0286, 0.2859)    # under the handguard
+	m16.ejection_port = Vector3(-0.016, 0.0596, 0.0655)
+	m16.charging_handle = Vector3(0.0, 0.0762, -0.0643)  # the T handle at the upper's back (the model's "Handle")
+	m16.handle_reciprocates = false
+	m16.bolt_travel = 0.08
+	m16.sound_shot = "shot"
+	m16.hip_offset = Vector3(0.17, -0.165, -0.24)
+	_defs.append(m16)
+
+	var groza := WeaponDef.new()
+	groza.id = "groza"
+	groza.display_name = "Гроза"
+	groza.scene_path = "res://prefabs/weapons/groza_blockout.tscn"  # tools/make_groza_blockout.py
+	groza.model_variants = {"Muzzle": "Comp", "Mags": "Groza_Mag_30"}
+	groza.muzzle = Vector3(0.0, 0.0295, 0.1159)
+	groza.rear_sight = Vector3(0.0, 0.1226, -0.1211)  # the rear leaf's ears' tops in the frame's rear post
+	groza.front_sight = Vector3(0.0, 0.1226, 0.0461)  # the post's tip in the front post
+	groza.eye_relief = 0.12  # the cheek forward on the receiver
+	groza.right_hand = Vector3(0.0, -0.0541, -0.0522)  # the middle of the grip
+	groza.left_hand = Vector3(0.0, -0.01, 0.045)      # under the front body, by the frame's front post
+	groza.ejection_port = Vector3(-0.017, 0.0437, -0.2612)  # the AK's port by the cheek
+	groza.charging_handle = Vector3(-0.012, 0.0693, -0.1349)  # forward on the right over the well (the model's "Handle")
+	groza.bolt_travel = 0.08
+	groza.sound_shot = "shot"
+	groza.hip_offset = Vector3(0.16, -0.14, -0.3)  # a bullpup, as the AUG
+	_defs.append(groza)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:

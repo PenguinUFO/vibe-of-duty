@@ -193,6 +193,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	_retract = lerpf(_retract, wanted, 1.0 - exp(-18.0 * delta))
 	_view.akimbo = weapons.is_akimbo()
 	_left_view.akimbo = true
+	_space.fit(_camera.fov, _view.view_fov(weapons.ads))
 	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
 	_arms.reload = weapons.reload_progress() if alive else -1.0
@@ -212,6 +213,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	if _cannon_view != null:
 		_cannon_view.loaded = weapons.grenades > 0
 	_arms.pose()  # the hands follow the gun
+	_space.blur.follow(_view, _camera, weapons.ads)
 
 
 func _update_hud(speed: float, delta: float) -> void:

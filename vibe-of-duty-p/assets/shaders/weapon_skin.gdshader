@@ -1,6 +1,9 @@
 // Weapon surfaces (WeaponSkin): the train's coarse pixelated noise (Block), tinted by the part's colour, but mapped
 // in the part's own space - the gun moves, a world mapping would crawl over it. Triplanar: the sides (x) and the top
 // and bottom (y) both run the texture's u along the barrel (z), so wood grain follows the gun's length.
+// An optic's window (WeaponView._cut_window): what the eye sees through it is not drawn - the line from the eye to the
+// point crosses the window - so the sight shows the world, not its own tube; the gun round it stays. Round, or with
+// window_half (x, y half sizes along window_right and window_axis x it) a rectangle.
 shader_type spatial;
 
 uniform sampler2D grain : source_color, filter_nearest_mipmap, repeat_enable;
@@ -9,16 +12,40 @@ uniform float gain = 1.0;            // 1 / the texture's mean: the part keeps i
 uniform float metallic_value = 0.0;
 uniform float roughness_value = 0.7;
 uniform float tiles_per_metre = 4.0;
+instance uniform vec3 window_center;  // world space; radius 0: no window
+instance uniform vec3 window_axis = vec3(0.0, 0.0, 1.0);
+instance uniform float window_radius = 0.0;
+instance uniform vec3 window_right = vec3(1.0, 0.0, 0.0);
+instance uniform vec2 window_half;
 
 varying vec3 part_pos;
 varying vec3 part_normal;
+varying vec3 world_pos;
 
 void vertex() {
 	part_pos = VERTEX;
 	part_normal = NORMAL;
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
+	if (window_radius > 0.0) {
+		vec3 eye = CAMERA_POSITION_WORLD;
+		vec3 ray = world_pos - eye;
+		float along = dot(ray, window_axis);
+		if (abs(along) > 1e-6) {
+			float s = dot(window_center - eye, window_axis) / along;
+			vec3 off = eye + ray * s - window_center;
+			bool inside = length(off) < window_radius;
+			if (window_half.x > 0.0) {
+				vec3 up = cross(window_axis, window_right);
+				inside = abs(dot(off, window_right)) < window_half.x && abs(dot(off, up)) < window_half.y;
+			}
+			if (s > 0.0 && s < 1.0 && inside) {
+				discard;
+			}
+		}
+	}
 	vec3 w = pow(abs(normalize(part_normal)), vec3(4.0));
 	w /= w.x + w.y + w.z;
 	vec3 p = part_pos * tiles_per_metre;
