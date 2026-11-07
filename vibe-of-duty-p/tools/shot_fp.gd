@@ -3,17 +3,25 @@ extends Node
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_fp
 
 const CASES := {  # [weapon, ads, punch progress, modules, reload progress, grenade launch progress, sprint 0..1,
-	# look delta every frame (a sharp turn: the sway)]
+	# look delta every frame (a sharp turn: the sway), the "Хрях-бабах" counting]
+	"bomb_hip": [0, 0.0, -1.0, [], -1.0, -1.0, 0.0, Vector2.ZERO, true],
+	"bomb_ads": [0, 1.0, -1.0, [], -1.0, -1.0, 0.0, Vector2.ZERO, true],
+	"bomb_acog_ads": [3, 1.0, -1.0, ["acr.sight.acog"], -1.0, -1.0, 0.0, Vector2.ZERO, true],
+	"bomb_luger_akimbo": [2, 0.0, -1.0, ["luger.akimbo.on"], -1.0, -1.0, 0.0, Vector2.ZERO, true],
 	"hip": [0, 0.0, -1.0, []], "grenade": [0, 0.0, -1.0, [], -1.0, 0.43], "grenade_back": [0, 0.0, -1.0, [], -1.0, 0.75], "ads": [0, 1.0, -1.0, []], "punch": [0, 0.0, 0.27, []], "punch_back": [0, 0.0, 0.6, []],
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
 	"luger_hip": [2, 0.0, -1.0, []], "luger_ads": [2, 1.0, -1.0, []],
 	"luger_khruger_hip": [2, 0.0, -1.0, ["luger.conversion.khruger"]], "luger_khruger_ads": [2, 1.0, -1.0, ["luger.conversion.khruger"]],
 	"luger_mods": [2, 0.0, -1.0, ["luger.mag.32", "luger.stock.board"]],
+	"luger_snail_hip": [2, 0.0, -1.0, ["luger.mag.32"]], "luger_snail_ads": [2, 1.0, -1.0, ["luger.mag.32"]], "luger_snail_reload": [2, 0.0, -1.0, ["luger.mag.32"], 0.35],
 	"luger_mods_ads": [2, 1.0, -1.0, ["luger.mag.32", "luger.stock.board"]],
 	"luger_akimbo": [2, 0.0, -1.0, ["luger.akimbo.on"]],
+	"luger_akimbo_snail": [2, 0.0, -1.0, ["luger.akimbo.on", "luger.mag.32"]],
 	"luger_akimbo_grenade": [2, 0.0, -1.0, ["luger.akimbo.on"], -1.0, 0.43],
 	"luger_akimbo_sprint": [2, 0.0, -1.0, ["luger.akimbo.on"], -1.0, -1.0, 1.0],
+	"mp7_akimbo": [4, 0.0, -1.0, ["mp7.stock.collapsed", "mp7.suppressor.on", "mp7.akimbo.on"]],
+	"pdw_akimbo": [1, 0.0, -1.0, ["pdw.stock.folded", "pdw.akimbo.on"]],
 	"pdw_compm": [1, 0.0, -1.0, ["pdw.sight.compm"]], "pdw_compm_ads": [1, 1.0, -1.0, ["pdw.sight.compm"]],
 	"pdw_compm_half": [1, 0.6, -1.0, ["pdw.sight.compm"]], "ak_kobra_ads": [0, 1.0, -1.0, ["ak.sight.kobra"]],
 	"ak_pbs": [0, 0.0, -1.0, ["ak.suppressor.on"]], "ak_pbs_ads": [0, 1.0, -1.0, ["ak.suppressor.on"]],
@@ -37,6 +45,7 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"winchester_r78": [6, 0.0, -1.0, [], 0.78],
 	"mk14_hip": [7, 0.0, -1.0, []], "mk14_ads": [7, 1.0, -1.0, []], "mk14_r30": [7, 0.0, -1.0, [], 0.3],
 	"mk14_compm_ads": [7, 1.0, -1.0, ["mk14.sight.compm"]], "mk14_acog_ads": [7, 1.0, -1.0, ["mk14.sight.acog"]],
+	"p90_can_hip": [8, 0.0, -1.0, ["p90.suppressor.on"]], "p90_can_ads": [8, 1.0, -1.0, ["p90.suppressor.on"]],
 	"p90_hip": [8, 0.0, -1.0, []], "p90_ads": [8, 1.0, -1.0, []], "p90_half": [8, 0.6, -1.0, []],
 	"p90_r12": [8, 0.0, -1.0, [], 0.12], "p90_r22": [8, 0.0, -1.0, [], 0.22], "p90_r40": [8, 0.0, -1.0, [], 0.4],
 	"p90_r62": [8, 0.0, -1.0, [], 0.62], "p90_r70": [8, 0.0, -1.0, [], 0.7], "p90_r85": [8, 0.0, -1.0, [], 0.85],
@@ -62,6 +71,12 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"groza_grip_hip": [11, 0.0, -1.0, ["groza.grip.on"]],
 	"groza_po_hip": [11, 0.0, -1.0, ["groza.sight.po"]], "groza_po_ads": [11, 1.0, -1.0, ["groza.sight.po"]],
 	"groza_po_half": [11, 0.6, -1.0, ["groza.sight.po"]],
+	"val_hip": [12, 0.0, -1.0, []], "val_ads": [12, 1.0, -1.0, []], "val_half": [12, 0.6, -1.0, []],
+	"val_r30": [12, 0.0, -1.0, [], 0.3], "val_r60": [12, 0.0, -1.0, [], 0.6],
+	"val_short_hip": [12, 0.0, -1.0, ["val.barrel.short"]], "val_short_ads": [12, 1.0, -1.0, ["val.barrel.short"]],
+	"val_wood_hip": [12, 0.0, -1.0, ["val.stock.wood"]], "val_wood_ads": [12, 1.0, -1.0, ["val.stock.wood"]],
+	"val_po_hip": [12, 0.0, -1.0, ["val.sight.po"]], "val_po_ads": [12, 1.0, -1.0, ["val.sight.po"]],
+	"val_short_po_ads": [12, 1.0, -1.0, ["val.barrel.short", "val.sight.po"]],
 }
 
 
@@ -118,9 +133,12 @@ func _ready() -> void:
 	space.add_child(arms)
 	arms.setup(int(OS.get_environment("SHOT_PEER")) if OS.has_environment("SHOT_PEER") else 0, view)
 	arms.left_weapon = left_view
+	if OS.has_environment("SHOT_CYBER"):  # the "Руки-Хрюки"
+		arms.set_cyber(true)
 	var cannon := GrenadeCannon.new()
 	cannon.set_barrel_only()
 	space.add_child(cannon)
+	var bomb := PlayerView.make_bomb_view(cam)
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for c in CASES:
@@ -145,6 +163,9 @@ func _ready() -> void:
 		view.grenade = grenade
 		arms.grenade = grenade
 		PlayerView.pose_cannon_view(cannon, grenade)
+		var counting: bool = CASES[c][8] if CASES[c].size() > 8 else false
+		bomb.arm(1.5 if counting else -1.0)
+		PlayerView.pose_bomb_view(bomb, cam.fov, counting, 1.0)
 		if reload >= 0.0:
 			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:

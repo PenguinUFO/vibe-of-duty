@@ -30,6 +30,8 @@ extends SceneTree
 ## Groza - traced off the owner's photo (tools/make_groza_blockout.py --parts): the receiver in the stock's shell, the
 ## butt plate, the carry frame (in three), the front lower body, the AK grip, the guard, the sling loop, the muzzle
 ## grip's housing and its grip.
+## АС ВАЛ - traced off the owner's photos (tools/make_val_blockout.py --parts): the receiver, both handguards, the grip,
+## the wire stock's butt, the Vintorez's stock in five round its two holes, the three magazines.
 
 const DIR := "res://prefabs/weapons/"
 ## weapon -> {profiles: name -> {points (z, y) in order round it, width [z, hw] along z (linear between), chamfer},
@@ -532,11 +534,90 @@ const PARTS := {
 		},
 		"sections": {},
 	},
+	"val": {
+		"profiles": {
+			"body": {"points": [Vector2(-0.0719, 0.0376), Vector2(-0.0672, 0.0432), Vector2(-0.0578, 0.0456),
+					Vector2(0.1081, 0.0437), Vector2(0.1081, -0.0179), Vector2(0.0493, -0.032), Vector2(0.0432, -0.0381),
+					Vector2(0.0348, -0.0381), Vector2(0.0329, -0.0014), Vector2(-0.0719, 0)],
+					"width": [Vector2(-0.3831, 0.016)], "chamfer": 0.003},
+			"handguard": {"points": [Vector2(0.1081, 0.0437), Vector2(0.1979, 0.0437), Vector2(0.1997, 0.0409),
+					Vector2(0.1997, 0.0047), Vector2(0.196, 0), Vector2(0.1081, -0.0179)],
+					"width": [Vector2(-0.3831, 0.0195)], "chamfer": 0.003},
+			"handguard_short": {"points": [Vector2(0.1081, 0.0437), Vector2(0.2364, 0.0437), Vector2(0.242, 0.039),
+					Vector2(0.243, 0.007), Vector2(0.2364, 0), Vector2(0.2138, 0.0042), Vector2(0.1269, 0.0042),
+					Vector2(0.1189, -0.0127), Vector2(0.1081, -0.0179)],
+					"width": [Vector2(-0.3831, 0.0195)], "chamfer": 0.005},
+			"short_front": {"points": [Vector2(0.2209, 0.0437), Vector2(0.227, 0.0611), Vector2(0.2336, 0.0611),
+					Vector2(0.2383, 0.0437)],
+					"width": [Vector2(-0.3831, 0.008)], "chamfer": 0.0015},
+			"short_rear": {"points": [Vector2(0.0541, 0.0456), Vector2(0.0691, 0.0639), Vector2(0.0766, 0.0639),
+					Vector2(0.0893, 0.0456)],
+					"width": [Vector2(-0.3831, 0.0028)], "chamfer": 0.001},
+			"grip": {"points": [Vector2(-0.0719, 0), Vector2(-0.0202, 0), Vector2(-0.0179, -0.0362),
+					Vector2(-0.0249, -0.0376), Vector2(-0.0315, -0.0634), Vector2(-0.0362, -0.0916), Vector2(-0.0348, -0.1034),
+					Vector2(-0.0465, -0.1086), Vector2(-0.0794, -0.1015), Vector2(-0.086, -0.0916), Vector2(-0.0823, -0.0719),
+					Vector2(-0.0771, -0.0508), Vector2(-0.0677, -0.0282), Vector2(-0.0719, -0.0141)],
+					"width": [Vector2(-0.3831, 0.0155)], "chamfer": 0.005},
+			"guard": {"points": [Vector2(-0.0202, -0.0352), Vector2(0.0423, -0.0352), Vector2(0.0423, -0.0381),
+					Vector2(-0.0202, -0.0381)],
+					"width": [Vector2(-0.3831, 0.0045)], "chamfer": 0.0012},
+			"trigger": {"points": [Vector2(-0.0033, 0), Vector2(0.0014, 0), Vector2(0, -0.0164), Vector2(0.0047, -0.0268),
+					Vector2(0.0099, -0.0334), Vector2(0.0033, -0.0306), Vector2(-0.0033, -0.0211)],
+					"width": [Vector2(-0.3831, 0.003)], "chamfer": 0.001},
+			"wire_butt": {"points": [Vector2(-0.3445, 0.0024), Vector2(-0.3266, 0.0024), Vector2(-0.3323, -0.0879),
+					Vector2(-0.3502, -0.0879)],
+					"width": [Vector2(-0.3831, 0.012)], "chamfer": 0.002},
+			"wire_plate": {"points": [Vector2(-0.235, 0.007), Vector2(-0.2115, 0.007), Vector2(-0.2044, -0.0376),
+					Vector2(-0.2256, -0.0437)],
+					"width": [Vector2(-0.3831, 0.0035)], "chamfer": 0.001},
+			"wood_top": {"points": [Vector2(-0.3422, 0.0094), Vector2(-0.1504, 0.0108), Vector2(-0.1363, 0.0155),
+					Vector2(-0.1175, 0.0221), Vector2(-0.0846, 0.0235), Vector2(-0.0719, 0.0235), Vector2(-0.0719, 0),
+					Vector2(-0.0823, -0.008), Vector2(-0.0916, -0.0169), Vector2(-0.3422, -0.0169)],
+					"width": [Vector2(-0.3831, 0.0185)], "chamfer": 0.004},
+			"wood_bottom": {"points": [Vector2(-0.3454, -0.1062), Vector2(-0.1034, -0.0987), Vector2(-0.1011, -0.0846),
+					Vector2(-0.289, -0.0832), Vector2(-0.3454, -0.0832)],
+					"width": [Vector2(-0.3831, 0.0185)], "chamfer": 0.004},
+			"wood_rear": {"points": [Vector2(-0.3422, -0.0146), Vector2(-0.3008, -0.0146), Vector2(-0.3093, -0.0329),
+					Vector2(-0.3093, -0.0446), Vector2(-0.2961, -0.0799), Vector2(-0.289, -0.0851), Vector2(-0.3454, -0.0851)],
+					"width": [Vector2(-0.3831, 0.018)], "chamfer": 0.002},
+			"wood_mid": {"points": [Vector2(-0.2256, -0.0146), Vector2(-0.1589, -0.0146), Vector2(-0.1645, -0.0235),
+					Vector2(-0.1739, -0.0705), Vector2(-0.1621, -0.0851), Vector2(-0.2279, -0.0851), Vector2(-0.2209, -0.0823),
+					Vector2(-0.2138, -0.0634), Vector2(-0.2092, -0.0329)],
+					"width": [Vector2(-0.3831, 0.018)], "chamfer": 0.002},
+			"wood_grip": {"points": [Vector2(-0.0823, -0.007), Vector2(-0.0399, -0.007), Vector2(-0.0211, -0.0385),
+					Vector2(-0.0329, -0.0517), Vector2(-0.0399, -0.0963), Vector2(-0.0367, -0.1043), Vector2(-0.0423, -0.1081),
+					Vector2(-0.0931, -0.1081), Vector2(-0.1034, -0.0987), Vector2(-0.1011, -0.0823), Vector2(-0.0869, -0.0775),
+					Vector2(-0.0799, -0.0399), Vector2(-0.0813, -0.0282), Vector2(-0.0935, -0.0146)],
+					"width": [Vector2(-0.3831, 0.0185)], "chamfer": 0.004},
+			"wood_tang": {"points": [Vector2(-0.0823, 0), Vector2(-0.0188, 0), Vector2(-0.0179, -0.0371),
+					Vector2(-0.0221, -0.0371), Vector2(-0.0399, -0.007), Vector2(-0.0823, -0.007)],
+					"width": [Vector2(-0.3831, 0.0155)], "chamfer": 0.002},
+			"wood_pad": {"points": [Vector2(-0.3642, 0.007), Vector2(-0.3619, 0.0094), Vector2(-0.3422, 0.0094),
+					Vector2(-0.3454, -0.1062), Vector2(-0.3619, -0.1057), Vector2(-0.3642, -0.1011)],
+					"width": [Vector2(-0.3831, 0.02)], "chamfer": 0.004},
+			"mag20": {"points": [Vector2(0.0503, -0.0268), Vector2(0.109, -0.0127), Vector2(0.1189, -0.0916),
+					Vector2(0.1269, -0.1372), Vector2(0.1278, -0.1429), Vector2(0.062, -0.1537), Vector2(0.0611, -0.148),
+					Vector2(0.0541, -0.0823)],
+					"width": [Vector2(-0.3831, 0.0145)], "chamfer": 0.003},
+			"mag10": {"points": [Vector2(0.0503, -0.0268), Vector2(0.109, -0.0127), Vector2(0.1189, -0.0916),
+					Vector2(0.1208, -0.1024), Vector2(0.1217, -0.108), Vector2(0.0584, -0.1197), Vector2(0.0575, -0.1141),
+					Vector2(0.0541, -0.0823)],
+					"width": [Vector2(-0.3831, 0.0145)], "chamfer": 0.003},
+			"mag30": {"points": [Vector2(0.0503, -0.0268), Vector2(0.109, -0.0127), Vector2(0.1189, -0.0916),
+					Vector2(0.1356, -0.1871), Vector2(0.1366, -0.1927), Vector2(0.0672, -0.2022), Vector2(0.0663, -0.1966),
+					Vector2(0.0541, -0.0823)],
+					"width": [Vector2(-0.3831, 0.0145)], "chamfer": 0.003},
+		},
+		"sections": {},
+	},
 }
 
 
 func _initialize() -> void:
+	var only := OS.get_environment("PARTS_ONLY")  # one weapon's meshes, the others left as they are
 	for weapon: String in PARTS:
+		if only != "" and weapon != only:
+			continue
 		var profiles: Dictionary = PARTS[weapon]["profiles"]
 		for name: String in profiles:
 			var p: Dictionary = profiles[name]

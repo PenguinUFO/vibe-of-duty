@@ -2,16 +2,18 @@ class_name BuildPanel
 extends PanelContainer
 ## Builds, opened by the main menu's "Сборка" (Docs/LOADOUT.md "Экран сборки"): the BUILD_COUNT saved builds, one tab
 ## each; the open one is also the one played (Settings.build_index). The whole screen: on the left the drop-down list
-## of kits (weapons.cfg [kit.<id>], alphabetically; the weapons stay under the hood), the "Модули" button and the
+## of kits (weapons.cfg [kit.<id>], in its order; the weapons stay under the hood), the "Модули" button and the
 ## weapon's bars (StatBars), in
 ## the middle the pig holding the build's weapon (BuildStage: it comes in on the weapon while the pointer or the
-## gamepad's focus is on the left), on the right the organs (PartDB.INERT_SLOTS: saved, not played yet - but the
-## "Инженер"). Every other slot is a row of buttons, one per part, the pressed one in the build; no numbers and no
-## descriptions (owner, 2026-10-31). "Модули" opens the module slots under it - only with the "Инженер" (else grey);
+## gamepad's focus is on the left), on the right the augmentations: a drop-down list per slot, "----" for none, what a
+## part does in its tooltip, on the list's item and on the closed list (PartDef.info). A module slot is a row of
+## buttons, one per part, the pressed one in the build, without descriptions. No numbers (owner, 2026-10-31). "Модули"
+## opens the module slots under it - only with the "Свинжинер" (else grey);
 ## a kit with changed modules reads "<name> кастом". Under the pointer (or focus) a module, or a kit in the open list,
 ## shows on the bars what it would change. Another kit resets the modules to its own; a part that would go over PartDB.BUDGET is
-## refused, a module whose "requires" is not in the build is greyed out, a slot the build's parts "exclude" is locked
-## at its default. Saved to user://builds.cfg on every change.
+## refused, a module whose "requires" is not in the build is greyed out (an augmentation: its name in the tooltip), a
+## slot the build's parts "exclude" or "force" is locked
+## at its default or the forced part. Saved to user://builds.cfg on every change.
 
 signal closed
 
@@ -29,10 +31,11 @@ var _body_column := VBoxContainer.new()
 var _stats := StatBars.new()
 var _stage := BuildStage.new()
 var _kits := OptionButton.new()
-var _rows := {}               # slot -> [its Label, its HFlowContainer of buttons]
+var _rows := {}               # module slot -> [its Label, its HFlowContainer of buttons]
+var _augments := {}           # body slot -> its OptionButton
 var _rows_for := ""           # the weapon the module rows were made for
 var _modules_button := Button.new()
-var _modules_open := false    # the module slots shown (with the "Инженер")
+var _modules_open := false    # the module slots shown (with the "Свинжинер")
 var _hover_slot := ""         # the part under the pointer / focus: its slot and index, "" for none
 var _hover_index := -1
 var _pad := false             # the gamepad was used last (the camera follows the focus, not the pointer)
@@ -128,7 +131,7 @@ func _init() -> void:
 			_add_row(_weapon_column, slot)
 	for slot: String in PartDB.BODY_SLOTS:  # a slot with only its native part has nothing to pick: no row
 		if not slot in PartDB.HIDDEN_SLOTS and PartDB.options(slot, "").size() > 1:
-			_add_row(_body_column, slot)
+			_add_augment(slot)
 
 	var bottom := HBoxContainer.new()
 	box.add_child(bottom)
@@ -157,6 +160,22 @@ func _add_row(column: VBoxContainer, slot: String) -> void:
 	flow.add_theme_constant_override("v_separation", 6)
 	column.add_child(flow)
 	_rows[slot] = [label, flow]
+
+
+## A body slot's title and its drop-down list; its parts do not depend on the weapon.
+func _add_augment(slot: String) -> void:
+	var label := Label.new()
+	label.text = PartDB.SLOT_NAMES[slot]
+	label.theme_type_variation = "Hint"
+	_body_column.add_child(label)
+	var list := OptionButton.new()
+	var options := PartDB.options(slot, "")
+	for i in options.size():
+		list.add_item(options[i].display_name)
+		list.set_item_tooltip(i, options[i].info)
+	list.item_selected.connect(func(index: int) -> void: _on_part(slot, index))
+	_body_column.add_child(list)
+	_augments[slot] = list
 
 
 func _select(index: int) -> void:
@@ -204,12 +223,15 @@ func _hover(slot: String, index: int) -> void:
 
 func _refresh() -> void:
 	var parts: Array = Settings.builds[Settings.build_index]["parts"]
-	var locked := {}  # slots a part of the build excludes
+	var locked := {}  # slots the build's parts hold (excludes: at the default, forces: at that part) -> the part id
 	for id in parts:
 		var part := PartDB.get_part(str(id))
 		if part != null and part.excludes != "":
 			for slot in part.excludes.split(","):
-				locked[slot] = true
+				var kept := PartDB.options(slot, parts[0])
+				locked[slot] = kept[0].id if not kept.is_empty() else ""
+		if part != null and part.forces != "":
+			locked[PartDB.get_part(part.forces).slot] = part.forces
 	if _rows_for != parts[0]:
 		_rows_for = parts[0]
 		_hover_slot = ""
@@ -220,7 +242,7 @@ func _refresh() -> void:
 		_modules_open = false
 	_modules_button.set_pressed_no_signal(_modules_open)
 	_modules_button.disabled = not engineer
-	_modules_button.tooltip_text = "" if engineer else "Открывается с аугментацией «Инженер»"
+	_modules_button.tooltip_text = "" if engineer else "Открывается с аугментацией «Свинжинер»"
 	for slot: String in _rows:
 		var options := PartDB.options(slot, parts[0])
 		var label: Label = _rows[slot][0]
@@ -231,8 +253,16 @@ func _refresh() -> void:
 		for button: Button in flow.get_children():
 			var part := options[i]
 			button.set_pressed_no_signal(parts.has(part.id))
-			button.disabled = (locked.has(slot) and i > 0) or (part.requires != "" and not parts.has(part.requires))
+			var unmet := part.requires != "" and not parts.has(part.requires)
+			button.disabled = (locked.has(slot) and part.id != locked[slot]) or unmet
+			button.tooltip_text = "Открывается с аугментацией «%s»" % PartDB.get_part(part.requires).display_name \
+					if unmet and PartDB.BODY_SLOTS.has(PartDB.get_part(part.requires).slot) else ""
 			i += 1
+	for slot: String in _augments:
+		var list: OptionButton = _augments[slot]
+		var part := PartDB.get_part(str(parts[PartDB.SLOTS.find(slot)]))
+		list.select(PartDB.options(slot, "").find(part))
+		list.tooltip_text = part.info
 	var kits := PartDB.options("kit", "")
 	for i in kits.size():
 		_kits.set_item_text(i, PartDB.kit_name(parts) if parts.has(kits[i].id) else kits[i].display_name)

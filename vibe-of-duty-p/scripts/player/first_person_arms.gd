@@ -32,6 +32,17 @@ func setup(peer_id: int, weapon: WeaponView) -> void:
 	var accent := Mannequin.color_for(peer_id)
 	_right = Mannequin.make_arm(self, "R", accent, LENGTH_SCALE, THICKNESS)
 	_left = Mannequin.make_arm(self, "L", accent, LENGTH_SCALE, THICKNESS)
+	_no_shadows()
+
+
+## The "Руки-Хрюки" (the build has PartDB.PIG_ARMS).
+func set_cyber(on: bool) -> void:
+	Mannequin.set_cyber_arm(_right, on)
+	Mannequin.set_cyber_arm(_left, on)
+	_no_shadows()
+
+
+func _no_shadows() -> void:
 	for mesh in find_children("*", "GeometryInstance3D", true, false):
 		(mesh as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # floating arms
 
@@ -94,6 +105,7 @@ func pose() -> void:
 		left_palm = left_palm.lerp(PUNCH, punch.x)
 		left_fingers = left_fingers.lerp(Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
+	var piston := Mannequin.piston_out(_left, punch.x)
 	var launch := Mannequin.grenade_curve(grenade)
 	if launch > 0.0:
 		left_palm = left_palm.lerp(ARM_OUT, launch)
@@ -118,4 +130,4 @@ func pose() -> void:
 		right_dir = right_dir.lerp(down, ledge_weight)
 		left_dir = left_dir.lerp(down, ledge_weight)
 	Mannequin.pose_arm(_right, SHOULDER_R, right_palm, right_fingers, right_dir, RIGHT_POLE)
-	Mannequin.pose_arm(_left, SHOULDER_L, left_palm, left_fingers, left_dir, LEFT_POLE)
+	Mannequin.pose_arm(_left, SHOULDER_L, left_palm, left_fingers, left_dir, LEFT_POLE, piston)

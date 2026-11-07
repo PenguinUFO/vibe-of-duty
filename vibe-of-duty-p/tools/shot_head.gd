@@ -1,7 +1,7 @@
 extends Node
 ## Renders the pig's head (Mannequin.make_head) up close from six sides to ../shots/head_<view>.png, in the menu
 ## portrait's light (PigPortrait): Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_head
-## SHOT_CHIP=1: with the "Инженер"'s chip.
+## SHOT_CHIP=1: with the "Свинжинер"'s chip.
 
 const VIEWS := {  # name -> camera position (the head looks along -Z)
 	"front": Vector3(0.0, 0.03, -0.75),

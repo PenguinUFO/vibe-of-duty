@@ -13,9 +13,11 @@ const FIRE_BUFFER := 0.2
 const MELEE := -2              # "weapon" index of a punch in damage and kill events (-1 = suicide)
 const MELEE_WINDUP := 0.15     # s from the press to the blow
 const MELEE_RECOVER := 0.5     # s after the blow until the gun is back
-const MELEE_DAMAGE := 75.0     # 2 punches kill (150 HP)
-const MELEE_RANGE := 2.0       # m from the eye
+const MELEE_DAMAGE := 100.0    # 2 punches kill (150 HP)
+const MELEE_RANGE := 0.9       # m from the eye
+const MELEE_PAD := 0.1         # m a punch widens the body by (PlayerWeapons._trace)
 const MELEE_NAME := "копыто"   # kill feed
+const PIG_ARMS_NAME := "Хрюкаут"  # kill feed: a punch of the "Руки-Хрюки"
 ## The "Гренадир"'s grenade (Docs/LOADOUT.md): G down - the cannon comes out of the chest and stays out while G is
 ## held; G up - it launches (not before it is all the way out) and folds back. No shooting, aiming or reloading
 ## meanwhile; a reload pauses and goes on after. One a life (grenades_max), not refilled.
@@ -28,6 +30,8 @@ const GRENADE_NAME := "граната"  # kill feed
 ## rounds in it. From the hip only; it fires while the hands reload. Training (endless reserve): the key 1 toggles it.
 const CMP := -4                # "weapon" index of its shots in damage and kill events (its numbers: WeaponDB.cmp_def)
 const CMP_NAME := "ЧМП"        # kill feed
+const BOMB := -5               # "weapon" index of the "Хрях-бабах" in damage and kill events
+const BOMB_NAME := "хрях-бабах"  # kill feed
 ## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with one magazine, fired by the
 ## aim button (cmd.aim), never reloaded. Empty - or R, which then reloads the right one - it is thrown away and the
 ## weapon plays as usual again. Meanwhile no sights, no punch, the spread x akimbo_spread; an empty right one only
@@ -206,7 +210,8 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 ## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding, mantling}.
 ## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_end", "equip",
 ## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow), "grenade_start",
-## {"type": "grenade", "pitch": float, "yaw": float} (the launch), "akimbo_drop" (the left gun thrown away); a shot of the
+## {"type": "grenade", "pitch": float, "yaw": float} (the launch), {"type": "akimbo_drop", "rounds": int} (the left gun thrown away, with
+## this many still in it: 0 - emptied, more - R); a shot of the
 ## akimbo's left gun has "left": true.
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
@@ -381,11 +386,11 @@ func _shot(cmd: PlayerCmd, ctx: Dictionary, gun: WeaponDef, left: bool) -> Dicti
 
 ## The akimbo's left gun out of the hand (empty, or R): the weapon is a single one again.
 func _drop_left(events: Array) -> void:
+	events.append({"type": "akimbo_drop", "rounds": left_mag})
 	left_mag = 0
 	left_cooldown = 0.0
 	left_burst = 0
 	left_queued = false
-	events.append({"type": "akimbo_drop"})
 
 
 func _reload_ticks() -> int:

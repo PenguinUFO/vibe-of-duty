@@ -6,7 +6,7 @@ The trigger guard with the grip frame, and the grip panels, are meshes made by t
 
 Docs/LOADOUT.md, "Люгер". A P08 with the artillery model's parts as modules: the barrel 100 mm (P08) / 150 mm (navy) /
 200 mm (Lange Pistole 08: a tangent rear sight on the barrel, none on the toggle), the board stock on the grip's heel
-lug, the TM08 "snail" drum (32 rounds, hangs left of the grip). Proportions after the owner's photos of a WE P08 6"
+lug, the TM08 "snail" drum (32 rounds, under the grip, across the gun). Proportions after the owner's photos of a WE P08 6"
 (airsoft, the real gun's sizes: 267 mm long with the 150 mm barrel, so 0.402 mm a pixel of the side view): the small
 round trigger guard, the thin frame under the barrel extension, the grip raked 25 degrees (the front strap 29), the
 thin barrel out of a short barrel extension. Built life size; the game draws it 1.2 times bigger
@@ -61,8 +61,9 @@ def mesh(name, key, mat, parent="."):
     parts.append((name, parent, "ext_mesh", key, (0.0, 0.0, 0.0), 0.0, mat))
 
 
-def node(name, parent=".", pos=(0.0, 0.0, 0.0)):
-    parts.append((name, parent, "node", None, pos, 0.0, None))
+def node(name, parent=".", pos=(0.0, 0.0, 0.0), basis=0.0):
+    """`basis`: the rows of a turned node's matrix, 9 numbers (the parts' rot_x is too little for the snail)."""
+    parts.append((name, parent, "node", None, pos, basis, None))
 
 
 def along_grip(top, dist):
@@ -144,23 +145,53 @@ for i in range(10):  # the plank in steps: its top rises a little, its bottom dr
     box("Plank%d" % i, -0.015, 0.015, bottom, top, z0 + (z1 - z0) * t1, z0 + (z1 - z0) * t0, "wood", parent="Stock/Board")
 box("ButtPlate", -0.016, 0.016, heel_y - 0.092, heel_y + 0.044, -0.436, -0.428, "steel", parent="Stock/Board")
 
-# Magazines, both into the grip: the 8-round box (only its wooden base shows) and the TM08 snail - a neck up the grip,
-# the drum below and left of it, its winding key on the left face.
+# Magazines, both into the grip: the 8-round box (only its wooden base shows) and the TM08 snail.
 node("Mags")
 base_y, base_z = along_grip(GRIP_TOP, GRIP_LEN)
 node("Luger_Mag_8", "Mags", (0.0, base_y + 0.11, base_z - 0.015))
 mag_top = (GRIP_TOP[0] - base_y - 0.11, GRIP_TOP[1] - base_z + 0.015)  # the grip's top in the node's space
 grip_box("Body", 0.006, mag_top, 0.095, 0.022, "mag", parent="Mags/Luger_Mag_8", start=0.008)
 grip_box("Base", 0.011, mag_top, 0.012, 0.026, "wood", parent="Mags/Luger_Mag_8", start=GRIP_LEN - 0.02)  # flush with the grip's bottom
-drum_y, drum_z = base_y - 0.03, base_z + 0.05  # forward of the grip, under the trigger guard's rear
+# The snail after the owner's photos (2026-11-05): under the grip, not beside it, and across the gun: the plain toothed
+# face looks forward (and a little right and up), the rim shows from the side, the winding gear is on the rear face. The
+# neck leaves the grip through an elbow going back and down into the feed chute on the drum's right, so the drum itself
+# reaches out to the gun's left.
+DRUM_R, DRUM_T = 0.049, 0.036
+DRUM_YAW, DRUM_PITCH = math.radians(25.0), math.radians(25.0)
+drum_x, drum_y, drum_z = 0.03, -0.163, -0.065
 node("Luger_Mag_32", "Mags", (0.0, drum_y + 0.11, drum_z - 0.015))
 local = lambda y, z: (y - drum_y - 0.11, z - drum_z + 0.015)
 mag_top = local(*GRIP_TOP)
-grip_box("Neck", 0.006, mag_top, GRIP_LEN + 0.02, 0.022, "mag", parent="Mags/Luger_Mag_32", start=0.008)
-dy, dz = local(drum_y, drum_z)
-disc("Drum", 0.048, -0.006, 0.04, dy, dz, "mag", parent="Mags/Luger_Mag_32")
-disc("Key", 0.012, 0.04, 0.05, dy, dz, "steel_light", parent="Mags/Luger_Mag_32")
-box("KeyArm", 0.044, 0.05, dy - 0.004, dy + 0.004, dz - 0.03, dz, "steel_light", parent="Mags/Luger_Mag_32")
+grip_box("Neck", 0.006, mag_top, GRIP_LEN, 0.022, "mag", parent="Mags/Luger_Mag_32", start=0.008)
+ax = (-math.sin(DRUM_YAW) * math.cos(DRUM_PITCH), math.sin(DRUM_PITCH), math.cos(DRUM_YAW) * math.cos(DRUM_PITCH))  # the drum's axis
+sx = (math.cos(DRUM_YAW), 0.0, math.sin(DRUM_YAW))  # across the drum, to its left
+up = (ax[1] * sx[2] - ax[2] * sx[1], ax[2] * sx[0] - ax[0] * sx[2], ax[0] * sx[1] - ax[1] * sx[0])
+node("Snail", "Mags/Luger_Mag_32", (drum_x, *local(drum_y, drum_z)),
+     basis=(sx[0], up[0], ax[0], sx[1], up[1], ax[1], sx[2], up[2], ax[2]))
+snail = "Mags/Luger_Mag_32/Snail"
+half = DRUM_T / 2
+tube("Drum", DRUM_R, -half, half, 0.0, "mag", parent=snail)
+tube("FrontCap", DRUM_R - 0.002, half, half + 0.0015, 0.0, "steel_light", parent=snail)  # bare, worn lighter than the rim
+tube("CentreScrew", 0.005, half + 0.0015, half + 0.004, 0.0, "steel", parent=snail)
+for i in range(20):  # the front ring's teeth
+    a = i * math.tau / 20
+    r = DRUM_R + 0.0012
+    turn = (-math.sin(a), -math.cos(a), 0.0, math.cos(a), -math.sin(a), 0.0, 0.0, 0.0, 1.0)  # its long side along the rim
+    parts.append(("Tooth%d" % i, snail, "box", (0.005, 0.0024, 0.003), (r * math.cos(a), r * math.sin(a), half - 0.001), turn, "mag"))
+box("Chute", -0.043, -0.018, 0.026, 0.056, -half - 0.003, half - 0.006, "mag", parent=snail)
+tube("RearPlate", 0.03, -half - 0.003, -half, 0.0, "steel", parent=snail)
+tube("Key", 0.011, -half - 0.012, -half - 0.003, 0.0, "steel_light", parent=snail)
+box("KeyArm", -0.005, 0.005, -0.04, 0.0, -half - 0.012, -half - 0.008, "steel_light", parent=snail)
+tube("KeyKnob", 0.004, -half - 0.02, -half - 0.012, -0.036, "steel_light", parent=snail)
+tube("Pivot", 0.005, -half - 0.009, -half - 0.003, 0.05, "steel_light", x=-0.03, parent=snail)
+# The elbow: from the grip's bottom to the chute.
+chute = [drum_x + sx[0] * -0.03 + up[0] * 0.044 + ax[0] * -0.006, drum_y + sx[1] * -0.03 + up[1] * 0.044 + ax[1] * -0.006,
+         drum_z + sx[2] * -0.03 + up[2] * 0.044 + ax[2] * -0.006]
+ey, ez = local(base_y + 0.006, base_z + 0.002)
+cy, cz = local(chute[1], chute[2])
+length = math.hypot(ey - cy, ez - cz)
+parts.append(("Elbow", "Mags/Luger_Mag_32", "box", (0.022, length + 0.006, 0.03), (chute[0] / 2, (ey + cy) / 2, (ez + cz) / 2),
+              math.degrees(math.atan2(ez - cz, ey - cy)), "mag"))
 
 f = lambda v: "%g" % round(v, 5)
 res = []
@@ -171,6 +202,8 @@ nodes = ['[node name="Luger" type="Node3D"]\n']
 for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
     if kind == "cylx":  # the cylinder's Y axis turned onto X
         xform = "Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, %s, %s, %s)" % (f(c[0]), f(c[1]), f(c[2]))
+    elif isinstance(rot, tuple):
+        xform = "Transform3D(%s, %s, %s, %s)" % (", ".join(f(v) for v in rot), f(c[0]), f(c[1]), f(c[2]))
     else:
         r = math.radians(rot)
         cr, sr = math.cos(r), math.sin(r)
@@ -186,8 +219,8 @@ for i, (name, parent, kind, params, c, rot, mat) in enumerate(parts):
         res.append('[sub_resource type="BoxMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\nsize = Vector3(%s, %s, %s)\n'
                    % (i, mat, f(params[0]), f(params[1]), f(params[2])))
     else:
-        res.append('[sub_resource type="CylinderMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\ntop_radius = %s\nbottom_radius = %s\nheight = %s\nradial_segments = 12\nrings = 1\n'
-                   % (i, mat, f(params[2] if len(params) > 2 else params[0]), f(params[0]), f(params[1])))
+        res.append('[sub_resource type="CylinderMesh" id="mesh_%d"]\nmaterial = SubResource("mat_%s")\ntop_radius = %s\nbottom_radius = %s\nheight = %s\nradial_segments = %d\nrings = 1\n'
+                   % (i, mat, f(params[2] if len(params) > 2 else params[0]), f(params[0]), f(params[1]), 32 if params[0] > 0.03 else 12))
     nodes.append('\n[node name="%s" type="MeshInstance3D" parent="%s"]\ntransform = %s\nmesh = SubResource("mesh_%d")\n' % (name, parent, xform, i))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8", newline="\n") as out:

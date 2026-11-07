@@ -3,10 +3,12 @@ extends RefCounted
 ## Test mode "FFA random weapon" (Game.random_weapons, host panel -> Тестирование): every life (the first spawn, each
 ## respawn, a new match) the server gives the player a random kit (owner, 2026-10-31) instead of their build. A kit
 ## that came up sits out the player's next REST lives, then is back in the pool: never the same kit twice in a row,
-## nor every other life.
+## nor every other life. The body is always the same: STANDARD_AUGS (owner, 2026-11-05).
 ## Owned by NetWorld (server).
 
 const REST := 2
+## The augmentations of every life in this mode.
+const STANDARD_AUGS: Array[String] = [PartDB.GRENADIER, PartDB.JET_HOOVES, PartDB.PIG_ARMS, PartDB.SKULL_PISTOL]
 
 var _recent := {}  # peer_id -> Array[String]: the kit ids of their last REST lives, newest last
 
@@ -26,7 +28,7 @@ func next_build(id: int) -> Array:
 	recent.append(kit)
 	while recent.size() > REST:
 		recent.pop_front()
-	return PartDB.sanitize(PartDB.default_build(kit))
+	return PartDB.sanitize(PartDB.default_build(kit) + STANDARD_AUGS)
 
 
 func forget(id: int) -> void:

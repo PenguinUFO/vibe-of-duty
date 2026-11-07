@@ -49,7 +49,7 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 		look_yaw = Game.bot_run
 		cmd.yaw = look_yaw
 		cmd.move = Vector2(0.0, -1.0)
-		cmd.sprint = fmod(t, 5.0) < 4.0
+		cmd.sprint = fmod(t, 5.0) < 4.5  # past the crouch press: a slide needs a sprint's speed
 		cmd.crouch = fmod(t, 5.0) > 4.4
 		cmd.jump = fmod(t, 2.0) < delta
 		cmd.jump_held = true
@@ -233,8 +233,8 @@ func _bot_melee_cmd(t: float) -> PlayerCmd:
 		dir = Gravity.frame(global_position).inverse() * dir  # look angles are in the gravity frame
 		look_yaw = atan2(-dir.x, -dir.z)
 		look_pitch = clampf(asin(dir.y), -MAX_PITCH, MAX_PITCH)
-		cmd.move = Vector2(0.4 if int(t / 2.0) % 2 == 0 else -0.4, -1.0 if best > 1.2 else 0.0)
-		cmd.melee = best < 1.8 and not weapons.is_meleeing()
+		cmd.move = Vector2(0.4 if int(t / 2.0) % 2 == 0 else -0.4, -1.0 if best > melee_reach() - 0.8 else 0.0)
+		cmd.melee = best < melee_reach() - 0.2 and not weapons.is_meleeing()
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd
@@ -253,7 +253,8 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 				best = d
 				target = other
 	# Close in to ~12 m (so spread alone does not decide the test), then strafe.
-	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, -1.0 if best > 12.0 else 0.0)
+	var close := 1.5 if build.has(PartDB.BOMB) else 12.0  # the "Хрях-бабах" goes up to the target
+	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, -1.0 if best > close else 0.0)
 	cmd.aim = true
 	if target != null and alive:
 		var eye := global_position + body_up() * STAND_EYE
@@ -269,6 +270,8 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 			cmd.fire = _bot_trigger()
 			cmd.aim = weapons.current().automatic or not weapons.left_prev
 		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the "Гренадир": once a life, mid range
+		if build.has(PartDB.BOMB):
+			cmd.grenade = best < 7.0  # the "Хрях-бабах": going in
 	cmd.reload = weapons.cmp and weapons.reserves[weapons.index] > 0  # a bag picked up: R gives the weapon back
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch

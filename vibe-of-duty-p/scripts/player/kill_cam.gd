@@ -46,6 +46,8 @@ var _view: WeaponView
 var _left_view: WeaponView  # the killer's akimbo left gun
 var _arms: FirstPersonArms
 var _cannon := GrenadeCannon.new()  # the killer's chest cannon, seen while they launch
+var _bomb: ChestBomb  # the killer's "Хрях-бабах", seen while it counts
+var _bomb_counting := false
 var _ui := CanvasLayer.new()
 var _scope := ScopeOverlay.new()  # the killer looking through a scope
 var _title: Label
@@ -68,6 +70,7 @@ func _ready() -> void:
 	_cannon.set_barrel_only()
 	_cannon.visible = false
 	_space.add_child(_cannon)
+	_bomb = PlayerView.make_bomb_view(_camera)
 	_ui.layer = 6
 	_ui.visible = false
 	add_child(_ui)
@@ -154,6 +157,9 @@ func stop() -> void:
 	_left_view.visible = false
 	_space.blur.visible = false
 	_cannon.visible = false
+	_show_bomb(false)
+	_bomb.rise = 0.0
+	_bomb.visible = false
 	for node in get_tree().get_nodes_in_group(REPLAY_GRENADES):
 		node.queue_free()  # a replayed grenade still in the air: it is not in the match
 	_scope.set_amount(0.0)
@@ -204,6 +210,7 @@ func _begin() -> void:
 	for id in world.players:
 		(world.players[id] as Player).set_kill_cam(true)
 	_arms = _arms_for(_killer_id)
+	_arms.set_cyber(_cyber_for(_killer_id))
 	_camera.fov = Settings.fov
 	_camera.make_current()
 	_ui.visible = true
@@ -246,11 +253,13 @@ func _play(delta: float) -> void:
 		ghost.show_melee(pose[9])
 		ghost.show_grenade(pose[10] if pose.size() > 10 else -1.0)
 		ghost.set_cannon(_cannon_for(id))
+		ghost.set_bomb(_bomb_for(id))
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
 		ghost.set_akimbo(pose.size() > 11 and pose[11], false)
 		ghost.set_chip(_chip_for(id))
 		ghost.set_eye_gun(_eye_gun_for(id))
+		ghost.set_cyber_arms(_cyber_for(id))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -295,11 +304,20 @@ func _play(delta: float) -> void:
 		_arms.left_weapon = _left_view
 		_arms.pose()
 		PlayerView.pose_cannon_view(_cannon if _cannon_for(_killer_id) else null, _view.grenade)
+		_show_bomb(killer[5] and killer.size() > 12 and killer[12])
+		PlayerView.pose_bomb_view(_bomb, _camera.fov, _bomb_counting, delta)
 
 	for shot in _shots:
 		if shot["t"] > _shot_t and shot["t"] <= _replay_t:
 			_replay_shot(shot)
 	_shot_t = _replay_t
+
+
+## The killer's bomb starts counting / stops, as the replay reaches it.
+func _show_bomb(counting: bool) -> void:
+	if counting != _bomb_counting:
+		_bomb_counting = counting
+		_bomb.arm(WeaponDB.grenade("bomb_fuse", 1.5) if counting else -1.0)
 
 
 ## Builds what a replay may need ahead of time: a stand-in body for every player and first-person arms for every
@@ -342,13 +360,25 @@ func _cannon_for(id: int) -> bool:
 	return player != null and player.build.has(PartDB.GRENADIER)
 
 
+## The player has the "Хрях-бабах"'s bomb (as of now, as _def_for).
+func _bomb_for(id: int) -> bool:
+	var player: Player = world.players.get(id)
+	return player != null and player.build.has(PartDB.BOMB)
+
+
 ## The player has the "ЧМП" in the eye (as of now, as _def_for).
 func _eye_gun_for(id: int) -> bool:
 	var player: Player = world.players.get(id)
 	return player != null and player.build.has(PartDB.SKULL_PISTOL)
 
 
-## The player has the "Инженер"'s chip (as of now, as _def_for).
+## The player has the "Руки-Хрюки" (as of now, as _def_for).
+func _cyber_for(id: int) -> bool:
+	var player: Player = world.players.get(id)
+	return player != null and player.build.has(PartDB.PIG_ARMS)
+
+
+## The player has the "Свинжинер"'s chip (as of now, as _def_for).
 func _chip_for(id: int) -> bool:
 	var player: Player = world.players.get(id)
 	return player != null and player.build.has(PartDB.ENGINEER)

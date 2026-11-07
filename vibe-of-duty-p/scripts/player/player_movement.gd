@@ -59,6 +59,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	if not is_sliding and crouch_pressed and on_floor and _slide_cooldown <= 0.0 \
 			and horiz.length() >= SLIDE_MIN_SPEED * heft:
 		is_sliding = true
+		slides_total += 1
 		_slide_time = 0.0
 		_slide_dir = horiz.normalized()
 		_slide_speed = maxf(horiz.length(), SLIDE_START_SPEED * heft)
@@ -107,20 +108,20 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 		var add := clampf(top_speed * wish_len - horiz.dot(wish), 0.0, AIR_ACCEL * dt)
 		var was := horiz.length()
 		horiz += wish * add
-		if mods["bunny_hop"] <= 0.0:  # without the "Зайчик" strafing steers, but builds no speed past a run
+		if mods["bunny_hop"] <= 0.0:  # without the "Прыг-скок" strafing steers, but builds no speed past a run
 			horiz = horiz.limit_length(maxf(was, top_speed))
 	v.x = horiz.x
 	v.z = horiz.z
 
 	# Vertical movement. In the air a new press of jump jumps again while the build has air jumps left (the
-	# "Реактивные копыта": one), counted back on the floor.
+	# "Прыг-Прыг": one), counted back on the floor.
 	if on_floor:
 		_air_jumps = 0
 	var air_jump: bool = not on_floor and cmd.jump and _air_jumps < int(mods["air_jumps"])
 	if on_floor or air_jump:
 		if cmd.jump:
 			if mods["bunny_hop"] <= 0.0 and not is_sliding:
-				# Without the "Зайчик" a hop off the ground is no faster than a run (a slide's jump keeps the slide):
+				# Without the "Прыг-скок" a hop off the ground is no faster than a run (a slide's jump keeps the slide):
 				# landing from a fast jump and hopping on does not carry the speed.
 				var run: float = top_speed * weapons.speed_mult()
 				horiz = horiz.limit_length(run)
@@ -129,8 +130,10 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 			v.y = JUMP_VELOCITY * mods["jump_mult"]
 			_jumped_this_step = true
 			slide_finished = is_sliding or slide_finished
+			jumps_total += 0 if air_jump else 1
 			if air_jump:
 				_air_jumps += 1
+				air_jumps_total += 1
 				_floor_y = Gravity.height(global_position)  # a vault reaches from here, as from the ground
 			_sfx("jump")
 		else:

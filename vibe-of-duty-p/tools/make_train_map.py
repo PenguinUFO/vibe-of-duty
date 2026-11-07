@@ -313,8 +313,11 @@ def car_e(e0):
     rail_x(-gx, UPPER, br1 + 2.5, land1, -1)
     rail_x(gx, UPPER, land0, br0 - 2.5, 1)
     rail_x(gx, UPPER, br1, land1, 1)                   # the right gallery along the back ramp
-    lv.lamp("Lamp", (0.0, UPPER - 0.6, mid - 4.5), energy=1.2, rng=9.0)    # the hall: hung low, under the galleries
-    lv.lamp("Lamp", (0.0, UPPER - 0.6, mid + 4.5), energy=1.2, rng=9.0)
+    # The hall has no ceiling below the roof: its low lamps sit on the galleries' undersides, by the inner edge, each
+    # across from its half's ramp.
+    lx = gx + 0.25
+    lv.lamp("Lamp", (lx, UPPER - SLAB - 0.4, mid - 4.5), energy=1.2, rng=9.0, shade=(0.3, 0.05, 0.7))
+    lv.lamp("Lamp", (-lx, UPPER - SLAB - 0.4, mid + 4.5), energy=1.2, rng=9.0, shade=(0.3, 0.05, 0.7))
     lv.lamp("Lamp", (0.0, ROOF - 0.4, mid), energy=1.2, rng=10.0)
     return e1
 

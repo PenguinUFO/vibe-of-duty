@@ -62,6 +62,7 @@ const MODULE_GEOMETRY := {
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3 + LUGER_SIGHT_AHEAD * LUGER_SCALE},  # the cheek on the board
 	"mp7.stock.collapsed": {"model_variants": {"Stock": "Collapsed"}, "eye_relief_add": -0.1},  # the gun 0.223 m nearer
 	"mp7.grip.folded": {"model_variants": {"Foregrip": "Folded"}, "left_hand": Vector3(0.0, -0.02, 0.16)},  # on the folded grip
+	"mp7.akimbo.on": {"model_variants": {"Foregrip": "Folded"}},  # no second hand on it: only the look, not the numbers
 	"mp7.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
 			"sound_shot": "shot_suppressed"},
 	# The PDW's CompM on the MP7's rail (0.0031 higher), the flip-up sights folded under it.
@@ -106,6 +107,9 @@ const MODULE_GEOMETRY := {
 	# 4 cm behind its eyepiece - the cheek off the comb, as with any optic on the handle.
 	"m16.sight.colt": {"sight": "colt", "rear_sight": Vector3(0.0, 0.142, -0.07), "front_sight": Vector3(0.0, 0.142, 0.075),
 			"eye_relief": 0.04},
+	# The P90's can over its hider (tools/make_p90_blockout.py): its end 0.318 ahead of the origin.
+	"p90.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0209, 0.318),
+			"sound_shot": "shot_suppressed"},
 	# Гроза (tools/make_groza_blockout.py): the base is the short barrel with its compensator, the irons in the carry
 	# frame. The can 0.2519 past the compensator, the muzzle grip's housing 0.0807; the left hand on the fore grip.
 	"groza.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0295, 0.3678),
@@ -117,6 +121,18 @@ const MODULE_GEOMETRY := {
 	# behind the eyepiece (closer, its bell filled the screen).
 	"groza.sight.po": {"sight": "po", "rear_sight": Vector3(0.0, 0.1397, -0.109), "front_sight": Vector3(0.0, 0.1397, 0.0),
 			"eye_relief": 0.08},
+	# АС ВАЛ (tools/make_val_blockout.py): the base is the can, the wire stock, the 20, the irons. The Vikhr's short barrel
+	# brings its own irons, the rear one on the receiver: the eye stays at the cheek; the left hand on its handguard.
+	"val.barrel.short": {"model_variants": {"Barrel": "Short"}, "muzzle": Vector3(0.0, 0.0174, 0.2778), "sound_shot": "shot",
+			"rear_sight": Vector3(0.0, 0.0639, 0.0728), "front_sight": Vector3(0.0, 0.0639, 0.2298), "eye_relief": 0.2329,
+			"left_hand": Vector3(0.0, 0.0, 0.1809)},
+	"val.stock.wood": {"model_variants": {"Stock": "Wood"}, "right_hand": Vector3(0.0, -0.0587, -0.0634)},
+	"val.mag.10": {"model_variants": {"Mags": "Val_Mag_10"}},
+	"val.mag.30": {"model_variants": {"Mags": "Val_Mag_30"}},
+	# The Groza's PO on the Kobra's side mount: its axis 34 mm over the receiver's top, over the receiver's back. The eye
+	# 8 cm behind the eyepiece, as on the Groza. After val.barrel.short in a build: these points are the last set.
+	"val.sight.po": {"sight": "po_side", "sight_offset": Vector3(0.0, -0.0597, -0.02),
+			"rear_sight": Vector3(0.0, 0.08, -0.129), "front_sight": Vector3(0.0, 0.08, -0.02), "eye_relief": 0.08},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
@@ -277,10 +293,11 @@ static func load_text(text: String) -> bool:
 			var module := {"id": section, "weapon": path[0], "slot": path[1],
 					"name": str(values.get("name", path[2])), "info": str(values.get("info", "")),
 					"cost": int(values.get("cost", 0)),
-					"requires": path[0] + "." + str(values["requires"]) if values.has("requires") else "",
+					"requires": _part_id(path[0], str(values.get("requires", ""))),
+					"forces": _part_id(path[0], str(values.get("forces", ""))),
 					"excludes": str(values.get("excludes", "")), "hidden": bool(values.get("hidden", false)), "values": {}}
 			for key in values:
-				if not key in ["name", "info", "cost", "requires", "excludes", "hidden"]:
+				if not key in ["name", "info", "cost", "requires", "forces", "excludes", "hidden"]:
 					module["values"][key] = values[key]
 			_modules[section] = module
 			_module_ids.append(section)
@@ -291,6 +308,11 @@ static func load_text(text: String) -> bool:
 	for def in _defs:
 		_write(def, _base.get(def.id, {}))
 	return true
+
+
+## A part id from the config: "slot.name" is a module of `weapon`, a bare id any other part ("pig_arms").
+static func _part_id(weapon: String, id: String) -> String:
+	return weapon + "." + id if "." in id else id
 
 
 static func _apply_module(values: Dictionary, changes: Dictionary) -> void:
@@ -517,6 +539,7 @@ static func _build_geometry() -> void:
 	p90.id = "p90"
 	p90.display_name = "P90"
 	p90.scene_path = "res://prefabs/weapons/p90_blockout.tscn"  # tools/make_p90_blockout.py
+	p90.model_variants = {"Muzzle": "Hider"}
 	p90.sight = "ring"  # the integral ring sight: its housing is the gun's, SightModels draws the glass and the reticle
 	p90.muzzle = Vector3(0.0, 0.0209, 0.1678)
 	p90.rear_sight = Vector3(0.0, 0.0871, -0.0272)  # the sight window's middle, its back
@@ -593,6 +616,24 @@ static func _build_geometry() -> void:
 	groza.sound_shot = "shot"
 	groza.hip_offset = Vector3(0.16, -0.14, -0.3)  # a bullpup, as the AUG
 	_defs.append(groza)
+
+	var val := WeaponDef.new()
+	val.id = "val"
+	val.display_name = "АС ВАЛ"
+	val.scene_path = "res://prefabs/weapons/val_blockout.tscn"  # tools/make_val_blockout.py
+	val.model_variants = {"Barrel": "Can", "Stock": "Wire", "Mags": "Val_Mag_20"}
+	val.muzzle = Vector3(0.0, 0.0174, 0.5237)
+	val.rear_sight = Vector3(0.0, 0.0498, 0.2101)  # the notch's top, on the can's back
+	val.front_sight = Vector3(0.0, 0.0498, 0.4996)  # the post's tip on the can's nose
+	val.eye_relief = 0.3701  # the eye over the stock, behind the receiver
+	val.right_hand = Vector3(0.0, -0.0541, -0.0541)  # the middle of the grip
+	val.left_hand = Vector3(0.0, -0.0127, 0.1575)    # under the handguard
+	val.ejection_port = Vector3(-0.017, 0.0268, 0.0658)
+	val.charging_handle = Vector3(-0.016, 0.0211, 0.1011)  # in the port on the right (the model's "Handle")
+	val.bolt_travel = 0.08
+	val.sound_shot = "shot_suppressed"
+	val.hip_offset = Vector3(0.17, -0.165, -0.24)
+	_defs.append(val)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:

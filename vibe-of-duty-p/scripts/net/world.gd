@@ -446,6 +446,8 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 	if from == Vector3.INF:
 		from = attacker.global_position + attacker.body_up() * Player.STAND_EYE  # for the victim's damage direction arc
 	var killed := victim.server_damage(amount * victim.damage_mult_from(from) * victim.damage_taken_mult(head), block)
+	victim.last_attacker = attacker.peer_id
+	victim.last_hit_ms = Time.get_ticks_msec()
 	if _stats != null:
 		_stats.damaged(attacker, victim, hp_before, head, weapon)
 	if attacker.control == Player.Mode.LOCAL:
@@ -468,13 +470,30 @@ func server_apply_blast(attacker: Player, victim: Player, amount: float, pos: Ve
 		return
 	if not victim.alive or victim.spawn_protect > 0:
 		return
+	var hp_before := victim.health
 	var killed := victim.server_damage(amount * victim.damage_taken_mult(false))
+	if _stats != null:
+		_stats.hurt_self(victim, hp_before, "grenade")
 	if victim.control == Player.Mode.LOCAL:
 		victim.on_damaged_from(pos)
 	elif victim.peer_id in _ready_peers:
 		_damaged_from.rpc_id(victim.peer_id, pos)
 	if killed:
 		_server_kill(victim, victim, WeaponSim.GRENADE, false, "grenade")
+
+
+## Server: the "Хрях-бабах" went off on `bomber`: they die of it. Hurt not long ago, the kill is the last attacker's (owner,
+## 2026-11-05: the bomb must not take a kill away from them).
+func server_bomb_death(bomber: Player) -> void:
+	if not bomber.alive:
+		return
+	bomber.server_damage(9999.0)
+	var last: Player = players.get(bomber.last_attacker)
+	if last != null and Time.get_ticks_msec() - bomber.last_hit_ms <= WeaponDB.grenade("bomb_credit", 3.0) * 1000.0:
+		Game.count("bomb_credited")
+		_server_kill(last, bomber, WeaponSim.BOMB, false, "bomb_credit")
+	else:
+		_server_kill(bomber, bomber, WeaponSim.BOMB, false, "bomb")
 
 
 ## Server: the map killed `player`. `cause` (for MatchStats): "fall" (off the map), "tunnel" (the train's tunnel swept
@@ -485,6 +504,7 @@ func _server_suicide(player: Player, cause: String) -> void:
 
 
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool, cause := "") -> void:
+	grenades.server_cancel_bomb(victim.peer_id)
 	Game.add_kill(killer.peer_id, victim.peer_id)
 	if _stats != null:
 		_stats.killed(killer, victim, weapon, head, cause)
@@ -623,13 +643,15 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: 
 	if multiplayer.is_server():
 		player.server_shot.connect(_on_server_shot)
 		player.server_melee.connect(_on_server_melee)
+		player.server_punch.connect(_on_server_punch)
 
 
 ## Server: relay a shot to everyone except the shooter, who already showed it (prediction).
 func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array,
 		left: bool) -> void:
 	if _stats != null:
-		_stats.shot(shooter, hits)
+		_stats.shot(shooter, weapon, hits)
+		_stats.near_misses(shooter, origin, ends, hits)
 	for peer in _ready_peers:
 		if peer != shooter.peer_id:
 			_remote_shot.rpc_id(peer, shooter.peer_id, weapon, origin, ends, left)
@@ -641,6 +663,11 @@ func _on_server_shot(shooter: Player, weapon: int, origin: Vector3, ends: Packed
 func _remote_shot(shooter_id: int, weapon: int, origin: Vector3, ends: PackedVector3Array, left: bool) -> void:
 	if players.has(shooter_id) and shooter_id != multiplayer.get_unique_id():
 		(players[shooter_id] as Player).show_remote_shot(weapon, origin, ends, left)
+
+
+func _on_server_punch(puncher: Player, hit: Dictionary) -> void:
+	if _stats != null:
+		_stats.punch(puncher, hit)
 
 
 ## Server: relay a punch that landed to everyone except the puncher, who already showed it (prediction).
@@ -674,6 +701,8 @@ func server_oink(id: int, fart: bool) -> void:
 	if now - float(_last_oink.get(id, -1000.0)) < OINK_COOLDOWN - 0.15:  # some slack for network jitter
 		return
 	_last_oink[id] = now
+	if _stats != null:
+		_stats.oink(players[id], fart)
 	for peer in _ready_peers:
 		if peer != id:
 			_oink.rpc_id(peer, id, fart)
@@ -706,6 +735,12 @@ func _player_died(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	_apply_death(victim_id, killer_id, weapon, head, delay)
 
 
+## A punch in the kill feed: by the killer's arms.
+func _melee_name(killer_id: int) -> String:
+	var killer: Player = players.get(killer_id)
+	return WeaponSim.PIG_ARMS_NAME if killer != null and killer.build.has(PartDB.PIG_ARMS) else WeaponSim.MELEE_NAME
+
+
 func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay: float) -> void:
 	if not players.has(victim_id):
 		return
@@ -717,14 +752,16 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	if killer_name != "":
 		var killer: Player = players[killer_id]
 		from = killer.global_position + killer.body_up() * Player.STAND_EYE
+	victim.set_bomb_armed(false)
 	victim.die(killer_name, delay, from, head)
 	if kill_cam != null and victim.is_local and killer_name != "":
 		kill_cam.start(killer_id)
 	if hud:
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
-				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else
+				(_melee_name(killer_id) if weapon == WeaponSim.MELEE else
 				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else
+				WeaponSim.BOMB_NAME if weapon == WeaponSim.BOMB else
 				WeaponSim.CMP_NAME if weapon == WeaponSim.CMP else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 

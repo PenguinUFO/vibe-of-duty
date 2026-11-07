@@ -56,6 +56,7 @@ const PRESENT_AT := Vector3(0.0, 0.18, -0.26)     # ...the middle between the ha
 ## The "Гренадир"'s chest cannon (GrenadeCannon): on the breastbone, in the chest frame (Player.GRENADE_CHEST is its
 ## height standing). Launching, the pig spreads its arms and pushes the chest out (grenade_curve).
 const CANNON_AT := Vector3(0.0, 0.27, -0.13)
+const BOMB_AT := Vector3(0.0, 0.14, -0.085)  # the "Хрях-бабах"'s bomb (ChestBomb), under the cannon's place
 const CHEST_OUT := 0.035             # m the chest (and the cannon) pushes forward
 const ARM_OUT := Vector3(-0.42, -0.12, -0.12)  # chest frame: the free left hoof thrown out from the left shoulder
 ## Akimbo (left_weapon): a gun in each hoof, arms out in front, each palm here from its shoulder (aim frame) - straight
@@ -99,7 +100,7 @@ const SKIN := Color(0.6, 0.45, 0.41)    # weathered, dirty pig skin: head, neck,
 const SNOUT := Color(0.5, 0.34, 0.32)   # snout and ears, a shade darker than the skin
 const HOOF := Color(0.36, 0.3, 0.26)   # weathered horn: hands and feet are cloven hooves; light enough for the dark gun
 const VISOR := Color(0.03, 0.025, 0.02) # eyes and nostrils
-const CHIP := Color(0.1, 0.105, 0.11)    # the "Инженер"'s plate (set_chip): dark metal
+const CHIP := Color(0.1, 0.105, 0.11)    # the "Свинжинер"'s plate (set_chip): dark metal
 const CHIP_SIZE := Vector3(0.064, 0.046, 0.012)
 ## The chip's wires sticking out of it: colour and bend points, in the plate's frame (z out of the head, -x toward
 ## the ear).
@@ -109,6 +110,12 @@ const CHIP_WIRES := [
 	[Color(0.6, 0.5, 0.1), [Vector3(-0.012, -0.014, 0.006), Vector3(-0.016, -0.02, 0.024), Vector3(-0.04, -0.044, 0.022)]],
 ]
 const CHIP_AT := Vector3(0.085, 0.045, -0.06)  # head frame: between the right ear and the right eye
+## The "Руки-Хрюки" (set_cyber_arm): the whole arm is a machine; the player's colour stays as a band at the shoulder.
+const CYBER_STEEL := Color(0.3, 0.31, 0.32)
+const CYBER_DARK := Color(0.08, 0.085, 0.09)   # joints, seams
+const CYBER_ROD := Color(0.5, 0.51, 0.52)      # the bright metal of a piston
+const CYBER_TUBES: Array[float] = [0.028, 0.021, 0.015]  # radii of the piston's stages, from the forearm to the hoof
+const CYBER_PUNCH := 0.3                      # m the piston pushes the hoof out at a punch (only the look: the reach is the fan's)
 ## The "ЧМП"'s gun (set_eye_gun): in the left eye socket (head frame, -Z forward), where the eye was; its muzzle.
 const EYE_GUN_AT := Vector3(-0.042, 0.035, -0.098)
 const EYE_GUN_LENGTH := 0.05
@@ -183,6 +190,7 @@ var _jolt := 0.0                    # torso turn of a hit (rad about the vertica
 var _jolt_v := 0.0
 var _ragdoll: Ragdoll
 var _cannon: GrenadeCannon          # the "Гренадир"'s (set_cannon), null without it
+var _bomb: ChestBomb                # the "Хрях-бабах"'s (set_bomb), null without it
 var _ragdoll_parts: Array = []      # [part, frame index, relative transform] for the rigid parts
 
 
@@ -244,7 +252,13 @@ static func make_head(parent: Node3D) -> MeshInstance3D:
 	return head
 
 
-## The "Инженер"'s chip (PartDB.ENGINEER): a dark metal plate on the head between the right ear and the right eye,
+## The "Руки-Хрюки" (PartDB.PIG_ARMS): both arms.
+func set_cyber_arms(on: bool) -> void:
+	set_cyber_arm(_right_arm, on)
+	set_cyber_arm(_left_arm, on)
+
+
+## The "Свинжинер"'s chip (PartDB.ENGINEER): a dark metal plate on the head between the right ear and the right eye,
 ## wires sticking out of it.
 func set_chip(on: bool) -> void:
 	var head: Node3D = _parts["Head"]
@@ -373,6 +387,23 @@ func set_cannon(on: bool, loaded := true) -> void:
 		_cannon = null
 	if _cannon != null:
 		_cannon.loaded = loaded
+
+
+## The "Хрях-бабах"'s bomb (PartDB.BOMB), placed with the torso every pose.
+func set_bomb(on: bool) -> void:
+	if on and _bomb == null:
+		_bomb = ChestBomb.new()
+		_bomb.name = "Bomb"
+		add_child(_bomb)
+	elif not on and _bomb != null:
+		_bomb.free()
+		_bomb = null
+
+
+## Its timer: on from the full fuse, off again.
+func set_bomb_armed(on: bool) -> void:
+	if _bomb != null:
+		_bomb.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
 
 
 ## The cannon's muzzle (world), or the chest when there is none.
@@ -613,6 +644,8 @@ func pose() -> void:
 	if _cannon != null:
 		_cannon.transform = chest * thrust * Transform3D(Basis.IDENTITY, CANNON_AT)
 		_cannon.extend = cannon_curve(grenade)
+	if _bomb != null:
+		_bomb.transform = chest * thrust * Transform3D(Basis.IDENTITY, BOMB_AT)
 	var head := chest * (Vector3(0.0, HEAD_UP, 0.0) + ADS_HEAD * ads)
 	var neck_base := chest * Vector3(0.0, SHOULDER_UP + 0.02, 0.0)
 	_segment(_parts["Neck"], neck_base, head - Vector3(0.0, HEAD_RADIUS * 0.6, 0.0))
@@ -712,6 +745,7 @@ func pose() -> void:
 		left_palm = left_palm.lerp(fist, punch.x)
 		left_fingers = left_fingers.lerp(aim * Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(aim * Vector3.DOWN, punch.y)
+	var piston := piston_out(_left_arm, punch.x)
 	if launch > 0.0:
 		left_palm = left_palm.lerp(shoulder_l + chest.basis * ARM_OUT, launch)
 		left_fingers = left_fingers.lerp(chest.basis * Vector3.LEFT, launch)
@@ -732,7 +766,7 @@ func pose() -> void:
 		left_dir = left_dir.lerp(Vector3.DOWN, mantle)
 	weapon.global_transform = global_transform * weapon_local
 	pose_arm(_right_arm, shoulder_r, right_palm, right_fingers, right_dir, RIGHT_POLE)
-	pose_arm(_left_arm, shoulder_l, left_palm, left_fingers, left_dir, LEFT_POLE)
+	pose_arm(_left_arm, shoulder_l, left_palm, left_fingers, left_dir, LEFT_POLE, piston)
 	var butt := weapon_local * _view_point(BUTT)
 	_joints["gun_butt"] = butt
 	_joints["gun_muzzle"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.0, -0.55))
@@ -783,7 +817,8 @@ func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, 
 ## the killer's position (world; INF if unknown - the body then just slumps backwards); `head_hit`: the head takes
 ## the blow.
 func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := false) -> void:
-	if _joints.is_empty():
+	if _joints.is_empty() or melee >= 0.0:  # the piston goes back in: the arm falls as an arm
+		melee = -1.0
 		pose()
 	var local := _ragdoll_rest_points()
 	var xf := global_transform
@@ -833,6 +868,8 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 			[_parts["FootL"], 2], [_parts["FootR"], 3], [_left_arm["hand"], 4], [_right_arm["hand"], 5]]
 	if _cannon != null:
 		rigid.append([_cannon, 0])
+	if _bomb != null:
+		rigid.append([_bomb, 0])
 	for entry in rigid:
 		var part: Node3D = entry[0]
 		_ragdoll_parts.append([part, entry[1], frames[entry[1]].affine_inverse() * part.transform])
@@ -1161,8 +1198,9 @@ static func _view_point(p: Vector3) -> Vector3:
 ## Builds an arm's parts under `parent`; returns the parts for pose_arm. `length_scale` lengthens the bones
 ## (first-person arms are always "too long").
 static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: float = 1.0, thickness: float = 1.0) -> Dictionary:
-	var arm := {"side": side, "upper": UPPER_ARM * length_scale, "fore": FOREARM * length_scale}
-	arm["shoulder"] = _new_part(parent, "Shoulder" + side, _sphere(0.075 * thickness), accent)
+	var arm := {"side": side, "upper": UPPER_ARM * length_scale, "fore": FOREARM * length_scale, "accent": accent,
+			"thickness": thickness, "cyber": false, "toes": []}
+	arm["shoulder"] =_new_part(parent, "Shoulder" + side, _sphere(0.075 * thickness), accent)
 	arm["upper_mesh"] = _new_part(parent, "UpperArm" + side, _limb(0.058 * thickness, 0.046 * thickness, arm["upper"]), SUIT)
 	arm["elbow"] = _new_part(parent, "Elbow" + side, _sphere(0.047 * thickness), SUIT)
 	arm["fore_mesh"] = _new_part(parent, "Forearm" + side, _limb(0.045 * thickness, 0.033 * thickness, arm["fore"]), SUIT)
@@ -1172,17 +1210,70 @@ static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: 
 	arm["hand"] = hand
 	# Hand frame: origin at the wrist, +Y along the fingers, +Z out of the palm. A pig's trotter: a bit of bare skin
 	# out of the sleeve, then two hoof toes curled a little towards the palm, round the grip.
-	_attach(hand, _limb(0.036, 0.032, 0.05), SKIN, Vector3(0.0, 0.025, 0.0))
+	arm["wrist"] = _attach(hand, _limb(0.036, 0.032, 0.05), SKIN, Vector3(0.0, 0.025, 0.0))
 	for s in [-1.0, 1.0]:
 		var toe := _attach(hand, _limb(0.024, 0.013, 0.07), HOOF, Vector3(0.019 * s, 0.08, 0.008))
 		toe.rotation = Vector3(0.35, 0.0, -0.08 * s)  # curled in, the two toes splayed apart (the cleft)
 		toe.scale = Vector3(1.0, 1.0, 1.3)  # a bit deeper than wide, like a hoof
+		arm["toes"].append(toe)
 	return arm
 
 
+## The "Руки-Хрюки" on an arm of make_arm: the same shapes in steel, seams and a hydraulic line on them, and the
+## piston (pose_arm), folded away until a punch. Shared with the first-person arms.
+static func set_cyber_arm(arm: Dictionary, on: bool) -> void:
+	if arm["cyber"] == on:
+		return
+	arm["cyber"] = on
+	if not arm.has("details"):
+		_build_cyber_arm(arm)
+	(arm["shoulder"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else arm["accent"])
+	(arm["upper_mesh"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else SUIT)
+	(arm["elbow"] as MeshInstance3D).material_override = _material(CYBER_DARK if on else SUIT)
+	(arm["fore_mesh"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else SUIT)
+	(arm["wrist"] as MeshInstance3D).material_override = _material(CYBER_DARK if on else SKIN)
+	for toe: MeshInstance3D in arm["toes"]:
+		toe.material_override = _material(CYBER_STEEL if on else HOOF)
+	for detail: Node3D in arm["details"]:
+		detail.visible = on
+
+
+static func _build_cyber_arm(arm: Dictionary) -> void:
+	var thick: float = arm["thickness"]
+	var upper: float = arm["upper"]
+	var fore: float = arm["fore"]
+	var upper_mesh: Node3D = arm["upper_mesh"]
+	var fore_mesh: Node3D = arm["fore_mesh"]
+	var details: Array[Node3D] = [
+		_attach(upper_mesh, _limb(0.06 * thick, 0.058 * thick, 0.035), arm["accent"], Vector3(0.0, -upper * 0.3, 0.0)),
+		_attach(upper_mesh, _limb(0.055 * thick, 0.055 * thick, 0.012), CYBER_DARK, Vector3(0.0, upper * 0.1, 0.0)),
+		_attach(fore_mesh, _limb(0.047 * thick, 0.047 * thick, 0.012), CYBER_DARK, Vector3(0.0, -fore * 0.2, 0.0)),
+		_attach(fore_mesh, _limb(0.04 * thick, 0.04 * thick, 0.012), CYBER_DARK, Vector3(0.0, fore * 0.2, 0.0)),
+		_attach(fore_mesh, _limb(0.038 * thick, 0.04 * thick, 0.03), CYBER_DARK, Vector3(0.0, fore * 0.5 - 0.01, 0.0)),
+		_attach(fore_mesh, _limb(0.008 * thick, 0.008 * thick, fore * 0.7), CYBER_ROD, Vector3(0.047 * thick, 0.0, 0.0)),
+	]
+	var parent := (arm["hand"] as Node3D).get_parent()
+	var tubes: Array[MeshInstance3D] = []
+	for i in CYBER_TUBES.size():
+		var r := CYBER_TUBES[i] * thick
+		var tube := _new_part(parent, "Piston%d%s" % [i, arm["side"]], _limb(r, r, 1.0), CYBER_ROD if i % 2 == 0 else CYBER_STEEL)
+		tube.visible = false
+		tubes.append(tube)
+	arm["details"] = details
+	arm["tubes"] = tubes
+
+
+## How far the piston of `arm` pushes the hoof: as far as the punch is out (`out`, punch_curve's x); 0 while the hoof
+## is still pulled back, and on a plain arm. Shared with the first-person arms.
+static func piston_out(arm: Dictionary, out: float) -> float:
+	return CYBER_PUNCH * clampf(out, 0.0, 1.0) if arm["cyber"] else 0.0
+
+
 ## Poses an arm (all in the parent's space): two-bone IK from `shoulder` so the palm reaches `palm`, then the hand
-## turns so its fingers run along `fingers` with the palm facing `palm_dir`; the elbow points towards `pole`.
-static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers: Vector3, palm_dir: Vector3, pole: Vector3) -> void:
+## turns so its fingers run along `fingers` with the palm facing `palm_dir`; the elbow points towards `pole`. `piston`:
+## m the "Руки-Хрюки" push the hand on along the fingers, out of the forearm.
+static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers: Vector3, palm_dir: Vector3, pole: Vector3,
+		piston := 0.0) -> void:
 	var f := fingers.normalized()
 	var p := (palm_dir - f * palm_dir.dot(f)).normalized()
 	var wrist := palm - f * WRIST_TO_PALM
@@ -1193,7 +1284,16 @@ static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers:
 	_place(arm["elbow"], Transform3D(Basis.IDENTITY, elbow))
 	_segment(arm["fore_mesh"], elbow, reached)
 	var hand: Node3D = arm["hand"]
-	hand.transform = Transform3D(Basis(f.cross(p).normalized(), f, p), reached)
+	hand.transform = Transform3D(Basis(f.cross(p).normalized(), f, p), reached + f * piston)
+	if arm.has("tubes"):
+		var tubes: Array[MeshInstance3D] = arm["tubes"]
+		var stage := piston / tubes.size()
+		for i in tubes.size():
+			var tube := tubes[i]
+			tube.visible = piston > 0.01
+			if tube.visible:
+				tube.scale.y = stage + 0.03  # the stages overlap, and the first starts inside the forearm
+				_segment(tube, reached + f * (stage * i - 0.03), reached + f * stage * (i + 1))
 
 
 ## Middle joint of a two-bone chain from `root` towards `target` (clamped to reach), bending towards `pole`.

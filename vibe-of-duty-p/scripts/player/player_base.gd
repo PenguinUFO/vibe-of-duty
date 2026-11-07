@@ -75,10 +75,11 @@ const STATE_ADS := 128
 const STATE_MANTLING := 256
 const STATE_MELEE := 512
 const STATE_AKIMBO := 16384  # the akimbo's left gun is in the hand (above the weapon index's bits)
-## Hoof punch: ray directions as (yaw, pitch) offsets from the view, middle first. At the 2 m reach the outer ones are
-## ~0.5 m to the side and ~0.45 m lower (a crouching or sliding target).
-const MELEE_FAN: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.13, 0.0), Vector2(-0.13, 0.0), Vector2(0.0, -0.23),
-		Vector2(0.26, 0.0), Vector2(-0.26, 0.0), Vector2(0.13, -0.23), Vector2(-0.13, -0.23)]
+## Hoof punch: ray directions as (yaw, pitch) offsets from the view, middle first. At the 0.9 m reach the outer ones are
+## ~0.14 m to the side and ~0.12 m lower (a crouching or sliding target).
+const MELEE_FAN: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.075, 0.0), Vector2(-0.075, 0.0), Vector2(0.0, -0.13),
+		Vector2(0.15, 0.0), Vector2(-0.15, 0.0), Vector2(0.075, -0.13), Vector2(-0.075, -0.13)]
+const NEAR_RADIUS := 1.5  # m from the eyes to the bullet's path: a near miss (bullet_near, MatchStats near_in/near_out)
 const MAX_HEALTH := 150  # kid mode: more (Settings.kid_health), up to KID_HEALTH_MAX
 const KID_HEALTH_MAX := 600
 const BACK_FULL_ANGLE := deg_to_rad(135.0)  # kid mode: shots from this far off the view get the full back_damage
@@ -96,6 +97,8 @@ const CORRECTION_SNAP_DISTANCE := 2.0  # m; larger errors are shown instantly
 
 ## Server only: a hoof punch landed on a player or target at `pos` (NetWorld relays it for the cosmetics).
 signal server_melee(player: Player, pos: Vector3)
+## Server only: a punch's blow, landed or not (`hit`: PlayerWeapons._melee_fan) - the statistics.
+signal server_punch(player: Player, hit: Dictionary)
 ## Server only: a shot was fired. `hits` = [{player_id, zone, pos}] (NetWorld relays it; damage is applied separately).
 ## `left`: the akimbo's left gun.
 signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVector3Array, hits: Array, left: bool)
@@ -132,7 +135,7 @@ var _slide_speed := 0.0
 var _slide_time := 0.0
 var _slide_cooldown := 0.0
 var _prev_crouch := false
-var _air_jumps := 0  # jumps made since the floor (the "Реактивные копыта": PartDB mods "air_jumps")
+var _air_jumps := 0  # jumps made since the floor (the "Прыг-Прыг": PartDB mods "air_jumps")
 var _prev_on_floor := true
 var _prev_vy := 0.0
 var _step_distance := 0.0
@@ -180,6 +183,9 @@ var wanted_build: Array = PartDB.default_build()  # server: what the player pick
 var back_damage := 1.0          # kid mode: damage multiplier for shots from behind (damage_mult_from)
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn
+var bomb_armed := false     # the "Хрях-бабах" is counting down (Grenades tells every machine)
+var last_attacker := 0      # server: peer id of the last player who hurt this one...
+var last_hit_ms := 0        # ...and when (Time.get_ticks_msec)
 var _regen_wait := 0.0      # server: seconds until health starts coming back
 var _regen_carry := 0.0     # server: fraction of a health point regenerated but not yet added
 var killed_by := ""         # local HUD: who killed us
@@ -190,6 +196,9 @@ var head_hits_total := 0
 var dry_total := 0       # server, for MatchStats: trigger pulls with no rounds left at all
 var bags_total := 0      # ammo bags picked up
 var healed_total := 0    # health regenerated or eaten from bags
+var jumps_total := 0     # jumps off the ground (MatchStats reads the server's; a client's counts replays too)
+var air_jumps_total := 0  # jumps in the air (the "Прыг-Прыг")
+var slides_total := 0    # slides started
 var judge_rewind_ms := 0.0  # how far back in time the last shot / punch was judged (LagComp)
 var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
 var _space: ViewmodelSpace  # first person: the gun's and the arms' own field of view
@@ -197,11 +206,13 @@ var _view: WeaponView
 var _left_view: WeaponView  # first person: the akimbo's left gun (WeaponView.mirrored), shown while it is in the hand
 var _arms: FirstPersonArms
 var _cannon_view: GrenadeCannon  # first person: the chest cannon, seen only while launching
+var _bomb_view: ChestBomb  # first person: the "Хрях-бабах", seen only while it counts
 var _crosshair: Crosshair
 var _scope: ScopeOverlay  # looking through a scope (PSO)
 var _ammo_hud: HudAmmo
 var _left_ammo_hud: HudAmmo  # the akimbo's left gun (no reserve: it is never reloaded)
 var _health_hud: HudHealth
+var _augs_hud: HudAugs
 var _damage_dirs: DamageIndicator
 var _hurt_rect: ColorRect  # HURT_SHADER vignette
 var _death_label: Label

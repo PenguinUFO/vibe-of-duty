@@ -17,15 +17,17 @@ var _file: FileAccess
 var _t0 := 0           # ms (ticks clock) when the file was opened
 var _match := 0        # number of the match in this file, from 1
 var _match_start := 0  # ms
-# peer_id -> {player, p (name), start, variant, kills, shots, hits, head, dmg_out, dmg_in, and the player's counters at
+# peer_id -> {player, p (name), start, variant, kills, shots, hits, head, dmg_out, dmg_in, near_out, near_in, and the player's counters at
 # the spawn: healed0, bags0, dry0; fight (ms of the last hit either way, or the spawn), contact (ms of the first hit,
-# -1: none yet), calm (ms more than CALM_GAP away from any hit)}
+# -1: none yet), calm (ms more than CALM_GAP away from any hit), moves (per way of moving, _move: t in ms, and
+# bullets only: shots, hits, dmg_out, dmg_in, hits_in, near_in), top_speed, fast (ms past a sprint, not sliding)}
 var _lives := {}
 var _engaged := {}     # victim peer_id -> {attacker peer_id -> {first, hits, head, dmg, angle}}
 var _heal_at := {}     # victim peer_id -> their healed_total when the engagement began
 var _bursts := {}      # peer_id -> {start, last, shots}
 var _died_at := {}     # peer_id -> ms of their last death
 var _last_pos := -1000000  # ms of the last "pos" line
+var _last_tick := 0   # ms of the last tick of a match (time spent in each way of moving)
 
 
 ## Opens a new file and writes the session line: build version, the weapons.cfg in play (its hash: balance changes
@@ -106,14 +108,19 @@ func left(player: Player) -> void:
 func build_changed(player: Player, was: Array) -> void:
 	var died: int = _died_at.get(player.peer_id, -1)
 	_write({"e": "build", "m": _match, "p": player.player_name, "w": PartDB.variant_name(player.wanted_build),
-			"was": PartDB.variant_name(was), "alive": player.alive,
+			"was": PartDB.variant_name(was), "build": player.wanted_build, "was_build": was, "alive": player.alive,
 			"dead_for": (_now() - died) / 1000.0 if not player.alive and died >= 0 else null})
 
 
 ## Every server tick: every POS_EVERY s of a match, where everybody alive is.
 func tick(players: Dictionary) -> void:
 	var now := _now()
-	if Game.state != Game.State.PLAYING or now - _last_pos < POS_EVERY * 1000.0:
+	if Game.state != Game.State.PLAYING:
+		_last_tick = now
+		return
+	_moved(now - _last_tick)
+	_last_tick = now
+	if now - _last_pos < POS_EVERY * 1000.0:
 		return
 	_last_pos = now
 	var at := {}
@@ -132,8 +139,11 @@ func spawned(player: Player, spot: Dictionary) -> void:
 		_end_life(player.peer_id, "match")
 	_lives[player.peer_id] = {"player": player, "p": player.player_name, "start": _now(),
 			"variant": PartDB.variant_name(player.build), "kills": 0, "shots": 0, "hits": 0, "head": 0, "dmg_out": 0,
-			"dmg_in": 0, "healed0": player.healed_total, "bags0": player.bags_total, "dry0": player.dry_total,
-			"fight": _now(), "contact": -1, "calm": 0}
+			"dmg_in": 0, "near_out": 0, "near_in": 0, "healed0": player.healed_total, "bags0": player.bags_total, "dry0": player.dry_total,
+			"fight": _now(), "contact": -1, "calm": 0, "punches": 0, "punch_hits": 0, "grenades": 0, "bombs": 0,
+			"cmp_shots": 0, "cmp_hits": 0, "moves": {}, "top_speed": 0.0, "fast": 0, "oinks": 0, "farts": 0,
+			"jumps0": player.jumps_total, "air_jumps0": player.air_jumps_total, "slides0": player.slides_total,
+			"vaults0": player.mantle_count}
 	_engaged.erase(player.peer_id)
 	_heal_at.erase(player.peer_id)
 	# Damage they did in their last life stays on its victims, but as somebody else's (dmg_others): a kill in this
@@ -150,7 +160,7 @@ func spawned(player: Player, spot: Dictionary) -> void:
 			"ping": _ping(player)})
 
 
-func shot(shooter: Player, hits: Array) -> void:
+func shot(shooter: Player, weapon: int, hits: Array) -> void:
 	var now := _now()
 	var burst: Dictionary = _bursts.get_or_add(shooter.peer_id, {"start": now, "last": -1e9, "shots": 0})
 	if now - int(burst["last"]) > BURST_GAP * 1000.0:
@@ -164,6 +174,90 @@ func shot(shooter: Player, hits: Array) -> void:
 		# Per shot, not per pellet: a shotgun blast that lands counts once (accuracy stays <= 100%).
 		life["hits"] += 1 if not hits.is_empty() else 0
 		life["head"] += 1 if hits.any(func(hit): return hit["zone"] == "head") else 0
+		var moves := _moves_of(life, shooter)
+		moves["shots"] += 1
+		moves["hits"] += 0 if hits.is_empty() else 1
+		if weapon == WeaponSim.CMP:
+			life["cmp_shots"] += 1
+			life["cmp_hits"] += 0 if hits.is_empty() else 1
+
+
+## An augmentation's button did something: "grenade" (launched), "bomb" (armed), "bomb_out" (its bomber died first).
+## How far the nearest living player was: did they use it on somebody.
+func augment_used(player: Player, what: String) -> void:
+	var life: Dictionary = _lives.get(player.peer_id, {})
+	if not life.is_empty() and life.has(what + "s"):
+		life[what + "s"] += 1
+	var nearest := _nearest(player)
+	_write({"e": "aug", "m": _match, "p": player.player_name, "w": _variant(player), "use": what,
+			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
+
+
+## The player oinked (F), `fart`: it came out as a fart. How far the nearest living player was: who could hear it.
+func oink(player: Player, fart: bool) -> void:
+	var life: Dictionary = _lives.get(player.peer_id, {})
+	if not life.is_empty():
+		life["farts" if fart else "oinks"] += 1
+	var nearest := _nearest(player)
+	_write({"e": "oink", "m": _match, "p": player.player_name, "w": _variant(player), "fart": fart,
+			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
+
+
+## The akimbo's left gun left the hand with `rounds` still in it: 0 - emptied, more - R threw it away for a reload.
+## When in the life, how the right one stood, was it in a fight (a hit either way or the spawn within CALM_GAP).
+func akimbo_drop(player: Player, rounds: int) -> void:
+	var now := _now()
+	var life: Dictionary = _lives.get(player.peer_id, {})
+	var weapons := player.weapons
+	var nearest := _nearest(player)
+	_write({"e": "akimbo_drop", "m": _match, "p": player.player_name, "w": _variant(player), "rounds": rounds,
+			"size": weapons.current().mag_size, "mag": weapons.mags[weapons.index], "reserve": weapons.reserves[weapons.index],
+			"life_t": (now - int(life["start"])) / 1000.0 if not life.is_empty() else null,
+			"fight": now - int(life["fight"]) <= CALM_GAP * 1000.0 if not life.is_empty() else null,
+			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
+
+
+## Damage the player did to themselves (their own grenade): `gun` as in "hit".
+func hurt_self(player: Player, hp_before: int, gun: String) -> void:
+	_write({"e": "self_hit", "m": _match, "p": player.player_name, "w": _variant(player), "gun": gun,
+			"dmg": hp_before - player.health, "hp": player.health})
+
+
+## A punch's blow, landed or not (`hit`: PlayerWeapons._melee_fan). `near` and `angle`: the nearest living player -
+## how far off a miss was.
+func punch(puncher: Player, hit: Dictionary) -> void:
+	var victim: Player = hit["player"]
+	var landed: bool = victim != null or hit.get("target") != null
+	var life: Dictionary = _lives.get(puncher.peer_id, {})
+	if not life.is_empty():
+		life["punches"] += 1
+		life["punch_hits"] += 1 if landed else 0
+	var nearest := _nearest(puncher)
+	_write({"e": "punch", "m": _match, "p": puncher.player_name, "w": _variant(puncher),
+			"arms": puncher.build.has(PartDB.PIG_ARMS), "landed": landed, "v": victim.player_name if victim != null else null,
+			"head": hit["zone"] == "head", "near": snappedf(_distance(puncher, nearest), 0.1) if nearest != null else null,
+			"angle": _view_angle(puncher, nearest) if nearest != null else null, "a_state": _state(puncher),
+			"ping": _ping(puncher), "rewind": roundi(puncher.judge_rewind_ms)})
+
+
+## Shots that came close to somebody (Player.bullet_near) and did not hit them: near_out for the shooter, near_in for
+## them. Per shot, like `hits`.
+func near_misses(shooter: Player, origin: Vector3, ends: PackedVector3Array, hits: Array) -> void:
+	var mine: Dictionary = _lives.get(shooter.peer_id, {})
+	for id: int in _lives:
+		var life: Dictionary = _lives[id]
+		var player: Player = life["player"] if is_instance_valid(life["player"]) else null
+		if id == shooter.peer_id or player == null or not player.alive:
+			continue
+		if hits.any(func(hit): return hit["player_id"] == id):
+			continue
+		for end in ends:
+			if player.bullet_near(origin, end):
+				life["near_in"] += 1
+				_moves_of(life, player)["near_in"] += 1
+				if not mine.is_empty():
+					mine["near_out"] += 1
+				break
 
 
 ## Damage the victim took (`hp_before` - their health now), with the state of both at that moment. The attacker's
@@ -181,12 +275,19 @@ func damaged(attacker: Player, victim: Player, hp_before: int, head: bool, weapo
 	mine["hits"] += 1
 	mine["head"] += 1 if head else 0
 	mine["dmg"] += amount
+	var bullet := weapon >= 0 or weapon == WeaponSim.CMP
 	if _lives.has(attacker.peer_id):
 		_lives[attacker.peer_id]["dmg_out"] += amount
 		_fought(_lives[attacker.peer_id], now, true)
+		if bullet:
+			_moves_of(_lives[attacker.peer_id], attacker)["dmg_out"] += amount
 	if _lives.has(victim.peer_id):
 		_lives[victim.peer_id]["dmg_in"] += amount
 		_fought(_lives[victim.peer_id], now, true)
+		if bullet:
+			var moves := _moves_of(_lives[victim.peer_id], victim)
+			moves["dmg_in"] += amount
+			moves["hits_in"] += 1
 	_write({"e": "hit", "m": _match, "a": attacker.player_name, "v": victim.player_name,
 			"aw": _variant(attacker), "vw": _variant(victim), "gun": _weapon_id(attacker, weapon), "dmg": amount,
 			"hp": victim.health, "head": head, "dist": snappedf(_distance(attacker, victim), 0.1),
@@ -229,6 +330,8 @@ func killed(killer: Player, victim: Player, weapon: int, head: bool, cause := ""
 				"v_angle": mine.get("angle"),  # where the victim looked at the killer's first hit
 				"v_hit_first": replied and int(back["first"]) < int(mine["first"]),
 				"v_reply": (now - int(back["first"])) / 1000.0 if replied else null})
+		if cause != "":
+			line["cause"] = cause
 		if _lives.has(killer.peer_id):
 			_lives[killer.peer_id]["kills"] += 1
 	_write(line)
@@ -247,14 +350,24 @@ func _end_life(id: int, reason: String) -> void:
 	var line := {"e": "life", "m": _match, "p": life["p"], "w": life["variant"],
 			"end": reason, "dur": (now - int(life["start"])) / 1000.0, "kills": life["kills"],
 			"shots": life["shots"], "hits": life["hits"], "head": life["head"], "dmg_out": life["dmg_out"],
-			"dmg_in": life["dmg_in"], "calm": int(life["calm"]) / 1000.0,
-			"contact": (int(life["contact"]) - int(life["start"])) / 1000.0 if int(life["contact"]) >= 0 else null}
+			"dmg_in": life["dmg_in"], "near_out": life["near_out"], "near_in": life["near_in"],
+			"calm": int(life["calm"]) / 1000.0, "punches": life["punches"], "punch_hits": life["punch_hits"],
+			"contact":(int(life["contact"]) - int(life["start"])) / 1000.0 if int(life["contact"]) >= 0 else null,
+			"grenades": life["grenades"], "bombs": life["bombs"], "cmp_shots": life["cmp_shots"],
+			"cmp_hits": life["cmp_hits"], "top_speed": snappedf(life["top_speed"], 0.1),
+			"fast": int(life["fast"]) / 1000.0, "moves": life["moves"], "oinks": life["oinks"], "farts": life["farts"]}
+	for way: String in life["moves"]:
+		life["moves"][way]["t"] = int(life["moves"][way]["t"]) / 1000.0
 	var player: Player = life["player"] if is_instance_valid(life["player"]) else null
 	if player != null:
 		var weapons := player.weapons
 		line.merge({"ping": _ping(player), "healed": player.healed_total - int(life["healed0"]),
 				"bags": player.bags_total - int(life["bags0"]), "dry": player.dry_total - int(life["dry0"]),
-				"mag": weapons.mags[weapons.index], "reserve": weapons.reserves[weapons.index]})
+				"mag": weapons.mags[weapons.index], "reserve": weapons.reserves[weapons.index], "left_mag": weapons.left_mag,
+				"jumps": player.jumps_total - int(life["jumps0"]),
+				"air_jumps": player.air_jumps_total - int(life["air_jumps0"]),
+				"slides": player.slides_total - int(life["slides0"]),
+				"vaults": player.mantle_count - int(life["vaults0"])})
 	_write(line)
 
 
@@ -267,6 +380,36 @@ func _fought(life: Dictionary, now: int, hit: bool) -> void:
 			life["contact"] = now
 
 
+## `dt` ms of a match went by: the time in each way of moving, the top speed, the time past a sprint.
+func _moved(dt: int) -> void:
+	for id: int in _lives:
+		var life: Dictionary = _lives[id]
+		var player: Player = life["player"] if is_instance_valid(life["player"]) else null
+		if player == null or not player.alive:
+			continue
+		_moves_of(life, player)["t"] += dt
+		var speed := player.flat_speed()
+		life["top_speed"] = maxf(life["top_speed"], speed)
+		life["fast"] += dt if speed > Player.SPRINT_SPEED and not player.is_sliding else 0
+
+
+## This life's numbers for the way the player moves right now.
+func _moves_of(life: Dictionary, player: Player) -> Dictionary:
+	return life["moves"].get_or_add(_move(player), {"t": 0, "shots": 0, "hits": 0, "dmg_out": 0, "dmg_in": 0,
+			"hits_in": 0, "near_in": 0})
+
+
+## The nearest other living player, null: nobody.
+func _nearest(player: Player) -> Player:
+	var nearest: Player = null
+	for id: int in _lives:
+		var other: Player = _lives[id]["player"] if is_instance_valid(_lives[id]["player"]) else null
+		if other != null and other != player and other.alive \
+				and (nearest == null or _distance(player, other) < _distance(player, nearest)):
+			nearest = other
+	return nearest
+
+
 func _variant(player: Player) -> String:
 	return _lives[player.peer_id]["variant"] if _lives.has(player.peer_id) else PartDB.variant_name(player.build)
 
@@ -276,6 +419,8 @@ static func _weapon_id(player: Player, weapon: int) -> String:
 		return "melee"
 	if weapon == WeaponSim.GRENADE:
 		return "grenade"
+	if weapon == WeaponSim.BOMB:
+		return "bomb"
 	if weapon == WeaponSim.CMP:
 		return "cmp"
 	if weapon < 0:
@@ -311,11 +456,17 @@ static func _distance(a: Player, b: Player) -> float:
 	return a.global_position.distance_to(b.global_position)
 
 
-## What a player was doing: horizontal speed (m/s), sights up, crouched, sliding, sprinting, in the air, reloading.
+## How the player moves: "vault", "slide", "air" or "ground".
+static func _move(p: Player) -> String:
+	return "vault" if p.is_mantling else "slide" if p.is_sliding else "ground" if p.is_on_floor() else "air"
+
+
+## What a player was doing: horizontal speed (m/s), sights up, crouched, sliding, sprinting, in the air, vaulting,
+## reloading.
 static func _state(p: Player) -> Dictionary:
 	return {"speed": snappedf(Vector2(p.velocity.x, p.velocity.z).length(), 0.1), "ads": p.aiming,
 			"crouch": p.is_crouched, "slide": p.is_sliding, "sprint": p.is_sprinting, "air": not p.is_on_floor(),
-			"reload": p.weapons.is_reloading()}
+			"vault": p.is_mantling, "reload": p.weapons.is_reloading()}
 
 
 func _now() -> int:

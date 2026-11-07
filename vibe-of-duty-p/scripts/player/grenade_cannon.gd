@@ -195,7 +195,7 @@ static func _sphere(radius: float) -> SphereMesh:
 	return mesh
 
 
-## Cast iron: dark and sharp, like the "Инженер"'s chip (a soft one goes brown in the build screen's orange rim light).
+## Cast iron: dark and sharp, like the "Свинжинер"'s chip (a soft one goes brown in the build screen's orange rim light).
 static func _metal(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color

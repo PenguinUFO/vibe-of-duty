@@ -3,7 +3,7 @@ extends RefCounted
 ## The parts a build is made of (Docs/LOADOUT.md) and the rules: one part per slot - the weapon, its modules
 ## (from weapons.cfg, WeaponDB), the body and the kit - and BUDGET tokens per build. Players pick a kit (weapons.cfg
 ## [kit.<id>]: a weapon with its modules, owner 2026-10-31); the weapons stay under the hood. The kit's modules can be
-## changed only with the "Инженер" in the head. A build travels as an Array of part ids in SLOTS order; anything
+## changed only with the "Свинжинер" in the head. A build travels as an Array of part ids in SLOTS order; anything
 ## invalid (unknown id, wrong slot, a module whose "requires" is missing, over budget) turns into the native parts
 ## (sanitize), so the server never applies a build it did not check.
 
@@ -13,22 +13,25 @@ const WEAPON_SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversi
 ## parts stay (weapons.cfg); dropping a slot from here brings it back. The grip is back for the AUG (2026-11-02); the
 ## MP7's folded grip stays hidden by its module ("hidden" in weapons.cfg).
 const HIDDEN_SLOTS: Array[String] = ["muzzle", "ammo"]
-## Slots the editor shows and the saved builds keep, but no match plays yet (owner, 2026-10-31: the organs, buttons
-## only): sanitize puts the native part in unless asked to keep them. Their price counts in the editor's tokens.
+## Slots the editor shows and the saved builds keep, but no match plays yet (owner, 2026-10-31: the organs):
+## sanitize puts the native part in unless asked to keep them. Their price counts in the editor's tokens.
 const INERT_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 ## Parts of the INERT_SLOTS a match does play (owner, 2026-10-31).
 const ENGINEER := "engineer"  # the head's chip: with it the kit's modules can be changed (free)
 const GRENADIER := "grenadier"  # the chest cannon: one grenade a life (Docs/LOADOUT.md, "Гренадир")
-const BUNNY := "bunny"  # the legs: bunny hopping (Docs/LOADOUT.md, "Зайчик")
-const JET_HOOVES := "jet_hooves"  # the legs: a double jump (Docs/LOADOUT.md, "Реактивные копыта")
+const BOMB := "bomb"  # the chest: a blast on a button (Docs/LOADOUT.md, "Хрях-бабах")
+const BUNNY := "bunny"  # the legs: bunny hopping (Docs/LOADOUT.md, "Прыг-скок")
+const JET_HOOVES := "jet_hooves"  # the legs: a double jump (Docs/LOADOUT.md, "Прыг-Прыг")
 const SKULL_PISTOL := "skull_pistol"  # the head: the "ЧМП" (Docs/LOADOUT.md, "Черепно-мозговой пистолет")
-const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER, BUNNY, JET_HOOVES, SKULL_PISTOL]
+const PIG_ARMS := "pig_arms"  # the hands: a longer, wider punch (Docs/LOADOUT.md, "Акимбо и «Руки-Хрюки»")
+const ACTIVE_PARTS: Array[String] = [ENGINEER, GRENADIER, BOMB, BUNNY, JET_HOOVES, SKULL_PISTOL, PIG_ARMS]
 const BODY_SLOTS: Array[String] = ["hands", "head", "chest", "belly", "legs"]
 const SLOTS: Array[String] = ["weapon", "barrel", "suppressor", "conversion", "stock", "mag", "grip", "muzzle", "sight", "ammo",
 		"akimbo", "hands", "head", "chest", "belly", "legs", "kit"]
 const SLOT_NAMES := {"weapon": "Оружие", "barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "akimbo": "Акимбо", "hands": "Руки",
-		"head": "Голова", "chest": "Грудь", "belly": "Брюхо", "legs": "Ноги", "kit": "Комплектация"}
+		"head": "Голова", "chest": "Тело", "belly": "Брюхо", "legs": "Ноги", "kit": "Комплектация"}
+const NONE := "----"  # a body slot's native part: no augmentation (owner, 2026-11-05)
 const BUDGET := 10
 ## Owner, 2026-10-23: everything costs 0 for now (balance testing). The prices stay in the data (PartDef.cost,
 ## weapons.cfg): false brings them back.
@@ -48,9 +51,11 @@ const DEFAULT_MODS := {
 	"spread_hip_mult": 1.0,
 	"spread_ads_mult": 1.0,
 	"melee_damage_mult": 1.0,   # hoof punch damage
+	"melee_range_add": 0.0,     # m on top of WeaponSim.MELEE_RANGE
+	"melee_pad": 0.0,           # m on top of WeaponSim.MELEE_PAD
 	"bag_heal": 0.0,            # HP an ammo bag heals; > 0 also means it gives no ammo (server)
-	"bunny_hop": 0.0,           # > 0: hops and air strafing keep and build speed (the "Зайчик"); else not past a run
-	"air_jumps": 0.0,           # jumps in the air before the floor again (the "Реактивные копыта": a double jump)
+	"bunny_hop": 0.0,           # > 0: hops and air strafing keep and build speed (the "Прыг-скок"); else not past a run
+	"air_jumps": 0.0,           # jumps in the air before the floor again (the "Прыг-Прыг": a double jump)
 }
 
 static var _parts: Array[PartDef] = []
@@ -78,13 +83,9 @@ static func for_slot(slot: String, weapon := "") -> Array[PartDef]:
 
 
 ## The parts `slot` offers in a build with this weapon (an id): its modules, or the body parts / weapons. The kits go
-## alphabetically (owner, 2026-11-05); for_slot keeps weapons.cfg's order, whose first kit is a new build's.
+## in weapons.cfg's order: by the kind of weapon (owner, 2026-11-05).
 static func options(slot: String, weapon: String) -> Array[PartDef]:
-	var list := for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
-	if slot == "kit":
-		list.sort_custom(func(a: PartDef, b: PartDef) -> bool:
-			return a.display_name.naturalnocasecmp_to(b.display_name) < 0)
-	return list
+	return for_slot(slot, weapon if WEAPON_SLOTS.has(slot) and slot != "weapon" else "")
 
 
 ## The native build: no organs, no implants, the kit `kit` (an id; the first kit if it is not one) - its weapon with
@@ -121,7 +122,7 @@ static func kit_of(parts: Array) -> PartDef:
 	return kit if kit != null and kit.slot == "kit" else for_slot("kit")[0]
 
 
-## True if the build's modules are not its kit's (changed with the "Инженер").
+## True if the build's modules are not its kit's (changed with the "Свинжинер").
 static func is_custom(parts: Array) -> bool:
 	var kit := default_build(kit_of(parts).id)
 	for i in range(1, WEAPON_SLOTS.size()):
@@ -152,7 +153,8 @@ static func price(part: PartDef) -> int:
 ## A valid build from anything: the kit's weapon with the kit's modules - other modules only with the ENGINEER in
 ## (of that weapon, not hidden) - and the body; wrong or missing parts become native, so do the HIDDEN_SLOTS and the
 ## INERT_SLOTS (but the ACTIVE_PARTS) unless `keep_inert` (a saved build keeps them, a played one does not), modules
-## whose "requires" is not in the build and the slot another part "excludes" (the AK's suppressor: the muzzle); over
+## whose "requires" is not in the build, the slot another part "excludes" (the AK's suppressor: the muzzle) and the part
+## another one "forces" (the akimbo's folded stock); over
 ## budget, the whole build is the kit's native one. A build without a kit (saved before them) gets kit_for_weapon.
 ## Each id goes to its part's slot, so the order and missing slots do not matter (--build=kit.ak,engineer).
 static func sanitize(parts: Variant, keep_inert := false) -> Array:
@@ -180,21 +182,29 @@ static func sanitize(parts: Variant, keep_inert := false) -> Array:
 			if part != null and part.slot != "weapon" and WEAPON_SLOTS.has(part.slot) and part.weapon == clean[0] \
 					and not part.slot in HIDDEN_SLOTS:
 				clean[SLOTS.find(part.slot)] = part.id
+	_drop_unmet(clean)  # first: a module that goes must not leave its "excludes" and "forces" behind
 	for i in SLOTS.size():
 		var part := get_part(clean[i])
 		if part != null and part.excludes != "":
 			for slot in part.excludes.split(","):
 				var kept := options(slot, clean[0])
 				clean[SLOTS.find(slot)] = kept[0].id if not kept.is_empty() else ""
+		if part != null and part.forces != "":
+			clean[SLOTS.find(get_part(part.forces).slot)] = part.forces
+	_drop_unmet(clean)
+	return clean if cost(clean) <= BUDGET else default_build(kit)
+
+
+## Modules whose "requires" is not in the build go back to their slot's default.
+static func _drop_unmet(clean: Array) -> void:
 	for i in SLOTS.size():
 		var part := get_part(clean[i])
 		if part != null and part.requires != "" and not clean.has(part.requires):
 			clean[i] = options(SLOTS[i], clean[0])[0].id
-	return clean if cost(clean) <= BUDGET else default_build(kit)
 
 
 ## The weapon as a (sanitized) build plays it, for statistics (MatchStats): its kit and the modules that are not the
-## kit's (the "Инженер"), without the weapon prefix - "ak", "ak+suppressor.on".
+## kit's (the "Свинжинер"), without the weapon prefix - "ak", "ak+suppressor.on".
 static func variant_name(parts: Array) -> String:
 	var kit := kit_of(parts)
 	var native := default_build(kit.id)
@@ -233,17 +243,20 @@ static func _build() -> void:
 	_weapons_version = WeaponDB.version
 	# The body: the native parts and the two augmentations - the other organs are gone (owner, 2026-11-02).
 	_parts.assign([
-		PartDef.make("hoof", "hands", 0, "Копыто", "Родное. Удар — 75 урона."),
-		PartDef.make("head", "head", 0, "Ничего", "Родная."),  # the native organs: "Ничего" (owner, 2026-11-02)
-		PartDef.make(ENGINEER, "head", 0, "Инженер", "Чип у правого уха: модули комплектации можно менять."),
+		PartDef.make("hoof", "hands", 0, NONE, ""),
+		PartDef.make(PIG_ARMS, "hands", 0, "Руки-Хрюки", "Свино-сила в твоих руках",
+				{"melee_range_add": 0.8, "melee_pad": 0.1}),
+		PartDef.make("head", "head", 0, NONE, ""),
+		PartDef.make(ENGINEER, "head", 0, "Свинжинер", "Я сделаю свою пушку. С блэк-джеком и модулями."),
 		PartDef.make(SKULL_PISTOL, "head", 0, "Черепно-мозговой пистолет",
-				"Ствол вместо левого глаза: кончились патроны — стреляет он. Бесконечный, слабый, только от бедра."),
-		PartDef.make("chest", "chest", 0, "Ничего", "Родное."),
-		PartDef.make(GRENADIER, "chest", 0, "Гренадир", "Пушка в груди: одна граната за жизнь (G)."),
-		PartDef.make("belly", "belly", 0, "Ничего", "Родное."),
-		PartDef.make("legs", "legs", 0, "Ничего", "Родные."),
-		PartDef.make(BUNNY, "legs", 0, "Зайчик", "Банни-хоп: прыжки и стрейф в воздухе разгоняют.", {"bunny_hop": 1.0}),
-		PartDef.make(JET_HOOVES, "legs", 0, "Реактивные копыта", "Второй прыжок в воздухе.", {"air_jumps": 1.0}),
+				"Если кончились патроны, не бе да"),
+		PartDef.make("chest", "chest", 0, NONE, ""),
+		PartDef.make(GRENADIER, "chest", 0, "Гренадир", "G - значит Gраната"),
+		PartDef.make(BOMB, "chest", 0, "Хрях-бабах", "Хрях-бабах и нет его"),
+		PartDef.make("belly", "belly", 0, NONE, ""),
+		PartDef.make("legs", "legs", 0, NONE, ""),
+		PartDef.make(BUNNY, "legs", 0, "Прыг-скок", "Свиньи летают (очень быстро прыгают и виляют)", {"bunny_hop": 1.0}),
+		PartDef.make(JET_HOOVES, "legs", 0, "Прыг-Прыг", "Прыг а потом еще прыг в воздухе", {"air_jumps": 1.0}),
 	])
 	# The weapons (WeaponDB order: the first is the native one) and their modules, as weapons.cfg lists them (the
 	# first of a slot is its default).
@@ -257,6 +270,7 @@ static func _build() -> void:
 				var part := PartDef.make(module["id"], slot, module["cost"], module["name"], module["info"])
 				part.requires = module["requires"]
 				part.excludes = module["excludes"]
+				part.forces = module["forces"]
 				part.weapon = def.id
 				_parts.append(part)
 	_by_id.clear()

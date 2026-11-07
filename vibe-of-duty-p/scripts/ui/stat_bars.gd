@@ -1,15 +1,15 @@
 class_name StatBars
 extends VBoxContainer
 ## The build editor's weapon stats (BuildPanel, Docs/LOADOUT.md "Экран сборки"): no numbers, solid bars on one scale for
-## every weapon - damage (body hits to kill up close), range (how far it keeps that), accuracy (aimed spread and kick),
-## fire rate, handling (aiming, drawing, running with it) - and on one line the magazine as a number and the reload as a
+## every weapon - damage (body hits to kill up close), fire rate, range (how far it keeps that), accuracy (aimed spread
+## and kick), handling (aiming, drawing, running with it) - and on one line the magazine as a number and the reload as a
 ## ring (full: the fastest). The scale's ends are constants with room to spare, so a new weapon moves no one's bars.
 ## Range goes by the square root (12..60 m, where most guns are, would be a sliver otherwise); accuracy counts the kick
 ## by how fast the next shot comes (a single shot's kick hardly matters).
 ## show_def(current, other): `other` (the module or weapon under the pointer) draws the difference - what it adds in
 ## GAIN, what it takes in LOSS.
 
-const NAMES: Array[String] = ["Урон", "Дальность", "Точность", "Скорострельность", "Маневренность"]
+const NAMES: Array[String] = ["Урон", "Скорострельность", "Дальность", "Точность", "Маневренность"]
 const GAIN := UiTheme.GOOD
 const LOSS := UiTheme.DANGER
 const BAR_HEIGHT := 10.0
@@ -99,16 +99,17 @@ static func scores(def: WeaponDef) -> PackedFloat32Array:
 			+ clampf((def.move_speed_mult - 0.75) / 0.3, 0.0, 1.0)) / 3.0
 	return PackedFloat32Array([
 		clampf(float(KILL_WORST - hits) / float(KILL_WORST - 1), 0.0, 1.0),
+		clampf(rate / RATE_BEST, 0.0, 1.0),
 		sqrt(clampf(keeps / RANGE_BEST, 0.0, 1.0)),
 		_fall(error, 0.0, ERROR_WORST),
-		clampf(rate / RATE_BEST, 0.0, 1.0),
 		handling,
 	])
 
 
-## Body hits to kill a player of the base health at `distance` m (every pellet in).
+## Body hits to kill a player of the base health at `distance` m (every pellet in). Health is whole: a shot's damage
+## is rounded, its pellets together (PlayerHealth).
 static func hits_to_kill(def: WeaponDef, distance: float) -> int:
-	return ceili(PlayerBase.MAX_HEALTH / maxf(def.damage_at(distance) * def.pellets, 0.01))
+	return ceili(PlayerBase.MAX_HEALTH / maxf(roundi(def.damage_at(distance) * def.pellets), 0.01))
 
 
 ## The reload ring, 0..1: the time to fill an empty magazine (a round at a time: each of them).

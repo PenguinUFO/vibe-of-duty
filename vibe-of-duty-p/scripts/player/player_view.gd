@@ -5,6 +5,11 @@ extends PlayerNet
 
 const CANNON_VIEW := Vector3(0.0, -0.42, -0.2)      # camera space: the chest cannon's barrel below the view (hidden)...
 const CANNON_VIEW_OUT := Vector3(0.0, -0.25, -0.22)  # ...and come up into the bottom of it, launching
+const BOMB_VIEW_FOV := 55.0  # the "Хрях-бабах" in first person: its own view, so aiming does not push it off the screen
+const BOMB_VIEW := Vector3(0.0, -0.6, -0.7)      # below the view...
+const BOMB_VIEW_OUT := Vector3(0.0, -0.22, -0.7)  # ...and up into the bottom of it, the timer on the screen
+const BOMB_VIEW_TILT := 0.2  # rad: the timer's top leans away, as on a chest looked down at
+const BOMB_VIEW_RISE := 0.15  # s
 
 ## Right-stick look (the mouse turns the view in _unhandled_input). Slower while aiming, like the mouse.
 ## With the stick (not the mouse) the aim assist slows it down over an enemy and follows a moving one.
@@ -93,11 +98,11 @@ func _build_hud() -> void:
 	_hud.add_child(_ammo_hud)
 
 	_left_ammo_hud = HudAmmo.new()
-	_left_ammo_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_left_ammo_hud.offset_left = 24.0
-	_left_ammo_hud.offset_top = -HudHealth.SIZE.y - 20.0 - 8.0 - HudAmmo.SIZE.y
-	_left_ammo_hud.offset_right = 24.0 + HudAmmo.SIZE.x
-	_left_ammo_hud.offset_bottom = -HudHealth.SIZE.y - 20.0 - 8.0
+	_left_ammo_hud.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_left_ammo_hud.offset_left = -HudAmmo.SIZE.x * 2.0 - 24.0 - 8.0
+	_left_ammo_hud.offset_top = -HudAmmo.SIZE.y - 20.0
+	_left_ammo_hud.offset_right = -HudAmmo.SIZE.x - 24.0 - 8.0
+	_left_ammo_hud.offset_bottom = -20.0
 	_left_ammo_hud.visible = false
 	_hud.add_child(_left_ammo_hud)
 
@@ -108,6 +113,14 @@ func _build_hud() -> void:
 	_health_hud.offset_right = 24.0 + HudHealth.SIZE.x
 	_health_hud.offset_bottom = -20.0
 	_hud.add_child(_health_hud)
+
+	_augs_hud = HudAugs.new()
+	_augs_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_augs_hud.offset_left = 24.0
+	_augs_hud.offset_top = -HudHealth.SIZE.y - 20.0 - HudAugs.GAP - HudAugs.SIZE.y
+	_augs_hud.offset_right = 24.0 + HudAugs.SIZE.x
+	_augs_hud.offset_bottom = -HudHealth.SIZE.y - 20.0 - HudAugs.GAP
+	_hud.add_child(_augs_hud)
 
 	_death_label = _make_hud_label(40)
 	_death_label.set_anchors_preset(Control.PRESET_CENTER)
@@ -126,8 +139,9 @@ func _make_hud_label(font_size: int) -> Label:
 
 
 ## Local player's view: a dip on landing (deeper for a harder fall; the gun jolts too), a light bob in step with
-## the footsteps (Settings.view_bob; almost none while aiming), a short jolt when hit, and the vault (gun lowered,
-## both hands on the ledge, view pitched down). Only the camera moves: aim and shots stay on the look angles.
+## the footsteps (Settings.view_bob; almost none while aiming), a short jolt when hit, and the vault
+## (gun lowered, both hands on the ledge, view pitched down). Only the camera moves: aim and shots stay on the look
+## angles.
 func _update_camera_fx(delta: float, speed: float) -> void:
 	var dt := minf(delta, 0.05)
 	if _land_impact > 0.0:
@@ -212,6 +226,7 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 	pose_cannon_view(_cannon_view, _view.grenade)
 	if _cannon_view != null:
 		_cannon_view.loaded = weapons.grenades > 0
+	pose_bomb_view(_bomb_view, _camera.fov, alive and bomb_armed, delta)
 	_arms.pose()  # the hands follow the gun
 	_space.blur.follow(_view, _camera, weapons.ads)
 
@@ -229,8 +244,11 @@ func _update_hud(speed: float, delta: float) -> void:
 	_crosshair.update_state(px if alive else 0.0, weapons.ads if alive else 1.0,
 			weapons.reload_progress() if alive else -1.0)
 	_ammo_hud.visible = alive
-	_ammo_hud.set_grenade(weapons.grenades > 0)
-	# Akimbo: the left gun's own plate on the left, over the health bar; it goes with the gun.
+	_augs_hud.visible = alive
+	_augs_hud.set_build(build)
+	_augs_hud.set_state(weapons.cmp, weapons.grenades > 0, bomb_armed, _air_jumps < int(mods["air_jumps"]),
+			clampf((speed - SPRINT_SPEED) / SPRINT_SPEED, 0.0, 1.0))
+	# Akimbo: the left gun's own plate just left of the main one; it goes with the gun.
 	_left_ammo_hud.visible = alive and weapons.is_akimbo()
 	_left_ammo_hud.set_state(def.display_name, weapons.left_mag, def.mag_size, HudAmmo.NONE, false)
 	_health_hud.set_health(health, max_health)
@@ -324,9 +342,33 @@ static func pose_cannon_view(cannon: GrenadeCannon, progress: float) -> void:
 	cannon.rotation = Vector3(deg_to_rad(WeaponDB.grenade("loft", 10.0)) - 0.35 * (1.0 - out), 0.0, 0.0)
 
 
+## A "Хрях-бабах" for the first-person view: in a space of its own under `camera` (ViewmodelSpace - the gun's narrows
+## with aiming), hidden until pose_bomb_view brings it up.
+static func make_bomb_view(camera: Camera3D) -> ChestBomb:
+	var space := ViewmodelSpace.new()
+	camera.add_child(space)
+	var bomb := ChestBomb.new()
+	bomb.set_view_only()
+	bomb.visible = false
+	space.add_child(bomb)
+	return bomb
+
+
+## First person: the bomb comes up into the bottom of the view while it counts, the timer turned to the eye - the body
+## is not drawn, and the bomb on it is the only sign that the G went through.
+static func pose_bomb_view(bomb: ChestBomb, camera_fov: float, armed: bool, delta: float) -> void:
+	if bomb == null:
+		return
+	(bomb.get_parent() as ViewmodelSpace).fit(camera_fov, BOMB_VIEW_FOV)
+	bomb.rise = move_toward(bomb.rise, 1.0 if armed else 0.0, delta / BOMB_VIEW_RISE)
+	bomb.visible = bomb.rise > 0.0
+	bomb.position = BOMB_VIEW.lerp(BOMB_VIEW_OUT, bomb.rise)
+	bomb.rotation = Vector3(-BOMB_VIEW_TILT, PI, 0.0)
+
+
 ## The pose as drawn on this machine, for the kill cam (KillCam): [feet position, yaw, aim pitch, crouched, aiming,
 ## alive, weapon index, reload progress (-1: none), sliding, punch progress (-1: none), grenade launch progress (-1: none),
-## the akimbo's left gun in the hand].
+## the akimbo's left gun in the hand, the "Хрях-бабах" counting].
 func drawn_pose() -> Array:
 	var pos := global_position
 	var yaw := body_yaw
@@ -344,7 +386,7 @@ func drawn_pose() -> Array:
 	var grenade := weapons.grenade_progress() if control != Mode.PUPPET else _visual.grenade_progress()
 	var akimbo := weapons.is_akimbo() if control != Mode.PUPPET else _puppet_akimbo
 	return [pos, yaw, pitch, is_crouched, aiming if not is_local else weapons.ads > 0.5, alive, weapons.index, reload,
-			is_sliding, melee, grenade, akimbo]
+			is_sliding, melee, grenade, akimbo, bomb_armed]
 
 
 ## While the kill cam plays, its stand-ins replace everybody's body and its camera the local player's view.

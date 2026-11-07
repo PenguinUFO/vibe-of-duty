@@ -15,10 +15,13 @@ extends Node3D
 
 const DIRECT_HEAD := false   # a direct hit counts as a body hit (no head bonus for a ball)
 const KNOCK_BACK := 0.08     # share of its speed a grenade keeps bouncing back off a player: it drops at their feet
+const BOMB_TICK := 0.25      # s between the beeps of a counting "Хрях-бабах"
 const SIGHT_LIFT := 0.1      # m above the grenade the blast "looks" from (it lies on the floor)
 
 var world: NetWorld
 var _flying := {}            # shooter peer id -> Grenade
+var _bombs := {}             # server: the "Хрях-бабах"s counting down, peer id -> s left
+var _ticks := {}             # every machine: the same, peer id -> s to the next beep
 
 
 # --- Server ------------------------------------------------------------------------------------------
@@ -30,6 +33,8 @@ func server_launch(shooter: Player, origin: Vector3, vel: Vector3) -> void:
 	var grenade := _spawn(shooter.peer_id, origin, vel)
 	grenade.on_flight = _server_flight
 	Game.count("grenades")
+	if world._stats != null:
+		world._stats.augment_used(shooter, "grenade")
 	for peer in world._ready_peers:
 		if peer != shooter.peer_id:
 			_launched.rpc_id(peer, shooter.peer_id, origin, vel)
@@ -37,15 +42,61 @@ func server_launch(shooter: Player, origin: Vector3, vel: Vector3) -> void:
 		shooter.show_remote_grenade(origin, vel)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	_beep_bombs(delta)
 	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
+	for id in _bombs.keys():
+		_bombs[id] -= delta
+		if Game.is_frozen():
+			_bombs.erase(id)
+		elif _bombs[id] <= 0.0:
+			_server_bomb(id)
 	for id in _flying.keys():
 		var grenade = _flying[id]  # untyped: it may have been freed
 		if not is_instance_valid(grenade):
 			_flying.erase(id)
 		elif (grenade as Grenade).age >= (grenade as Grenade).fuse:
 			_server_blast(id, grenade.global_position)
+
+
+## The "Хрях-бабах" (Docs/LOADOUT.md): G starts the timer; the bomber's death before it runs out puts it out. Ends the spawn
+## protection, as a launch does.
+func server_arm_bomb(player: Player) -> void:
+	if _bombs.has(player.peer_id) or Game.is_frozen():
+		return
+	player.spawn_protect = 0
+	_bombs[player.peer_id] = WeaponDB.grenade("bomb_fuse", 1.5)
+	Game.count("bombs")
+	if world._stats != null:
+		world._stats.augment_used(player, "bomb")
+	for peer in world._ready_peers:
+		_bomb_armed.rpc_id(peer, player.peer_id)
+	_show_bomb(player.peer_id)
+
+
+## `id` died (NetWorld._server_kill): their bomb, if it was counting, does not go off.
+func server_cancel_bomb(id: int) -> void:
+	if _bombs.erase(id):
+		Game.count("bombs_cancelled")
+		if world._stats != null and world.players.has(id):
+			world._stats.augment_used(world.players[id], "bomb_out")
+
+
+## The timer ran out: the blast from the bomber's chest, then the bomber.
+func _server_bomb(id: int) -> void:
+	_bombs.erase(id)
+	var bomber: Player = world.players.get(id)
+	if bomber == null or not bomber.alive:
+		return
+	Game.count("bomb_blasts")
+	var pos := bomber.global_position + bomber.body_up() * (Player.GRENADE_CHEST_CROUCH if bomber.is_crouched else Player.GRENADE_CHEST)
+	_hurt_around(bomber, pos, WeaponDB.grenade("bomb_damage", 149.0), true)
+	for peer in world._ready_peers:
+		_exploded.rpc_id(peer, id, pos)
+	if not Game.dedicated:
+		Grenade.blast_fx(self, pos)
+	world.server_bomb_death(bomber)
 
 
 ## The flight of this tick (from -> to): the first player or target on it, before the first bounce, takes the direct
@@ -115,19 +166,30 @@ func _server_blast(shooter_id: int, pos: Vector3) -> void:
 	_remove(shooter_id)
 	Game.count("grenade_blasts")
 	var shooter: Player = world.players.get(shooter_id)
-	var full := WeaponDB.grenade("blast_full", 1.5)
-	var radius := WeaponDB.grenade("blast_radius", 6.0)
-	var most := WeaponDB.grenade("blast_damage", 110.0)
-	var eye := pos + Gravity.up(pos) * Grenade.RADIUS * 0.5
+	_hurt_around(shooter, pos + Gravity.up(pos) * Grenade.RADIUS * 0.5, WeaponDB.grenade("blast_damage", 120.0), false)
+	for peer in world._ready_peers:
+		_exploded.rpc_id(peer, shooter_id, pos)
+	if not Game.dedicated:
+		Grenade.blast_fx(self, pos)
+
+
+## Hurts what a blast at `eye` reaches. `bomb`: the "Хрях-бабах" - its bomber is left out (NetWorld.server_bomb_death).
+func _hurt_around(shooter: Player, eye: Vector3, most: float, bomb: bool) -> void:
+	var full := WeaponDB.grenade("blast_full", 2.0)
+	var radius := WeaponDB.grenade("blast_radius", 8.0)
 	var space := get_world_3d().direct_space_state
 	for id in world.players:
 		var victim: Player = world.players[id]
-		if not victim.alive:
+		if not victim.alive or bomb and victim == shooter:
 			continue
 		var amount := _blast_damage(space, eye, victim.hitbox_state(), full, radius, most)
 		if amount > 0.0 and shooter != null:
-			Game.count("grenade_self" if victim == shooter else "grenade_hurt")
-			world.server_apply_blast(shooter, victim, amount, pos)
+			if bomb:
+				Game.count("bomb_hurt")
+				world.server_apply_damage(shooter, victim, amount, false, WeaponSim.BOMB, eye)
+			else:
+				Game.count("grenade_self" if victim == shooter else "grenade_hurt")
+				world.server_apply_blast(shooter, victim, amount, eye)
 	for node in get_tree().get_nodes_in_group(Target.GROUP):
 		var target := node as Target
 		if not target.alive:
@@ -137,10 +199,6 @@ func _server_blast(shooter_id: int, pos: Vector3) -> void:
 			var knocked := target.take_damage(t_amount, false)
 			if shooter != null and shooter.is_local:
 				shooter.on_hit_confirmed(knocked, false)
-	for peer in world._ready_peers:
-		_exploded.rpc_id(peer, shooter_id, pos)
-	if not Game.dedicated:
-		Grenade.blast_fx(self, pos)
 
 
 ## Damage the blast at `eye` does to a hitbox: by the distance to its nearest part (body capsule or head), 0 if no
@@ -187,6 +245,30 @@ func _knocked(shooter_id: int, pos: Vector3, vel: Vector3) -> void:
 	var grenade = _flying.get(shooter_id)  # untyped: it may have been freed
 	if is_instance_valid(grenade):
 		(grenade as Grenade).knock_back(pos, vel)
+
+
+@rpc("authority", "reliable")
+func _bomb_armed(id: int) -> void:
+	_show_bomb(id)
+
+
+## Every machine: `id`'s bomb starts counting - the timer on the body, the beeps.
+func _show_bomb(id: int) -> void:
+	if world.players.has(id):
+		(world.players[id] as Player).set_bomb_armed(true)
+		_ticks[id] = 0.0
+
+
+func _beep_bombs(delta: float) -> void:
+	for id in _ticks.keys():
+		var player: Player = world.players.get(id)
+		if player == null or not player.bomb_armed:
+			_ticks.erase(id)
+			continue
+		_ticks[id] -= delta
+		if _ticks[id] <= 0.0:
+			_ticks[id] = BOMB_TICK
+			Audio.play("bomb_tick", null if player.is_local else player.global_position)
 
 
 @rpc("authority", "reliable")

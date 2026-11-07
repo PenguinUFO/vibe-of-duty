@@ -99,6 +99,7 @@ func set_build(parts: Array) -> void:
 	weapons.build_weapon = WeaponDB.index_of(build[0])
 	weapons.grenades_max = 1 if build.has(PartDB.GRENADIER) else 0
 	weapons.cmp_part = build.has(PartDB.SKULL_PISTOL)
+	bomb_armed = false
 	weapons.reset()  # the weapon, its magazine and reserve as built (a first spawn has no respawn to reset them)
 	if Game.dry_reserve:
 		weapons.reserves.fill(0)
@@ -107,7 +108,20 @@ func set_build(parts: Array) -> void:
 	if _visual:
 		_visual.set_chip(build.has(PartDB.ENGINEER))
 		_visual.set_cannon(build.has(PartDB.GRENADIER))
+		_visual.set_bomb(build.has(PartDB.BOMB))
 		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
+		_visual.set_cyber_arms(build.has(PartDB.PIG_ARMS))
+	if _arms:
+		_arms.set_cyber(build.has(PartDB.PIG_ARMS))
+
+
+## The "Хрях-бабах" starts counting down / is put out (Grenades on every machine; a death: NetWorld._apply_death).
+func set_bomb_armed(on: bool) -> void:
+	bomb_armed = on
+	if _visual:
+		_visual.set_bomb_armed(on)
+	if _bomb_view != null:
+		_bomb_view.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
 
 
 ## Max health and regeneration delay: kid mode's plus the build's.

@@ -16,6 +16,11 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"luger_khruger": [2, ["luger.conversion.khruger"]],
 	"luger_khruger_mods": [2, ["luger.conversion.khruger", "luger.stock.board"]],
 	"luger_mods": [2, ["luger.mag.32", "luger.stock.board"]],
+	"luger_snail": [2, ["luger.mag.32"]],
+	"luger_snail_r": [2, ["luger.mag.32"]],
+	"luger_snail_f": [2, ["luger.mag.32"]],
+	"luger_snail_b": [2, ["luger.mag.32"]],
+	"luger_snail_q": [2, ["luger.mag.32"]],
 	"acr": [3, []],
 	"acr_r": [3, []],
 	"acr_collapsed": [3, ["acr.stock.collapsed"]],
@@ -38,6 +43,7 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"mk14_r": [7, []],
 	"p90": [8, []],
 	"p90_r": [8, []],
+	"p90_can": [8, ["p90.suppressor.on"]],
 	"aug": [9, []],
 	"aug_r": [9, []],
 	"aug_tactical": [9, ["aug.suppressor.blk", "aug.sight.compm", "aug.grip.off"]],
@@ -62,6 +68,14 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"groza_grip": [11, ["groza.grip.on", "groza.mag.40"]],
 	"groza_po": [11, ["groza.sight.po"]],
 	"groza_po_r": [11, ["groza.sight.po", "groza.suppressor.on"]],
+	"val": [12, []],
+	"val_r": [12, []],
+	"val_fired_r": [12, [], 1.0],
+	"val_wood_r": [12, ["val.stock.wood", "val.mag.10"]],
+	"val_short_r": [12, ["val.barrel.short", "val.mag.30"]],
+	"val_po_r": [12, ["val.sight.po"]],
+	"val_po": [12, ["val.sight.po"]],
+	"val_short_po_r": [12, ["val.barrel.short", "val.stock.wood", "val.sight.po"]],
 }
 
 
@@ -99,6 +113,10 @@ func _ready() -> void:
 		# "_r" cases: seen from the gun's right (+X here), the barrel on the right, as most photos.
 		var side := 2.0 if c.ends_with("_r") else -2.0
 		cam.look_at_from_position(Vector3(side, 0.0, -0.1), Vector3(0.0, 0.0, -0.1))
+		if c.ends_with("_q"):  # three quarters from the front right, as the owner's photo
+			cam.look_at_from_position(Vector3(1.4, 0.2, -1.4), Vector3(0.0, -0.1, -0.1))
+		if c.ends_with("_f") or c.ends_with("_b"):  # "_f": from the muzzle; "_b": from the shooter
+			cam.look_at_from_position(Vector3(0.0, 0.0, -2.0 if c.ends_with("_f") else 2.0), Vector3.ZERO)
 		await get_tree().process_frame
 		await get_tree().process_frame
 		get_tree().root.get_texture().get_image().save_png(dir.path_join("model_%s.png" % c))

@@ -41,7 +41,9 @@ func _ready() -> void:
 		# The first life's set_build came before the body existed (NetWorld._spawn_player): its parts go on now.
 		_visual.set_chip(build.has(PartDB.ENGINEER))
 		_visual.set_cannon(build.has(PartDB.GRENADIER))
+		_visual.set_bomb(build.has(PartDB.BOMB))
 		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
+		_visual.set_cyber_arms(build.has(PartDB.PIG_ARMS))
 		_visual.set_akimbo(weapons.is_akimbo(), false)
 		_puppet_akimbo = weapons.is_akimbo()
 	_prev_pos = global_position
@@ -68,11 +70,13 @@ func _ready() -> void:
 		_arms = FirstPersonArms.new()
 		_space.add_child(_arms)
 		_arms.setup(peer_id, _view)
+		_arms.set_cyber(build.has(PartDB.PIG_ARMS))
 		_arms.left_weapon = _left_view
 		_cannon_view = GrenadeCannon.new()
 		_cannon_view.set_barrel_only()
 		_cannon_view.visible = false
 		_space.add_child(_cannon_view)
+		_bomb_view = PlayerView.make_bomb_view(_camera)
 		_build_hud()
 		_prev_look = Vector2(look_yaw, look_pitch)
 

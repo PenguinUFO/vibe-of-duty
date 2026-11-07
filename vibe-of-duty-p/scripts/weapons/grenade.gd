@@ -5,7 +5,8 @@ extends Node3D
 ## (Grenades), so they agree up to moving level pieces; the server's blast decides where it went off. A replay copy
 ## (`cosmetic`, the kill cam) goes off by itself on its fuse and hurts nobody.
 
-const RADIUS := 0.05         # m: it touches the level this far from its centre
+const RADIUS := 0.1          # m: it touches the level this far from its centre (the model, MODEL_SCALE)
+const MODEL_SCALE := 2.0     # the model is built at half size; owner, 2026-11-05: bigger, to be seen
 const REST_SPEED := 0.6      # m/s: slower than this on a floor, it lies still
 const ROLL_DRAG := 4.0       # 1/s: rolling on a floor slows it down
 const FLOOR_UP := 0.6        # a surface whose normal is this close to up is a floor
@@ -14,7 +15,7 @@ const ORPHAN := 1.0          # s past the fuse a client copy the server never se
 const IRON := Color(0.13, 0.13, 0.14)
 const LAMP := Color(1.0, 0.2, 0.02)   # Palette's signal: danger
 const BLAST_LIFE := 0.35     # s: the fireball and its light
-const BLAST_SIZE := 1.6      # m: the fireball's radius at its biggest
+const BLAST_SIZE := 2.2      # m: the fireball's radius at its biggest
 
 var owner_id := 0
 var velocity := Vector3.ZERO
@@ -101,6 +102,7 @@ func knock_back(pos: Vector3, vel: Vector3) -> void:
 
 
 func _build_model() -> void:
+	scale = Vector3.ONE * MODEL_SCALE
 	var ball := SphereMesh.new()
 	ball.radius = 0.045
 	ball.height = 0.09

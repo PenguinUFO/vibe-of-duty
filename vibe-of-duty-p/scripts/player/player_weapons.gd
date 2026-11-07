@@ -20,6 +20,9 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 	}
 	var events := weapons.tick(cmd, dt, ctx)
 	aiming = weapons.ads > 0.5
+	if cmd.grenade and not _replaying and alive and not bomb_armed and build.has(PartDB.BOMB) and world != null \
+			and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		world.grenades.server_arm_bomb(self)
 	for event in events:
 		match event["type"]:
 			"shot":
@@ -47,6 +50,8 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 			"akimbo_drop":
 				if not _replaying and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 					Game.count("akimbo_drops")
+					if world != null and world._stats != null:
+						world._stats.akimbo_drop(self, event["rounds"])
 				# Thrown away: the shooter's from the first-person gun (others' bodies - PlayerVisual.set_akimbo).
 				if is_local and not _replaying and _left_view != null:
 					DroppedGun.toss(self, _left_view, velocity)
@@ -151,6 +156,26 @@ func _tell_shot_level(results: Array) -> void:
 		(collider.get_meta(SHOT_LISTENER) as Callable).call(self)
 
 
+func melee_reach() -> float:
+	return WeaponSim.MELEE_RANGE + mods["melee_range_add"]
+
+
+## The fan of a punch along a view: the first body found (it goes from the middle outwards), else the middle ray's
+## _trace - no body in it, its "pos" where the punch ends.
+func _melee_fan(pitch: float, yaw: float, tick: float) -> Dictionary:
+	var origin := eye_position()
+	var frame := Gravity.frame(global_position)
+	var middle := {}
+	for offset in MELEE_FAN:
+		var r := _trace(origin, frame * Basis.from_euler(Vector3(pitch + offset.y, yaw + offset.x, 0.0)) * Vector3.FORWARD,
+				melee_reach(), tick, WeaponSim.MELEE_PAD + mods["melee_pad"])
+		if r["player"] != null or r.get("target") != null:
+			return r
+		if middle.is_empty():
+			middle = r
+	return middle
+
+
 ## The blow of a hoof punch: the nearest player or target in a fan of short rays around the view (easier to land
 ## than a bullet), judged like a shot (LagComp rewind on the server). The server applies the damage; the puncher hears
 ## the hit at once (predicted), everybody else gets it from the server (server_melee).
@@ -160,15 +185,10 @@ func _on_melee(event: Dictionary) -> void:
 	var origin := eye_position()
 	var is_server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	var tick := _judge_tick(event["view_tick"], is_server)
-	var hit := {}
-	var frame := Gravity.frame(global_position)
-	for offset in MELEE_FAN:
-		var r := _trace(origin, frame * Basis.from_euler(Vector3(event["pitch"] + offset.y, event["yaw"] + offset.x, 0.0)) \
-				* Vector3.FORWARD, WeaponSim.MELEE_RANGE, tick)
-		if r["player"] != null or r.get("target") != null:
-			hit = r
-			break  # the fan goes from the middle outwards: the first body found is the one punched
-	if hit.is_empty():
+	var hit := _melee_fan(event["pitch"], event["yaw"], tick)
+	if is_server:
+		server_punch.emit(self, hit)
+	if hit["player"] == null and hit.get("target") == null:
 		return
 	var head: bool = hit["zone"] == "head"
 	var damage: float = WeaponSim.MELEE_DAMAGE * mods["melee_damage_mult"] * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
@@ -286,7 +306,8 @@ func _judge_tick(view_tick: float, is_server: bool) -> float:
 
 ## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. Bullets do
 ## not go through cover (owner, 2026-10-31: no penetration; a special weapon may get it, decided one by one).
-func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0) -> Dictionary:
+## `pad`: m the body is widened by, for a ray that misses the real hitboxes (a punch).
+func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0, pad := 0.0) -> Dictionary:
 	var space := get_world_3d().direct_space_state
 	var end := origin + dir * max_range
 	var world_hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin, end, Layers.WORLD))
@@ -308,7 +329,7 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 			continue
 		var t_head := LagComp.ray_sphere(origin, dir, LagComp.head_center(state), LagComp.HEAD_RADIUS)
 		var seg := LagComp.body_segment(state)
-		var t_body := LagComp.ray_capsule(origin, dir, seg[0], seg[1], LagComp.BODY_RADIUS)
+		var t_body := _body_hit(origin, dir, seg, t_head, pad)
 		var t := -1.0
 		var zone := ""
 		if t_head >= 0.0 and (t_body < 0.0 or t_head <= t_body + 0.0001):
@@ -328,7 +349,7 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 		var t_state := target.hitbox_state()
 		var t_head := LagComp.ray_sphere(origin, dir, LagComp.head_center(t_state), LagComp.HEAD_RADIUS)
 		var t_seg := LagComp.body_segment(t_state)
-		var t_body := LagComp.ray_capsule(origin, dir, t_seg[0], t_seg[1], LagComp.BODY_RADIUS)
+		var t_body := _body_hit(origin, dir, t_seg, t_head, pad)
 		var t_hit := -1.0
 		var t_zone := ""
 		if t_head >= 0.0 and (t_body < 0.0 or t_head <= t_body + 0.0001):
@@ -342,6 +363,14 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0)
 			result = {"pos": origin + dir * t_hit, "normal": -dir, "hit": true, "player": null, "zone": t_zone,
 					"target": target}
 	return result
+
+
+## The ray against a body (`seg`). The real hitboxes come first, so that the pad never turns a head hit into a body one.
+static func _body_hit(origin: Vector3, dir: Vector3, seg: Array, t_head: float, pad: float) -> float:
+	var t := LagComp.ray_capsule(origin, dir, seg[0], seg[1], LagComp.BODY_RADIUS)
+	if t < 0.0 and t_head < 0.0 and pad > 0.0:
+		t = LagComp.ray_capsule(origin, dir, seg[0], seg[1], LagComp.BODY_RADIUS + pad)
+	return t
 
 
 func _target_state(other: Player, tick: float) -> Dictionary:
@@ -387,9 +416,16 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array, le
 		if world != null:
 			for id in world.players:
 				if id != peer_id:
-					(world.players[id] as Player).react_to_shot(origin, ends[i])
+					var other := world.players[id] as Player
+					other.react_to_shot(origin, ends[i])
 		if i < 2:  # a shotgun blast would otherwise play eight impacts at once
 			Audio.play("impact", ends[i])
+
+
+## Whether a bullet from `origin` to `end` came close to the eyes (a hit on this player always does).
+func bullet_near(origin: Vector3, end: Vector3) -> bool:
+	var eye := eye_position()
+	return eye.distance_to(Geometry3D.get_closest_point_to_segment(eye, origin, end)) <= NEAR_RADIUS
 
 
 ## Local player: the server confirmed that one of our shots damaged somebody.

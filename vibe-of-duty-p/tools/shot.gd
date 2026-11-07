@@ -43,6 +43,8 @@ func _ready() -> void:
 	var def := WeaponDB.make_def(weapon, modules)
 	vis.set_weapon(weapon, def)
 	vis.set_akimbo(def.akimbo, false)
+	if OS.has_environment("SHOT_CYBER"):  # the "Руки-Хрюки"
+		vis.set_cyber_arms(true)
 	var cam := Camera3D.new()
 	cam.fov = 35
 	root3d.add_child(cam)

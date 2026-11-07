@@ -2,8 +2,8 @@ class_name HudAmmo
 extends Control
 ## Bottom-right ammo readout: the weapon name (top right), the rounds in the magazine (big) and in reserve (small), and a row of
 ## round ticks that go out as the magazine empties (a plain bar for big magazines). The magazine count turns red when
-## a quarter or less is left; while reloading the name line says so. The "Гренадир"'s grenade: a small ball in the top
-## left corner while it is in (no number: one a life). Akimbo: a second one for the left gun (PlayerView), no reserve.
+## a quarter or less is left; while reloading the name line says so.
+## Akimbo: a second one for the left gun (PlayerView), no reserve.
 
 const SIZE := Vector2(160, 80)
 const LOW := 0.25
@@ -17,7 +17,6 @@ var _mag := 0
 var _mag_size := 1
 var _reserve := 0
 var _reloading := false
-var _grenade := false
 var _time := 0.0
 var _plate := UiTheme.box(UiTheme.HUD_PLATE, UiTheme.CHAMFER)
 
@@ -39,13 +38,6 @@ func set_state(weapon_name: String, mag: int, mag_size: int, reserve: int, reloa
 	queue_redraw()
 
 
-## Whether the grenade is still in (the "Гренадир"; false without it).
-func set_grenade(ready: bool) -> void:
-	if ready != _grenade:
-		_grenade = ready
-		queue_redraw()
-
-
 func _process(delta: float) -> void:
 	if _reloading:
 		_time += delta
@@ -63,9 +55,6 @@ func _draw() -> void:
 	var top_color := Color(UiTheme.ACCENT, 0.55 + 0.45 * absf(sin(_time * 5.0))) if _reloading else UiTheme.TEXT_DIM
 	var top_width := small.get_string_size(top_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	draw_string(small, Vector2(right - top_width, 22), top_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, top_color)
-	if _grenade:
-		draw_circle(Vector2(26, 34), 8.0, UiTheme.TEXT)
-		draw_circle(Vector2(26, 26), 2.5, UiTheme.DANGER)  # its lamp (Grenade.LAMP)
 
 	# "30 / 90": the reserve right-aligned, the magazine count in front of it.
 	var reserve_text := "" if _reserve == NONE else "/ ∞" if _reserve == INFINITE else "/ %d" % _reserve

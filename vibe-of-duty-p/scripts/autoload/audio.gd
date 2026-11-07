@@ -35,6 +35,7 @@ const PLACEHOLDERS := {
 	"cannon_out": {"kind": "thump", "dur": 0.12, "freq": 320.0, "freq_end": 180.0, "decay": 26.0, "vol": 0.5},  # the chest cannon slides out
 	"grenade_launch": {"kind": "thump", "dur": 0.22, "freq": 120.0, "freq_end": 55.0, "decay": 16.0, "vol": 1.0},  # dull "bump"
 	"grenade_bounce": {"kind": "tone", "dur": 0.06, "freq": 700.0, "freq_end": 520.0, "decay": 40.0, "vol": 0.4},  # iron clank
+	"bomb_tick": {"kind": "tone", "dur": 0.07, "freq": 1500.0, "freq_end": 1500.0, "decay": 30.0, "vol": 0.5},  # the "Хрях-бабах" counting
 	"explosion": {"kind": "thump", "dur": 1.0, "freq": 90.0, "freq_end": 28.0, "decay": 4.5, "vol": 1.0},
 	"match_start": {"kind": "tone", "dur": 0.4, "freq": 440.0, "freq_end": 880.0, "decay": 5.0, "vol": 0.5},
 	"match_end": {"kind": "tone", "dur": 0.6, "freq": 880.0, "freq_end": 330.0, "decay": 4.0, "vol": 0.5},

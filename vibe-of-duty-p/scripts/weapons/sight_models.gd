@@ -38,6 +38,8 @@ static func build(sight: String) -> Node3D:
 			return _colt()
 		"po":
 			return _po()
+		"po_side":
+			return _po(true)
 	return null
 
 
@@ -352,7 +354,7 @@ static func _colt() -> Node3D:
 ## Its axis at (0, 0.1397), 17 mm over the irons' line; 294 mm long: the eyepiece's bell (r 21 mm), the tube (r 12.8),
 ## the objective's bell (r 20.5); the elevation turret on top, the windage one on the left; the mount under the tube on
 ## the frame's bar (its top at 0.113), the clamp's lever on the left. The walls drawn from outside only.
-static func _po() -> Node3D:
+static func _po(side_mount := false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Sight_PO"
 	var paint := _material(Color(0.06, 0.06, 0.065), 0.4, 0.5)
@@ -387,13 +389,41 @@ static func _po() -> Node3D:
 	for z in [-0.002, 0.07]:
 		_lathe(root, PackedVector2Array([Vector2(0.0128, z - 0.006), Vector2(0.0148, z - 0.006),
 				Vector2(0.0148, z + 0.006), Vector2(0.0128, z + 0.006)]), axis, paint, 24, false)
-	_box(root, Vector3(-0.009, 0.113, -0.012), Vector3(0.009, y - 0.0128, 0.08), paint)
-	_box(root, Vector3(-0.0055, 0.108, -0.012), Vector3(0.0055, 0.113, 0.08), steel)  # its foot in the bar's channel
-	_box(root, Vector3(0.009, 0.113, 0.01), Vector3(0.012, 0.121, 0.05), steel)
-	_tube(root, 0.003, 0.006, Vector3(0.0125, 0.117, 0.014), steel, Vector3.RIGHT)
+	if side_mount:
+		_kobra_mount(root, paint, steel, y)
+	else:
+		_box(root, Vector3(-0.009, 0.113, -0.012), Vector3(0.009, y - 0.0128, 0.08), paint)
+		_box(root, Vector3(-0.0055, 0.108, -0.012), Vector3(0.0055, 0.113, 0.08), steel)  # its foot in the bar's channel
+		_box(root, Vector3(0.009, 0.113, 0.01), Vector3(0.012, 0.121, 0.05), steel)
+		_tube(root, 0.003, 0.006, Vector3(0.0125, 0.117, 0.014), steel, Vector3.RIGHT)
 	_dot(root, Color(0.02, 0.02, 0.02), back + 0.001, Vector2(0.0, y), bore, 1.15, "pso")
 	_window(root, back, Vector2(0.0, y), bore, SCOPE_WINDOW)
 	return root
+
+
+## The Kobra's side mount under the PO on the АС ВАЛ (owner, 2026-11-05): the plate on the receiver's left (prefab +x)
+## with its window and three screws, the rolled top edge and the deck over the cover, the clamp's lever under it. The
+## sight's own space: the receiver's top at 0.1053, its side at 0.016, the handguard's side (the plate clears it) 0.0195.
+static func _kobra_mount(root: Node3D, paint: Material, steel: Material, y: float) -> void:
+	var steel_light := _material(Color(0.24, 0.24, 0.25), 0.6, 0.4)
+	var hole := _material(Color(0.03, 0.03, 0.035), 0.2, 0.8)
+	var x0 := 0.0205
+	var x1 := 0.0275
+	var deck := 0.1073
+	_box(root, Vector3(x0, 0.084, -0.015), Vector3(x1, deck, 0.083), steel)    # plate, top bar
+	_box(root, Vector3(x0, 0.048, -0.015), Vector3(x1, 0.058, 0.083), steel)   # bottom bar
+	_box(root, Vector3(x0, 0.058, -0.015), Vector3(x1, 0.084, 0.001), steel)   # rear post
+	_box(root, Vector3(x0, 0.058, 0.067), Vector3(x1, 0.084, 0.083), steel)    # front post
+	_box(root, Vector3(x0 + 0.0015, 0.058, 0.019), Vector3(x0 + 0.0045, 0.084, 0.049), steel)  # a rib across the window
+	for z in [0.007, 0.034, 0.061]:
+		_tube(root, 0.0052, 0.0016, Vector3(x1 + 0.0002, 0.0955, z), hole, Vector3.RIGHT)  # screw recess
+		_tube(root, 0.0034, 0.0024, Vector3(x1 + 0.0002, 0.0955, z), steel_light, Vector3.RIGHT)
+	_tube(root, 0.0068, 0.098, Vector3(x1 - 0.0035, deck + 0.004, 0.034), steel)  # rolled top edge
+	_box(root, Vector3(-0.017, deck, -0.011), Vector3(x1 - 0.005, deck + 0.01, 0.079), steel)  # deck over the cover
+	_box(root, Vector3(-0.009, deck + 0.01, -0.012), Vector3(0.009, y - 0.0128, 0.08), paint)  # the rings' block
+	_tube(root, 0.0042, 0.008, Vector3(x1 + 0.003, 0.047, 0.075), steel_light, Vector3.RIGHT)  # clamp lever: pivot,
+	_box(root, Vector3(x1 + 0.0005, 0.041, -0.023), Vector3(x1 + 0.0045, 0.0465, 0.079), steel_light)  # bar,
+	_box(root, Vector3(x1 + 0.0005, 0.0395, -0.035), Vector3(x1 + 0.015, 0.0465, -0.023), steel_light)  # bent-out tip
 
 
 ## A flat disc of `radius` round `center`, across the barrel, drawn only from the side `facing` points to.

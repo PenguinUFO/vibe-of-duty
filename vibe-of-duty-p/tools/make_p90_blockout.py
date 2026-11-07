@@ -17,6 +17,7 @@ Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel p
 at the top of the trigger hole by the trigger, metres; prefab +x is the shooter's left. "Mags" holds "P90_Mag_50" (a
 node named "*_Mag_*"), its origin on its front's bottom - the catch it tips up about for a reload (WeaponDef.mag_hinge).
 "Handle": the two cocking knobs (WeaponView moves it back by hand at the end of a reload; it does not ride the bolt).
+"Muzzle": Hider / Can (the suppressor module; the muzzle then at z 0.318).
 Key points used by WeaponDB (prefab space): bore y 0.0209; muzzle (0, 0.0209, 0.1678); the sight line y 0.0871 through
 the window's back (z -0.0272) and front (z 0.1254); grip (0, -0.024, -0.038); support hand
 (0, -0.024, 0.093); the left knob (0.034, 0.0163, 0.0768); the catch (0, 0.0361, 0.0825).
@@ -39,6 +40,7 @@ MATERIALS = {
     "mag": ((0.16, 0.14, 0.11), 0.0, 0.3, 0.85),      # smoked polymer: the rounds show through
     "mag_end": ((0.12, 0.12, 0.125), 0.0, 0.7),
     "round": ((0.42, 0.24, 0.11), 0.6, 0.45),
+    "can": ((0.1, 0.1, 0.105), 0.4, 0.55),
 }
 MESHES = ["body", "lower", "front", "strap", "optic_wall", "optic_top", "optic_bottom", "sight_front", "cover",
           "trigger"]
@@ -67,6 +69,7 @@ FRONT_Z = Z(1738)
 WALL_X = 0.0138        # the window's side walls round their middle, 1.6 mm wide (the window 26 mm across); the
                        # frame round the window a quarter as thick as at first (owner, 2026-10-27: twice halved)
 HINGE = (0.0, Y(504), Z(1588))  # the magazine's front bottom: its catch
+CAN_LEN = 0.184        # the suppressor from the hider's base to its end
 
 # Side profiles for tools/make_parts.gd, photo pixels round the outline: (points, half width, chamfer).
 PROFILES = {
@@ -200,16 +203,27 @@ for side, x in (("L", 1), ("R", -1)):
     disc("Knob" + side, 0.0075, x * 0.03 if x > 0 else -0.038, 0.038 if x > 0 else -0.03, Y(573), Z(1568),
          "steel_grey", parent="Handle")
 
-# Barrel: the nut out of the sight's front, the flash hider with its rings and slots.
+# Barrel: the nut out of the sight's front. "Muzzle": the flash hider with its rings and slots, or the can - after the
+# Gemtech SP90 (7.25" long, 1.37" across, snaps on over the hider, so it starts where the hider does).
 tube("Nut", 0.0085, Z(1735), Z(1768), BORE_Y, "steel")
-tube("Hider", 0.0104, Z(1768), MUZZLE_Z, BORE_Y, "steel", segments=14)
+node("Muzzle")
+node("Hider", "Muzzle")
+hp = "Muzzle/Hider"
+tube("Cage", 0.0104, Z(1768), MUZZLE_Z, BORE_Y, "steel", parent=hp, segments=14)
 for i, px in enumerate((1785, 1800)):
-    tube("HiderRing%d" % i, 0.0108, Z(px), Z(px + 6), BORE_Y, "steel")
+    tube("HiderRing%d" % i, 0.0108, Z(px), Z(px + 6), BORE_Y, "steel", parent=hp)
 for i in range(4):
     a = i * math.pi / 2 + math.pi / 4
     x, y = 0.0104 * math.cos(a), BORE_Y + 0.0104 * math.sin(a)
-    box("HiderSlot%d" % i, x - 0.0016, x + 0.0016, y - 0.0016, y + 0.0016, Z(1818), Z(1855), "steel_dark")
-tube("Bore", 0.0032, MUZZLE_Z - 0.02, MUZZLE_Z + 0.0004, BORE_Y, "steel_dark")
+    box("HiderSlot%d" % i, x - 0.0016, x + 0.0016, y - 0.0016, y + 0.0016, Z(1818), Z(1855), "steel_dark", parent=hp)
+tube("Bore", 0.0032, MUZZLE_Z - 0.02, MUZZLE_Z + 0.0004, BORE_Y, "steel_dark", parent=hp)
+node("Can", "Muzzle")
+cp = "Muzzle/Can"
+can_z = Z(1768)
+tube("Mount", 0.0178, can_z, can_z + 0.022, BORE_Y, "steel", parent=cp, segments=16)
+tube("Tube", 0.0175, can_z + 0.022, can_z + CAN_LEN - 0.003, BORE_Y, "can", parent=cp, segments=16)
+tube("Cap", 0.0175, can_z + CAN_LEN - 0.003, can_z + CAN_LEN, BORE_Y, "steel", parent=cp, radius_end=0.0155, segments=16)
+tube("CanBore", 0.0035, can_z + CAN_LEN - 0.002, can_z + CAN_LEN + 0.0004, BORE_Y, "steel_dark", parent=cp)
 
 # The magazine flat on top, its origin on the catch at its front's bottom: the smoked body, the grey ends, 50 rounds
 # lying across in two staggered rows (5.7x28: 40 mm long, 7.9 mm across the rim).

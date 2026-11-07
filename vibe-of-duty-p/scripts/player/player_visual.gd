@@ -78,10 +78,16 @@ func set_akimbo(on: bool, throw := true) -> void:
 	_left_weapon.visible = on
 
 
-## The "Инженер"'s chip on the head (the build has PartDB.ENGINEER).
+## The "Свинжинер"'s chip on the head (the build has PartDB.ENGINEER).
 func set_chip(on: bool) -> void:
 	if _mannequin:
 		_mannequin.set_chip(on)
+
+
+## The "Руки-Хрюки" (the build has PartDB.PIG_ARMS).
+func set_cyber_arms(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_cyber_arms(on)
 
 
 ## The "ЧМП"'s gun in the left eye socket (the build has PartDB.SKULL_PISTOL).
@@ -101,6 +107,18 @@ func set_cannon(on: bool) -> void:
 	_spent = false
 	if _mannequin:
 		_mannequin.set_cannon(on, true)
+
+
+## The "Хрях-бабах"'s bomb on the chest (the build has PartDB.BOMB).
+func set_bomb(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_bomb(on)
+
+
+## Its timer runs / is out.
+func set_bomb_armed(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_bomb_armed(on)
 
 
 ## Launching a grenade (from the snapshot flags): plays the launch from its start over its full length, holding at

@@ -1,5 +1,5 @@
 extends SceneTree
-## Checks the "Реактивные копыта" (PartDB.JET_HOOVES) with vaulting: on the test level, in front of a WALL_H wall -
+## Checks the "Прыг-Прыг" (PartDB.JET_HOOVES) with vaulting: on the test level, in front of a WALL_H wall -
 ## too high for a jump and a vault from the ground (PlayerMantle.MANTLE_MAX_HEIGHT) - a pig jumps, jumps again in the
 ## air and holds jump pushing on. With the hooves it must end up on top of the wall, without them not. Prints PASS /
 ## FAIL lines.

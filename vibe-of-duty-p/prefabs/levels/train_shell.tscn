@@ -3405,24 +3405,24 @@ light_cull_mask = 11
 metadata/shade = Vector3(0.7, 0.05, 0.3)
 
 [node name="Lamp4" type="OmniLight3D" parent="Lamps"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, -15.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 2.6, -15.2)
 light_color = Color(1, 0.86, 0.66, 1)
 light_energy = 1.2
 light_specular = 0.0
 omni_range = 9
 omni_attenuation = 1.4
 light_cull_mask = 7
-metadata/shade = Vector3(0.7, 0.05, 0.3)
+metadata/shade = Vector3(0.3, 0.05, 0.7)
 
 [node name="Lamp5" type="OmniLight3D" parent="Lamps"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, -6.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 2.6, -6.2)
 light_color = Color(1, 0.86, 0.66, 1)
 light_energy = 1.2
 light_specular = 0.0
 omni_range = 9
 omni_attenuation = 1.4
 light_cull_mask = 7
-metadata/shade = Vector3(0.7, 0.05, 0.3)
+metadata/shade = Vector3(0.3, 0.05, 0.7)
 
 [node name="Lamp6" type="OmniLight3D" parent="Lamps"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.9, -10.7)
