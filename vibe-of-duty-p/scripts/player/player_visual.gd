@@ -101,6 +101,24 @@ func eye_gun_muzzle_position() -> Vector3:
 	return _mannequin.eye_gun_muzzle() if _mannequin else global_position
 
 
+## The "Прыг-Прыг"'s / "Прыг-скок"'s legs below the knees (AugLegs.kind_of the build).
+func set_legs(kind: AugLegs.Kind) -> void:
+	if _mannequin:
+		_mannequin.set_legs(kind)
+
+
+## The "Прыг-Прыг": the jump in the air is left (the lamps lit).
+func set_air_jump_ready(on: bool) -> void:
+	if _mannequin:
+		_mannequin.set_air_jump_ready(on)
+
+
+## The "Прыг-Прыг"'s jump in the air: the rods kick, the exhaust (not seen while dead or hidden).
+func air_jump() -> void:
+	if _mannequin and not _dead and is_visible_in_tree():
+		_mannequin.air_jump()
+
+
 ## The "Гренадир"'s cannon on the chest (the build has PartDB.GRENADIER); a new life has its grenade in.
 func set_cannon(on: bool) -> void:
 	_cannon = on

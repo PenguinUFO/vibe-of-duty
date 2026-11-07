@@ -111,6 +111,7 @@ func set_build(parts: Array) -> void:
 		_visual.set_bomb(build.has(PartDB.BOMB))
 		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
 		_visual.set_cyber_arms(build.has(PartDB.PIG_ARMS))
+		_visual.set_legs(AugLegs.kind_of(build))
 	if _arms:
 		_arms.set_cyber(build.has(PartDB.PIG_ARMS))
 

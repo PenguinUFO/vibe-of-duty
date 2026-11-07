@@ -133,10 +133,20 @@ const MODULE_GEOMETRY := {
 	# 8 cm behind the eyepiece, as on the Groza. After val.barrel.short in a build: these points are the last set.
 	"val.sight.po": {"sight": "po_side", "sight_offset": Vector3(0.0, -0.0597, -0.02),
 			"rear_sight": Vector3(0.0, 0.08, -0.129), "front_sight": Vector3(0.0, 0.08, -0.02), "eye_relief": 0.08},
+	# Armsel Striker (tools/make_striker_blockout.py): the base is the Striker body, the stock out. The Bulldog: the
+	# same drum, its own block body without a stock, the 7.8" barrel; held out further, the eye 0.38 behind the strap.
+	"striker.conversion.bulldog": {"model_variants": {"Body": "Bulldog"}, "muzzle": Vector3(0.0, 0.0458, 0.3029),
+			"rear_sight": Vector3(0.0, 0.0843, 0.0418), "front_sight": Vector3(0.0, 0.0843, 0.264), "eye_relief": 0.38,
+			"right_hand": Vector3(0.0, -0.0346, -0.0711), "left_hand": Vector3(0.0, -0.0022, 0.2217),
+			"hip_offset": Vector3(0.16, -0.14, -0.3)},
+	# Folded over the top, the butt flat over the shroud: the eye looks along the folded arm, over the irons.
+	"striker.stock.folded": {"model_variants": {"Body/Striker/Stock": "Folded"},
+			"rear_sight": Vector3(0.0, 0.107, -0.05), "front_sight": Vector3(0.0, 0.107, 0.2), "eye_relief": 0.2},
 }
 ## Points in prefab space: scaled by WeaponDef.model_scale (WeaponDB keeps them life size, as the model is built).
 const SCALED_POINTS: Array[String] = ["muzzle", "rear_sight", "front_sight", "right_hand", "left_hand",
-		"ejection_port", "charging_handle", "break_hinge", "chamber", "forend", "lever_pivot", "shell_port", "mag_hinge"]
+		"ejection_port", "charging_handle", "break_hinge", "chamber", "forend", "lever_pivot", "shell_port", "mag_hinge",
+		"shell_grip", "shell_from"]
 const MODULE_SLOT_NAMES := {"barrel": "Ствол", "suppressor": "Глушитель", "conversion": "Переделка", "mag": "Магазин", "stock": "Приклад", "grip": "Рукоятка",
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "akimbo": "Акимбо"}
 
@@ -634,6 +644,29 @@ static func _build_geometry() -> void:
 	val.sound_shot = "shot_suppressed"
 	val.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(val)
+
+	var striker := WeaponDef.new()
+	striker.id = "striker"
+	striker.display_name = "Striker"
+	striker.scene_path = "res://prefabs/weapons/striker_blockout.tscn"  # tools/make_striker_blockout.py
+	striker.model_variants = {"Body": "Striker", "Body/Striker/Stock": "Extended"}
+	striker.muzzle = Vector3(0.0, 0.0458, 0.4205)
+	striker.rear_sight = Vector3(0.0, 0.0826, 0.0454)   # the notch's ears on the strap's back, over the drum
+	striker.front_sight = Vector3(0.0, 0.0826, 0.3649)  # the blade's tip
+	striker.eye_relief = 0.25  # the cheek on the stock's arm, behind the receiver
+	striker.right_hand = Vector3(0.0, -0.0583, -0.07)  # the middle of the grip
+	striker.left_hand = Vector3(0.0, -0.0174, 0.2478)  # on the foregrip
+	# The loading gate: the chamber at 3 o'clock seen from behind, on the drum's back right; the left hand pushes the
+	# shell in forward from behind it (the gun canted, its right side up), the hull flies out of it after a shot.
+	striker.shell_port = Vector3(-0.054, -0.0082, 0.004)
+	striker.shell_grip = Vector3(-0.042, 0.0, 0.0)
+	striker.shell_from = Vector3(-0.03, 0.0, -0.06)
+	striker.ejection_port = Vector3(-0.054, -0.0082, 0.02)
+	striker.eject_hull = true
+	striker.loads_right_hand = true  # the left holds it by the foregrip (owner, 2026-11-07)
+	striker.sound_shot = "shot_shotgun"
+	striker.hip_offset = Vector3(0.17, -0.165, -0.24)
+	_defs.append(striker)
 
 	for def in _defs:
 		for prop in SCALED_POINTS:

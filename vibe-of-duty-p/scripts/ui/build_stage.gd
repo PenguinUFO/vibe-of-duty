@@ -86,6 +86,7 @@ func show_build(parts: Array) -> void:
 	_mannequin.set_bomb(parts.has(PartDB.BOMB))
 	_mannequin.set_eye_gun(parts.has(PartDB.SKULL_PISTOL))
 	_mannequin.set_cyber_arms(parts.has(PartDB.PIG_ARMS))
+	_mannequin.set_legs(AugLegs.kind_of(parts))
 	_box_dirty = true
 
 

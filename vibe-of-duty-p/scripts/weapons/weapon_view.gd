@@ -34,9 +34,15 @@ const HAMMER_DROP := 0.45     # rad: a fired hammer leans forward this far until
 const ROUND_GRIP := Vector3(0.05, -0.04, 0.03)
 const EXTRACT := 0.012
 const LEVER_ANGLE := 0.9      # rad: a lever action's lever thrown down (~52 degrees)
-## A lever action's shell in the left hand: the palm's place from the shell's middle (prefab space, life size: left of
-## it and over it, thumbing it down into the open action).
-const SHELL_GRIP := Vector3(0.035, 0.035, -0.01)
+## A drum (the Striker's "Drum"): it turns a chamber at a time - 30 degrees in DRUM_CLICK s - after a shot and as a
+## shell goes in (its spring is always wound: no hand on the key, the key turns with it).
+const DRUM_STEP := TAU / 12.0
+const DRUM_CLICK := 0.08
+const SHELL_SEATED := 0.8  # a shell's loading progress (Mannequin.shell_hand) where it goes home and the drum turns
+## A drum's loading (the gate on the right, behind the drum): the gun's shift (view space) and turn (degrees: muzzle
+## up, muzzle to the right, its right side rolled up) for the whole loading - in to the middle, its right side to the eye.
+const DRUM_LOAD_SHIFT := Vector3(-0.12, 0.06, -0.12)
+const DRUM_LOAD_TURN := Vector3(10.0, 15.0, 50.0)
 const MAG_TIP := 0.17         # rad: a magazine on top (P90) tips its back up this far (~10 degrees) off its catch
 const MAG_SLIDE := 0.16       # m: then slides this far back along itself - its front out from under the sight's strap
 ## A magazine on top: the left hand's palm on it (from its catch, prefab space, life size) - on its top, near the back.
@@ -94,6 +100,9 @@ var _shell_rest := Vector3.ZERO
 var _ejected := true      # the last shot's hull is out
 var _loading := false     # a lever action is being loaded (set_shell)
 var load_blend := 0.0     # 0..1: eased in and out over a lever action's whole loading (one reload per shell)
+var _drum: Node3D         # a revolving drum (Striker): "Drum", its origin on its axis, turns about +Z
+var _drum_turns := 0      # chambers it has turned (a shot, a shell loaded); its angle follows
+var _shell_r := -1.0      # the shell's loading progress set_shell last had
 var _dot: Node3D          # a red dot sight's dot (SightModels), put on the aim line from the eye every pose
 var _cycle := 1.0         # time since the last shot, for the bolt cycle (s)
 var bolt_pull := 0.0      # 0..1: the handle held back by hand (reloads)
@@ -177,6 +186,9 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	if _shell:
 		_shell_rest = _shell.position
 		_shell.visible = false
+	_drum = _model.get_node_or_null("Drum")
+	_drum_turns = 0
+	_shell_r = -1.0
 	_ejected = true
 	_hammer = _model.get_node_or_null("Hammer")
 	_hammer_down = false
@@ -249,6 +261,9 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 
 func _process(delta: float) -> void:
 	_cycle += delta
+	if _drum:
+		load_blend = move_toward(load_blend, 1.0 if _loading else 0.0, delta / 0.25)
+		_drum.rotation.z = move_toward(_drum.rotation.z, -DRUM_STEP * _drum_turns, DRUM_STEP * delta / DRUM_CLICK)
 	if _lever:
 		load_blend = move_toward(load_blend, 1.0 if _loading else 0.0, delta / 0.25)
 		var open := maxf(lever_cycle(_cycle), smoothstep(0.0, 1.0, load_blend))
@@ -311,6 +326,7 @@ func flash(show_flash := true) -> void:
 	_cycle = 0.0
 	_hammer_down = _hammer != null
 	_ejected = _lever == null
+	_drum_turns += 1
 	if def.ejection_port.is_finite() and is_visible_in_tree():
 		var port := _pivot.global_transform * def.ejection_port
 		var basis := _pivot.global_basis.orthonormalized()
@@ -318,7 +334,7 @@ func flash(show_flash := true) -> void:
 		if def.eject_down:
 			Casings.eject(self, port, -basis.y * 0.4, -basis.y, -basis.x * 0.3)  # dropped out of the bottom
 		else:
-			Casings.eject(self, port, -basis.x, basis.y, -basis.z)
+			Casings.eject(self, port, -basis.x, basis.y, -basis.z, def.eject_hull)
 
 
 ## Where a hand holds the magazine (prefab space), or INF when the gun has none.
@@ -446,9 +462,9 @@ func loads_shells() -> bool:
 	return _shell != null
 
 
-## Where the left hand holds a shell (prefab space, model scale) when it is at the open action's top.
+## Where the left hand holds a shell (prefab space, model scale) when it is at the open action's top (the gate).
 func shell_grip_point() -> Vector3:
-	return def.shell_port + SHELL_GRIP * def.model_scale
+	return def.shell_port + def.shell_grip
 
 
 ## A lever action's loading at progress `r` of one shell (-1: none): the lever held down meanwhile (_process), the
@@ -457,6 +473,9 @@ func set_shell(r: float, shell_shift := Vector3.INF) -> void:
 	if _shell == null:
 		return
 	_loading = r >= 0.0
+	if _drum and r >= SHELL_SEATED and (_shell_r < SHELL_SEATED or r < _shell_r):
+		_drum_turns += 1  # home: the drum clicks round to the next empty chamber while the hand goes for another
+	_shell_r = r
 	_shell.visible = shell_shift.is_finite()
 	if _shell.visible:
 		_shell.position = _shell_rest + shell_shift / def.model_scale
@@ -536,7 +555,13 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 
 	# Reload: the gun dips and cants (magazine well towards the left hand); the hand itself takes the magazine out
 	# and racks the handle (FirstPersonArms, Mannequin.reload_hand).
-	if _shell:
+	if _shell and _drum:
+		var dip := smoothstep(0.0, 1.0, load_blend)
+		pos += DRUM_LOAD_SHIFT * dip
+		rot.x += dip * deg_to_rad(DRUM_LOAD_TURN.x)
+		rot.y -= dip * deg_to_rad(DRUM_LOAD_TURN.y)
+		rot.z += dip * deg_to_rad(DRUM_LOAD_TURN.z)
+	elif _shell:
 		# A lever action is loaded a shell at a time: canted, the open top towards the left hand, for the whole loading.
 		var dip := smoothstep(0.0, 1.0, load_blend)
 		pos += Vector3(-0.06, 0.05, -0.14) * dip

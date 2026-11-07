@@ -44,6 +44,7 @@ func _ready() -> void:
 		_visual.set_bomb(build.has(PartDB.BOMB))
 		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
 		_visual.set_cyber_arms(build.has(PartDB.PIG_ARMS))
+		_visual.set_legs(AugLegs.kind_of(build))
 		_visual.set_akimbo(weapons.is_akimbo(), false)
 		_puppet_akimbo = weapons.is_akimbo()
 	_prev_pos = global_position
@@ -163,6 +164,10 @@ func _process(delta: float) -> void:
 		if alive:  # dying keeps the left gun: it falls with the body
 			_visual.set_akimbo(weapons.is_akimbo())
 		_visual.set_mantling(is_mantling, _mantle_up)
+		_visual.set_air_jump_ready(_air_jumps < int(mods["air_jumps"]))
+		if _air_jump_fx:
+			_air_jump_fx = false
+			_visual.air_jump()
 		_visual.update_motion(delta, global_transform.basis.inverse() * velocity, is_on_floor())
 	var sprinting_fov := 5.0 if is_sprinting and speed > WALK_SPEED + 0.5 else 0.0
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov

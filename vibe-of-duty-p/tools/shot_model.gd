@@ -76,6 +76,14 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"val_po_r": [12, ["val.sight.po"]],
 	"val_po": [12, ["val.sight.po"]],
 	"val_short_po_r": [12, ["val.barrel.short", "val.stock.wood", "val.sight.po"]],
+	"striker": [13, []],
+	"striker_r": [13, []],
+	"striker_q": [13, []],
+	"striker_load_r": [13, [], 0.0, -1.0, true],
+	"striker_folded": [13, ["striker.stock.folded"]],
+	"striker_bulldog": [13, ["striker.conversion.bulldog"]],
+	"striker_bulldog_r": [13, ["striker.conversion.bulldog"]],
+	"striker_bulldog_q": [13, ["striker.conversion.bulldog"]],
 }
 
 

@@ -155,6 +155,7 @@ var _right_arm: Dictionary
 var _left_arm: Dictionary
 var _ears: Array[Node3D] = []
 var _reload_hand := Vector3.ZERO     # left hand target during a reload (gun view space)
+var _reload_right := Vector3.INF      # right hand target during a reload (WeaponDef.loads_right_hand; INF: on the grip)
 
 # Locomotion state (animate), read by pose().
 var _phase := 0.0                 # gait cycle, 0..1 (left foot lands at 0, the right one at 0.5)
@@ -191,6 +192,8 @@ var _jolt_v := 0.0
 var _ragdoll: Ragdoll
 var _cannon: GrenadeCannon          # the "Гренадир"'s (set_cannon), null without it
 var _bomb: ChestBomb                # the "Хрях-бабах"'s (set_bomb), null without it
+var _legs: AugLegs                  # the "Прыг-Прыг"'s / "Прыг-скок"'s below the knees (set_legs), null without
+var _heat := 0.0                    # the "Прыг-скок"'s glow: the speed past a sprint, 0..1, smoothed
 var _ragdoll_parts: Array = []      # [part, frame index, relative transform] for the rigid parts
 
 
@@ -406,6 +409,40 @@ func set_bomb_armed(on: bool) -> void:
 		_bomb.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
 
 
+## The leg augmentations below the knees (AugLegs): the shins and trotters give way to them.
+func set_legs(kind: AugLegs.Kind) -> void:
+	if _legs != null and _legs.kind != kind:
+		_legs.free()
+		_legs = null
+	if kind != AugLegs.Kind.NONE and _legs == null:
+		_legs = AugLegs.new(kind)
+		_legs.name = "Legs"
+		add_child(_legs)
+	for side in ["L", "R"]:
+		(_parts["Shin" + side] as Node3D).visible = _legs == null
+		(_parts["Foot" + side] as Node3D).visible = _legs == null
+
+
+## The "Прыг-Прыг": the jump in the air is left (the lamps on the cylinders are lit).
+func set_air_jump_ready(on: bool) -> void:
+	if _legs != null:
+		_legs.jump_left = on
+
+
+## The "Прыг-Прыг"'s jump in the air: the rods kick out, the exhaust blows down from the heels.
+func air_jump() -> void:
+	if _legs == null or _legs.kind != AugLegs.Kind.JET:
+		return
+	_legs.air_jump()
+	var down := -global_basis.y.normalized()
+	for nozzle in _legs.nozzles():
+		for k in 3:
+			var spread := Vector3(randf_range(-0.6, 0.6), 0.0, randf_range(-0.6, 0.6))
+			Dust.puff(self, nozzle, down * randf_range(3.0, 4.5) + global_basis * spread, randf_range(0.22, 0.32),
+					randf_range(0.35, 0.55))
+	Dust.burst(self, global_position - global_basis.y * 0.2, 0.5)  # a ring of it in the air under the feet
+
+
 ## The cannon's muzzle (world), or the chest when there is none.
 func cannon_muzzle() -> Vector3:
 	if _cannon != null:
@@ -593,6 +630,13 @@ func animate(delta: float, velocity: Vector3, on_floor := true, sliding := false
 	var jolt := _spring(Vector2(_jolt, 0.0), Vector2(_jolt_v, 0.0), Vector2.ZERO, 3.2, 0.3, delta)
 	_jolt = clampf(jolt[0].x, -0.5, 0.5)
 	_jolt_v = jolt[1].x
+	if _legs != null:
+		# The blades: glow with the speed past a sprint (as the HUD's plate), flex with it and with each landing.
+		var sprint := Player.SPRINT_SPEED
+		_heat = move_toward(_heat, clampf((speed - sprint) / sprint, 0.0, 1.0), delta * 3.0)
+		_legs.heat = _heat
+		_legs.flex = (0.3 + 0.7 * _heat) * _move * (1.0 - _tuck) + _land / -LAND_DROP_MAX
+		_legs.advance(delta)
 
 
 ## A bullet hit at `at` (world): the body jerks with the shot (`direction`: world direction the bullet flew) - the
@@ -686,6 +730,8 @@ func pose() -> void:
 		_joints["hip" + side] = hip
 		_joints["knee" + side] = knee
 		_joints["ankle" + side] = ankle
+		if _legs != null:
+			_legs.place_leg(i, hip, knee, ankle, (_parts["Foot" + side] as Node3D).transform)
 
 	# Weapon: at the hip, or with the rear sight under the eye; blended by ads.
 	var shoulder_r := chest * Vector3(SHOULDER_X, SHOULDER_UP, 0.0)
@@ -703,9 +749,12 @@ func pose() -> void:
 	var ads_xform := Transform3D(aim, eye + aim * Vector3(0.0, 0.0, -def.eye_relief) - aim * rear_view)
 	var weapon_local := hip_xform.interpolate_with(ads_xform, ads)
 	var left_view := _view_point(def.left_hand)
+	var right_hold := right_view  # where the right palm goes (off the grip while it loads shells)
 	if reload >= 0.0:
 		weapon_local = _reload_pose(weapon_local, right_view, chest)
 		left_view = _reload_hand
+		if _reload_right.is_finite():
+			right_hold = _reload_right
 	else:
 		weapon.set_mag_shift(Vector3.ZERO)
 		weapon.set_break(-1.0)
@@ -734,7 +783,7 @@ func pose() -> void:
 		var held := chest.basis * tilt
 		var shown := Transform3D(held, chest * PRESENT_AT - held * ((right_view + left_view) * 0.5))
 		weapon_local = weapon_local.interpolate_with(shown, present)
-	var right_palm := weapon_local * right_view
+	var right_palm := weapon_local * right_hold
 	var left_palm := weapon_local * left_view
 	var right_fingers := weapon_local.basis * RIGHT_FINGERS
 	var right_dir := weapon_local.basis * RIGHT_PALM
@@ -978,6 +1027,9 @@ func _pose_ragdoll() -> void:
 		_segment(_parts["Thigh" + leg[0]], p[leg[1]], p[leg[2]])
 		_place(_parts["Knee" + leg[0]], Transform3D(Basis.IDENTITY, p[leg[2]]))
 		_segment(_parts["Shin" + leg[0]], p[leg[2]], p[leg[3]])
+		if _legs != null:
+			_legs.place_leg(0 if leg[0] == "L" else 1, p[leg[1]], p[leg[2]], p[leg[3]],
+					(_parts["Foot" + leg[0]] as Node3D).transform)
 	for arm in [[_left_arm, Ragdoll.SHOULDER_L, Ragdoll.ELBOW_L, Ragdoll.WRIST_L],
 			[_right_arm, Ragdoll.SHOULDER_R, Ragdoll.ELBOW_R, Ragdoll.WRIST_R]]:
 		var parts: Dictionary = arm[0]
@@ -1002,6 +1054,13 @@ func _reload_pose(weapon_local: Transform3D, grip: Vector3, chest: Transform3D) 
 	weapon_local = weapon_local * Transform3D(Basis.IDENTITY, grip) * tilt * Transform3D(Basis.IDENTITY, -grip)
 	var handguard := _view_point(def.left_hand)
 	_reload_hand = handguard
+	_reload_right = Vector3.INF
+	if weapon.loads_shells() and def.loads_right_hand:  # the right loads, the left holds the foregrip
+		var pouch_right := weapon_local.affine_inverse() * (chest * Vector3(0.15, -0.32, -0.14))
+		var loading := shell_hand(r, weapon, grip, pouch_right, 1.0)
+		_reload_right = loading[0]
+		weapon.set_shell(r, loading[1])
+		return weapon_local
 	if weapon.loads_shells():
 		var pouch_shells := weapon_local.affine_inverse() * (chest * Vector3(-0.15, -0.32, -0.14))
 		var with_shell := shell_hand(r, weapon, handguard, pouch_shells, 1.0)
@@ -1147,20 +1206,21 @@ static func refill_hand(t: float, rest: Vector3, bandolier: Vector3) -> Vector3:
 	return bandolier.lerp(rest, smoothstep(0.55, 1.0, t))
 
 
-## A lever action's loading, one shell (`r` 0..1), the left hand in gun view space - shared as reload_hand: off the
-## fore-end down to the pouch, up with a shell, thumbs it down into the open action's top, back. `scale`: the gun's
+## A lever action's (or a drum's) loading, one shell (`r` 0..1), the left hand in gun view space - shared as
+## reload_hand: off the fore-end down to the pouch, up with a shell, pushes it into the open action's top (the drum's
+## gate) from WeaponDef.shell_from, back. `scale`: the gun's
 ## drawn scale. Returns [hand position, the shell's shift (WeaponView.set_shell: INF when the hand is empty)].
 static func shell_hand(r: float, weapon: WeaponView, rest: Vector3, pouch: Vector3, scale: float) -> Array:
 	var seated := _view_point(weapon.shell_grip_point()) * scale
-	var above := seated + Vector3(0.0, 0.05, 0.0) * scale
-	var keys := [[0.0, rest], [0.25, pouch], [0.35, pouch], [0.62, above], [0.8, seated], [1.0, rest]]
+	var above := seated + _view_point(weapon.def.shell_from) * scale  # where the shell comes in from
+	var keys := [[0.0, rest], [0.25, pouch], [0.35, pouch], [0.62, above], [WeaponView.SHELL_SEATED, seated], [1.0, rest]]
 	var hand: Vector3 = rest
 	for i in keys.size() - 1:
 		if r >= keys[i][0] and r < keys[i + 1][0]:
 			var t := smoothstep(0.0, 1.0, (r - keys[i][0]) / (keys[i + 1][0] - keys[i][0]))
 			hand = (keys[i][1] as Vector3).lerp(keys[i + 1][1], t)
 			break
-	var holds := r >= 0.35 and r < 0.8
+	var holds := r >= 0.35 and r < WeaponView.SHELL_SEATED
 	return [hand, _view_point((hand - seated) / scale) if holds else Vector3.INF]
 
 

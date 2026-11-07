@@ -151,6 +151,13 @@ func push_snapshot(state: Array, tick: int) -> void:
 	_buffer_pose(seq, state[1], state[2], state[3], tick)
 	var flags: int = state[5]
 	_puppet_sounds(flags, state[4])
+	# The "Прыг-Прыг": its jumps in the air since the floor; one more is a jump in the air (the exhaust, the hiss).
+	var air_jumps: int = (state[7] as Array)[7]
+	if air_jumps > _puppet_air_jumps:
+		Audio.play("air_jump", global_position)
+		_visual.air_jump()
+	_puppet_air_jumps = air_jumps
+	_visual.set_air_jump_ready(air_jumps < int(mods["air_jumps"]))
 	is_crouched = flags & STATE_CROUCHED != 0
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0

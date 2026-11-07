@@ -12,6 +12,7 @@ const THICKNESS := 0.8      # and a bit slimmer, or they fill the screen
 const RIGHT_POLE := Vector3(1.0, -1.0, 0.25)
 const LEFT_POLE := Vector3(-0.6, -1.0, 0.0)
 const POUCH := Vector3(-0.2, -0.6, -0.2)  # camera space: where the left hand swaps magazines, below the view
+const POUCH_RIGHT := Vector3(0.2, -0.6, -0.2)  # camera space: the shells the right hand loads from (Striker)
 const BANDOLIER := Vector3(-0.15, -0.45, -0.05)  # camera space: the loops on the chest, below the view
 const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at full reach of a punch, just below the middle
 const ARM_OUT := Vector3(-0.55, -0.3, -0.25)  # camera space: the left hoof thrown out to the side (grenade), off screen
@@ -85,8 +86,12 @@ func pose() -> void:
 	var s := WeaponView.VIEWMODEL_SCALE
 	var right := Mannequin._view_point(_weapon.lever_hand(def.right_hand)) * s
 	var left := Mannequin._view_point(def.left_hand) * s
-	var right_palm := xform * right
-	if reload >= 0.0:
+	if reload >= 0.0 and _weapon.loads_shells() and def.loads_right_hand:
+		# The right hand off the grip to the shells and into the gate; the left keeps the foregrip.
+		var with_shell := Mannequin.shell_hand(reload, _weapon, right, xform.affine_inverse() * POUCH_RIGHT, s)
+		_weapon.set_shell(reload, with_shell[1])
+		right = with_shell[0]
+	elif reload >= 0.0:
 		left = _reload_hand(def, left, s)
 	else:
 		_weapon.set_mag_shift(Vector3.ZERO)
@@ -95,6 +100,7 @@ func pose() -> void:
 		var refill := _weapon.refill_progress()
 		if refill >= 0.0:
 			left = Mannequin.refill_hand(refill, left, xform.affine_inverse() * BANDOLIER)
+	var right_palm := xform * right
 	var left_palm := xform * left
 	var right_fingers := xform.basis * Mannequin.RIGHT_FINGERS
 	var left_fingers := xform.basis * Mannequin.LEFT_FINGERS

@@ -30,6 +30,14 @@ var chamber := Vector3.INF           # prefab space: the case head of the round 
 var forend := Vector3.INF            # prefab space: where the left hand takes a break-open's fore-end to drop the barrel
 var lever_pivot := Vector3.INF       # prefab space: a lever action's pivot (Winchester 1887; INF: none) - "Lever" turns about it
 var shell_port := Vector3.INF        # prefab space: where a lever action's shells go in by hand and the spent hull flies out
+                                     # (or a drum's loading gate: the model's "Shell" at rest)
+var shell_grip := Vector3(0.035, 0.035, -0.01)  # prefab space, life size: the left palm from the shell it pushes in
+                                                # (over the Winchester's open top: left of it and over it)
+var shell_from := Vector3(0.0, 0.05, 0.0)       # prefab space, life size: where the hand brings the shell from, off
+                                                # its seat (the Winchester: down into the top; the Striker: forward)
+var loads_right_hand := false        # the right hand takes the shells to the gate (the Striker's, on the right), the left
+                                     # holds the gun by the foregrip meanwhile (owner, 2026-11-07); false: the left loads
+var eject_hull := false              # what flies out of ejection_port after a shot is a shotgun hull (Casings)
 var mag_hinge := Vector3.INF         # prefab space: a magazine on top (P90; INF: none) - the catch at its front's bottom:
                                      # its back tips up about it, then it slides back off (WeaponView.set_mag_tip)
 var eject_down := false              # the empties drop out of the bottom (the P90, behind the grip), not thrown to the right

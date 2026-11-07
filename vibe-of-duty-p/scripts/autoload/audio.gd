@@ -26,6 +26,7 @@ const PLACEHOLDERS := {
 	"death": {"kind": "thump", "dur": 0.5, "freq": 180.0, "freq_end": 40.0, "decay": 6.0, "vol": 0.9},
 	"kill": {"kind": "tone", "dur": 0.18, "freq": 700.0, "freq_end": 1400.0, "decay": 10.0, "vol": 0.6},
 	"jump": {"kind": "tone", "dur": 0.1, "freq": 200.0, "freq_end": 320.0, "decay": 18.0, "vol": 0.3},
+	"air_jump": {"kind": "noise", "dur": 0.2, "decay": 14.0, "vol": 0.4},  # the "Прыг-Прыг"'s exhaust (hiss)
 	"land": {"kind": "thump", "dur": 0.12, "freq": 110.0, "freq_end": 60.0, "decay": 25.0, "vol": 0.5},
 	"step": {"kind": "noise", "dur": 0.06, "decay": 50.0, "vol": 0.25},
 	"slide": {"kind": "noise", "dur": 0.35, "decay": 6.0, "vol": 0.3},

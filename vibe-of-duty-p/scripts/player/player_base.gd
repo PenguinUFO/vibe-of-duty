@@ -233,6 +233,7 @@ var _death_drift_v := Vector3.ZERO  # ...and how fast (catches up with the groun
 var _cam_land := 0.0             # landing dip (m) and its spring velocity
 var _cam_land_v := 0.0
 var _land_impact := 0.0          # fall speed of a landing not yet shown (set by the simulation)
+var _air_jump_fx := false        # a jump in the air not yet shown (the "Прыг-Прыг"'s exhaust; set by the simulation)
 var _bob_amount := 0.0
 var _bob_side := 1.0             # which foot the current step is on
 var _punch := Vector2.ZERO       # damage jolt: x = pitch, y = roll (rad)
@@ -260,6 +261,7 @@ var _puppet_reloading := false
 var _puppet_meleeing := false
 var _puppet_launching := false
 var _puppet_akimbo := false
+var _puppet_air_jumps := 0
 var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 

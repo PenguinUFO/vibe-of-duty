@@ -152,6 +152,17 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 		if impact > 3.0:
 			Dust.burst(self, global_position, (impact - 3.0) / 4.0)
 		_land_impact = 0.0
+	if _air_jump_fx:
+		# The "Прыг-Прыг": a kick up through the view, the exhaust blown down from the heels (seen looking down).
+		_air_jump_fx = false
+		_cam_land_v -= 0.5
+		_view.land_jolt(0.4)
+		_left_view.land_jolt(0.4)
+		var down := -body_up()
+		for k in 5:
+			var spread := Gravity.frame(global_position) * Vector3(randf_range(-0.7, 0.7), 0.0, randf_range(-0.7, 0.7))
+			Dust.puff(self, global_position + down * 0.05, down * randf_range(3.0, 4.5) + spread,
+					randf_range(0.22, 0.32), randf_range(0.35, 0.55))
 	_dust_t -= dt
 	if is_sliding and is_on_floor() and _dust_t <= 0.0:
 		_dust_t = 0.05

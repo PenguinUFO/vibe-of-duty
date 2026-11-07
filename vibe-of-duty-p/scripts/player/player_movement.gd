@@ -135,7 +135,8 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 				_air_jumps += 1
 				air_jumps_total += 1
 				_floor_y = Gravity.height(global_position)  # a vault reaches from here, as from the ground
-			_sfx("jump")
+				_air_jump_fx = _air_jump_fx or not _replaying
+			_sfx("air_jump" if air_jump else "jump")
 		else:
 			v.y = 0.0
 	else:

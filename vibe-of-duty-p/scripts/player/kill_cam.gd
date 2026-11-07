@@ -260,6 +260,7 @@ func _play(delta: float) -> void:
 		ghost.set_chip(_chip_for(id))
 		ghost.set_eye_gun(_eye_gun_for(id))
 		ghost.set_cyber_arms(_cyber_for(id))
+		ghost.set_legs(_legs_for(id))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -376,6 +377,12 @@ func _eye_gun_for(id: int) -> bool:
 func _cyber_for(id: int) -> bool:
 	var player: Player = world.players.get(id)
 	return player != null and player.build.has(PartDB.PIG_ARMS)
+
+
+## The player's leg augmentation (as of now, as _def_for).
+func _legs_for(id: int) -> AugLegs.Kind:
+	var player: Player = world.players.get(id)
+	return AugLegs.kind_of(player.build) if player != null else AugLegs.Kind.NONE
 
 
 ## The player has the "Свинжинер"'s chip (as of now, as _def_for).

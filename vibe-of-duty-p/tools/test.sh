@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|arms|build|moves|grenade|bomb|cmp|akimbo|smg|val|random|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|arms|build|moves|grenade|bomb|cmp|akimbo|smg|val|striker|random|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -89,6 +89,13 @@ run() {
 		$R --join=127.0.0.1 --bot-aim --name=V1 --build=kit.val --summary=37 > "$O/val_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=V2 --build=kit.val,engineer,val.barrel.short,val.stock.wood,val.sight.po,val.mag.10 --lag=40 --summary=37 > "$O/val_c2.log" 2>&1 &
 		wait;;
+	striker)  # arena: the Armsel Striker - T1 the kit; T2 the Bulldog akimbo (the "Руки-Хрюки"), T3 the folded stock
+		$R --server --map=arena --summary=40 > "$O/striker_srv.log" 2>&1 &
+		sleep 3
+		$R --join=127.0.0.1 --bot-aim --name=T1 --build=kit.striker --summary=37 > "$O/striker_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=T2 --build=kit.striker,engineer,pig_arms,striker.akimbo.on --lag=40 --summary=37 > "$O/striker_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=T3 --build=kit.striker,engineer,striker.stock.folded --summary=37 > "$O/striker_c3.log" 2>&1 &
+		wait;;
 	smg)  # arena: akimbo SMGs - S1 the MP7 (the can stays, the ACOG must go, the stock folds), S2 the PH IDW, S3 asks for it
 		# without the "Руки-Хрюки": one MP7, nothing thrown away
 		$R --server --map=arena --summary=40 > "$O/smg_srv.log" 2>&1 &
@@ -109,5 +116,5 @@ run() {
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee arms build moves grenade bomb cmp akimbo smg val random; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee arms build moves grenade bomb cmp akimbo smg val striker random; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"
