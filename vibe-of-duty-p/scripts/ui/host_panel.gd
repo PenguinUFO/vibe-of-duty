@@ -1,7 +1,7 @@
 class_name HostPanel
 extends PanelContainer
-## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length, the FFA random
-## weapon mode - Game.random_weapons) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
+## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length, the game
+## mode - Game.Mode) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
 ## the kid mode code (KidModeEntry): the right code opens a section of test options - for now recording the match
 ## statistics (Game.record_stats, MatchStats).
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
@@ -18,7 +18,7 @@ var _map: OptionButton
 var _score_limit: SpinBox
 var _match_minutes: SpinBox
 var _port: SpinBox
-var _random_weapons: CheckBox
+var _mode: OptionButton
 var _record_stats: CheckBox
 
 
@@ -48,7 +48,12 @@ func _init() -> void:
 	_add_row(box, "Карта", _map)
 	_score_limit = _add_spin(box, "Лимит убийств", 1, 100, Settings.host_score_limit, "")
 	_match_minutes = _add_spin(box, "Длительность матча", 1, 60, Settings.host_match_minutes, " мин")
-	_random_weapons = _add_check(box, "Игровой режим: FFA рандомное оружие", Settings.host_random_weapons)
+	_mode = OptionButton.new()
+	for mode_name in Game.MODE_NAMES:
+		_mode.add_item(mode_name)
+	_mode.select(Settings.host_mode)
+	_mode.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
+	_add_row(box, "Режим", _mode)
 	# Rarely needed settings, folded away: the port (only when 27015 is taken or a router forwards another one).
 	var advanced := FoldableContainer.new()
 	advanced.title = "Дополнительно"
@@ -92,14 +97,14 @@ func _on_start() -> void:
 	Settings.host_score_limit = int(_score_limit.value)
 	Settings.host_match_minutes = int(_match_minutes.value)
 	Settings.host_port = int(_port.value)
-	Settings.host_random_weapons = _random_weapons.button_pressed
+	Settings.host_mode = _mode.selected
 	Settings.save_settings()
 	Game.map_scene = Settings.host_map if Game.list_maps().has(Settings.host_map) else Game.DEFAULT_MAP
 	Game.score_limit = Settings.host_score_limit
 	Game.match_time = Settings.host_match_minutes * 60.0
 	Game.launch_port = Settings.host_port
 	Game.training = false
-	Game.random_weapons = Settings.host_random_weapons
+	Game.set_mode(Settings.host_mode)
 	record_stats = _record_stats.button_pressed
 	Game.record_stats = record_stats
 	start_requested.emit()

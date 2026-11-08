@@ -141,6 +141,7 @@ func _on_shot(event: Dictionary) -> void:
 				(r["target"] as Target).react_to_shot(origin, r["pos"])
 			if r["hit"] and r["player"] == null and r.get("target") == null:
 				ShotEffects.spawn_impact(scene_root, r["pos"], r["normal"])
+				BulletHoles.spawn(self, r["pos"], r["normal"], r.get("collider"))
 				Audio.play("impact", r["pos"])
 
 
@@ -413,6 +414,7 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array, le
 		if def.tracer:
 			ShotEffects.spawn_tracer(scene_root, muzzle, ends[i])
 		ShotEffects.spawn_impact(scene_root, ends[i], Gravity.up(ends[i]))
+		BulletHoles.spawn_at_end(self, origin, ends[i])
 		if world != null:
 			for id in world.players:
 				if id != peer_id:

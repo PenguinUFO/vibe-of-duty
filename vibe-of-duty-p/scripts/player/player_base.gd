@@ -81,6 +81,7 @@ const MELEE_FAN: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.075, 0.0), Vecto
 		Vector2(0.15, 0.0), Vector2(-0.15, 0.0), Vector2(0.075, -0.13), Vector2(-0.075, -0.13)]
 const NEAR_RADIUS := 1.5  # m from the eyes to the bullet's path: a near miss (bullet_near, MatchStats near_in/near_out)
 const MAX_HEALTH := 150  # kid mode: more (Settings.kid_health), up to KID_HEALTH_MAX
+const HARDCORE_HEALTH := 100  # everybody in the "Хардкор" mode (Game.hardcore): no kid mode, no build health
 const KID_HEALTH_MAX := 600
 const BACK_FULL_ANGLE := deg_to_rad(135.0)  # kid mode: shots from this far off the view get the full back_damage
 # Health regeneration (server), as in Call of Duty: Modern Warfare III (2023) after its Season 2 patch: it starts 3 s

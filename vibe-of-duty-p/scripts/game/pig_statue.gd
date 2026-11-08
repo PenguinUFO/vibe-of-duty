@@ -331,6 +331,7 @@ func _show_shot(end: Vector3) -> void:
 	var level := get_parent()
 	ShotEffects.spawn_tracer(level, muzzle, end)
 	ShotEffects.spawn_impact(level, end, (muzzle - end).normalized())
+	BulletHoles.spawn_at_end(self, muzzle, end)
 	Audio.play("impact", end)
 	for id in _world.players:
 		(_world.players[id] as Player).react_to_shot(muzzle, end)

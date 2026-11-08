@@ -7,7 +7,9 @@ extends SceneTree
 ## - a side profile (z, y) pushed out across the gun, its half width changing along z (the AK's stock thickens
 ##   towards the butt), the edges chamfered - stocks, grips, handguards, receivers;
 ## - a cross-section (x, y) pushed along the barrel - the AK dust cover's rounded top; or lofted from it to another
-##   of as many points at the front end (the M16A1's triangular handguard, tapering).
+##   of as many points at the front end (the M16A1's triangular handguard, tapering);
+## - "lofts": rounded rectangles lofted through stations along the barrel (the Winchester's receiver, stock, fore-end);
+## - "rings": a flat band along a closed middle line in the side plane (the Winchester lever's loops).
 ## Prefab space as the guns': +Y up, +Z towards the muzzle, metres; the parts are built in place.
 ## AK - after the AKM, from memory: the stock drops and deepens to the butt, the grip rakes back with a finger groove,
 ## the lower handguard swells under the palm. PDW - after the Parker-Hale photos (Docs/LOADOUT.md, "PDW"): the
@@ -19,8 +21,9 @@ extends SceneTree
 ## MOE grip, the two-part telescoping stock.
 ## MP7 - after the owner's photos: the one-block receiver with its sloping front, the L guard, the upright grip, the butt
 ## plate. Contender - after the owner's photos: the frame with its standing breech, the raked walnut grip with the finger
-## shelf, the fore-end, the guard with its spur. Winchester 1887 - after the owner's photos: the tall receiver, the
-## stock with its deep drop, the fore-end round the barrel and the tube. Mk 14 Mod 1 EBR - after the owner's drawing: the
+## shelf, the fore-end, the guard with its spur. Winchester 1887 - traced off the owner's photo: the receiver, the
+## stock, the fore-end, the band, the butt plate lofted round; the side's raised panel, the hammer, the rear sight (the
+## receiver's front: two cheeks and the slot), the lever's two loops. Mk 14 Mod 1 EBR - after the owner's drawing: the
 ## chassis, the deep handguard, the receiver, the raked grip, the butt. P90 - traced off the owner's photo: the body, the
 ## lower and the front round the two holes, the sight's housing. AUG - traced off the owner's photo: the butt with the
 ## grip and the guard round the whole hand, the receiver, the A1's bridge, the A3's upper, the Steyr grip, the handguard.
@@ -200,25 +203,50 @@ const PARTS := {
 		"sections": {},
 	},
 	"winchester": {
+		# After the owner's photos of a Winchester 1887 with a 22" barrel (Docs/LOADOUT.md, "Winchester 1887"), traced
+		# off the left side (2.026 mm a pixel; tools/make_winchester_blockout.py, P()). Lofted round: the receiver, the
+		# stock, the fore-end, the band - in the sight they show their rounded tops, not flat slabs.
 		"profiles": {
-			# After the owner's photos of a Winchester 1887 with a 22" barrel (Docs/LOADOUT.md, "Winchester 1887";
-			# 2.026 mm a pixel of the left side): the tall receiver, its top falling behind the hammer to the tang.
-			"receiver": {"points": [Vector2(0.1195, 0.0851), Vector2(0.0608, 0.0831), Vector2(0.0365, 0.0729),
-					Vector2(0.0, 0.0486), Vector2(-0.0284, 0.0284), Vector2(-0.0284, 0.0041), Vector2(-0.0041, -0.0041),
-					Vector2(0.0365, -0.0041), Vector2(0.0669, 0.0041), Vector2(0.0972, 0.0203), Vector2(0.1195, 0.0284)],
-					"width": [Vector2(0.0, 0.0195)], "chamfer": 0.003},
-			# The stock: the straight wrist with a little pistol swell, the comb's nose, the deep drop to the butt.
-			"stock": {"points": [Vector2(-0.0243, 0.0324), Vector2(-0.1216, 0.0041), Vector2(-0.1499, 0.0122),
-					Vector2(-0.3525, 0.0041), Vector2(-0.3627, -0.0041), Vector2(-0.3627, -0.1297), Vector2(-0.3485, -0.1317),
-					Vector2(-0.1499, -0.077), Vector2(-0.1256, -0.077), Vector2(-0.1013, -0.0588), Vector2(-0.0689, -0.0324),
-					Vector2(-0.0365, -0.0081), Vector2(-0.0243, 0.0)], "width": [Vector2(-0.03, 0.017), Vector2(-0.36, 0.021)],
-					"chamfer": 0.007},
-			# The fore-end round the barrel and the tube under it, its front end rounded off.
-			"forend": {"points": [Vector2(0.4, 0.077), Vector2(0.1216, 0.077), Vector2(0.1216, 0.0304),
-					Vector2(0.4, 0.0324), Vector2(0.407, 0.037), Vector2(0.409, 0.055), Vector2(0.407, 0.072)],
-					"width": [Vector2(0.0, 0.019)], "chamfer": 0.008},
+			# The receiver side's raised panel inside its border (the frame round the side plates in the photos).
+			"panel": {"points": [Vector2(0.1135, 0.072), Vector2(0.0972, 0.0727), Vector2(0.077, 0.0733), Vector2(0.0567, 0.0715), Vector2(0.0365, 0.0685), Vector2(0.0162, 0.0655), Vector2(0.0041, 0.0615), Vector2(-0.0061, 0.0533), Vector2(-0.0162, 0.0412), Vector2(-0.0162, 0.001), Vector2(-0.0061, -0.0001), Vector2(0.0041, -0.0001), Vector2(0.0162, -0.0001), Vector2(0.0365, -0.0001), Vector2(0.0567, 0.004), Vector2(0.077, 0.0141), Vector2(0.0972, 0.0222), Vector2(0.1135, 0.0334)],
+					"width": [Vector2(0.0, 0.0205)], "chamfer": 0.0008},
+			# The hammer, cocked: the body on its pin, the checkered spur back, low (under the eye's line to the slot).
+			"hammer": {"points": [Vector2(0.05, 0.058), Vector2(0.05, 0.0795), Vector2(0.044, 0.0812),
+					Vector2(0.032, 0.0808), Vector2(0.02, 0.0826), Vector2(0.0125, 0.0822), Vector2(0.0115, 0.0805),
+					Vector2(0.018, 0.0782), Vector2(0.03, 0.0768), Vector2(0.036, 0.071), Vector2(0.034, 0.058)],
+					"width": [Vector2(0.0, 0.0042)], "chamfer": 0.0012},
 		},
-		"sections": {},
+		"sections": {
+			# The rear sight - the receiver's front round the barrel's breech (the owner's photo, 2026-11-07): two cheeks
+			# with rounded shoulders (the receiver's) and the slot between them, sloping down at the front to the barrel.
+			"rear_sight": {"points": [Vector2(0.0195, 0.07), Vector2(0.0195, 0.083), Vector2(0.0178, 0.0872),
+					Vector2(0.0138, 0.0893), Vector2(0.012, 0.0895), Vector2(0.0035, 0.0895), Vector2(0.0035, 0.0815),
+					Vector2(-0.0035, 0.0815), Vector2(-0.0035, 0.0895), Vector2(-0.012, 0.0895), Vector2(-0.0138, 0.0893),
+					Vector2(-0.0178, 0.0872), Vector2(-0.0195, 0.083), Vector2(-0.0195, 0.07)], "z": Vector2(0.094, 0.1195),
+					"end_points": [Vector2(0.0195, 0.07), Vector2(0.0195, 0.0795), Vector2(0.0178, 0.0835),
+					Vector2(0.0138, 0.0853), Vector2(0.012, 0.0855), Vector2(0.0035, 0.0855), Vector2(0.0035, 0.0815),
+					Vector2(-0.0035, 0.0815), Vector2(-0.0035, 0.0855), Vector2(-0.012, 0.0855), Vector2(-0.0138, 0.0853),
+					Vector2(-0.0178, 0.0835), Vector2(-0.0195, 0.0795), Vector2(-0.0195, 0.07)]},
+		},
+		"lofts": {
+			# The receiver: the front straight down, the belly to the lever, the top's shoulders rounded, falling behind
+			# the hammer in a curve to the tang.
+			"receiver": {"stations": [[-0.0284, 0.003, 0.0344, 0.0195, 0.007, 0.004], [-0.0243, -0.001, 0.0405, 0.0195, 0.007, 0.004], [-0.0162, -0.003, 0.0507, 0.0195, 0.007, 0.004], [-0.0061, -0.0041, 0.0628, 0.0195, 0.007, 0.004], [0.0041, -0.0041, 0.071, 0.0195, 0.007, 0.004], [0.0162, -0.0041, 0.075, 0.0195, 0.007, 0.004], [0.0365, -0.0041, 0.078, 0.0195, 0.007, 0.004], [0.0567, 0.0, 0.081, 0.0195, 0.007, 0.004], [0.077, 0.0101, 0.0828, 0.0195, 0.007, 0.004], [0.0972, 0.0182, 0.0822, 0.0195, 0.007, 0.004], [0.1135, 0.0294, 0.0815, 0.0195, 0.007, 0.004], [0.1195, 0.0314, 0.081, 0.0195, 0.007, 0.004]]},
+			# The stock: the wrist with its pistol swell under, the dip before the comb's rounded nose, the deep drop.
+			"stock": {"stations": [[-0.3627, -0.1317, -0.002, 0.021, 0.008, 0.008], [-0.3546, -0.1307, 0.003, 0.0209, 0.008, 0.008], [-0.3282, -0.1236, 0.0061, 0.0206, 0.008, 0.008], [-0.2472, -0.0952, 0.0091, 0.0196, 0.008, 0.008], [-0.1661, -0.0709, 0.0118, 0.0187, 0.008, 0.008], [-0.152, -0.0679, 0.0122, 0.0185, 0.008, 0.008], [-0.1479, -0.0658, 0.0111, 0.0184, 0.008, 0.008], [-0.1438, -0.0689, 0.0081, 0.0184, 0.008, 0.008], [-0.1357, -0.077, 0.0, 0.0183, 0.008, 0.008], [-0.1256, -0.0841, -0.002, 0.0182, 0.008, 0.008], [-0.1135, -0.081, -0.001, 0.018, 0.008, 0.008], [-0.1013, -0.0669, 0.0041, 0.0179, 0.008, 0.008], [-0.0851, -0.0486, 0.0101, 0.0177, 0.008, 0.008], [-0.0689, -0.0324, 0.0162, 0.0175, 0.008, 0.008], [-0.0547, -0.0203, 0.0223, 0.0173, 0.008, 0.008], [-0.0365, -0.0081, 0.0304, 0.0171, 0.008, 0.008], [-0.0284, -0.002, 0.0324, 0.017, 0.008, 0.008]]},
+			"butt_plate": {"stations": [[-0.3667, -0.1311, -0.0044, 0.021, 0.008, 0.008], [-0.3627, -0.1311, -0.0044, 0.021, 0.008, 0.008]]},
+			# The fore-end hugging the barrel and the tube under it, its front end rounded off.
+			"forend": {"stations": [[0.1195, 0.0304, 0.077, 0.019, 0.007, 0.016], [0.4, 0.0324, 0.077, 0.0185, 0.007, 0.016],
+					[0.405, 0.0342, 0.075, 0.0172, 0.007, 0.015], [0.409, 0.039, 0.0705, 0.0145, 0.007, 0.0135]]},
+			# The band round the barrel and the tube near the muzzle.
+			"band": {"stations": [[0.506, 0.0321, 0.0855, 0.0127, 0.0127, 0.0127], [0.518, 0.0321, 0.0855, 0.0127, 0.0127, 0.0127]]},
+		},
+		"rings": {
+			# The lever's loops, flat bands along their middle lines: the small front one round the trigger, the long
+			# rear one for the fingers, sharing the front one's back.
+			"lever_front": {"points": [Vector2(0.0324, -0.0122), Vector2(-0.0324, -0.0122), Vector2(-0.0375, -0.0284), Vector2(-0.0314, -0.0466), Vector2(0.0, -0.0517), Vector2(0.0263, -0.0415), Vector2(0.0334, -0.0243)], "thick": 0.0046, "hw": 0.0042},
+			"lever_rear": {"points": [Vector2(-0.0344, -0.0152), Vector2(-0.0567, -0.0274), Vector2(-0.0851, -0.0507), Vector2(-0.1023, -0.075), Vector2(-0.1043, -0.0912), Vector2(-0.0932, -0.0993), Vector2(-0.079, -0.0962), Vector2(-0.0547, -0.0739), Vector2(-0.0334, -0.0496), Vector2(-0.0375, -0.0304)], "thick": 0.0046, "hw": 0.0042},
+		},
 	},
 	"mk14": {
 		"profiles": {
@@ -692,6 +720,13 @@ func _initialize() -> void:
 			var s: Dictionary = sections[name]
 			_save(_section_solid(PackedVector2Array(s["points"]), s["z"], PackedVector2Array(s.get("end_points", []))),
 					weapon, name)
+		var lofts: Dictionary = PARTS[weapon].get("lofts", {})
+		for name: String in lofts:
+			_save(_loft_solid(lofts[name]["stations"], lofts[name].get("corner", 3)), weapon, name)
+		var rings: Dictionary = PARTS[weapon].get("rings", {})
+		for name: String in rings:
+			var r: Dictionary = rings[name]
+			_save(_ring_solid(PackedVector2Array(r["points"]), r["thick"], r["hw"], r.get("smooth", 2)), weapon, name)
 	quit()
 
 
@@ -763,6 +798,86 @@ static func _section_solid(points: PackedVector2Array, z: Vector2, end_points :=
 			var c := ring[tris[i + 2]]
 			_tri(st, Vector3(a.x, a.y, cap[1]), Vector3(b.x, b.y, cap[1]), Vector3(c.x, c.y, cap[1]),
 					Vector3(0.0, 0.0, cap[2]))
+	return st.commit()
+
+
+## Rounded sections lofted along the barrel through `stations` [z, y bottom, y top, half width, top corners' radius,
+## bottom corners' radius] (in z order): the sides between each two, the caps at both ends. Every section has as many
+## points (`corner` + 1 a corner), so they join point to point.
+static func _loft_solid(stations: Array, corner: int) -> Mesh:
+	var rings: Array[PackedVector2Array] = []
+	for s: Array in stations:
+		rings.append(_rounded(s[3], s[1], s[2], s[4], s[5], corner))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in stations.size() - 1:
+		var za: float = stations[i][0]
+		var zb: float = stations[i + 1][0]
+		var ra := rings[i]
+		var rb := rings[i + 1]
+		for k in ra.size():
+			var k2 := (k + 1) % ra.size()
+			var edge := ra[k2] - ra[k]
+			_quad(st, Vector3(ra[k].x, ra[k].y, za), Vector3(ra[k2].x, ra[k2].y, za), Vector3(rb[k2].x, rb[k2].y, zb),
+					Vector3(rb[k].x, rb[k].y, zb), Vector3(edge.y, -edge.x, 0.0).normalized())
+	for cap in [[rings[0], stations[0][0], -1.0], [rings[-1], stations[-1][0], 1.0]]:
+		var ring: PackedVector2Array = cap[0]
+		var tris := Geometry2D.triangulate_polygon(ring)
+		for i in range(0, tris.size(), 3):
+			var a := ring[tris[i]]
+			var b := ring[tris[i + 1]]
+			var c := ring[tris[i + 2]]
+			_tri(st, Vector3(a.x, a.y, cap[1]), Vector3(b.x, b.y, cap[1]), Vector3(c.x, c.y, cap[1]), Vector3(0.0, 0.0, cap[2]))
+	return st.commit()
+
+
+## A rectangle (x, y) with rounded corners, counter-clockwise from the bottom right; the radii shrink to fit.
+static func _rounded(hw: float, y0: float, y1: float, rt: float, rb: float, corner: int) -> PackedVector2Array:
+	rt = minf(rt, hw)
+	rb = minf(rb, hw)
+	var fit := (y1 - y0) / maxf(rt + rb, 1e-6)
+	if fit < 1.0:
+		rt *= fit
+		rb *= fit
+	rt = maxf(rt, 0.0002)
+	rb = maxf(rb, 0.0002)
+	var out := PackedVector2Array()
+	var corners := [[Vector2(hw - rb, y0 + rb), rb, -0.5], [Vector2(hw - rt, y1 - rt), rt, 0.0],
+			[Vector2(rt - hw, y1 - rt), rt, 0.5], [Vector2(rb - hw, y0 + rb), rb, 1.0]]
+	for c: Array in corners:
+		for j in corner + 1:
+			var a: float = PI * (float(c[2]) + 0.5 * j / corner)
+			out.append((c[0] as Vector2) + Vector2(cos(a), sin(a)) * float(c[1]))
+	return out
+
+
+## A flat band along a closed middle line (z, y) - a lever's loop: `thick` wide in the side plane, `hw` half its width
+## across; the line rounded off by `smooth` passes of corner cutting.
+static func _ring_solid(points: PackedVector2Array, thick: float, hw: float, smooth: int) -> Mesh:
+	for _i in smooth:
+		var cut := PackedVector2Array()
+		for k in points.size():
+			var a := points[k]
+			var b := points[(k + 1) % points.size()]
+			cut.append(a.lerp(b, 0.25))
+			cut.append(a.lerp(b, 0.75))
+		points = cut
+	if _area(points) < 0.0:
+		points.reverse()
+	var outer := _inset(points, -thick * 0.5)
+	var inner := _inset(points, thick * 0.5)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := points.size()
+	for k in n:
+		var k2 := (k + 1) % n
+		var edge := points[k2] - points[k]
+		var out := Vector3(0.0, -edge.x, edge.y).normalized()
+		_quad(st, _at(outer[k], hw), _at(outer[k2], hw), _at(outer[k2], -hw), _at(outer[k], -hw), out)
+		_quad(st, _at(inner[k], hw), _at(inner[k2], hw), _at(inner[k2], -hw), _at(inner[k], -hw), -out)
+		for side in [1.0, -1.0]:
+			_quad(st, _at(outer[k], side * hw), _at(outer[k2], side * hw), _at(inner[k2], side * hw),
+					_at(inner[k], side * hw), Vector3(side, 0.0, 0.0))
 	return st.commit()
 
 

@@ -44,7 +44,7 @@ func open() -> void:
 	_write({"e": "session", "date": Time.get_datetime_string_from_system(),
 			"version": str(ProjectSettings.get_setting("application/config/version", "")),
 			"weapons_md5": WeaponDB.config_text.md5_text(), "map": Game.map_scene.get_file().get_basename(),
-			"random_weapons": Game.random_weapons, "score_limit": Game.score_limit, "match_time": Game.match_time,
+			"random_weapons": Game.random_weapons, "hardcore": Game.hardcore, "score_limit": Game.score_limit, "match_time": Game.match_time,
 			"dedicated": Game.dedicated})
 
 

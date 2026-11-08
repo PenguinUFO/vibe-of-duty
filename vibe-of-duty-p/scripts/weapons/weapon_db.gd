@@ -516,9 +516,9 @@ static func _build_geometry() -> void:
 	winchester.display_name = "Winchester 1887"
 	winchester.scene_path = "res://prefabs/weapons/winchester_blockout.tscn"  # tools/make_winchester_blockout.py
 	winchester.muzzle = Vector3(0.0, 0.073, 0.64)
-	winchester.rear_sight = Vector3(0.0, 0.0895, 0.09)   # over the receiver's top behind the barrel (no rear sight)
-	winchester.front_sight = Vector3(0.0, 0.0895, 0.625)  # the bead's top (the hammer's spur stays under the line)
-	winchester.eye_relief = 0.42  # over the comb; closer, the hand on the wrist filled the view
+	winchester.rear_sight = Vector3(0.0, 0.0895, 0.094)  # the top of the receiver front's cheeks round the slot
+	winchester.front_sight = Vector3(0.0, 0.0895, 0.625)  # the bead's top (the hammer stays under the eye's line to the slot)
+	winchester.eye_relief = 0.22  # the cheek on the comb's nose; at 0.42 (near the butt) the gun was a speck, the hand in view
 	winchester.right_hand = Vector3(0.0, -0.024, -0.061)  # on the wrist, the fingers in the lever's loop
 	winchester.left_hand = Vector3(0.0, 0.028, 0.27)     # under the fore-end
 	winchester.lever_pivot = Vector3(0.0, 0.012, 0.07)

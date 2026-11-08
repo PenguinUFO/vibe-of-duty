@@ -16,7 +16,8 @@ const TRAINING_MAPS: Array[String] = ["range", "course", "test_level"]
 ## Developer test maps: never offered in the menus, only reachable with --map= (dedicated server) or --training=.
 ## arena: a small walled box with nothing between the spawns, for automated netcode / kill cam / combat tests.
 ## ttk: the TTK balance test (--bot-ttk): targets at 10 / 20 / 40 / 80 m and dodgers running round the shooter there.
-const TEST_MAPS: Array[String] = ["arena", "ttk"]
+## field: a flat walled 50 x 50 m square, spawns round the edge - archetype bot fights (Docs/BOTS.md).
+const TEST_MAPS: Array[String] = ["arena", "ttk", "field"]
 const TRAINING_INFO := {
 	"range": "Мишени на дистанциях от 5 до 75 м и бегущая мишень",
 	"course": "Площадка по кругу: стены, поручни, туннели, ямы, склоны, брёвна, ступени. На каждом снаряде несколько вариантов рядом — что получается, а что уже нет",
@@ -43,6 +44,8 @@ var bot_vault := false     # --bot-vault: bots run back and forth over the test 
 var test_spawn := Vector3.INF  # set by --bot-vault / --test-spawn=x,y,z: everybody spawns here
 var test_build: Array = []     # --build=part,part,...: the build bots play (PartDB ids, SLOTS order); native without it
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
+var bot_style := ""        # --bot-style=ID: an archetype bot (BotProfiles.STYLES) - balance tests, Docs/BOTS.md
+var bot_skill := "average" # --bot-skill=ID: the archetype bot's skill (BotProfiles.SKILLS)
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_ttk := ""          # --bot-ttk=NODE: --bot-targets shoot only that target's body and time each kill (balance test)
@@ -72,6 +75,9 @@ var training := false         # playing a training map alone (no match clock or 
 ## Game mode "FFA random weapon" (host panel): every life gets a random weapon and cards instead of the
 ## player's build (RandomWeapons). Chosen by the host, sent to clients by Net.
 var random_weapons := false
+## Game mode "Хардкор" (host panel, lobby): everybody has PlayerBase.HARDCORE_HEALTH, kid mode and the build's health
+## ignored (PlayerBase._apply_stats). Chosen by the host, sent to clients by Net. Exclusive with random_weapons.
+var hardcore := false
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
 var intermission_time := INTERMISSION_TIME
@@ -116,6 +122,11 @@ func _ready() -> void:
 		elif arg == "--bot-statue":
 			bot_mode = true
 			bot_statue = true
+		elif arg.begins_with("--bot-style="):
+			bot_mode = true
+			bot_style = arg.trim_prefix("--bot-style=")
+		elif arg.begins_with("--bot-skill="):
+			bot_skill = arg.trim_prefix("--bot-skill=")
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true
@@ -128,6 +139,8 @@ func _ready() -> void:
 			test_spawn = Vector3(float(xyz[0]), float(xyz[1]), float(xyz[2]))
 		elif arg == "--random-weapons":
 			random_weapons = true
+		elif arg == "--hardcore":
+			hardcore = true
 		elif arg == "--stats":
 			record_stats = true
 		elif arg == "--no-lagcomp":
@@ -315,3 +328,19 @@ func top_kills() -> int:
 	for id in scores:
 		best = maxi(best, scores[id]["kills"])
 	return best
+
+
+## The game modes the host picks from (HostPanel, LobbyMenu): index = Mode.
+enum Mode { FFA, RANDOM_WEAPONS, HARDCORE }
+const MODE_NAMES: Array[String] = ["FFA", "FFA рандомное оружие", "Хардкор"]
+
+
+func mode() -> Mode:
+	if hardcore:
+		return Mode.HARDCORE
+	return Mode.RANDOM_WEAPONS if random_weapons else Mode.FFA
+
+
+func set_mode(m: int) -> void:
+	random_weapons = m == Mode.RANDOM_WEAPONS
+	hardcore = m == Mode.HARDCORE

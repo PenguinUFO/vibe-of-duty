@@ -5,7 +5,7 @@ extends Node
 ## VOTING: after every match (NetWorld, at the end of the intermission) - VOTE_MAPS random maps and "random" on the
 ## ballot, VOTE_TIME s to vote, then the most voted map is played (a tie: one of the tied at random). The host may
 ## start it earlier; a dedicated server just waits for the clock.
-## In either phase the host may switch the game mode (Game.random_weapons) and pick the map itself: in WAITING that is
+## In either phase the host may switch the game mode (Game.mode()) and pick the map itself: in WAITING that is
 ## the map, in VOTING it overrides the ballot (host_map; "" = the vote decides).
 ## Every peer shows the lobby scene (LobbyMenu) while a phase is on; Start sends everybody to the map, where NetWorld
 ## takes over as on a normal join. Automated tests (bots, --summary) and training skip the lobby: the next match starts
@@ -146,7 +146,7 @@ func vote_counts() -> Array[int]:
 
 func _broadcast() -> void:
 	_sync_timer = 1.0
-	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.random_weapons)
+	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.mode())
 	changed.emit()
 
 
@@ -198,11 +198,11 @@ func server_set_map(path: String) -> void:
 	_broadcast()
 
 
-## Host: the game mode of the next match (Game.random_weapons: FFA random weapon).
-func server_set_random_weapons(on: bool) -> void:
+## Host: the game mode of the next match (Game.Mode).
+func server_set_mode(mode: int) -> void:
 	if not is_host() or phase == Phase.NONE:
 		return
-	Game.random_weapons = on
+	Game.set_mode(mode)
 	_broadcast()
 
 
@@ -249,7 +249,7 @@ func _go_map(path: String) -> void:
 
 @rpc("authority", "reliable")
 func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes: Dictionary, new_time_left: float,
-		map: String, new_host_map: String, random_weapons: bool) -> void:
+		map: String, new_host_map: String, mode: int) -> void:
 	if phase == Phase.NONE:  # already on the way to the map
 		return
 	phase = new_phase as Phase
@@ -258,7 +258,7 @@ func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes
 	votes = new_votes
 	time_left = new_time_left
 	host_map = new_host_map if Game.is_map(new_host_map) else ""
-	Game.random_weapons = random_weapons
+	Game.set_mode(mode)
 	if Game.is_map(map):
 		Game.map_scene = map
 	changed.emit()

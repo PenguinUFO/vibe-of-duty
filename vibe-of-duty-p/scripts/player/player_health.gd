@@ -125,9 +125,11 @@ func set_bomb_armed(on: bool) -> void:
 		_bomb_view.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
 
 
-## Max health and regeneration delay: kid mode's plus the build's.
+## Max health and regeneration delay: kid mode's plus the build's ("Хардкор": HARDCORE_HEALTH for everybody).
 func _apply_stats() -> void:
 	max_health = maxi(int(base_max_health + mods["health_add"]), 1)
+	if Game.hardcore and not Game.training:
+		max_health = HARDCORE_HEALTH
 	regen_delay = maxf(base_regen_delay + mods["regen_delay_add"], 0.0)
 	_regen_wait = minf(_regen_wait, regen_delay)
 

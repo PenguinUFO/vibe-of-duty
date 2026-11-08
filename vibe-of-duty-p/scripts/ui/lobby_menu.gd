@@ -97,11 +97,11 @@ func _refresh() -> void:
 		return
 	var voting := Lobby.phase == Lobby.Phase.VOTING
 	_rules.text = "До %d убийств · %d мин · %s" % [Game.score_limit, roundi(Game.match_time / 60.0),
-			"FFA рандомное оружие" if Game.random_weapons else "FFA"]
+			Game.MODE_NAMES[Game.mode()]]
 	_builds.visible = not Game.random_weapons  # FFA random weapon: the server picks every life's weapon
 	if _map != null:
 		_select_meta(_map, Lobby.host_map if voting else Game.map_scene)
-		_mode.select(1 if Game.random_weapons else 0)
+		_mode.select(Game.mode())
 	if not voting:
 		_status.text = "Карта: %s" % Game.map_name(Game.map_scene)
 	if _start != null:
@@ -159,11 +159,11 @@ func _add_host_options() -> void:
 		Lobby.server_set_map(_map.get_item_metadata(i)))
 	_add_row("Карта", _map)
 	_mode = OptionButton.new()
-	_mode.add_item("FFA")
-	_mode.add_item("FFA рандомное оружие")
+	for mode_name in Game.MODE_NAMES:
+		_mode.add_item(mode_name)
 	_mode.item_selected.connect(func(i: int) -> void:
 		Audio.play("ui_click")
-		Lobby.server_set_random_weapons(i == 1))
+		Lobby.server_set_mode(i))
 	_add_row("Режим", _mode)
 
 

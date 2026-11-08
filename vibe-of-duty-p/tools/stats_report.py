@@ -1,10 +1,11 @@
 """Balance report from the host's match statistics (MatchStats, Docs/STATS.md): Markdown tables to stdout.
 
-    python tools/stats_report.py [files or folders...] [--all] [--min=N]
+    python tools/stats_report.py [files or folders...] [--all] [--min=N] [--bots]
 
 Without paths: every file in the game's user://stats on this computer. Only sessions with the weapons.cfg of the
 newest session are counted (numbers from another balance mislead); --all counts every session. --min=N: variants and
-builds with fewer lives are left out of their tables (default 3).
+builds with fewer lives are left out of their tables (default 3). --bots: archetype bot fights (tools/bots.sh,
+Docs/BOTS.md) - a row per bot and weapon ("style-skill · variant"), then by style, skill and weapon alone.
 """
 import glob
 import json
@@ -60,6 +61,44 @@ def augments(build):
 
 def aug_name(aug):
     return "+".join(aug) or "без аугментаций"
+
+
+def tag_bots(events):
+    """--bots: every weapon variant becomes "player · variant" (a bot's name is its style-skill, tools/bots.sh)."""
+    for e in events:
+        if e["e"] in ("life", "spawn"):
+            e["w"] = f'{e["p"]} · {e["w"]}'
+        elif e["e"] == "kill":
+            e["kw"] = f'{e["k"]} · {e["kw"]}'
+            e["vw"] = f'{e["v"]} · {e["vw"]}'
+        elif e["e"] == "hit":
+            e["aw"] = f'{e["a"]} · {e["aw"]}'
+            e["vw"] = f'{e["v"]} · {e["vw"]}'
+
+
+def weapon_by_style(lives, kills):
+    """--bots: K/D of every weapon in the hands of every style (kills / deaths, all skills together)."""
+    def split(w):
+        bot, variant = w.split(" · ", 1)
+        return weapon_of(variant), bot.split("-")[0]
+    k, d = defaultdict(int), defaultdict(int)
+    for kill in kills:
+        k[split(kill["kw"])] += 1
+        d[split(kill["vw"])] += 1
+    weapons = sorted({split(life["w"])[0] for life in lives})
+    styles = sorted({split(life["w"])[1] for life in lives})
+    print("## Оружие × стиль (К/Д; в скобках — убийств / смертей)\n")
+    rows = []
+    for w in weapons:
+        row = [w]
+        for st in styles:
+            kk, dd = k[(w, st)], d[(w, st)]
+            row.append(f"{kk / max(dd, 1):.2f} ({kk}/{dd})" if kk or dd else "—")
+        tk, td = sum(k[(w, st)] for st in styles), sum(d[(w, st)] for st in styles)
+        row.append(f"{tk / max(td, 1):.2f}")
+        rows.append(row)
+    rows.sort(key=lambda r: -float(r[-1]))
+    print(table([""] + styles + ["все"], rows) + "\n")
 
 
 def tag_builds(events):
@@ -136,9 +175,12 @@ def main():
     md5 = sessions[-1][1][0].get("weapons_md5")
     if not use_all:
         sessions = [s for s in sessions if s[1][0].get("weapons_md5") == md5]
+    bots = "--bots" in sys.argv
     kills, lives, landed = [], [], []
     for f, events in sessions:
         tag_builds(events)
+        if bots:
+            tag_bots(events)
         kills += [e for e in events if e["e"] == "kill" and e["gun"] != "self" and e["k"] != e["v"]]  # own grenade: k = v
         lives += [e for e in events if e["e"] == "life"]
         # Shots that landed: one "hit" per shot and victim, all with the same time, so a (shooter, time) pair is one
@@ -148,7 +190,14 @@ def main():
     print(f"# Статистика боёв\n\nСессий: {len(sessions)}, жизней: {len(lives)}, убийств: {len(kills)}"
           + ("" if use_all else f" (weapons.cfg {md5[:8]})") + "\n")
 
-    fight_table("Оружие", lambda w, aug: [weapon_of(w)], lives, kills, landed)
+    if bots:
+        fight_table("Боты (стиль-навык · оружие)", lambda w, aug: [weapon_of(w)], lives, kills, landed, by_name=True)
+        fight_table("Стиль", lambda w, aug: [w.split(" · ")[0].split("-")[0]], lives, kills, landed)
+        fight_table("Навык", lambda w, aug: [w.split(" · ")[0].split("-")[-1]], lives, kills, landed)
+        fight_table("Оружие (все боты)", lambda w, aug: [weapon_of(w.split(" · ")[-1])], lives, kills, landed)
+        weapon_by_style(lives, kills)
+    else:
+        fight_table("Оружие", lambda w, aug: [weapon_of(w)], lives, kills, landed)
     fight_table("Оружие и модули", lambda w, aug: [w], lives, kills, landed, min_lives)
     fight_table("Сборки (комплектация, модули и аугментации)", lambda w, aug: [f"{w} · {aug_name(aug)}"], lives, kills,
                 landed, min_lives)

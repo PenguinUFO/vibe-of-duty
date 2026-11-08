@@ -47,6 +47,15 @@ var switch_ticks := 0   # ticks left in the current equip animation
 var shots := 0          # shots fired so far (seeds spread)
 var ads := 0.0          # 0..1 aim-down-sights blend
 var recoil := Vector2.ZERO  # x: view pitch kick, y: view yaw kick (rad)
+## The part of `recoil` the player has pulled against with the look while firing (same signs as recoil, never more).
+## It does not come back: when the recovery starts it moves from the kick into the look (look_shift), so the view stays
+## where the player held it and only the rest returns. Untouched recoil returns in full, as before.
+var recoil_held := Vector2.ZERO
+var look_prev := Vector2.ZERO  # (pitch, yaw) of the last tick's command
+var look_known := false        # look_prev is set (not on the first tick of a life)
+## Out of this tick, not state: how much the owner's look (pitch, yaw) must turn so the view stays put, the held recoil
+## having been taken out of `recoil` (Player applies it to look_pitch / look_yaw; the server's next commands carry it).
+var look_shift := Vector2.ZERO
 var fire_prev := false
 var fire_queued := false  # a semi-automatic press during the cooldown, fires when it ends (FIRE_BUFFER)
 var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
@@ -96,6 +105,9 @@ func reset() -> void:
 	shots = 0
 	ads = 0.0
 	recoil = Vector2.ZERO
+	recoil_held = Vector2.ZERO
+	look_known = false
+	look_shift = Vector2.ZERO
 	fire_prev = false
 	fire_queued = false
 	melee_ticks = 0
@@ -216,6 +228,7 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
 	var def := current()
+	_track_held(cmd)
 
 	if cooldown > 0.0:
 		cooldown -= 1.0
@@ -352,8 +365,33 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	if not left_fired:
 		left_cooldown = maxf(left_cooldown, 0.0)
 	if not fired and not left_fired and cooldown == 0.0 and left_cooldown == 0.0:
+		if recoil_held != Vector2.ZERO:  # what was pulled against stays: it moves from the kick into the look
+			recoil -= recoil_held
+			look_shift = recoil_held
+			look_prev += recoil_held  # the next command's look already has it
+			recoil_held = Vector2.ZERO
 		recoil = recoil.move_toward(Vector2.ZERO, gun.recoil_recover * dt)
 	return events
+
+
+## In a burst (the trigger held, a cooldown running), the look's motion against the kick (down against the kick up, sideways against
+## the side one) counts as held recoil; with it again lets it go. Never more than the kick itself. Once the shots stop,
+## the look moves freely: pulling down during the return moves the view, it is not taken for holding.
+func _track_held(cmd: PlayerCmd) -> void:
+	look_shift = Vector2.ZERO
+	var look := Vector2(cmd.pitch, cmd.yaw)
+	var moved := Vector2(look.x - look_prev.x, angle_difference(look_prev.y, look.y)) if look_known else Vector2.ZERO
+	look_prev = look
+	look_known = true
+	var trigger := cmd.fire or cmd.aim and left_mag > 0
+	if not trigger or cooldown <= 0.0 and left_cooldown <= 0.0:  # not in a burst: the look's motion is the player's
+		return
+	recoil_held.x = _clamp_held(recoil_held.x - moved.x, recoil.x)
+	recoil_held.y = _clamp_held(recoil_held.y - moved.y, recoil.y)
+
+
+static func _clamp_held(held: float, kick: float) -> float:
+	return clampf(held, minf(kick, 0.0), maxf(kick, 0.0))
 
 
 ## A shot of `gun` (`left`: the akimbo's left gun) along the view with this tick's spread; the kick goes into the view
@@ -409,7 +447,7 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
 			melee_ticks, burst, grenades, grenade_ticks, cmp, fire_queued, left_mag, left_cooldown, left_burst, left_prev,
-			left_queued]
+			left_queued, recoil_held, look_prev, look_known]
 
 
 func from_array(a: Array) -> void:
@@ -434,3 +472,6 @@ func from_array(a: Array) -> void:
 	left_burst = a[18]
 	left_prev = a[19]
 	left_queued = a[20]
+	recoil_held = a[21]
+	look_prev = a[22]
+	look_known = a[23]

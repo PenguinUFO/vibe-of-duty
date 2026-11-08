@@ -1,7 +1,8 @@
 """Generates prefabs/weapons/winchester_blockout.tscn: a blockout of the Winchester Model 1887, 12 gauge, 22" barrel.
 
 Run from the repo:  python vibe-of-duty-p/tools/make_winchester_blockout.py   (overwrites the scene)
-The receiver, the stock and the fore-end are meshes made by tools/make_parts.gd
+The receiver, its side panel, the rear sight, the hammer, the stock, the butt plate, the fore-end, the band and the
+lever's loops are meshes made by tools/make_parts.gd
 (prefabs/weapons/winchester_<part>_mesh.tres) - run that first if they change.
 
 Docs/LOADOUT.md, "Winchester 1887". After the owner's photos (2026-10-27): the left side of a blued one with a 22"
@@ -9,8 +10,8 @@ barrel and the full-length tube (the modern Chiappa's proportions: 1003 mm long,
 receiver and lever for the shapes. A lever action with a rolling block: the barrel over the magazine tube, both in the
 fore-end and tied by a band near the muzzle; the tall receiver with its top open behind the barrel when the lever is
 down (shells go in there, the spent hull flies out there); the hammer on top; the lever's small front loop round the
-trigger and the long rear loop for the fingers; the straight-gripped stock with a deep drop. No rear sight - a bead
-up front, the receiver's top behind.
+trigger and the long rear loop for the fingers; the straight-gripped stock with a deep drop. The rear sight is the
+receiver's front: two cheeks round the breech with a slot (the owner's photo, 2026-11-07); a bead up front.
 
 Conventions as tools/make_ak_blockout.py (WeaponView expects them): the barrel points to +Z, +Y is up, the origin
 sits under the receiver at the trigger, metres; prefab +x is the shooter's left. Moving parts (WeaponView): "Lever" -
@@ -18,7 +19,7 @@ its origin on the pivot low in the receiver's front, turns about +X (rear down) 
 "Hammer" - its origin on its pin, falls forward on a shot, the lever cocks it; "Shell" - a shell at the open top,
 shown while the left hand pushes it in.
 Key points used by WeaponDB (prefab space): bore y 0.073; muzzle (0, 0.073, 0.64); the sight line y 0.0895 over the
-receiver's top (z 0.09) and the bead (z 0.625); lever pivot (0, 0.012, 0.07); the action's top (0, 0.092, 0.07);
+rear sight's cheeks (z 0.094) and the bead (z 0.625); lever pivot (0, 0.012, 0.07); the action's top (0, 0.092, 0.07);
 wrist (0, -0.024, -0.061); fore-end (0, 0.028, 0.27).
 """
 import math
@@ -29,12 +30,14 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prefabs", 
 MATERIALS = {
     "steel": ((0.07, 0.075, 0.09), 0.6, 0.35),      # albedo, metallic, roughness (blued)
     "steel_frame": ((0.2, 0.22, 0.26), 0.6, 0.4),   # the receiver: lighter, worn grey-blue in the photos
+    "steel_panel": ((0.28, 0.3, 0.34), 0.6, 0.3),   # the side plates' panel: polished, lighter than its border
     "steel_dark": ((0.03, 0.03, 0.035), 0.5, 0.5),  # the bore, screw slots
     "wood": ((0.34, 0.17, 0.09), 0.0, 0.6),         # walnut
     "hull": ((0.62, 0.1, 0.08), 0.0, 0.5),          # the shell's red plastic
     "brass": ((0.62, 0.46, 0.2), 0.7, 0.35),
 }
-MESHES = ["receiver", "stock", "forend"]
+MESHES = ["receiver", "panel", "rear_sight", "hammer", "stock", "butt_plate", "forend", "band", "lever_front",
+          "lever_rear"]
 K = 0.002026  # m a pixel of the side photo
 PX0 = (318, 66)  # the photo's pixel at the origin (the trigger, the receiver's bottom); the muzzle is to the photo's left
 
@@ -54,6 +57,8 @@ TUBE_END = 0.502
 PIVOT = (0.012, 0.07)       # (y, z): the lever's pivot
 HAMMER_PIN = (0.055, 0.04)
 SHELL_PORT = (0.092, 0.07)  # the open top, where the left hand thumbs a shell in
+SIGHT_Y = 0.0895            # the sight line: the cheeks' top, the bead's top
+CHEEK_Z = 0.094             # the rear sight's back (make_parts.gd "rear_sight"; its slot 7 mm, the bead 4 mm)
 
 parts = []      # (name, parent, kind, size/params, center (absolute, rest pose), rot_x_deg, material)
 node_pos = {".": (0.0, 0.0, 0.0)}  # node path -> its absolute position (rest pose; nothing turned)
@@ -99,23 +104,32 @@ def both(x0, x1):
 
 # Receiver, its screws, the trigger under it; the stock with its steel butt plate.
 mesh("Receiver", "receiver", "steel_frame")
-for side, x0, x1 in both(0.0195, 0.0205):
+mesh("Panel", "panel", "steel_panel")  # the side plates' raised panel inside the border
+for side, x0, x1 in both(0.0205, 0.0212):
     for i, (px, py) in enumerate(((300, 58), (283, 62), (270, 44))):
         z, y = P(px, py)
         disc("Screw%s%d" % (side, i), 0.0028, x0, x1, y, z, "steel", )
     disc("PivotPin" + side, 0.0035, x0, x1, PIVOT[0], PIVOT[1], "steel")
+# The rear sight is the receiver's front (the owner's photo, 2026-11-07): its walls rise round the barrel's breech in two
+# cheeks with a slot between them (a make_parts.gd section); the eye looks through the slot along the barrel to the
+# bead. On top behind them the rolling block's top between the side walls, its seams dark.
+mesh("RearSight", "rear_sight", "steel_frame")
+for side, x0, x1 in both(0.0105, 0.0118):
+    box("Seam" + side, x0, x1, 0.0812, 0.0826, 0.062, CHEEK_Z, "steel_dark", rot_x=-1.4)
 box("Trigger", -0.003, 0.003, -0.022, -0.002, -0.004, 0.003, "steel", rot_x=-12.0)
 mesh("Stock", "stock", "wood")
-box("ButtPlate", -0.021, 0.021, -0.131, -0.003, -0.3667, -0.3627, "steel")
+mesh("ButtPlate", "butt_plate", "steel")
 
 # Barrel over the magazine tube, the band tying them near the muzzle, the bead; the fore-end round both.
 tube("Barrel", BARREL_R, BREECH_Z, MUZZLE_Z, BORE_Y, "steel", segments=16)
+tube("Shank", 0.0128, BREECH_Z, 0.165, BORE_Y, "steel", radius_end=BARREL_R, segments=16)  # thicker at the breech
 tube("Bore", 0.0093, MUZZLE_Z - 0.03, MUZZLE_Z + 0.0004, BORE_Y, "steel_dark")
 tube("Tube", TUBE_R, BREECH_Z, TUBE_END, TUBE_Y, "steel", segments=14)
 tube("TubeCap", TUBE_R + 0.0005, TUBE_END, TUBE_END + 0.008, TUBE_Y, "steel", segments=14)
-box("Band", -0.0125, 0.0125, TUBE_Y - 0.007, BORE_Y + 0.006, TUBE_END + 0.004, TUBE_END + 0.016, "steel")
+tube("CapScrew", 0.0045, TUBE_END + 0.008, TUBE_END + 0.0095, TUBE_Y, "steel_dark", segments=10)
+mesh("Band", "band", "steel")  # round the barrel and the tube
 disc("BandScrew", 0.002, -0.013, 0.013, (TUBE_Y + BORE_Y) / 2, TUBE_END + 0.01, "steel_dark")
-box("Bead", -0.002, 0.002, BORE_Y + BARREL_R - 0.001, 0.0895, MUZZLE_Z - 0.018, MUZZLE_Z - 0.014, "brass")
+box("Bead", -0.002, 0.002, BORE_Y + BARREL_R - 0.001, SIGHT_Y, MUZZLE_Z - 0.018, MUZZLE_Z - 0.014, "brass")
 mesh("Forend", "forend", "wood")
 for side, x0, x1 in both(0.0189, 0.0196):
     for i, z in enumerate((0.19, 0.33)):
@@ -123,23 +137,18 @@ for side, x0, x1 in both(0.0189, 0.0196):
 
 # Hammer: on top behind the barrel, its spur back (cocked).
 node("Hammer", ".", (0.0, HAMMER_PIN[0], HAMMER_PIN[1]))
-box("Body", -0.0045, 0.0045, HAMMER_PIN[0] - 0.004, 0.084, 0.034, 0.05, "steel", parent="Hammer")
-box("Spur", -0.004, 0.004, 0.08, 0.0855, 0.016, 0.04, "steel", rot_x=10.0, parent="Hammer")  # under the sight line
-for i in range(3):  # the spur's checkering
-    z = 0.019 + i * 0.006
-    box("Knurl%d" % i, -0.0042, 0.0042, 0.0852, 0.0862, z, z + 0.002, "steel_dark", rot_x=10.0, parent="Hammer")
+mesh("Body", "hammer", "steel_frame", parent="Hammer")
+for i, (z, y) in enumerate(((0.022, 0.0823), (0.026, 0.0817), (0.03, 0.0811))):  # the spur's checkering
+    box("Knurl%d" % i, -0.0043, 0.0043, y - 0.0006, y + 0.0004, z - 0.001, z + 0.001, "steel_dark", rot_x=8.5, parent="Hammer")
+disc("HammerPin", 0.0022, -0.0201, 0.0201, HAMMER_PIN[0], HAMMER_PIN[1], "steel")
 
 # Lever: the bar under the receiver from the pivot, the small front loop round the trigger, the long rear loop.
 node("Lever", ".", (0.0, PIVOT[0], PIVOT[1]))
 lv = "Lever"
 disc("Boss", 0.006, -0.0085, 0.0085, PIVOT[0], PIVOT[1], "steel", parent=lv)
 bar("Bar", (285, 64), (300, 68), 0.0085, 0.006, "steel", parent=lv)
-front = [(298, 68), (334, 68), (337, 80), (331, 92), (313, 94), (301, 86), (298, 68)]
-for i in range(len(front) - 1):
-    bar("Front%d" % i, front[i], front[i + 1], 0.0045, 0.0045, "steel", parent=lv)
-rear = [(334, 70), (354, 80), (376, 112), (371, 121), (359, 119), (340, 96), (333, 88)]
-for i in range(len(rear) - 1):
-    bar("Rear%d" % i, rear[i], rear[i + 1], 0.0045, 0.0045, "steel", parent=lv)
+mesh("Front", "lever_front", "steel", parent=lv)  # make_parts.gd rings: flat bands, rounded
+mesh("Rear", "lever_rear", "steel", parent=lv)
 
 # The shell the left hand pushes into the open top: lying along the bore, the brass head to the rear.
 node("Shell", ".", (0.0, SHELL_PORT[0], SHELL_PORT[1]))

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|arms|build|moves|grenade|bomb|cmp|akimbo|smg|val|striker|random|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|arms|build|moves|grenade|bomb|cmp|akimbo|smg|val|striker|random|hardcore|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -110,11 +110,17 @@ run() {
 		$R --join=127.0.0.1 --bot-aim --name=R1 --summary=37 > "$O/random_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=R2 --lag=40 --summary=37 > "$O/random_c2.log" 2>&1 &
 		wait;;
+	hardcore)  # arena: "Хардкор" - everybody 100 HP whatever the build (kills in the stats: k_max 100)
+		$R --server --map=arena --hardcore --stats --summary=40 > "$O/hardcore_srv.log" 2>&1 &
+		sleep 3
+		$R --join=127.0.0.1 --bot-aim --name=H1 --hardcore --summary=37 > "$O/hardcore_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=H2 --hardcore --build=kit.ak,engineer --lag=40 --summary=37 > "$O/hardcore_c2.log" 2>&1 &
+		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac
 	echo "== $1"
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee arms build moves grenade bomb cmp akimbo smg val striker random; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee arms build moves grenade bomb cmp akimbo smg val striker random hardcore; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"

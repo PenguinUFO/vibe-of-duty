@@ -234,6 +234,14 @@ func _ready() -> void:
 		if bank:  # the player's camera leans with the bank
 			cam.look_at_from_position(views[view][0], views[view][1])
 			cam.rotate_object_local(Vector3.BACK, bank.lean())
+		if OS.has_environment("SHOT_HOLES"):  # bullet holes (BulletHoles) from this many shots in a cone off the camera
+			var space := cam.get_world_3d().direct_space_state
+			for i in int(OS.get_environment("SHOT_HOLES")):
+				var aim := cam.global_basis * Vector3(randf_range(-0.25, 0.25), randf_range(-0.15, 0.15), -1.0).normalized()
+				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(cam.global_position,
+						cam.global_position + aim * 60.0, Layers.WORLD))
+				if not hit.is_empty():
+					BulletHoles.spawn(level, hit["position"], hit["normal"], hit["collider"])
 		var gpu := 0.0
 		for i in FRAMES:
 			await get_tree().process_frame

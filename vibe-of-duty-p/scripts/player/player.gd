@@ -110,6 +110,10 @@ func _physics_process(delta: float) -> void:
 		var cmd := _gather_cmd(delta)
 		cmd.view_tick = world.get_view_tick() if world != null else 0.0
 		step(cmd, delta)
+		if weapons.look_shift != Vector2.ZERO:  # recoil the player held down: it stays in the look, does not return
+			look_pitch = clampf(look_pitch + weapons.look_shift.x, -MAX_PITCH, MAX_PITCH)
+			look_yaw += weapons.look_shift.y
+			_view_recoil -= weapons.look_shift  # the smoothed kick drops with it: the view does not jump
 		_send_cmd(cmd)
 		if _jumped_this_step:
 			_jump_buffer = 0.0

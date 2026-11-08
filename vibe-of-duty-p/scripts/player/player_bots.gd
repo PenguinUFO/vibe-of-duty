@@ -10,6 +10,23 @@ var _ttk_start := -1      # --bot-ttk: physics frame of the kill's first shot (-
 var _ttk_shots := 0       # --bot-ttk: shots_total at that shot
 var _ttk_aim_points: Array[Vector3] = []  # --bot-ttk: the target's body point over the last --bot-react s
 var _ttk_seen := -1       # --bot-ttk: physics frame the target stood up at (-1: down)
+# --bot-style (archetype bots, BotProfiles; Docs/BOTS.md):
+var _arch_rng := RandomNumberGenerator.new()
+var _arch_target: Player = null
+var _arch_seen := false              # the target was in sight last tick
+var _arch_hist: Array[Vector3] = []  # the target's aim point, a tick each, newest last (it sees it `react` s late)
+var _arch_notice := 0.0              # s left before it reacts to the target that came into sight
+var _arch_aim := Vector2.ZERO        # (yaw, pitch) of its hands, before the recoil
+var _arch_noise := Vector2.ZERO      # rad: the aim's wander (yaw, pitch)
+var _arch_head := false              # aims at the head now
+var _arch_head_time := 0.0
+var _arch_strafe := 1.0              # strafe direction
+var _arch_strafe_time := 0.0
+var _arch_crouch := false
+var _arch_crouch_time := 0.0
+var _arch_shots := 0                 # shots in this burst
+var _arch_pause := 0.0               # s until the next burst
+var _arch_mag := -1                  # rounds in the magazine last tick (fewer now: a shot went out); -1: not started
 ## --bot-course: corners of the obstacle course loop (x, z), in running order (prefabs/levels/course.tscn).
 const COURSE_LOOP: Array[Vector2] = [Vector2(-30, 22), Vector2(30, 22), Vector2(30, -22), Vector2(-30, -22)]
 
@@ -20,6 +37,8 @@ func _bot_cmd(delta: float) -> PlayerCmd:
 	var cmd := PlayerCmd.new()
 	if Game.bot_oink:
 		_try_oink()
+	if Game.bot_style != "" and world != null:
+		return _bot_arch_cmd(delta)
 	if Game.bot_aim and world != null:
 		return _bot_aim_cmd(t)
 	if Game.bot_melee and world != null:
@@ -273,6 +292,150 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 		if build.has(PartDB.BOMB):
 			cmd.grenade = best < 7.0  # the "Хрях-бабах": going in
 	cmd.reload = weapons.cmp and weapons.reserves[weapons.index] > 0  # a bag picked up: R gives the weapon back
+	cmd.yaw = look_yaw
+	cmd.pitch = look_pitch
+	return cmd
+
+
+## An archetype bot (--bot-style, --bot-skill; BotProfiles, Docs/BOTS.md): picks the nearest enemy in sight (else walks
+## at the nearest one), notices it `react` s late, turns at most `turn` deg/s towards where it was `react` s ago (leading
+## `lead` of its motion), with a wandering aim error (`noise`), pulls down `recoil` of the kick. Fires when it thinks the
+## aim is within `gate` body widths, in bursts or holding the trigger; keeps its distance, strafes, crouches, jumps and
+## punches as its style says. Sees what this client shows (other players interpolated), like a human.
+func _bot_arch_cmd(delta: float) -> PlayerCmd:
+	var cmd := PlayerCmd.new()
+	var style := BotProfiles.style(Game.bot_style)
+	var skill := BotProfiles.skill(Game.bot_skill)
+	if _arch_mag < 0:
+		_arch_rng.seed = hash(Settings.player_name) ^ Time.get_ticks_usec()
+		_arch_aim = Vector2(look_yaw, look_pitch)
+	if not alive:
+		_arch_target = null
+		_arch_hist.clear()
+		_arch_mag = 0
+		_arch_aim = Vector2(look_yaw, look_pitch)
+		cmd.yaw = look_yaw
+		cmd.pitch = look_pitch
+		return cmd
+	var eye := global_position + body_up() * (CROUCH_EYE if is_crouched else STAND_EYE)
+	var space := get_world_3d().direct_space_state
+	# The target: the nearest enemy in sight; none in sight - the nearest one, to walk to.
+	var target: Player = null
+	var seen := false
+	var best := INF
+	for id in world.players:
+		var other: Player = world.players[id]
+		if other == self or not other.alive:
+			continue
+		var d := other.global_position.distance_to(global_position)
+		var other_seg := LagComp.body_segment(other.hitbox_state())
+		var chest: Vector3 = (other_seg[0] as Vector3).lerp(other_seg[1], 0.6)
+		var visible := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, chest, Layers.WORLD)).is_empty()
+		if (visible and not seen) or (visible == seen and d < best):
+			target = other
+			seen = visible
+			best = d
+	if target != _arch_target or (seen and not _arch_seen):
+		_arch_notice = skill["react"] * _arch_rng.randf_range(0.8, 1.2)
+		_arch_hist.clear()
+	_arch_target = target
+	_arch_seen = seen
+	# Where it aims on the body (chosen anew every second).
+	_arch_head_time -= delta
+	if _arch_head_time <= 0.0:
+		_arch_head_time = 1.0
+		_arch_head = _arch_rng.randf() < skill["head"]
+	var fighting := false
+	var dist := best
+	var shot := weapons.mags[weapons.index] < _arch_mag
+	_arch_mag = weapons.mags[weapons.index]
+	if target != null:
+		var state := target.hitbox_state()
+		var seg := LagComp.body_segment(state)
+		_arch_hist.append(LagComp.head_center(state) if _arch_head else (seg[0] as Vector3).lerp(seg[1], 0.6))
+		var late := roundi(skill["react"] * Engine.physics_ticks_per_second)
+		while _arch_hist.size() > late + 1:
+			_arch_hist.pop_front()
+		var point: Vector3 = _arch_hist[0]
+		if _arch_hist.size() > 1:  # leads its motion as it was then: `lead` of it
+			point += (_arch_hist[1] - _arch_hist[0]) * (_arch_hist.size() - 1) * skill["lead"]
+		# The hands' wander: a slow random walk round the point (Ornstein-Uhlenbeck, 0.35 s).
+		var sigma := deg_to_rad(skill["noise"])
+		var tau := 0.35
+		for i in 2:
+			_arch_noise[i] += -_arch_noise[i] / tau * delta + sigma * sqrt(2.0 * delta / tau) * _arch_rng.randfn()
+		var dir := Gravity.frame(global_position).inverse() * (point - eye).normalized()  # look angles: gravity frame
+		var clean := Vector2(atan2(-dir.x, -dir.z), asin(clampf(dir.y, -1.0, 1.0)))
+		var want := clean + _arch_noise
+		if seen:
+			_arch_notice -= delta
+		var step := deg_to_rad(skill["turn"]) * delta
+		if seen and _arch_notice <= 0.0:
+			var off := Vector2(angle_difference(_arch_aim.x, want.x), want.y - _arch_aim.y)
+			if off.length() > step:
+				off = off.normalized() * step
+			_arch_aim += off
+			fighting = true
+		elif not seen:  # walks to it, looking its way
+			_arch_aim.x = rotate_toward(_arch_aim.x, clean.x, step)
+			_arch_aim.y = move_toward(_arch_aim.y, 0.0, step)
+		_arch_aim.y = clampf(_arch_aim.y, -MAX_PITCH, MAX_PITCH)
+		look_yaw = _arch_aim.x - weapons.recoil.y * skill["recoil"]
+		look_pitch = clampf(_arch_aim.y - weapons.recoil.x * skill["recoil"], -MAX_PITCH, MAX_PITCH)
+		if fighting:
+			# Fires when it thinks it is on: the view (with the recoil it did not pull down) within `gate` body widths
+			# (0.7 m) of where its hands mean to be - the wander it does not feel, so that is where it misses.
+			var view := Vector2(look_yaw + weapons.recoil.y, look_pitch + weapons.recoil.x)
+			var err := Vector2(angle_difference(view.x, want.x) * cos(want.y), want.y - view.y).length()
+			var on: bool = err < style["gate"] * atan(0.35 / maxf(dist, 0.5))
+			cmd.aim = dist >= style["ads_from"]
+			var ready: bool = not cmd.aim or weapons.ads > 0.95
+			if shot:
+				_arch_shots += 1
+				if style["burst"] > 0 and _arch_shots >= style["burst"]:
+					_arch_pause = style["pause"] * _arch_rng.randf_range(0.8, 1.2)
+					_arch_shots = 0
+			_arch_pause -= delta
+			cmd.fire = on and ready and _arch_pause <= 0.0 and _bot_trigger()
+			if weapons.is_akimbo():  # no sights: both triggers from the hip, the left one let go between shots too
+				cmd.fire = on and _arch_pause <= 0.0 and _bot_trigger()
+				cmd.aim = on and (weapons.current().automatic or not weapons.left_prev)
+			if not cmd.fire and _arch_pause <= 0.0:
+				_arch_shots = 0  # let go on its own: the next press is a new burst
+			cmd.melee = style["melee"] and dist < melee_reach() - 0.2 and not weapons.is_meleeing()
+	# Out of a fight: a half-empty magazine is reloaded.
+	if not fighting and weapons.mags[weapons.index] < weapons.current().mag_size / 2.0:
+		cmd.reload = true
+	# Movement (x: right, y: back), relative to where it looks.
+	var keep: float = style["keep"]
+	var forward := 0.0
+	if target != null:
+		if not seen or dist > keep + 2.0:
+			forward = -1.0
+		elif style["back_off"] > 0.0 and dist < style["back_off"]:
+			forward = 1.0
+	var side := 0.0
+	if fighting:
+		_arch_strafe_time -= delta
+		if _arch_strafe_time <= 0.0:
+			_arch_strafe = -_arch_strafe
+			_arch_strafe_time = style["strafe_time"] * _arch_rng.randf_range(0.6, 1.4)
+		side = _arch_strafe * style["strafe"]
+		_arch_crouch_time -= delta
+		if _arch_crouch_time <= 0.0:
+			_arch_crouch_time = 1.5 * _arch_rng.randf_range(0.6, 1.4)
+			_arch_crouch = _arch_rng.randf() < style["crouch"]
+		cmd.crouch = _arch_crouch
+		cmd.jump = _arch_rng.randf() < style["jump"] * delta
+		cmd.jump_held = cmd.jump
+	if style["stand_fire"] and cmd.fire:
+		forward = 0.0
+		side = 0.0
+	cmd.move = Vector2(side, forward)
+	if style["sprint"] and forward < 0.0 and (not seen or dist > keep + 6.0) and not cmd.fire:
+		cmd.sprint = true
+		cmd.aim = false
+		cmd.crouch = false
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd

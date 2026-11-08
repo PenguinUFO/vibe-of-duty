@@ -123,5 +123,6 @@ scoreboard={
 [rendering]
 
 lights_and_shadows/directional_shadow/size=2048
+textures/decals/filter=0
 anti_aliasing/quality/screen_space_aa=1
 lights_and_shadows/positional_shadow/atlas_size=2048
