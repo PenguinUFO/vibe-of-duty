@@ -76,6 +76,7 @@ var host_score_limit := 20
 var host_match_minutes := 10
 var host_port := 27015
 var host_mode := 0  # the game mode (Game.Mode)
+var host_hardcore := false  # the "Хардкор" checkbox (Game.hardcore)
 
 
 var _psx_layer: CanvasLayer  # full-screen PSX post-process (assets/shaders/psx_post.gdshader), under every UI layer
@@ -161,13 +162,9 @@ func _bind_gamepad() -> void:
 	var melee_key := InputEventKey.new()  # hoof punch, as melee in Call of Duty
 	melee_key.physical_keycode = KEY_V
 	InputMap.action_add_event("melee", melee_key)
-	var grenade_key := InputEventKey.new()  # the "Гренадир"'s chest cannon
+	var grenade_key := InputEventKey.new()  # the grenade: held - the hoof swings back, let go - the throw
 	grenade_key.physical_keycode = KEY_G
 	InputMap.action_add_event("grenade", grenade_key)
-	_ensure_action("cmp")
-	var cmp_key := InputEventKey.new()  # training only: the "ЧМП" on / off (WeaponSim.CMP)
-	cmp_key.physical_keycode = KEY_1
-	InputMap.action_add_event("cmp", cmp_key)
 
 
 func _ensure_action(action: String, deadzone: float = 0.5) -> void:
@@ -339,7 +336,7 @@ func apply_sun(light: DirectionalLight3D) -> void:
 func current_build() -> Array:
 	if Game.is_test_launch():
 		return PartDB.sanitize(Game.test_build)
-	return PartDB.sanitize(builds[build_index]["parts"])  # without the organs the saved build keeps (INERT_SLOTS)
+	return PartDB.sanitize(builds[build_index]["parts"])
 
 
 func load_builds() -> void:
@@ -352,7 +349,7 @@ func load_builds() -> void:
 	for i in BUILD_COUNT:
 		var section := "build_%d" % i
 		builds[i]["name"] = str(cfg.get_value(section, "name", builds[i]["name"])).left(24)
-		builds[i]["parts"] = PartDB.sanitize(cfg.get_value(section, "parts", []), true)
+		builds[i]["parts"] = PartDB.sanitize(cfg.get_value(section, "parts", []))
 	build_index = clampi(int(cfg.get_value("builds", "index", 0)), 0, BUILD_COUNT - 1)
 
 
@@ -396,6 +393,7 @@ func save_settings() -> void:
 	cfg.set_value("host", "match_minutes", host_match_minutes)
 	cfg.set_value("host", "port", host_port)
 	cfg.set_value("host", "mode", host_mode)
+	cfg.set_value("host", "hardcore", host_hardcore)
 	for bus in BUS_NAMES:
 		cfg.set_value("audio", String(bus), volumes[bus])
 	cfg.save(SAVE_PATH)
@@ -445,6 +443,8 @@ func load_settings() -> void:
 	host_match_minutes = clampi(cfg.get_value("host", "match_minutes", host_match_minutes), 1, 60)
 	host_port = clampi(cfg.get_value("host", "port", host_port), 1024, 65535)
 	var old_random := bool(cfg.get_value("host", "random_weapons", false))  # before "Хардкор": a checkbox
-	host_mode = clampi(int(cfg.get_value("host", "mode", 1 if old_random else host_mode)), 0, 2)  # Game.Mode
+	var saved_mode := int(cfg.get_value("host", "mode", 1 if old_random else host_mode))
+	host_hardcore = bool(cfg.get_value("host", "hardcore", saved_mode == 2))  # "Хардкор" was mode 2
+	host_mode = clampi(saved_mode, 0, 1) if saved_mode != 2 else 0  # Game.Mode
 	for bus in BUS_NAMES:
 		volumes[bus] = cfg.get_value("audio", String(bus), volumes[bus])

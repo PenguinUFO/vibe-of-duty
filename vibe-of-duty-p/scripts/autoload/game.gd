@@ -32,7 +32,7 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
 # --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests),
-# --random-weapons (the FFA random weapon mode on a dedicated server), --stats (record MatchStats),
+# --random-weapons (the "Бойня рандом" mode on a dedicated server), --stats (record MatchStats),
 # --tool=name (tools/run_tool.tscn runs tools/<name>.gd: screenshots with the autoloads).
 var dedicated := false
 var bot_mode := false
@@ -72,11 +72,11 @@ var stats := {}
 var launch_port := Net.DEFAULT_PORT
 var map_scene := DEFAULT_MAP  # the map being played: chosen by the host, sent to clients by Net
 var training := false         # playing a training map alone (no match clock or score on the HUD)
-## Game mode "FFA random weapon" (host panel): every life gets a random weapon and cards instead of the
+## Game mode "Бойня рандом" (host panel, lobby): every life gets a random kit with its stock modules instead of the
 ## player's build (RandomWeapons). Chosen by the host, sent to clients by Net.
 var random_weapons := false
-## Game mode "Хардкор" (host panel, lobby): everybody has PlayerBase.HARDCORE_HEALTH, kid mode and the build's health
-## ignored (PlayerBase._apply_stats). Chosen by the host, sent to clients by Net. Exclusive with random_weapons.
+## "Хардкор" checkbox (host panel, lobby), on top of either mode: everybody has PlayerBase.HARDCORE_HEALTH, kid mode
+## ignored (PlayerBase._apply_stats). Chosen by the host, sent to clients by Net.
 var hardcore := false
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
@@ -331,16 +331,19 @@ func top_kills() -> int:
 
 
 ## The game modes the host picks from (HostPanel, LobbyMenu): index = Mode.
-enum Mode { FFA, RANDOM_WEAPONS, HARDCORE }
-const MODE_NAMES: Array[String] = ["FFA", "FFA рандомное оружие", "Хардкор"]
+## "Хардкор" is not a mode: a separate checkbox (hardcore).
+enum Mode { DEATHMATCH, RANDOM_WEAPONS }
+const MODE_NAMES: Array[String] = ["Бойня", "Бойня рандом"]
 
 
 func mode() -> Mode:
-	if hardcore:
-		return Mode.HARDCORE
-	return Mode.RANDOM_WEAPONS if random_weapons else Mode.FFA
+	return Mode.RANDOM_WEAPONS if random_weapons else Mode.DEATHMATCH
 
 
 func set_mode(m: int) -> void:
 	random_weapons = m == Mode.RANDOM_WEAPONS
-	hardcore = m == Mode.HARDCORE
+
+
+## The mode's name for the lobby and the like: "Бойня рандом · Хардкор".
+func mode_text() -> String:
+	return MODE_NAMES[mode()] + (" · Хардкор" if hardcore else "")

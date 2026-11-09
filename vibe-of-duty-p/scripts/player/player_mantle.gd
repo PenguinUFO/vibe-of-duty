@@ -178,7 +178,7 @@ func _mantle_update(dt: float) -> void:
 		_mantle_cooldown = MANTLE_COOLDOWN_TICKS
 		_floor_y = Gravity.height(global_position)
 		velocity = _mantle_dir * MANTLE_EXIT_SPEED
-		_sfx("land", -6.0 + mods["land_db"])
+		_sfx("land", -6.0)
 
 
 ## While vaulting you cannot shoot, aim or reload (weapon switching still works).

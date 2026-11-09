@@ -3,8 +3,8 @@ extends Control
 ## The lobby screen (prefabs/ui/lobby.tscn; the state is the Lobby autoload's). Waiting for the host: the map and the
 ## rules, the host's "Начать". After a match: the ballot (a button per map with its votes, the own vote lit) and the
 ## clock; the host can start before it runs out. The host also has the mode and the map (after a match "Голосование"
-## first: the vote decides; a map overrides it, the ballot then hides for everyone). Always: the players, "Сборка" (BuildPanel; not in the FFA random
-## weapon mode) and "Покинуть". A dedicated server loads the scene too, but shows nothing.
+## first: the vote decides; a map overrides it, the ballot then hides for everyone). Always: the players, "Сборка" (BuildPanel; not in "Бойня рандом")
+## and "Покинуть". A dedicated server loads the scene too, but shows nothing.
 
 var _box: VBoxContainer
 var _panel: PanelContainer
@@ -12,6 +12,7 @@ var _rules: Label
 var _status: Label
 var _map: OptionButton   # host only
 var _mode: OptionButton  # host only
+var _hardcore: CheckBox  # host only
 var _builds: Button
 var _ballot: HBoxContainer
 var _players: VBoxContainer
@@ -97,11 +98,12 @@ func _refresh() -> void:
 		return
 	var voting := Lobby.phase == Lobby.Phase.VOTING
 	_rules.text = "До %d убийств · %d мин · %s" % [Game.score_limit, roundi(Game.match_time / 60.0),
-			Game.MODE_NAMES[Game.mode()]]
-	_builds.visible = not Game.random_weapons  # FFA random weapon: the server picks every life's weapon
+			Game.mode_text()]
+	_builds.visible = not Game.random_weapons  # "Бойня рандом": the server picks every life's weapon
 	if _map != null:
 		_select_meta(_map, Lobby.host_map if voting else Game.map_scene)
 		_mode.select(Game.mode())
+		_hardcore.set_pressed_no_signal(Game.hardcore)
 	if not voting:
 		_status.text = "Карта: %s" % Game.map_name(Game.map_scene)
 	if _start != null:
@@ -145,7 +147,7 @@ func _build_ballot(voting: bool) -> void:
 			button.grab_focus.call_deferred()
 
 
-## Host: the map (after a match "Голосование" first - the vote decides) and the game mode.
+## Host: the map (after a match "Голосование" first - the vote decides), the game mode and "Хардкор".
 func _add_host_options() -> void:
 	_map = OptionButton.new()
 	if Lobby.phase == Lobby.Phase.VOTING:
@@ -165,6 +167,12 @@ func _add_host_options() -> void:
 		Audio.play("ui_click")
 		Lobby.server_set_mode(i))
 	_add_row("Режим", _mode)
+	_hardcore = CheckBox.new()
+	_hardcore.text = "%d HP у всех" % PlayerBase.HARDCORE_HEALTH
+	_hardcore.toggled.connect(func(on: bool) -> void:
+		Audio.play("ui_click")
+		Lobby.server_set_hardcore(on))
+	_add_row("Хардкор", _hardcore)
 
 
 func _add_row(text: String, control: Control) -> void:

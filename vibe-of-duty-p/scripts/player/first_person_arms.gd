@@ -15,17 +15,22 @@ const POUCH := Vector3(-0.2, -0.6, -0.2)  # camera space: where the left hand sw
 const POUCH_RIGHT := Vector3(0.2, -0.6, -0.2)  # camera space: the shells the right hand loads from (Striker)
 const BANDOLIER := Vector3(-0.15, -0.45, -0.05)  # camera space: the loops on the chest, below the view
 const PUNCH := Vector3(-0.1, -0.15, -0.56)  # camera space: the left hoof at full reach of a punch, just below the middle
-const ARM_OUT := Vector3(-0.55, -0.3, -0.25)  # camera space: the left hoof thrown out to the side (grenade), off screen
+## The grenade throw (Mannequin.throw_curve), camera space: the left hoof with the grenade up in the bottom left of the
+## view, swung back...
+const THROW_WIND := Vector3(-0.2, -0.14, -0.42)
+const THROW_OUT := Vector3(-0.06, 0.0, -0.66)  # ...and thrown forward past the middle
+const HELD_SCALE := 0.8  # the grenade in the hoof, x its model: at the full size (Grenade.MODEL_SCALE) it fills the view
 
 var _weapon: WeaponView
 var left_weapon: WeaponView  # the akimbo's left gun (WeaponView.mirrored): while it is shown, the left hoof holds it
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
 var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
-var grenade := -1.0                                     # grenade launch progress 0..1 (-1: none): the left hoof flies out
+var grenade := -1.0                                     # grenade throw progress 0..1 (-1: none): the left hoof throws
 var ledge_hands: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]  # world: left, right
 var _right: Dictionary
 var _left: Dictionary
+var _held_grenade: Node3D  # the grenade in the left hoof before the throw
 
 
 func setup(peer_id: int, weapon: WeaponView) -> void:
@@ -33,13 +38,12 @@ func setup(peer_id: int, weapon: WeaponView) -> void:
 	var accent := Mannequin.color_for(peer_id)
 	_right = Mannequin.make_arm(self, "R", accent, LENGTH_SCALE, THICKNESS)
 	_left = Mannequin.make_arm(self, "L", accent, LENGTH_SCALE, THICKNESS)
-	_no_shadows()
-
-
-## The "Руки-Хрюки" (the build has PartDB.PIG_ARMS).
-func set_cyber(on: bool) -> void:
-	Mannequin.set_cyber_arm(_right, on)
-	Mannequin.set_cyber_arm(_left, on)
+	_held_grenade = Node3D.new()
+	_held_grenade.scale = Vector3.ONE * HELD_SCALE
+	_held_grenade.position = Mannequin.GRENADE_IN_HOOF
+	_held_grenade.visible = false
+	Grenade.make_model(_held_grenade)
+	(_left["hand"] as Node3D).add_child(_held_grenade)
 	_no_shadows()
 
 
@@ -111,18 +115,18 @@ func pose() -> void:
 		left_palm = left_palm.lerp(PUNCH, punch.x)
 		left_fingers = left_fingers.lerp(Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
-	var piston := Mannequin.piston_out(_left, punch.x)
-	var launch := Mannequin.grenade_curve(grenade)
-	if launch > 0.0:
-		left_palm = left_palm.lerp(ARM_OUT, launch)
-		left_fingers = left_fingers.lerp(Vector3.LEFT, launch)
-		left_dir = left_dir.lerp(Vector3.FORWARD, launch)
 	if left_weapon != null and left_weapon.visible and left_weapon.def != null:
-		# Akimbo: the left hoof round the left gun's grip (it goes out to the side on its own for a grenade).
+		# Akimbo: the left hoof round the left gun's grip (the gun drops out of view on its own for a grenade).
 		var left_xform := transform.affine_inverse() * left_weapon.transform
 		left_palm = left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s)
 		left_fingers = left_xform.basis * Mannequin.LEFT_GRIP_FINGERS
 		left_dir = left_xform.basis * Mannequin.LEFT_GRIP_PALM
+	var throw := Mannequin.throw_curve(grenade)
+	if throw.x > 0.0:
+		left_palm = left_palm.lerp(THROW_WIND.lerp(THROW_OUT, throw.y), throw.x)
+		left_fingers = left_fingers.lerp(Vector3.UP.lerp(Vector3.FORWARD, throw.y), throw.x)
+		left_dir = left_dir.lerp(Vector3.BACK.lerp(Vector3.DOWN, throw.y), throw.x)
+	_held_grenade.visible = Mannequin.holds_grenade(grenade)
 	if ledge_weight > 0.0:
 		# Vaulting: palms flat on the ledge, fingers over its edge.
 		var to_arms := global_basis.inverse()
@@ -136,4 +140,4 @@ func pose() -> void:
 		right_dir = right_dir.lerp(down, ledge_weight)
 		left_dir = left_dir.lerp(down, ledge_weight)
 	Mannequin.pose_arm(_right, SHOULDER_R, right_palm, right_fingers, right_dir, RIGHT_POLE)
-	Mannequin.pose_arm(_left, SHOULDER_L, left_palm, left_fingers, left_dir, LEFT_POLE, piston)
+	Mannequin.pose_arm(_left, SHOULDER_L, left_palm, left_fingers, left_dir, LEFT_POLE)

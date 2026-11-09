@@ -115,7 +115,7 @@ func _bot_statue_cmd(t: float) -> PlayerCmd:
 
 ## Whether the trigger may be held this tick: a semi-automatic weapon needs it let go between shots.
 func _bot_trigger() -> bool:
-	return weapons.firing_def().automatic or not weapons.fire_prev
+	return weapons.current().automatic or not weapons.fire_prev
 
 
 ## Runs laps of the obstacle course: down the middle lane of each side (COURSE_LOOP corners, in order), jumping at
@@ -272,8 +272,7 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 				best = d
 				target = other
 	# Close in to ~12 m (so spread alone does not decide the test), then strafe.
-	var close := 1.5 if build.has(PartDB.BOMB) else 12.0  # the "Хрях-бабах" goes up to the target
-	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, -1.0 if best > close else 0.0)
+	cmd.move = Vector2(1.0 if int(t / 1.5) % 2 == 0 else -1.0, -1.0 if best > 12.0 else 0.0)
 	cmd.aim = true
 	if target != null and alive:
 		var eye := global_position + body_up() * STAND_EYE
@@ -284,14 +283,11 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 		# Aim at the target, minus the current recoil kick (a human would pull down to compensate).
 		look_yaw = atan2(-dir.x, -dir.z) - weapons.recoil.y
 		look_pitch = clampf(asin(dir.y) - weapons.recoil.x, -MAX_PITCH, MAX_PITCH)
-		cmd.fire = (weapons.ads > 0.95 or weapons.cmp) and _bot_trigger()  # the ЧМП: from the hip only
+		cmd.fire = weapons.ads > 0.95 and _bot_trigger()
 		if weapons.is_akimbo():  # no sights: both triggers from the hip, the left one let go between shots too
 			cmd.fire = _bot_trigger()
 			cmd.aim = weapons.current().automatic or not weapons.left_prev
-		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the "Гренадир": once a life, mid range
-		if build.has(PartDB.BOMB):
-			cmd.grenade = best < 7.0  # the "Хрях-бабах": going in
-	cmd.reload = weapons.cmp and weapons.reserves[weapons.index] > 0  # a bag picked up: R gives the weapon back
+		cmd.grenade = weapons.grenades > 0 and best > 5.0 and best < 14.0  # the grenade: once a life, mid range
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd

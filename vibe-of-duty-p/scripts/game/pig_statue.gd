@@ -296,7 +296,7 @@ func _hit(victim: Player, head: bool, distance: float, from: Vector3) -> void:
 	if not victim.alive or victim.spawn_protect > 0:
 		return
 	var def := _gun.def
-	var amount := def.damage_at(distance) * (def.head_mult if head else 1.0) * victim.damage_taken_mult(head)
+	var amount := def.damage_at(distance) * (def.head_mult if head else 1.0)
 	var killed := victim.server_damage(amount, def.regen_block)
 	Game.count("statue_hits")
 	if victim.control == Player.Mode.LOCAL:

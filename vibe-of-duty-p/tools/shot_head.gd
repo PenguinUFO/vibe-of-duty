@@ -1,7 +1,6 @@
 extends Node
 ## Renders the pig's head (Mannequin.make_head) up close from six sides to ../shots/head_<view>.png, in the menu
 ## portrait's light (PigPortrait): Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_head
-## SHOT_CHIP=1: with the "Свинжинер"'s chip.
 
 const VIEWS := {  # name -> camera position (the head looks along -Z)
 	"front": Vector3(0.0, 0.03, -0.75),
@@ -38,10 +37,6 @@ func _ready() -> void:
 	root3d.add_child(body)
 	var head := Mannequin.make_head(body)
 	body._parts["Head"] = head
-	if OS.get_environment("SHOT_CHIP") == "1":
-		body.set_chip(true)
-	if OS.get_environment("SHOT_EYE_GUN") == "1":
-		body.set_eye_gun(true)
 	var cam := Camera3D.new()
 	cam.fov = 30
 	root3d.add_child(cam)

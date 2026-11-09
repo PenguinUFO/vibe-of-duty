@@ -140,9 +140,9 @@ func spawned(player: Player, spot: Dictionary) -> void:
 	_lives[player.peer_id] = {"player": player, "p": player.player_name, "start": _now(),
 			"variant": PartDB.variant_name(player.build), "kills": 0, "shots": 0, "hits": 0, "head": 0, "dmg_out": 0,
 			"dmg_in": 0, "near_out": 0, "near_in": 0, "healed0": player.healed_total, "bags0": player.bags_total, "dry0": player.dry_total,
-			"fight": _now(), "contact": -1, "calm": 0, "punches": 0, "punch_hits": 0, "grenades": 0, "bombs": 0,
-			"cmp_shots": 0, "cmp_hits": 0, "moves": {}, "top_speed": 0.0, "fast": 0, "oinks": 0, "farts": 0,
-			"jumps0": player.jumps_total, "air_jumps0": player.air_jumps_total, "slides0": player.slides_total,
+			"fight": _now(), "contact": -1, "calm": 0, "punches": 0, "punch_hits": 0, "grenades": 0,
+			"moves": {}, "top_speed": 0.0, "fast": 0, "oinks": 0, "farts": 0,
+			"jumps0": player.jumps_total, "slides0": player.slides_total,
 			"vaults0": player.mantle_count}
 	_engaged.erase(player.peer_id)
 	_heal_at.erase(player.peer_id)
@@ -177,19 +177,16 @@ func shot(shooter: Player, weapon: int, hits: Array) -> void:
 		var moves := _moves_of(life, shooter)
 		moves["shots"] += 1
 		moves["hits"] += 0 if hits.is_empty() else 1
-		if weapon == WeaponSim.CMP:
-			life["cmp_shots"] += 1
-			life["cmp_hits"] += 0 if hits.is_empty() else 1
 
 
-## An augmentation's button did something: "grenade" (launched), "bomb" (armed), "bomb_out" (its bomber died first).
-## How far the nearest living player was: did they use it on somebody.
-func augment_used(player: Player, what: String) -> void:
+## The player threw their grenade. How far the nearest living player was: did they throw it at somebody. The line is
+## still "aug" / "use": "grenade", as when the grenade was an augmentation's (stats_report reads old files too).
+func grenade_thrown(player: Player) -> void:
 	var life: Dictionary = _lives.get(player.peer_id, {})
-	if not life.is_empty() and life.has(what + "s"):
-		life[what + "s"] += 1
+	if not life.is_empty():
+		life["grenades"] += 1
 	var nearest := _nearest(player)
-	_write({"e": "aug", "m": _match, "p": player.player_name, "w": _variant(player), "use": what,
+	_write({"e": "aug", "m": _match, "p": player.player_name, "w": _variant(player), "use": "grenade",
 			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
 
 
@@ -234,7 +231,7 @@ func punch(puncher: Player, hit: Dictionary) -> void:
 		life["punch_hits"] += 1 if landed else 0
 	var nearest := _nearest(puncher)
 	_write({"e": "punch", "m": _match, "p": puncher.player_name, "w": _variant(puncher),
-			"arms": puncher.build.has(PartDB.PIG_ARMS), "landed": landed, "v": victim.player_name if victim != null else null,
+			"landed": landed, "v": victim.player_name if victim != null else null,
 			"head": hit["zone"] == "head", "near": snappedf(_distance(puncher, nearest), 0.1) if nearest != null else null,
 			"angle": _view_angle(puncher, nearest) if nearest != null else null, "a_state": _state(puncher),
 			"ping": _ping(puncher), "rewind": roundi(puncher.judge_rewind_ms)})
@@ -275,7 +272,7 @@ func damaged(attacker: Player, victim: Player, hp_before: int, head: bool, weapo
 	mine["hits"] += 1
 	mine["head"] += 1 if head else 0
 	mine["dmg"] += amount
-	var bullet := weapon >= 0 or weapon == WeaponSim.CMP
+	var bullet := weapon >= 0
 	if _lives.has(attacker.peer_id):
 		_lives[attacker.peer_id]["dmg_out"] += amount
 		_fought(_lives[attacker.peer_id], now, true)
@@ -353,8 +350,7 @@ func _end_life(id: int, reason: String) -> void:
 			"dmg_in": life["dmg_in"], "near_out": life["near_out"], "near_in": life["near_in"],
 			"calm": int(life["calm"]) / 1000.0, "punches": life["punches"], "punch_hits": life["punch_hits"],
 			"contact":(int(life["contact"]) - int(life["start"])) / 1000.0 if int(life["contact"]) >= 0 else null,
-			"grenades": life["grenades"], "bombs": life["bombs"], "cmp_shots": life["cmp_shots"],
-			"cmp_hits": life["cmp_hits"], "top_speed": snappedf(life["top_speed"], 0.1),
+			"grenades": life["grenades"], "top_speed": snappedf(life["top_speed"], 0.1),
 			"fast": int(life["fast"]) / 1000.0, "moves": life["moves"], "oinks": life["oinks"], "farts": life["farts"]}
 	for way: String in life["moves"]:
 		life["moves"][way]["t"] = int(life["moves"][way]["t"]) / 1000.0
@@ -365,7 +361,6 @@ func _end_life(id: int, reason: String) -> void:
 				"bags": player.bags_total - int(life["bags0"]), "dry": player.dry_total - int(life["dry0"]),
 				"mag": weapons.mags[weapons.index], "reserve": weapons.reserves[weapons.index], "left_mag": weapons.left_mag,
 				"jumps": player.jumps_total - int(life["jumps0"]),
-				"air_jumps": player.air_jumps_total - int(life["air_jumps0"]),
 				"slides": player.slides_total - int(life["slides0"]),
 				"vaults": player.mantle_count - int(life["vaults0"])})
 	_write(line)
@@ -419,10 +414,6 @@ static func _weapon_id(player: Player, weapon: int) -> String:
 		return "melee"
 	if weapon == WeaponSim.GRENADE:
 		return "grenade"
-	if weapon == WeaponSim.BOMB:
-		return "bomb"
-	if weapon == WeaponSim.CMP:
-		return "cmp"
 	if weapon < 0:
 		return "self"
 	return player.weapons.def_at(weapon).id

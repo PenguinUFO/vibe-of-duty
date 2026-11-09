@@ -17,9 +17,12 @@ const CASES := {  # name -> [local velocity (x right, z back), aim pitch, ads, c
 	"punch": [Vector3.ZERO, 0.0, false, false, true],  # hoof punch at full reach (PUNCH_PROGRESS)
 	"reload_open": [Vector3.ZERO, 0.0, false, false, true],  # reloads at RELOADS progress
 	"reload_load": [Vector3.ZERO, 0.0, false, false, true],
+	"grenade_wind": [Vector3.ZERO, 0.0, false, false, true],  # the grenade throw at THROWS progress
+	"grenade_thrown": [Vector3.ZERO, 0.0, false, false, true],
 }
 const PUNCH_PROGRESS := 0.27
 const RELOADS := {"reload_open": 0.25, "reload_load": 0.34}
+const THROWS := {"grenade_wind": 0.43, "grenade_thrown": 0.55}
 const VIEWS := {"front": Vector3(1.6, 1.4, -2.6), "side": Vector3(3.0, 1.3, 0.0), "left": Vector3(-1.8, 1.5, -1.8)}
 
 
@@ -43,8 +46,6 @@ func _ready() -> void:
 	var def := WeaponDB.make_def(weapon, modules)
 	vis.set_weapon(weapon, def)
 	vis.set_akimbo(def.akimbo, false)
-	if OS.has_environment("SHOT_CYBER"):  # the "Руки-Хрюки"
-		vis.set_cyber_arms(true)
 	var cam := Camera3D.new()
 	cam.fov = 35
 	root3d.add_child(cam)
@@ -59,6 +60,7 @@ func _ready() -> void:
 		vis.set_crouched(CASES[c][3])
 		vis.show_melee(PUNCH_PROGRESS if c == "punch" else -2.0)
 		vis.show_reload(RELOADS.get(c, -2.0))
+		vis.show_grenade(THROWS.get(c, -2.0))
 		for view in VIEWS:
 			cam.look_at_from_position(VIEWS[view], Vector3(0, 1.0, 0))
 			for i in (6 if c == "run_f" and view == "front" else 25):

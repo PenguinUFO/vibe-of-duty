@@ -1,7 +1,7 @@
 class_name HostPanel
 extends PanelContainer
 ## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length, the game
-## mode - Game.Mode) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
+## mode - Game.Mode, the "Хардкор" checkbox) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
 ## the kid mode code (KidModeEntry): the right code opens a section of test options - for now recording the match
 ## statistics (Game.record_stats, MatchStats).
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
@@ -19,6 +19,7 @@ var _score_limit: SpinBox
 var _match_minutes: SpinBox
 var _port: SpinBox
 var _mode: OptionButton
+var _hardcore: CheckBox
 var _record_stats: CheckBox
 
 
@@ -54,6 +55,11 @@ func _init() -> void:
 	_mode.select(Settings.host_mode)
 	_mode.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
 	_add_row(box, "Режим", _mode)
+	_hardcore = CheckBox.new()
+	_hardcore.text = "%d HP у всех" % PlayerBase.HARDCORE_HEALTH
+	_hardcore.button_pressed = Settings.host_hardcore
+	_hardcore.toggled.connect(func(_on: bool) -> void: Audio.play("ui_click"))
+	_add_row(box, "Хардкор", _hardcore)
 	# Rarely needed settings, folded away: the port (only when 27015 is taken or a router forwards another one).
 	var advanced := FoldableContainer.new()
 	advanced.title = "Дополнительно"
@@ -98,6 +104,7 @@ func _on_start() -> void:
 	Settings.host_match_minutes = int(_match_minutes.value)
 	Settings.host_port = int(_port.value)
 	Settings.host_mode = _mode.selected
+	Settings.host_hardcore = _hardcore.button_pressed
 	Settings.save_settings()
 	Game.map_scene = Settings.host_map if Game.list_maps().has(Settings.host_map) else Game.DEFAULT_MAP
 	Game.score_limit = Settings.host_score_limit
@@ -105,6 +112,7 @@ func _on_start() -> void:
 	Game.launch_port = Settings.host_port
 	Game.training = false
 	Game.set_mode(Settings.host_mode)
+	Game.hardcore = Settings.host_hardcore
 	record_stats = _record_stats.button_pressed
 	Game.record_stats = record_stats
 	start_requested.emit()

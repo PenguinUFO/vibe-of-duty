@@ -26,17 +26,15 @@ const PLACEHOLDERS := {
 	"death": {"kind": "thump", "dur": 0.5, "freq": 180.0, "freq_end": 40.0, "decay": 6.0, "vol": 0.9},
 	"kill": {"kind": "tone", "dur": 0.18, "freq": 700.0, "freq_end": 1400.0, "decay": 10.0, "vol": 0.6},
 	"jump": {"kind": "tone", "dur": 0.1, "freq": 200.0, "freq_end": 320.0, "decay": 18.0, "vol": 0.3},
-	"air_jump": {"kind": "noise", "dur": 0.2, "decay": 14.0, "vol": 0.4},  # the "Прыг-Прыг"'s exhaust (hiss)
 	"land": {"kind": "thump", "dur": 0.12, "freq": 110.0, "freq_end": 60.0, "decay": 25.0, "vol": 0.5},
 	"step": {"kind": "noise", "dur": 0.06, "decay": 50.0, "vol": 0.25},
 	"slide": {"kind": "noise", "dur": 0.35, "decay": 6.0, "vol": 0.3},
 	"impact": {"kind": "noise", "dur": 0.05, "decay": 60.0, "vol": 0.35},
 	"punch": {"kind": "noise", "dur": 0.18, "decay": 14.0, "vol": 0.3},     # hoof punch swing (whoosh)
 	"punch_hit": {"kind": "thump", "dur": 0.14, "freq": 160.0, "freq_end": 70.0, "decay": 22.0, "vol": 0.9},
-	"cannon_out": {"kind": "thump", "dur": 0.12, "freq": 320.0, "freq_end": 180.0, "decay": 26.0, "vol": 0.5},  # the chest cannon slides out
-	"grenade_launch": {"kind": "thump", "dur": 0.22, "freq": 120.0, "freq_end": 55.0, "decay": 16.0, "vol": 1.0},  # dull "bump"
+	"grenade_pin": {"kind": "tone", "dur": 0.05, "freq": 1800.0, "freq_end": 1400.0, "decay": 50.0, "vol": 0.35},  # the grenade taken: a metal click
+	"grenade_throw": {"kind": "noise", "dur": 0.16, "decay": 16.0, "vol": 0.35},  # the throw (whoosh)
 	"grenade_bounce": {"kind": "tone", "dur": 0.06, "freq": 700.0, "freq_end": 520.0, "decay": 40.0, "vol": 0.4},  # iron clank
-	"bomb_tick": {"kind": "tone", "dur": 0.07, "freq": 1500.0, "freq_end": 1500.0, "decay": 30.0, "vol": 0.5},  # the "Хрях-бабах" counting
 	"explosion": {"kind": "thump", "dur": 1.0, "freq": 90.0, "freq_end": 28.0, "decay": 4.5, "vol": 1.0},
 	"match_start": {"kind": "tone", "dur": 0.4, "freq": 440.0, "freq_end": 880.0, "decay": 5.0, "vol": 0.5},
 	"match_end": {"kind": "tone", "dur": 0.6, "freq": 880.0, "freq_end": 330.0, "decay": 4.0, "vol": 0.5},

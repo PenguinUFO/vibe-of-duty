@@ -46,7 +46,7 @@ var _started_at := 0.0  # s (ticks clock) when this level started (--summary)
 var _toughness_sent := Vector3.ZERO  # local player: Settings.toughness() last sent to the server
 var _toughness_timer := 0.0
 var _stats: MatchStats              # server: balance statistics of this run (null: not recorded)
-var _random := RandomWeapons.new()  # server: the next weapon of each player in the FFA random weapon mode
+var _random := RandomWeapons.new()  # server: the next weapon of each player in the "Бойня рандом" mode
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
@@ -368,7 +368,7 @@ func _server_add_player(id: int, player_name: String, uid: String, toughness: Ve
 	_broadcast_scores()
 
 
-## The FFA random weapon mode (Game.random_weapons): lives get RandomWeapons' builds, not the players' own.
+## The "Бойня рандом" mode (Game.random_weapons): lives get RandomWeapons' builds, not the players' own.
 func random_weapons_on() -> bool:
 	return Game.random_weapons and not Game.training
 
@@ -445,7 +445,7 @@ func server_apply_damage(attacker: Player, victim: Player, amount: float, head: 
 	var block := attacker.weapons.def_at(weapon).regen_block if weapon >= 0 else 0.0
 	if from == Vector3.INF:
 		from = attacker.global_position + attacker.body_up() * Player.STAND_EYE  # for the victim's damage direction arc
-	var killed := victim.server_damage(amount * victim.damage_mult_from(from) * victim.damage_taken_mult(head), block)
+	var killed := victim.server_damage(amount * victim.damage_mult_from(from), block)
 	victim.last_attacker = attacker.peer_id
 	victim.last_hit_ms = Time.get_ticks_msec()
 	if _stats != null:
@@ -471,7 +471,7 @@ func server_apply_blast(attacker: Player, victim: Player, amount: float, pos: Ve
 	if not victim.alive or victim.spawn_protect > 0:
 		return
 	var hp_before := victim.health
-	var killed := victim.server_damage(amount * victim.damage_taken_mult(false))
+	var killed := victim.server_damage(amount)
 	if _stats != null:
 		_stats.hurt_self(victim, hp_before, "grenade")
 	if victim.control == Player.Mode.LOCAL:
@@ -482,20 +482,6 @@ func server_apply_blast(attacker: Player, victim: Player, amount: float, pos: Ve
 		_server_kill(victim, victim, WeaponSim.GRENADE, false, "grenade")
 
 
-## Server: the "Хрях-бабах" went off on `bomber`: they die of it. Hurt not long ago, the kill is the last attacker's (owner,
-## 2026-11-05: the bomb must not take a kill away from them).
-func server_bomb_death(bomber: Player) -> void:
-	if not bomber.alive:
-		return
-	bomber.server_damage(9999.0)
-	var last: Player = players.get(bomber.last_attacker)
-	if last != null and Time.get_ticks_msec() - bomber.last_hit_ms <= WeaponDB.grenade("bomb_credit", 3.0) * 1000.0:
-		Game.count("bomb_credited")
-		_server_kill(last, bomber, WeaponSim.BOMB, false, "bomb_credit")
-	else:
-		_server_kill(bomber, bomber, WeaponSim.BOMB, false, "bomb")
-
-
 ## Server: the map killed `player`. `cause` (for MatchStats): "fall" (off the map), "tunnel" (the train's tunnel swept
 ## them off a roof), "crushed" (moving cargo, the crane bridge); the pig statue passes "statue" to _server_kill.
 func _server_suicide(player: Player, cause: String) -> void:
@@ -504,7 +490,6 @@ func _server_suicide(player: Player, cause: String) -> void:
 
 
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool, cause := "") -> void:
-	grenades.server_cancel_bomb(victim.peer_id)
 	Game.add_kill(killer.peer_id, victim.peer_id)
 	if _stats != null:
 		_stats.killed(killer, victim, weapon, head, cause)
@@ -735,12 +720,6 @@ func _player_died(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	_apply_death(victim_id, killer_id, weapon, head, delay)
 
 
-## A punch in the kill feed: by the killer's arms.
-func _melee_name(killer_id: int) -> String:
-	var killer: Player = players.get(killer_id)
-	return WeaponSim.PIG_ARMS_NAME if killer != null and killer.build.has(PartDB.PIG_ARMS) else WeaponSim.MELEE_NAME
-
-
 func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay: float) -> void:
 	if not players.has(victim_id):
 		return
@@ -752,17 +731,14 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 	if killer_name != "":
 		var killer: Player = players[killer_id]
 		from = killer.global_position + killer.body_up() * Player.STAND_EYE
-	victim.set_bomb_armed(false)
 	victim.die(killer_name, delay, from, head)
 	if kill_cam != null and victim.is_local and killer_name != "":
 		kill_cam.start(killer_id)
 	if hud:
 		var me := multiplayer.get_unique_id()
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
-				(_melee_name(killer_id) if weapon == WeaponSim.MELEE else
-				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else
-				WeaponSim.BOMB_NAME if weapon == WeaponSim.BOMB else
-				WeaponSim.CMP_NAME if weapon == WeaponSim.CMP else "")
+				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else
+				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else "")
 		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
 
 
@@ -808,7 +784,7 @@ func _apply_respawn(id: int, xform: Transform3D, build: Array) -> void:
 		player.set_build(build)
 		player.respawn(xform)
 		if multiplayer.is_server():
-			Game.count("build_tokens", PartDB.cost(player.build))  # tests: builds reach the server
+			Game.count("builds_custom", 1 if PartDB.is_custom(player.build) else 0)  # tests: builds reach the server
 
 
 @rpc("authority", "reliable")

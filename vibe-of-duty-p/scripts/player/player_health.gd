@@ -52,13 +52,6 @@ func server_regen(delta: float) -> void:
 func server_take_ammo() -> bool:
 	if not alive:
 		return false
-	if mods["bag_heal"] > 0.0:  # second stomach: the bag is eaten - health, no rounds
-		if health >= max_health:
-			return false
-		healed_total += mini(roundi(mods["bag_heal"]), max_health - health)
-		health = mini(health + roundi(mods["bag_heal"]), max_health)
-		bags_total += 1
-		return true
 	var took := false
 	for i in WeaponDB.count():
 		var def := weapons.def_at(i)
@@ -84,59 +77,28 @@ func set_toughness(t: Vector3) -> void:
 	_last_health = health
 
 
-## The build for this life (PartDB part ids; sanitized here): its numbers go into movement, the weapon, health.
-## Called right before respawn (NetWorld._apply_respawn), the same on every machine.
+## The build for this life (PartDB part ids; sanitized here): the weapon with its modules. Called right before respawn
+## (NetWorld._apply_respawn), the same on every machine.
 func set_build(parts: Array) -> void:
 	build = PartDB.sanitize(parts)
-	mods = PartDB.mods(build)
-	weapons.reload_mult = mods["reload_mult"]
-	weapons.ads_time_mult = mods["ads_time_mult"]
-	weapons.spread_hip_mult = mods["spread_hip_mult"]
-	weapons.spread_ads_mult = mods["spread_ads_mult"]
 	weapons.defs.clear()
 	for i in WeaponDB.count():
 		weapons.defs.append(WeaponDB.make_def(i, PartDB.weapon_modules(build)))
 	weapons.build_weapon = WeaponDB.index_of(build[0])
-	weapons.grenades_max = 1 if build.has(PartDB.GRENADIER) else 0
-	weapons.cmp_part = build.has(PartDB.SKULL_PISTOL)
-	bomb_armed = false
 	weapons.reset()  # the weapon, its magazine and reserve as built (a first spawn has no respawn to reset them)
 	if Game.dry_reserve:
 		weapons.reserves.fill(0)
 	_apply_stats()
 	health = mini(health, max_health)
-	if _visual:
-		_visual.set_chip(build.has(PartDB.ENGINEER))
-		_visual.set_cannon(build.has(PartDB.GRENADIER))
-		_visual.set_bomb(build.has(PartDB.BOMB))
-		_visual.set_eye_gun(build.has(PartDB.SKULL_PISTOL))
-		_visual.set_cyber_arms(build.has(PartDB.PIG_ARMS))
-		_visual.set_legs(AugLegs.kind_of(build))
-	if _arms:
-		_arms.set_cyber(build.has(PartDB.PIG_ARMS))
 
 
-## The "Хрях-бабах" starts counting down / is put out (Grenades on every machine; a death: NetWorld._apply_death).
-func set_bomb_armed(on: bool) -> void:
-	bomb_armed = on
-	if _visual:
-		_visual.set_bomb_armed(on)
-	if _bomb_view != null:
-		_bomb_view.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
-
-
-## Max health and regeneration delay: kid mode's plus the build's ("Хардкор": HARDCORE_HEALTH for everybody).
+## Max health and regeneration delay: kid mode's ("Хардкор": HARDCORE_HEALTH for everybody).
 func _apply_stats() -> void:
-	max_health = maxi(int(base_max_health + mods["health_add"]), 1)
+	max_health = base_max_health
 	if Game.hardcore and not Game.training:
 		max_health = HARDCORE_HEALTH
-	regen_delay = maxf(base_regen_delay + mods["regen_delay_add"], 0.0)
+	regen_delay = base_regen_delay
 	_regen_wait = minf(_regen_wait, regen_delay)
-
-
-## Server: the build's share of damage taken (all of it, and head hits).
-func damage_taken_mult(head: bool) -> float:
-	return mods["damage_taken_mult"] * (mods["head_taken_mult"] if head else 1.0)
 
 
 ## What the server accepts from a player: no less health, no slower regeneration and no more damage than normal.

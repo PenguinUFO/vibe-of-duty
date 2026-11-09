@@ -3,8 +3,7 @@ extends SubViewportContainer
 ## The build editor's centre (BuildPanel, Docs/LOADOUT.md "Экран сборки"): the whole pig (Mannequin) standing in a small
 ## world of its own, holding the build's weapon across the chest (Mannequin.present) with its modules on it. The camera
 ## frames the whole body, or comes in on the weapon while `close` is on (the pointer or the gamepad's focus on the
-## weapon column); it glides between the two. The organs do not change the body (owner, 2026-10-31), but the
-## "Свинжинер"'s chip shows on the head.
+## weapon column); it glides between the two.
 
 const FOV := 30.0
 const BODY_CENTRE := Vector3(0.0, 0.93, 0.0)  # mannequin space: the middle of the standing body...
@@ -81,12 +80,6 @@ func show_build(parts: Array) -> void:
 	_left_weapon.visible = _weapon.def.akimbo
 	if _left_weapon.visible:
 		_left_weapon.set_weapon(index, _weapon.def)
-	_mannequin.set_chip(parts.has(PartDB.ENGINEER))
-	_mannequin.set_cannon(parts.has(PartDB.GRENADIER))
-	_mannequin.set_bomb(parts.has(PartDB.BOMB))
-	_mannequin.set_eye_gun(parts.has(PartDB.SKULL_PISTOL))
-	_mannequin.set_cyber_arms(parts.has(PartDB.PIG_ARMS))
-	_mannequin.set_legs(AugLegs.kind_of(parts))
 	_box_dirty = true
 
 

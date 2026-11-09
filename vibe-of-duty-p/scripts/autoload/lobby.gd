@@ -146,7 +146,7 @@ func vote_counts() -> Array[int]:
 
 func _broadcast() -> void:
 	_sync_timer = 1.0
-	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.mode())
+	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.mode(), Game.hardcore)
 	changed.emit()
 
 
@@ -206,6 +206,14 @@ func server_set_mode(mode: int) -> void:
 	_broadcast()
 
 
+## Host: the "Хардкор" checkbox of the next match (Game.hardcore).
+func server_set_hardcore(on: bool) -> void:
+	if not is_host() or phase == Phase.NONE:
+		return
+	Game.hardcore = on
+	_broadcast()
+
+
 # --- Every peer ----------------------------------------------------------------------------------
 
 ## LobbyMenu: the lobby scene has loaded here.
@@ -249,7 +257,7 @@ func _go_map(path: String) -> void:
 
 @rpc("authority", "reliable")
 func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes: Dictionary, new_time_left: float,
-		map: String, new_host_map: String, mode: int) -> void:
+		map: String, new_host_map: String, mode: int, hardcore: bool) -> void:
 	if phase == Phase.NONE:  # already on the way to the map
 		return
 	phase = new_phase as Phase
@@ -259,6 +267,7 @@ func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes
 	time_left = new_time_left
 	host_map = new_host_map if Game.is_map(new_host_map) else ""
 	Game.set_mode(mode)
+	Game.hardcore = hardcore
 	if Game.is_map(map):
 		Game.map_scene = map
 	changed.emit()

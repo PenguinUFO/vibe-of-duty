@@ -1,15 +1,11 @@
 class_name PartDef
 extends RefCounted
-## One part of a build (Docs/LOADOUT.md): an organ, an implant or the weapon, for one body slot. `mods` change the
-## player's numbers (PartDB.DEFAULT_MODS lists them all); every part except the native ones pays for its plus with a
-## minus.
+## One part of a build (Docs/LOADOUT.md): the weapon, one of its modules or a kit, for one slot.
 
 var id := ""
 var slot := ""            # PartDB.SLOTS
-var cost := 0             # tokens (PartDB.BUDGET per build)
 var display_name := ""
-var info := ""            # what it does, plus and minus
-var mods := {}            # PartDB.DEFAULT_MODS key -> value ("_mult" keys multiply, the others add up)
+var info := ""            # what it does
 var requires := ""        # a weapon module: another part id the build must have (weapons.cfg "requires")
 var excludes := ""        # a weapon module: slots ("a,b") kept at their defaults while this part is in (weapons.cfg)
 var forces := ""          # a weapon module: the part id its slot is held at while this part is in (weapons.cfg "forces")
@@ -18,12 +14,10 @@ var kit_weapon := ""      # a kit (slot "kit"): its weapon's id...
 var kit_modules := []     # ...and its modules (full ids; the other slots have their defaults)
 
 
-static func make(p_id: String, p_slot: String, p_cost: int, p_name: String, p_info: String, p_mods := {}) -> PartDef:
+static func make(p_id: String, p_slot: String, p_name: String, p_info: String) -> PartDef:
 	var part := PartDef.new()
 	part.id = p_id
 	part.slot = p_slot
-	part.cost = p_cost
 	part.display_name = p_name
 	part.info = p_info
-	part.mods = p_mods
 	return part

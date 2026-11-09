@@ -1,6 +1,6 @@
 class_name Grenade
 extends Node3D
-## One grenade of the "Гренадир" (Docs/LOADOUT.md): a cast-iron ball out of the chest cannon that flies an arc (the
+## One grenade (Docs/LOADOUT.md, "Граната"): a cast-iron ball thrown by the hoof that flies an arc (the
 ## map's gravity, Gravity), bounces off the level and goes off on its fuse. Every machine flies the same launch
 ## (Grenades), so they agree up to moving level pieces; the server's blast decides where it went off. A replay copy
 ## (`cosmetic`, the kill cam) goes off by itself on its fuse and hurts nobody.
@@ -103,6 +103,12 @@ func knock_back(pos: Vector3, vel: Vector3) -> void:
 
 func _build_model() -> void:
 	scale = Vector3.ONE * MODEL_SCALE
+	_lamp = make_model(self)
+
+
+## The cast-iron ball (built at half size: scale it by MODEL_SCALE) under `parent`, with its seam and lamp; returns the
+## lamp. Also the grenade in the hoof before the throw (Mannequin, FirstPersonArms).
+static func make_model(parent: Node3D) -> MeshInstance3D:
 	var ball := SphereMesh.new()
 	ball.radius = 0.045
 	ball.height = 0.09
@@ -115,7 +121,7 @@ func _build_model() -> void:
 	var body := MeshInstance3D.new()
 	body.mesh = ball
 	body.material_override = iron
-	add_child(body)
+	parent.add_child(body)
 	var band := TorusMesh.new()  # a cast seam round the middle
 	band.inner_radius = 0.043
 	band.outer_radius = 0.05
@@ -124,19 +130,20 @@ func _build_model() -> void:
 	var seam := MeshInstance3D.new()
 	seam.mesh = band
 	seam.material_override = iron
-	add_child(seam)
+	parent.add_child(seam)
 	var dot := SphereMesh.new()
 	dot.radius = 0.012
 	dot.height = 0.024
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glow.albedo_color = LAMP
-	_lamp = MeshInstance3D.new()
-	_lamp.mesh = dot
-	_lamp.material_override = glow
-	_lamp.position = Vector3(0.0, 0.045, 0.0)
-	_lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_lamp)
+	var lamp := MeshInstance3D.new()
+	lamp.mesh = dot
+	lamp.material_override = glow
+	lamp.position = Vector3(0.0, 0.045, 0.0)
+	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(lamp)
+	return lamp
 
 
 ## The blast as everybody sees and hears it: a fireball with its light, smoke and a bang. Cosmetic.

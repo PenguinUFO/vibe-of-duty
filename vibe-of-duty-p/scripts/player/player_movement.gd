@@ -15,7 +15,6 @@ func teleport(xform: Transform3D) -> void:
 	_curr_yaw = body_yaw
 	velocity = Vector3.ZERO
 	is_mantling = false
-	_air_jumps = 0
 	_floor_y = Gravity.height(global_position)
 	_snapshots.clear()
 	_history.clear()
@@ -96,47 +95,29 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	var firing := weapons.wants_fire(cmd)
 	is_sprinting = cmd.sprint and cmd.move.y < -0.1 and not is_crouched and not cmd.aim and not firing \
 			and not weapons.is_meleeing()
-	var top_speed: float = (SPRINT_SPEED * mods["sprint_mult"] if is_sprinting else WALK_SPEED) * mods["speed_mult"]
+	var top_speed: float = SPRINT_SPEED if is_sprinting else WALK_SPEED
 	if is_sliding:
 		horiz = _slide_dir * _slide_speed
 	elif on_floor:
-		var ground_speed: float = (CROUCH_SPEED * mods["speed_mult"] if is_crouched else top_speed) * wish_len \
+		var ground_speed: float = (CROUCH_SPEED if is_crouched else top_speed) * wish_len \
 				* weapons.speed_mult()
 		var rate := GROUND_ACCEL if wish_len > 0.0 else GROUND_FRICTION
 		horiz = horiz.move_toward(wish * ground_speed, rate * dt)
 	elif wish_len > 0.0:
+		# Air strafing builds speed and hops keep it: bunny hopping for everybody (owner, 2026-11-09).
 		var add := clampf(top_speed * wish_len - horiz.dot(wish), 0.0, AIR_ACCEL * dt)
-		var was := horiz.length()
 		horiz += wish * add
-		if mods["bunny_hop"] <= 0.0:  # without the "Прыг-скок" strafing steers, but builds no speed past a run
-			horiz = horiz.limit_length(maxf(was, top_speed))
 	v.x = horiz.x
 	v.z = horiz.z
 
-	# Vertical movement. In the air a new press of jump jumps again while the build has air jumps left (the
-	# "Прыг-Прыг": one), counted back on the floor.
+	# Vertical movement.
 	if on_floor:
-		_air_jumps = 0
-	var air_jump: bool = not on_floor and cmd.jump and _air_jumps < int(mods["air_jumps"])
-	if on_floor or air_jump:
 		if cmd.jump:
-			if mods["bunny_hop"] <= 0.0 and not is_sliding:
-				# Without the "Прыг-скок" a hop off the ground is no faster than a run (a slide's jump keeps the slide):
-				# landing from a fast jump and hopping on does not carry the speed.
-				var run: float = top_speed * weapons.speed_mult()
-				horiz = horiz.limit_length(run)
-				v.x = horiz.x
-				v.z = horiz.z
-			v.y = JUMP_VELOCITY * mods["jump_mult"]
+			v.y = JUMP_VELOCITY
 			_jumped_this_step = true
 			slide_finished = is_sliding or slide_finished
-			jumps_total += 0 if air_jump else 1
-			if air_jump:
-				_air_jumps += 1
-				air_jumps_total += 1
-				_floor_y = Gravity.height(global_position)  # a vault reaches from here, as from the ground
-				_air_jump_fx = _air_jump_fx or not _replaying
-			_sfx("air_jump" if air_jump else "jump")
+			jumps_total += 1
+			_sfx("jump")
 		else:
 			v.y = 0.0
 	else:
@@ -158,7 +139,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 func _post_move(dt: float) -> void:
 	var on_floor := is_on_floor()
 	if on_floor and not _prev_on_floor and _prev_vy < -LAND_SOUND_MIN_SPEED:
-		_sfx("land", mods["land_db"])
+		_sfx("land")
 	if on_floor and not _prev_on_floor and is_local and not _replaying:
 		_land_impact = maxf(_land_impact, -_prev_vy)
 	_prev_on_floor = on_floor

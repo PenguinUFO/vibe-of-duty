@@ -4,7 +4,7 @@ extends CanvasLayer
 ## build of the next life; keys 1-5 or d-pad left / right pick another saved one (Settings.builds). The server gets it
 ## at once (NetWorld.send_build) and applies it at the respawn (on a training map at once). The pause menu picks too
 ## (BuildMenu). Editing builds is the main menu's (BuildPanel).
-## Created by NetWorld; not on a dedicated server. Hidden in the FFA random weapon mode (the server picks the weapon).
+## Created by NetWorld; not on a dedicated server. Hidden in the "Бойня рандом" mode (the server picks the weapon).
 
 var world: NetWorld
 
@@ -35,17 +35,10 @@ func _process(_delta: float) -> void:
 				describe(Settings.build_index)]
 
 
-## "Name: kit   [paid parts]" of a saved build, as played (the organs of PartDB.INERT_SLOTS left out).
+## "Name: kit" of a saved build, as played.
 static func describe(index: int) -> String:
 	var build: Dictionary = Settings.builds[index]
-	var parts := PartDB.sanitize(build["parts"])
-	var names: PackedStringArray = []
-	for id in parts:
-		var part := PartDB.get_part(id)
-		if part != null and PartDB.BODY_SLOTS.has(part.slot) and part.id != PartDB.options(part.slot, "")[0].id:
-			names.append(part.display_name)
-	return "%s: %s   [%s]" % [build["name"], PartDB.kit_name(parts),
-			", ".join(names) if not names.is_empty() else "родная туша"]
+	return "%s: %s" % [build["name"], PartDB.kit_name(PartDB.sanitize(build["parts"]))]
 
 
 ## Makes the saved build `index` the played one: saved, sent to the server (played from the next life, on a training

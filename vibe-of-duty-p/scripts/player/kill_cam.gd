@@ -45,9 +45,6 @@ var _space := ViewmodelSpace.new()
 var _view: WeaponView
 var _left_view: WeaponView  # the killer's akimbo left gun
 var _arms: FirstPersonArms
-var _cannon := GrenadeCannon.new()  # the killer's chest cannon, seen while they launch
-var _bomb: ChestBomb  # the killer's "Хрях-бабах", seen while it counts
-var _bomb_counting := false
 var _ui := CanvasLayer.new()
 var _scope := ScopeOverlay.new()  # the killer looking through a scope
 var _title: Label
@@ -67,10 +64,6 @@ func _ready() -> void:
 	_left_view.mirrored = true
 	_left_view.visible = false
 	_space.add_child(_left_view)
-	_cannon.set_barrel_only()
-	_cannon.visible = false
-	_space.add_child(_cannon)
-	_bomb = PlayerView.make_bomb_view(_camera)
 	_ui.layer = 6
 	_ui.visible = false
 	add_child(_ui)
@@ -156,10 +149,6 @@ func stop() -> void:
 	_view.visible = false
 	_left_view.visible = false
 	_space.blur.visible = false
-	_cannon.visible = false
-	_show_bomb(false)
-	_bomb.rise = 0.0
-	_bomb.visible = false
 	for node in get_tree().get_nodes_in_group(REPLAY_GRENADES):
 		node.queue_free()  # a replayed grenade still in the air: it is not in the match
 	_scope.set_amount(0.0)
@@ -210,7 +199,6 @@ func _begin() -> void:
 	for id in world.players:
 		(world.players[id] as Player).set_kill_cam(true)
 	_arms = _arms_for(_killer_id)
-	_arms.set_cyber(_cyber_for(_killer_id))
 	_camera.fov = Settings.fov
 	_camera.make_current()
 	_ui.visible = true
@@ -252,15 +240,9 @@ func _play(delta: float) -> void:
 		ghost.show_reload(pose[7])
 		ghost.show_melee(pose[9])
 		ghost.show_grenade(pose[10] if pose.size() > 10 else -1.0)
-		ghost.set_cannon(_cannon_for(id))
-		ghost.set_bomb(_bomb_for(id))
 		ghost.set_ads(pose[4])
 		ghost.set_weapon(pose[6], _def_for(id, pose[6]))
 		ghost.set_akimbo(pose.size() > 11 and pose[11], false)
-		ghost.set_chip(_chip_for(id))
-		ghost.set_eye_gun(_eye_gun_for(id))
-		ghost.set_cyber_arms(_cyber_for(id))
-		ghost.set_legs(_legs_for(id))
 		if ghost._dead == pose[5]:
 			ghost.set_dead(not pose[5], _camera.global_position)  # the killer is the camera
 		ghost.update_motion(delta, Vector3.ZERO)
@@ -304,21 +286,11 @@ func _play(delta: float) -> void:
 			_left_view.update_pose(delta, 0.0, -1.0, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
 		_arms.left_weapon = _left_view
 		_arms.pose()
-		PlayerView.pose_cannon_view(_cannon if _cannon_for(_killer_id) else null, _view.grenade)
-		_show_bomb(killer[5] and killer.size() > 12 and killer[12])
-		PlayerView.pose_bomb_view(_bomb, _camera.fov, _bomb_counting, delta)
 
 	for shot in _shots:
 		if shot["t"] > _shot_t and shot["t"] <= _replay_t:
 			_replay_shot(shot)
 	_shot_t = _replay_t
-
-
-## The killer's bomb starts counting / stops, as the replay reaches it.
-func _show_bomb(counting: bool) -> void:
-	if counting != _bomb_counting:
-		_bomb_counting = counting
-		_bomb.arm(WeaponDB.grenade("bomb_fuse", 1.5) if counting else -1.0)
 
 
 ## Builds what a replay may need ahead of time: a stand-in body for every player and first-person arms for every
@@ -355,42 +327,6 @@ func _def_for(id: int, weapon: int) -> WeaponDef:
 	return player.weapons.def_at(weapon) if player != null else WeaponDB.get_def(weapon)
 
 
-## The player has the "Гренадир"'s cannon (as of now, as _def_for).
-func _cannon_for(id: int) -> bool:
-	var player: Player = world.players.get(id)
-	return player != null and player.build.has(PartDB.GRENADIER)
-
-
-## The player has the "Хрях-бабах"'s bomb (as of now, as _def_for).
-func _bomb_for(id: int) -> bool:
-	var player: Player = world.players.get(id)
-	return player != null and player.build.has(PartDB.BOMB)
-
-
-## The player has the "ЧМП" in the eye (as of now, as _def_for).
-func _eye_gun_for(id: int) -> bool:
-	var player: Player = world.players.get(id)
-	return player != null and player.build.has(PartDB.SKULL_PISTOL)
-
-
-## The player has the "Руки-Хрюки" (as of now, as _def_for).
-func _cyber_for(id: int) -> bool:
-	var player: Player = world.players.get(id)
-	return player != null and player.build.has(PartDB.PIG_ARMS)
-
-
-## The player's leg augmentation (as of now, as _def_for).
-func _legs_for(id: int) -> AugLegs.Kind:
-	var player: Player = world.players.get(id)
-	return AugLegs.kind_of(player.build) if player != null else AugLegs.Kind.NONE
-
-
-## The player has the "Свинжинер"'s chip (as of now, as _def_for).
-func _chip_for(id: int) -> bool:
-	var player: Player = world.players.get(id)
-	return player != null and player.build.has(PartDB.ENGINEER)
-
-
 func _show_ghost(ghost: PlayerVisual, shown: bool) -> void:
 	ghost.visible = shown
 	ghost.process_mode = Node.PROCESS_MODE_INHERIT if shown else Node.PROCESS_MODE_DISABLED
@@ -413,7 +349,7 @@ func _replay_shot(shot: Dictionary) -> void:
 		grenade.add_to_group(REPLAY_GRENADES)
 		add_child(grenade)
 		grenade.launch(shot["origin"], shot["ends"][0], true)
-		Audio.play("grenade_launch", null if shot["id"] == _killer_id else shot["origin"])
+		Audio.play("grenade_throw", null if shot["id"] == _killer_id else shot["origin"])
 		return
 	if shot["weapon"] == WeaponSim.MELEE:  # a punch that landed: its sound and the flinch (the pose shows the swing)
 		for end in shot["ends"]:
@@ -425,29 +361,18 @@ func _replay_shot(shot: Dictionary) -> void:
 	var def := _def_for(shot["id"], shot["weapon"])
 	var muzzle: Vector3 = shot["origin"]
 	var own: bool = shot["id"] == _killer_id  # the killer's eyes: their own trail shows, as in play
-	var cmp: bool = shot["weapon"] == WeaponSim.CMP  # out of the left eye, the weapon in the hands as it was
 	if own:
-		if cmp:
-			muzzle = _camera.global_transform * PlayerWeapons.CMP_VIEW
-		else:
-			var gun := _left_view if shot.get("left", false) and _left_view.visible else _view
-			gun.flash(def.muzzle_flash)
-			gun.kick(1.0 if def.pellets == 1 else 2.0)
-			muzzle = gun.muzzle_global_position()
+		var gun := _left_view if shot.get("left", false) and _left_view.visible else _view
+		gun.flash(def.muzzle_flash)
+		gun.kick(1.0 if def.pellets == 1 else 2.0)
+		muzzle = gun.muzzle_global_position()
 		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
 	elif _ghosts.has(shot["id"]):
 		var ghost: PlayerVisual = _ghosts[shot["id"]]
-		ghost.set_chip(_chip_for(shot["id"]))
-		ghost.set_eye_gun(_eye_gun_for(shot["id"]))
-		if cmp:
-			muzzle = ghost.eye_gun_muzzle_position()
-		else:
-			ghost.set_weapon(shot["weapon"], def)
-			ghost.show_shot(def.muzzle_flash, shot.get("left", false))
-			muzzle = ghost.muzzle_global_position(shot.get("left", false))
+		ghost.set_weapon(shot["weapon"], def)
+		ghost.show_shot(def.muzzle_flash, shot.get("left", false))
+		muzzle = ghost.muzzle_global_position(shot.get("left", false))
 		Audio.play(def.sound_shot, muzzle, def.loudness, def.sound_pitch)
-	if cmp and def.muzzle_flash:
-		MuzzleLights.flash(self, muzzle)
 	var scene_root := get_tree().current_scene
 	var ends: PackedVector3Array = shot["ends"]
 	for i in ends.size():

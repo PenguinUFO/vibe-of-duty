@@ -31,12 +31,10 @@ var _shown_reload := -2.0         # replay: reload progress given directly (show
 var _meleeing := false
 var _melee_t := -1.0              # s into the punch being shown, -1 = none
 var _shown_melee := -2.0          # replay: punch progress given directly (show_melee), -2 = not given
-var _cannon := false              # the "Гренадир"'s cannon on the chest
-var _spent := false               # its grenade is out this life (the lamp is dark)
 var _launching := false
-var _grenade_ready := false       # the cannon is held out (G down)
-var _grenade_t := -1.0            # s into the launch being shown, -1 = none
-var _shown_grenade := -2.0        # replay: launch progress given directly (show_grenade), -2 = not given
+var _grenade_ready := false       # the hoof is held back (G down)
+var _grenade_t := -1.0            # s into the throw being shown, -1 = none
+var _shown_grenade := -2.0        # replay: throw progress given directly (show_grenade), -2 = not given
 var _ads_target := false
 
 
@@ -78,92 +76,23 @@ func set_akimbo(on: bool, throw := true) -> void:
 	_left_weapon.visible = on
 
 
-## The "Свинжинер"'s chip on the head (the build has PartDB.ENGINEER).
-func set_chip(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_chip(on)
-
-
-## The "Руки-Хрюки" (the build has PartDB.PIG_ARMS).
-func set_cyber_arms(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_cyber_arms(on)
-
-
-## The "ЧМП"'s gun in the left eye socket (the build has PartDB.SKULL_PISTOL).
-func set_eye_gun(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_eye_gun(on)
-
-
-## The ЧМП's muzzle (world).
-func eye_gun_muzzle_position() -> Vector3:
-	return _mannequin.eye_gun_muzzle() if _mannequin else global_position
-
-
-## The "Прыг-Прыг"'s / "Прыг-скок"'s legs below the knees (AugLegs.kind_of the build).
-func set_legs(kind: AugLegs.Kind) -> void:
-	if _mannequin:
-		_mannequin.set_legs(kind)
-
-
-## The "Прыг-Прыг": the jump in the air is left (the lamps lit).
-func set_air_jump_ready(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_air_jump_ready(on)
-
-
-## The "Прыг-Прыг"'s jump in the air: the rods kick, the exhaust (not seen while dead or hidden).
-func air_jump() -> void:
-	if _mannequin and not _dead and is_visible_in_tree():
-		_mannequin.air_jump()
-
-
-## The "Гренадир"'s cannon on the chest (the build has PartDB.GRENADIER); a new life has its grenade in.
-func set_cannon(on: bool) -> void:
-	_cannon = on
-	_spent = false
-	if _mannequin:
-		_mannequin.set_cannon(on, true)
-
-
-## The "Хрях-бабах"'s bomb on the chest (the build has PartDB.BOMB).
-func set_bomb(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_bomb(on)
-
-
-## Its timer runs / is out.
-func set_bomb_armed(on: bool) -> void:
-	if _mannequin:
-		_mannequin.set_bomb_armed(on)
-
-
-## Launching a grenade (from the snapshot flags): plays the launch from its start over its full length, holding at
-## the launch while `ready` (the cannon held out, G down).
+## Throwing a grenade (from the snapshot flags): plays the throw from its start over its full length, holding at the
+## swing back while `ready` (G down).
 func set_launching(launching: bool, ready := false) -> void:
 	_grenade_ready = launching and ready
 	if launching and not _launching and not _dead:
 		_grenade_t = 0.0
-		_spent = true
-		if _mannequin:
-			_mannequin.set_cannon(_cannon, false)
 	_launching = launching
 
 
-## Launch progress as shown (-1: none), e.g. for the kill cam's recording.
+## Throw progress as shown (-1: none), e.g. for the kill cam's recording.
 func grenade_progress() -> float:
 	return _mannequin.grenade if _mannequin else -1.0
 
 
-## Replays (KillCam): shows the launch at exactly this progress (-1: none) instead of timing it here.
+## Replays (KillCam): shows the throw at exactly this progress (-1: none) instead of timing it here.
 func show_grenade(progress: float) -> void:
 	_shown_grenade = progress
-
-
-## The chest cannon's muzzle (world).
-func cannon_muzzle_position() -> Vector3:
-	return _mannequin.cannon_muzzle() if _mannequin else global_position
 
 
 ## Aim pitch of the player in radians (positive = up).
@@ -301,7 +230,7 @@ func _update_grenade(delta: float) -> void:
 		return
 	_grenade_t += delta
 	if _grenade_ready:
-		_grenade_t = minf(_grenade_t, WeaponSim.GRENADE_OUT)  # held out until the snapshot says it fired
+		_grenade_t = minf(_grenade_t, WeaponSim.GRENADE_OUT)  # held back until the snapshot says it was thrown
 	var length := WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK
 	if _grenade_t >= length:
 		_grenade_t = -1.0

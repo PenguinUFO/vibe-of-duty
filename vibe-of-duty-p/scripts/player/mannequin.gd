@@ -53,12 +53,11 @@ const PUNCH_REACH := Vector3(0.14, -0.04, -0.55)  # the punching hoof from the l
 const BANDOLIER := Vector3(-0.12, 0.22, -0.16)    # chest frame: the loops on the left of the chest a break-open's rounds ride in
 const PRESENT_TILT := 0.45                        # rad: shown (present), the barrel up to the left across the chest...
 const PRESENT_AT := Vector3(0.0, 0.18, -0.26)     # ...the middle between the hands here (chest frame)
-## The "Гренадир"'s chest cannon (GrenadeCannon): on the breastbone, in the chest frame (Player.GRENADE_CHEST is its
-## height standing). Launching, the pig spreads its arms and pushes the chest out (grenade_curve).
-const CANNON_AT := Vector3(0.0, 0.27, -0.13)
-const BOMB_AT := Vector3(0.0, 0.14, -0.085)  # the "Хрях-бабах"'s bomb (ChestBomb), under the cannon's place
-const CHEST_OUT := 0.035             # m the chest (and the cannon) pushes forward
-const ARM_OUT := Vector3(-0.42, -0.12, -0.12)  # chest frame: the free left hoof thrown out from the left shoulder
+## The grenade throw (throw_curve): the left hoof takes the grenade off the gun, swings it up and back by the ear
+## (chest frame, from the left shoulder)...
+const THROW_WIND := Vector3(0.02, 0.2, 0.14)
+const THROW_OUT := Vector3(0.12, 0.08, -0.55)  # ...and throws it forward along the aim (aim frame, from the shoulder)
+const GRENADE_IN_HOOF := Vector3(0.0, 0.075, 0.05)  # hand frame: the ball in the palm, between the toes
 ## Akimbo (left_weapon): a gun in each hoof, arms out in front, each palm here from its shoulder (aim frame) - straight
 ## ahead of it and a little low, the guns a shoulder width apart, so both read from the front and the side.
 const AKIMBO_RIGHT := Vector3(0.0, -0.1, -0.5)
@@ -100,25 +99,6 @@ const SKIN := Color(0.6, 0.45, 0.41)    # weathered, dirty pig skin: head, neck,
 const SNOUT := Color(0.5, 0.34, 0.32)   # snout and ears, a shade darker than the skin
 const HOOF := Color(0.36, 0.3, 0.26)   # weathered horn: hands and feet are cloven hooves; light enough for the dark gun
 const VISOR := Color(0.03, 0.025, 0.02) # eyes and nostrils
-const CHIP := Color(0.1, 0.105, 0.11)    # the "Свинжинер"'s plate (set_chip): dark metal
-const CHIP_SIZE := Vector3(0.064, 0.046, 0.012)
-## The chip's wires sticking out of it: colour and bend points, in the plate's frame (z out of the head, -x toward
-## the ear).
-const CHIP_WIRES := [
-	[Color(0.55, 0.1, 0.08), [Vector3(-0.018, 0.012, 0.006), Vector3(-0.022, 0.018, 0.03), Vector3(-0.05, 0.034, 0.042)]],
-	[Color(0.05, 0.05, 0.05), [Vector3(-0.024, -0.003, 0.006), Vector3(-0.03, -0.004, 0.026), Vector3(-0.064, -0.01, 0.03)]],
-	[Color(0.6, 0.5, 0.1), [Vector3(-0.012, -0.014, 0.006), Vector3(-0.016, -0.02, 0.024), Vector3(-0.04, -0.044, 0.022)]],
-]
-const CHIP_AT := Vector3(0.085, 0.045, -0.06)  # head frame: between the right ear and the right eye
-## The "Руки-Хрюки" (set_cyber_arm): the whole arm is a machine; the player's colour stays as a band at the shoulder.
-const CYBER_STEEL := Color(0.3, 0.31, 0.32)
-const CYBER_DARK := Color(0.08, 0.085, 0.09)   # joints, seams
-const CYBER_ROD := Color(0.5, 0.51, 0.52)      # the bright metal of a piston
-const CYBER_TUBES: Array[float] = [0.028, 0.021, 0.015]  # radii of the piston's stages, from the forearm to the hoof
-const CYBER_PUNCH := 0.3                      # m the piston pushes the hoof out at a punch (only the look: the reach is the fan's)
-## The "ЧМП"'s gun (set_eye_gun): in the left eye socket (head frame, -Z forward), where the eye was; its muzzle.
-const EYE_GUN_AT := Vector3(-0.042, 0.035, -0.098)
-const EYE_GUN_LENGTH := 0.05
 ## The skin of every part (assets/shaders/pig_skin.gdshader): the guns' coarse pixel noise and patches of dirt over
 ## the part's colour (owner, 2026-10-31).
 const SKIN_SHADER := preload("res://assets/shaders/pig_skin.gdshader")
@@ -145,7 +125,7 @@ var mantle_top := Vector3.ZERO  # a world point at the height of the ledge's top
 var ads := 0.0        # 0..1
 var crouch := 0.0     # 0..1
 var present := 0.0    # 0..1: the gun held across the chest, its side to the front (the build editor's BuildStage)
-var grenade := -1.0   # grenade launch progress 0..1, -1 = not launching
+var grenade := -1.0   # grenade throw progress 0..1, -1 = not throwing
 var weapon: WeaponView
 var left_weapon: WeaponView  # the akimbo's left gun (the same def); posed only while visible
 var def: WeaponDef
@@ -190,10 +170,7 @@ var _head_kick_v := Vector2.ZERO
 var _jolt := 0.0                    # torso turn of a hit (rad about the vertical: the hit shoulder goes back)
 var _jolt_v := 0.0
 var _ragdoll: Ragdoll
-var _cannon: GrenadeCannon          # the "Гренадир"'s (set_cannon), null without it
-var _bomb: ChestBomb                # the "Хрях-бабах"'s (set_bomb), null without it
-var _legs: AugLegs                  # the "Прыг-Прыг"'s / "Прыг-скок"'s below the knees (set_legs), null without
-var _heat := 0.0                    # the "Прыг-скок"'s glow: the speed past a sprint, 0..1, smoothed
+var _held_grenade: Node3D           # the grenade in the left hoof before the throw (made on the first throw)
 var _ragdoll_parts: Array = []      # [part, frame index, relative transform] for the rigid parts
 
 
@@ -255,201 +232,6 @@ static func make_head(parent: Node3D) -> MeshInstance3D:
 	return head
 
 
-## The "Руки-Хрюки" (PartDB.PIG_ARMS): both arms.
-func set_cyber_arms(on: bool) -> void:
-	set_cyber_arm(_right_arm, on)
-	set_cyber_arm(_left_arm, on)
-
-
-## The "Свинжинер"'s chip (PartDB.ENGINEER): a dark metal plate on the head between the right ear and the right eye,
-## wires sticking out of it.
-func set_chip(on: bool) -> void:
-	var head: Node3D = _parts["Head"]
-	var chip := head.get_node_or_null("Chip")
-	if on and chip == null:
-		var normal := CHIP_AT.normalized()
-		chip = Node3D.new()
-		chip.name = "Chip"
-		chip.transform = Transform3D(Basis.looking_at(-normal), normal * HEAD_RADIUS)
-		var box := BoxMesh.new()
-		box.size = CHIP_SIZE
-		var metal := StandardMaterial3D.new()
-		metal.albedo_color = CHIP
-		metal.metallic = 0.8  # sharp and dark: a softer plate catches the build screen's orange rim light as brown
-		metal.roughness = 0.25
-		metal.metallic_specular = 0.1
-		var plate := MeshInstance3D.new()
-		plate.mesh = box
-		plate.material_override = metal
-		chip.add_child(plate)
-		for wire: Array in CHIP_WIRES:
-			var rubber := StandardMaterial3D.new()
-			rubber.albedo_color = wire[0]
-			rubber.roughness = 0.6
-			var points: Array = wire[1]
-			for k in points.size() - 1:
-				var from: Vector3 = points[k]
-				var along: Vector3 = points[k + 1] - from
-				var tube := CylinderMesh.new()
-				tube.top_radius = 0.0022
-				tube.bottom_radius = 0.0022
-				tube.height = along.length() + 0.003  # overlap the bend
-				tube.radial_segments = 6
-				tube.rings = 1
-				var segment := MeshInstance3D.new()
-				segment.mesh = tube
-				segment.material_override = rubber
-				segment.transform = Transform3D(Basis(Quaternion(Vector3.UP, along.normalized())), from + along / 2)
-				chip.add_child(segment)
-		head.add_child(chip)
-	elif not on and chip != null:
-		chip.free()
-
-
-## The "ЧМП" (PartDB.SKULL_PISTOL): a short iron barrel in place of the left eye, its ring set into raw skin and
-## stapled round, the seam a scar - body horror without blood (owner, 2026-11-02). Barrel along the head's -Z.
-func set_eye_gun(on: bool) -> void:
-	var head: Node3D = _parts["Head"]
-	var eye := head.get_node_or_null("EyeL") as Node3D
-	if eye != null:
-		eye.visible = not on
-	var gun := head.get_node_or_null("EyeGun")
-	if on and gun == null:
-		gun = Node3D.new()
-		gun.name = "EyeGun"
-		gun.position = EYE_GUN_AT
-		head.add_child(gun)
-		var patch := _eye_gun_part(gun, _sphere(0.027), GrenadeCannon.SKIN_RAW, false)
-		patch.scale = Vector3(1.0, 1.0, 0.35)  # a flat swelling on the skin
-		var scar := TorusMesh.new()
-		scar.inner_radius = 0.018
-		scar.outer_radius = 0.023
-		scar.rings = 12
-		scar.ring_segments = 5
-		_eye_gun_part(gun, scar, GrenadeCannon.SCAR, false, Vector3(0.0, 0.0, -0.006))
-		var ring := TorusMesh.new()
-		ring.inner_radius = 0.008
-		ring.outer_radius = 0.017
-		ring.rings = 12
-		ring.ring_segments = 6
-		_eye_gun_part(gun, ring, GrenadeCannon.IRON, true, Vector3(0.0, 0.0, -0.008))
-		var barrel := CylinderMesh.new()
-		barrel.top_radius = 0.0085
-		barrel.bottom_radius = 0.0095
-		barrel.height = EYE_GUN_LENGTH
-		barrel.radial_segments = 8
-		barrel.rings = 1
-		_eye_gun_part(gun, barrel, GrenadeCannon.IRON, true, Vector3(0.0, 0.0, -EYE_GUN_LENGTH * 0.5))
-		var bore := CylinderMesh.new()
-		bore.top_radius = 0.0045
-		bore.bottom_radius = 0.0045
-		bore.height = 0.004
-		bore.radial_segments = 8
-		bore.rings = 1
-		_eye_gun_part(gun, bore, VISOR, false, Vector3(0.0, 0.0, -EYE_GUN_LENGTH - 0.0015))
-		for k in 6:  # staples across the seam
-			var angle := TAU * (k + 0.5) / 6.0
-			var staple := BoxMesh.new()
-			staple.size = Vector3(0.011, 0.0022, 0.0022)
-			var part := _eye_gun_part(gun, staple, GrenadeCannon.STAPLE, true,
-					Vector3(cos(angle), sin(angle), 0.0) * 0.0205 + Vector3(0.0, 0.0, -0.008))
-			part.basis = Basis(Vector3.BACK, angle)
-	elif not on and gun != null:
-		gun.free()
-
-
-## The ЧМП's muzzle (world): the end of the barrel in the left eye (the eye's place without it).
-func eye_gun_muzzle() -> Vector3:
-	return (_parts["Head"] as Node3D).global_transform * (EYE_GUN_AT + Vector3(0.0, 0.0, -EYE_GUN_LENGTH))
-
-
-## A piece of the ЧМП: a turned part along the barrel (the meshes' Y turned to -Z), plain material.
-static func _eye_gun_part(parent: Node3D, mesh: Mesh, color: Color, metal: bool, offset := Vector3.ZERO) -> MeshInstance3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.metallic = 0.8 if metal else 0.0
-	material.roughness = 0.35 if metal else 0.7
-	var instance := MeshInstance3D.new()
-	instance.mesh = mesh
-	instance.material_override = material
-	instance.position = offset
-	if mesh is CylinderMesh or mesh is TorusMesh:
-		instance.rotation.x = PI * 0.5
-	parent.add_child(instance)
-	return instance
-
-
-## The "Гренадир"'s chest cannon (PartDB.GRENADIER), placed with the torso every pose; `loaded`: the lamp on it.
-func set_cannon(on: bool, loaded := true) -> void:
-	if on and _cannon == null:
-		_cannon = GrenadeCannon.new()
-		_cannon.name = "Cannon"
-		add_child(_cannon)
-	elif not on and _cannon != null:
-		_cannon.free()
-		_cannon = null
-	if _cannon != null:
-		_cannon.loaded = loaded
-
-
-## The "Хрях-бабах"'s bomb (PartDB.BOMB), placed with the torso every pose.
-func set_bomb(on: bool) -> void:
-	if on and _bomb == null:
-		_bomb = ChestBomb.new()
-		_bomb.name = "Bomb"
-		add_child(_bomb)
-	elif not on and _bomb != null:
-		_bomb.free()
-		_bomb = null
-
-
-## Its timer: on from the full fuse, off again.
-func set_bomb_armed(on: bool) -> void:
-	if _bomb != null:
-		_bomb.arm(WeaponDB.grenade("bomb_fuse", 1.5) if on else -1.0)
-
-
-## The leg augmentations below the knees (AugLegs): the shins and trotters give way to them.
-func set_legs(kind: AugLegs.Kind) -> void:
-	if _legs != null and _legs.kind != kind:
-		_legs.free()
-		_legs = null
-	if kind != AugLegs.Kind.NONE and _legs == null:
-		_legs = AugLegs.new(kind)
-		_legs.name = "Legs"
-		add_child(_legs)
-	for side in ["L", "R"]:
-		(_parts["Shin" + side] as Node3D).visible = _legs == null
-		(_parts["Foot" + side] as Node3D).visible = _legs == null
-
-
-## The "Прыг-Прыг": the jump in the air is left (the lamps on the cylinders are lit).
-func set_air_jump_ready(on: bool) -> void:
-	if _legs != null:
-		_legs.jump_left = on
-
-
-## The "Прыг-Прыг"'s jump in the air: the rods kick out, the exhaust blows down from the heels.
-func air_jump() -> void:
-	if _legs == null or _legs.kind != AugLegs.Kind.JET:
-		return
-	_legs.air_jump()
-	var down := -global_basis.y.normalized()
-	for nozzle in _legs.nozzles():
-		for k in 3:
-			var spread := Vector3(randf_range(-0.6, 0.6), 0.0, randf_range(-0.6, 0.6))
-			Dust.puff(self, nozzle, down * randf_range(3.0, 4.5) + global_basis * spread, randf_range(0.22, 0.32),
-					randf_range(0.35, 0.55))
-	Dust.burst(self, global_position - global_basis.y * 0.2, 0.5)  # a ring of it in the air under the feet
-
-
-## The cannon's muzzle (world), or the chest when there is none.
-func cannon_muzzle() -> Vector3:
-	if _cannon != null:
-		return _cannon.muzzle_global_position()
-	return global_transform * Vector3(0.0, PELVIS_STAND + SPINE_PIVOT + CANNON_AT.y, CANNON_AT.z)
-
-
 ## Anthropomorphic pig, mostly human: the head gets a snout, small dark eyes and floppy ears (cosmetic only - the head
 ## hitbox stays the HEAD_RADIUS sphere). Head frame: -Z forward.
 static func _build_pig_face(head: Node3D) -> void:
@@ -466,7 +248,7 @@ static func _build_pig_face(head: Node3D) -> void:
 		var nostril := _attach(head, _sphere(0.011), VISOR, Vector3(0.018 * s, -0.025, -0.153))
 		nostril.scale = Vector3(0.8, 1.3, 0.5)
 		var eye := _attach(head, _sphere(0.014), VISOR, Vector3(0.042 * s, 0.035, -0.098))
-		eye.name = "EyeL" if s < 0.0 else "EyeR"  # the left one gives way to the ЧМП (set_eye_gun)
+		eye.name = "EyeL" if s < 0.0 else "EyeR"
 		# The ear hangs from a pivot at its base, so it can flop (animate) without leaving the head.
 		var ear := PrismMesh.new()
 		ear.size = Vector3(0.075, 0.09, 0.016)
@@ -630,13 +412,6 @@ func animate(delta: float, velocity: Vector3, on_floor := true, sliding := false
 	var jolt := _spring(Vector2(_jolt, 0.0), Vector2(_jolt_v, 0.0), Vector2.ZERO, 3.2, 0.3, delta)
 	_jolt = clampf(jolt[0].x, -0.5, 0.5)
 	_jolt_v = jolt[1].x
-	if _legs != null:
-		# The blades: glow with the speed past a sprint (as the HUD's plate), flex with it and with each landing.
-		var sprint := Player.SPRINT_SPEED
-		_heat = move_toward(_heat, clampf((speed - sprint) / sprint, 0.0, 1.0), delta * 3.0)
-		_legs.heat = _heat
-		_legs.flex = (0.3 + 0.7 * _heat) * _move * (1.0 - _tuck) + _land / -LAND_DROP_MAX
-		_legs.advance(delta)
 
 
 ## A bullet hit at `at` (world): the body jerks with the shot (`direction`: world direction the bullet flew) - the
@@ -681,15 +456,8 @@ func pose() -> void:
 	# Tail ring faces backwards (+Z), on the back of the pelvis; it flops up / down and wags.
 	_place(_parts["Tail"], Transform3D(Basis(Vector3.UP, _tail_flop.y) * Basis(Vector3.RIGHT, PI * 0.5 + _tail_flop.x)
 			.rotated(Vector3.FORWARD, 0.4), pelvis + twist * Vector3(_tail_flop.y * 0.02, 0.03, 0.135)))
-	# Launching a grenade the chest pushes out (the torso only: the head and the hitbox stay).
-	var launch := grenade_curve(grenade)
-	var thrust := Transform3D(Basis(Vector3.RIGHT, 0.12 * launch), Vector3(0.0, 0.0, -CHEST_OUT * launch))
-	_place(_parts["Torso"], chest * thrust * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
-	if _cannon != null:
-		_cannon.transform = chest * thrust * Transform3D(Basis.IDENTITY, CANNON_AT)
-		_cannon.extend = cannon_curve(grenade)
-	if _bomb != null:
-		_bomb.transform = chest * thrust * Transform3D(Basis.IDENTITY, BOMB_AT)
+	var throw := throw_curve(grenade)
+	_place(_parts["Torso"], chest * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.2, 0.0)))
 	var head := chest * (Vector3(0.0, HEAD_UP, 0.0) + ADS_HEAD * ads)
 	var neck_base := chest * Vector3(0.0, SHOULDER_UP + 0.02, 0.0)
 	_segment(_parts["Neck"], neck_base, head - Vector3(0.0, HEAD_RADIUS * 0.6, 0.0))
@@ -730,16 +498,16 @@ func pose() -> void:
 		_joints["hip" + side] = hip
 		_joints["knee" + side] = knee
 		_joints["ankle" + side] = ankle
-		if _legs != null:
-			_legs.place_leg(i, hip, knee, ankle, (_parts["Foot" + side] as Node3D).transform)
 
 	# Weapon: at the hip, or with the rear sight under the eye; blended by ads.
 	var shoulder_r := chest * Vector3(SHOULDER_X, SHOULDER_UP, 0.0)
 	var shoulder_l := chest * Vector3(-SHOULDER_X, SHOULDER_UP, 0.0)
+	_show_held_grenade(false)
 	if weapon == null or def == null or not weapon.visible:
 		return
 	if left_weapon != null and left_weapon.visible:
-		_pose_akimbo(chest, shoulder_r, shoulder_l, launch)
+		_pose_akimbo(chest, shoulder_r, shoulder_l, throw)
+		_show_held_grenade(holds_grenade(grenade))
 		return
 	var aim := Basis(Vector3.RIGHT, pitch)
 	var right_view := _view_point(weapon.lever_hand(def.right_hand))
@@ -770,12 +538,11 @@ func pose() -> void:
 		var butt_point := weapon_local * _view_point(BUTT)
 		var swing := Basis(Vector3.UP, -0.3 * punch.y) * Basis(Vector3.RIGHT, -0.35 * punch.y)
 		weapon_local = Transform3D(swing, butt_point - swing * butt_point) * weapon_local
-	if launch > 0.0:
-		# Grenade: the gun goes out to the right side and down, barrel aside, the arms spread.
+	if throw.x > 0.0:
+		# Grenade: the right hoof lowers the gun a little and turns it aside, out of the left arm's way.
 		var butt_point := weapon_local * _view_point(BUTT)
-		var swing := Basis(Vector3.UP, -0.9 * launch) * Basis(Vector3.RIGHT, -0.5 * launch)
-		weapon_local = Transform3D(swing, butt_point - swing * butt_point + chest.basis * Vector3(0.12, -0.05, 0.05) \
-				* launch) * weapon_local
+		var swing := Basis(Vector3.UP, -0.35 * throw.x) * Basis(Vector3.RIGHT, -0.3 * throw.x)
+		weapon_local = Transform3D(swing, butt_point - swing * butt_point) * weapon_local
 	if present > 0.0:
 		# Shown: across the chest, the barrel up to the body's left, the gun's right side to the front.
 		var tilt := Basis(Vector3(0.0, 0.0, -1.0), Vector3(sin(PRESENT_TILT), cos(PRESENT_TILT), 0.0),
@@ -794,11 +561,11 @@ func pose() -> void:
 		left_palm = left_palm.lerp(fist, punch.x)
 		left_fingers = left_fingers.lerp(aim * Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(aim * Vector3.DOWN, punch.y)
-	var piston := piston_out(_left_arm, punch.x)
-	if launch > 0.0:
-		left_palm = left_palm.lerp(shoulder_l + chest.basis * ARM_OUT, launch)
-		left_fingers = left_fingers.lerp(chest.basis * Vector3.LEFT, launch)
-		left_dir = left_dir.lerp(chest.basis * Vector3.FORWARD, launch)
+	if throw.x > 0.0:
+		var hoof := throw_hoof(throw.y, chest.basis, aim, shoulder_l)
+		left_palm = left_palm.lerp(hoof[0], throw.x)
+		left_fingers = left_fingers.lerp(hoof[1], throw.x)
+		left_dir = left_dir.lerp(hoof[2], throw.x)
 	if mantle > 0.0:
 		# Vaulting: the gun hangs at the right side, barrel down, both hands on the ledge pulling the body up.
 		var slung := chest * Transform3D(Basis(Vector3.RIGHT, -1.3).rotated(Vector3.UP, 0.25),
@@ -815,7 +582,8 @@ func pose() -> void:
 		left_dir = left_dir.lerp(Vector3.DOWN, mantle)
 	weapon.global_transform = global_transform * weapon_local
 	pose_arm(_right_arm, shoulder_r, right_palm, right_fingers, right_dir, RIGHT_POLE)
-	pose_arm(_left_arm, shoulder_l, left_palm, left_fingers, left_dir, LEFT_POLE, piston)
+	pose_arm(_left_arm, shoulder_l, left_palm, left_fingers, left_dir, LEFT_POLE)
+	_show_held_grenade(holds_grenade(grenade))
 	var butt := weapon_local * _view_point(BUTT)
 	_joints["gun_butt"] = butt
 	_joints["gun_muzzle"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.0, -0.55))
@@ -823,19 +591,19 @@ func pose() -> void:
 
 
 ## Akimbo: each hoof holds its gun by the grip, arms out in front along the aim (no sights, no reload, no punch). A
-## grenade throws both arms out to the sides, a vault puts both hoofs - guns and all - on the ledge.
-func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, launch: float) -> void:
+## grenade: the left hoof throws it with the left gun hanging in it, barrel down; a vault puts both hoofs - guns and
+## all - on the ledge.
+func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, throw: Vector2) -> void:
 	var aim := Basis(Vector3.RIGHT, pitch)
 	var grip := _view_point(def.right_hand)  # the left gun is a copy: held by the same point
 	var right_palm := shoulder_r + aim * AKIMBO_RIGHT
 	var left_palm := shoulder_l + aim * AKIMBO_LEFT
 	var right_basis := aim
 	var left_basis := aim
-	if launch > 0.0:
-		right_palm = right_palm.lerp(shoulder_r + chest.basis * Vector3(-ARM_OUT.x, ARM_OUT.y, ARM_OUT.z), launch)
-		left_palm = left_palm.lerp(shoulder_l + chest.basis * ARM_OUT, launch)
-		right_basis = Basis(Vector3.UP, -0.9 * launch) * right_basis
-		left_basis = Basis(Vector3.UP, 0.9 * launch) * left_basis
+	if throw.x > 0.0:
+		var hoof := throw_hoof(throw.y, chest.basis, aim, shoulder_l)
+		left_palm = left_palm.lerp(hoof[0], throw.x)
+		left_basis = left_basis.slerp(Basis(Vector3.RIGHT, -1.3), throw.x)  # the barrel down
 	if present > 0.0:
 		var up := chest.basis * Basis(Vector3.RIGHT, 1.1)  # barrels up and a little forward
 		right_palm = right_palm.lerp(chest * AKIMBO_PRESENT, present)
@@ -866,9 +634,9 @@ func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, 
 ## the killer's position (world; INF if unknown - the body then just slumps backwards); `head_hit`: the head takes
 ## the blow.
 func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := false) -> void:
-	if _joints.is_empty() or melee >= 0.0:  # the piston goes back in: the arm falls as an arm
-		melee = -1.0
+	if _joints.is_empty():
 		pose()
+	_show_held_grenade(false)
 	var local := _ragdoll_rest_points()
 	var xf := global_transform
 	var points := PackedVector3Array()
@@ -915,10 +683,6 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 	var rigid := [[_parts["Pelvis"], 0], [_parts["Torso"], 0], [_parts["Tail"], 0], [_parts["HipL"], 0],
 			[_parts["HipR"], 0], [_right_arm["shoulder"], 0], [_left_arm["shoulder"], 0], [_parts["Head"], 1],
 			[_parts["FootL"], 2], [_parts["FootR"], 3], [_left_arm["hand"], 4], [_right_arm["hand"], 5]]
-	if _cannon != null:
-		rigid.append([_cannon, 0])
-	if _bomb != null:
-		rigid.append([_bomb, 0])
 	for entry in rigid:
 		var part: Node3D = entry[0]
 		_ragdoll_parts.append([part, entry[1], frames[entry[1]].affine_inverse() * part.transform])
@@ -1027,9 +791,6 @@ func _pose_ragdoll() -> void:
 		_segment(_parts["Thigh" + leg[0]], p[leg[1]], p[leg[2]])
 		_place(_parts["Knee" + leg[0]], Transform3D(Basis.IDENTITY, p[leg[2]]))
 		_segment(_parts["Shin" + leg[0]], p[leg[2]], p[leg[3]])
-		if _legs != null:
-			_legs.place_leg(0 if leg[0] == "L" else 1, p[leg[1]], p[leg[2]], p[leg[3]],
-					(_parts["Foot" + leg[0]] as Node3D).transform)
 	for arm in [[_left_arm, Ragdoll.SHOULDER_L, Ragdoll.ELBOW_L, Ragdoll.WRIST_L],
 			[_right_arm, Ragdoll.SHOULDER_R, Ragdoll.ELBOW_R, Ragdoll.WRIST_R]]:
 		var parts: Dictionary = arm[0]
@@ -1109,21 +870,42 @@ static func punch_curve(m: float) -> Vector2:
 	return Vector2(out, aside)
 
 
-## Grenade launch at progress `g` (-1: none): how far the arms are spread and the chest pushed out, 0..1 - quickly out
-## by the launch (WeaponSim.GRENADE_OUT), held a moment, back. Shared with the first-person view.
-static func grenade_curve(g: float) -> float:
+## The grenade throw at progress `g` (-1: none): x - how far the left hoof is off the gun, y - from swung back (0) to
+## thrown (1). Up and back by the throw (WeaponSim.GRENADE_OUT; held there while G is down), forward past it, back to
+## the gun by the end. Shared with the first-person view.
+static func throw_curve(g: float) -> Vector2:
 	if g < 0.0:
-		return 0.0
-	var launch := WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK)
-	return smoothstep(0.0, launch * 0.8, g) * (1.0 - smoothstep(launch + 0.15, 1.0, g))
+		return Vector2.ZERO
+	var at := WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK)
+	var off := smoothstep(0.0, at * 0.8, g) * (1.0 - smoothstep(at + 0.25, 1.0, g))
+	return Vector2(off, smoothstep(at, at + 0.12, g))
 
 
-## How far the cannon's barrel is out at launch progress `g`: all the way at the launch, folded by the end.
-static func cannon_curve(g: float) -> float:
-	if g < 0.0:
-		return 0.0
-	var launch := WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK)
-	return smoothstep(launch * 0.15, launch, g) * (1.0 - smoothstep(launch + 0.2, 0.95, g))
+## The grenade is still in the hoof at throw progress `g`: from the start to the throw.
+static func holds_grenade(g: float) -> bool:
+	return g >= 0.0 and g <= WeaponSim.GRENADE_OUT / (WeaponSim.GRENADE_OUT + WeaponSim.GRENADE_BACK) + 0.02
+
+
+## [palm, fingers, palm direction] of the throwing hoof, `thrown` 0..1 from swung back to thrown; `chest`: the chest's
+## basis, `aim`: the aim's, `shoulder`: the left shoulder (all in the body's space).
+static func throw_hoof(thrown: float, chest: Basis, aim: Basis, shoulder: Vector3) -> Array[Vector3]:
+	var palm := (shoulder + chest * THROW_WIND).lerp(shoulder + aim * THROW_OUT, thrown)
+	var fingers := (chest * Vector3.UP).lerp(aim * Vector3.FORWARD, thrown)
+	var palm_dir := (chest * Vector3.FORWARD).lerp(aim * Vector3.DOWN, thrown)
+	return [palm, fingers, palm_dir]
+
+
+## The grenade in the left hoof, shown or not.
+func _show_held_grenade(on: bool) -> void:
+	if on and _held_grenade == null:
+		_held_grenade = Node3D.new()
+		_held_grenade.name = "HeldGrenade"
+		_held_grenade.scale = Vector3.ONE * Grenade.MODEL_SCALE
+		_held_grenade.position = GRENADE_IN_HOOF
+		Grenade.make_model(_held_grenade)
+		(_left_arm["hand"] as Node3D).add_child(_held_grenade)
+	if _held_grenade != null:
+		_held_grenade.visible = on
 
 
 ## The left hand's path through a reload (`r` 0..1), in gun view space - shared by the third-person body and the
@@ -1259,7 +1041,7 @@ static func _view_point(p: Vector3) -> Vector3:
 ## (first-person arms are always "too long").
 static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: float = 1.0, thickness: float = 1.0) -> Dictionary:
 	var arm := {"side": side, "upper": UPPER_ARM * length_scale, "fore": FOREARM * length_scale, "accent": accent,
-			"thickness": thickness, "cyber": false, "toes": []}
+			"thickness": thickness, "toes": []}
 	arm["shoulder"] =_new_part(parent, "Shoulder" + side, _sphere(0.075 * thickness), accent)
 	arm["upper_mesh"] = _new_part(parent, "UpperArm" + side, _limb(0.058 * thickness, 0.046 * thickness, arm["upper"]), SUIT)
 	arm["elbow"] = _new_part(parent, "Elbow" + side, _sphere(0.047 * thickness), SUIT)
@@ -1279,61 +1061,9 @@ static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: 
 	return arm
 
 
-## The "Руки-Хрюки" on an arm of make_arm: the same shapes in steel, seams and a hydraulic line on them, and the
-## piston (pose_arm), folded away until a punch. Shared with the first-person arms.
-static func set_cyber_arm(arm: Dictionary, on: bool) -> void:
-	if arm["cyber"] == on:
-		return
-	arm["cyber"] = on
-	if not arm.has("details"):
-		_build_cyber_arm(arm)
-	(arm["shoulder"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else arm["accent"])
-	(arm["upper_mesh"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else SUIT)
-	(arm["elbow"] as MeshInstance3D).material_override = _material(CYBER_DARK if on else SUIT)
-	(arm["fore_mesh"] as MeshInstance3D).material_override = _material(CYBER_STEEL if on else SUIT)
-	(arm["wrist"] as MeshInstance3D).material_override = _material(CYBER_DARK if on else SKIN)
-	for toe: MeshInstance3D in arm["toes"]:
-		toe.material_override = _material(CYBER_STEEL if on else HOOF)
-	for detail: Node3D in arm["details"]:
-		detail.visible = on
-
-
-static func _build_cyber_arm(arm: Dictionary) -> void:
-	var thick: float = arm["thickness"]
-	var upper: float = arm["upper"]
-	var fore: float = arm["fore"]
-	var upper_mesh: Node3D = arm["upper_mesh"]
-	var fore_mesh: Node3D = arm["fore_mesh"]
-	var details: Array[Node3D] = [
-		_attach(upper_mesh, _limb(0.06 * thick, 0.058 * thick, 0.035), arm["accent"], Vector3(0.0, -upper * 0.3, 0.0)),
-		_attach(upper_mesh, _limb(0.055 * thick, 0.055 * thick, 0.012), CYBER_DARK, Vector3(0.0, upper * 0.1, 0.0)),
-		_attach(fore_mesh, _limb(0.047 * thick, 0.047 * thick, 0.012), CYBER_DARK, Vector3(0.0, -fore * 0.2, 0.0)),
-		_attach(fore_mesh, _limb(0.04 * thick, 0.04 * thick, 0.012), CYBER_DARK, Vector3(0.0, fore * 0.2, 0.0)),
-		_attach(fore_mesh, _limb(0.038 * thick, 0.04 * thick, 0.03), CYBER_DARK, Vector3(0.0, fore * 0.5 - 0.01, 0.0)),
-		_attach(fore_mesh, _limb(0.008 * thick, 0.008 * thick, fore * 0.7), CYBER_ROD, Vector3(0.047 * thick, 0.0, 0.0)),
-	]
-	var parent := (arm["hand"] as Node3D).get_parent()
-	var tubes: Array[MeshInstance3D] = []
-	for i in CYBER_TUBES.size():
-		var r := CYBER_TUBES[i] * thick
-		var tube := _new_part(parent, "Piston%d%s" % [i, arm["side"]], _limb(r, r, 1.0), CYBER_ROD if i % 2 == 0 else CYBER_STEEL)
-		tube.visible = false
-		tubes.append(tube)
-	arm["details"] = details
-	arm["tubes"] = tubes
-
-
-## How far the piston of `arm` pushes the hoof: as far as the punch is out (`out`, punch_curve's x); 0 while the hoof
-## is still pulled back, and on a plain arm. Shared with the first-person arms.
-static func piston_out(arm: Dictionary, out: float) -> float:
-	return CYBER_PUNCH * clampf(out, 0.0, 1.0) if arm["cyber"] else 0.0
-
-
 ## Poses an arm (all in the parent's space): two-bone IK from `shoulder` so the palm reaches `palm`, then the hand
-## turns so its fingers run along `fingers` with the palm facing `palm_dir`; the elbow points towards `pole`. `piston`:
-## m the "Руки-Хрюки" push the hand on along the fingers, out of the forearm.
-static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers: Vector3, palm_dir: Vector3, pole: Vector3,
-		piston := 0.0) -> void:
+## turns so its fingers run along `fingers` with the palm facing `palm_dir`; the elbow points towards `pole`.
+static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers: Vector3, palm_dir: Vector3, pole: Vector3) -> void:
 	var f := fingers.normalized()
 	var p := (palm_dir - f * palm_dir.dot(f)).normalized()
 	var wrist := palm - f * WRIST_TO_PALM
@@ -1344,16 +1074,7 @@ static func pose_arm(arm: Dictionary, shoulder: Vector3, palm: Vector3, fingers:
 	_place(arm["elbow"], Transform3D(Basis.IDENTITY, elbow))
 	_segment(arm["fore_mesh"], elbow, reached)
 	var hand: Node3D = arm["hand"]
-	hand.transform = Transform3D(Basis(f.cross(p).normalized(), f, p), reached + f * piston)
-	if arm.has("tubes"):
-		var tubes: Array[MeshInstance3D] = arm["tubes"]
-		var stage := piston / tubes.size()
-		for i in tubes.size():
-			var tube := tubes[i]
-			tube.visible = piston > 0.01
-			if tube.visible:
-				tube.scale.y = stage + 0.03  # the stages overlap, and the first starts inside the forearm
-				_segment(tube, reached + f * (stage * i - 0.03), reached + f * stage * (i + 1))
+	hand.transform = Transform3D(Basis(f.cross(p).normalized(), f, p), reached)
 
 
 ## Middle joint of a two-bone chain from `root` towards `target` (clamped to reach), bending towards `pole`.

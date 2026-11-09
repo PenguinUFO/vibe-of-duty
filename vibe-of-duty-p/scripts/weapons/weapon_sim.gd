@@ -16,22 +16,15 @@ const MELEE_RECOVER := 0.5     # s after the blow until the gun is back
 const MELEE_DAMAGE := 100.0    # 2 punches kill (150 HP)
 const MELEE_RANGE := 0.9       # m from the eye
 const MELEE_PAD := 0.1         # m a punch widens the body by (PlayerWeapons._trace)
-const MELEE_NAME := "копыто"   # kill feed
-const PIG_ARMS_NAME := "Хрюкаут"  # kill feed: a punch of the "Руки-Хрюки"
-## The "Гренадир"'s grenade (Docs/LOADOUT.md): G down - the cannon comes out of the chest and stays out while G is
-## held; G up - it launches (not before it is all the way out) and folds back. No shooting, aiming or reloading
-## meanwhile; a reload pauses and goes on after. One a life (grenades_max), not refilled.
+const MELEE_NAME := "Хрюкаут"  # kill feed (owner, 2026-11-09)
+## The grenade (Docs/LOADOUT.md, "Граната"): G down - the left hoof takes one and swings back, and stays back while G
+## is held; G up - it throws (not before the swing is done) and the hoof comes back. No shooting, aiming or reloading
+## meanwhile; a reload pauses and goes on after. One a life for everybody (GRENADES), not refilled.
 const GRENADE := -3            # "weapon" index of a grenade in damage and kill events
 const GRENADE_OUT := 0.15      # s from the press to the launch
 const GRENADE_BACK := 0.2      # s after the launch until the gun is back
 const GRENADE_NAME := "граната"  # kill feed
-## The "Черепно-мозговой пистолет" (Docs/LOADOUT.md): a gun in the left eye socket with endless rounds, weak. It takes
-## over when the weapon is empty to the last round of its reserve and gives it back once a reload (R, by hand) puts
-## rounds in it. From the hip only; it fires while the hands reload. Training (endless reserve): the key 1 toggles it.
-const CMP := -4                # "weapon" index of its shots in damage and kill events (its numbers: WeaponDB.cmp_def)
-const CMP_NAME := "ЧМП"        # kill feed
-const BOMB := -5               # "weapon" index of the "Хрях-бабах" in damage and kill events
-const BOMB_NAME := "хрях-бабах"  # kill feed
+const GRENADES := 1            # grenades a life starts with (owner, 2026-11-09)
 ## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with one magazine, fired by the
 ## aim button (cmd.aim), never reloaded. Empty - or R, which then reloads the right one - it is thrown away and the
 ## weapon plays as usual again. Meanwhile no sights, no punch, the spread x akimbo_spread; an empty right one only
@@ -61,7 +54,6 @@ var fire_queued := false  # a semi-automatic press during the cooldown, fires wh
 var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
 var grenades := 0       # grenades left this life
 var grenade_ticks := 0  # ticks left in the current launch (0 = not launching); held at the launch while G is down
-var cmp := false        # the ЧМП shoots instead of the weapon
 var left_mag := 0       # rounds in the akimbo's left gun (0: none in the hand)
 var left_cooldown := 0.0  # the left gun's cooldown, burst, trigger and queued press: as the right one's above
 var left_burst := 0
@@ -70,21 +62,11 @@ var left_queued := false
 ## Reloads do not use up the reserve (training: the range never runs dry). Set the same on the client and the
 ## server (training is played alone, both are this machine); not part of to_array.
 var infinite_reserve := false
-## The build's weapon numbers (Player.set_build, PartDB.DEFAULT_MODS): set the same on every machine when the player
-## (re)spawns, constant for a life; not part of to_array.
-var reload_mult := 1.0
-var ads_time_mult := 1.0
-var spread_hip_mult := 1.0
-var spread_ads_mult := 1.0
 ## This player's weapons with the build's modules (WeaponDB.make_def), by weapon index; empty: the base ones.
 var defs: Array[WeaponDef] = []
 ## The build's weapon (WeaponDB index): the only one the player holds (one weapon per build, Docs/LOADOUT.md), set
 ## with defs. Switching to another is refused; PlayerCmd.select stays for a second weapon some day.
 var build_weapon := 0
-## Grenades a life starts with (the build's PartDB.GRENADIER: 1), set with defs; not part of to_array.
-var grenades_max := 0
-## The build has the ЧМП (PartDB.SKULL_PISTOL), set with defs; not part of to_array.
-var cmp_part := false
 
 
 func _init() -> void:
@@ -111,9 +93,8 @@ func reset() -> void:
 	fire_prev = false
 	fire_queued = false
 	melee_ticks = 0
-	grenades = grenades_max
+	grenades = GRENADES
 	grenade_ticks = 0
-	cmp = false
 	left_mag = current().mag_size if current().akimbo else 0
 	left_cooldown = 0.0
 	left_burst = 0
@@ -142,14 +123,7 @@ func current() -> WeaponDef:
 
 
 func def_at(weapon: int) -> WeaponDef:
-	if weapon == CMP:
-		return WeaponDB.cmp_def()
 	return defs[weapon] if weapon >= 0 and weapon < defs.size() else WeaponDB.get_def(weapon)
-
-
-## What a pull of the trigger shoots: the ЧМП when it is on, else the weapon.
-func firing_def() -> WeaponDef:
-	return WeaponDB.cmp_def() if cmp else current()
 
 
 func is_reloading() -> bool:
@@ -173,7 +147,7 @@ func is_launching() -> bool:
 	return grenade_ticks > 0
 
 
-## The cannon is out and waits for G to be let go.
+## The hoof is swung back and waits for G to be let go.
 func is_grenade_ready() -> bool:
 	return grenade_ticks > 0 and grenade_ticks == grenade_total_ticks() - grenade_out_ticks()
 
@@ -198,7 +172,7 @@ func equip_progress() -> float:
 
 ## True if holding fire this tick would shoot (used to cancel sprinting).
 func wants_fire(cmd: PlayerCmd) -> bool:
-	return cmd.fire and (cmp or mags[index] > 0 and reload_ticks == 0) and switch_ticks == 0 and melee_ticks == 0 \
+	return cmd.fire and mags[index] > 0 and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 \
 			and grenade_ticks == 0
 
 
@@ -208,9 +182,9 @@ func speed_mult() -> float:
 
 ## Current cone half angle in radians for the HUD crosshair and for shooting.
 func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
-	var def := firing_def()
-	var hip := def.spread_hip * spread_hip_mult * (def.akimbo_spread if is_akimbo() else 1.0)
-	var s := lerpf(hip, def.spread_ads * spread_ads_mult, ads)
+	var def := current()
+	var hip := def.spread_hip * (def.akimbo_spread if is_akimbo() else 1.0)
+	var s := lerpf(hip, def.spread_ads, ads)
 	s += def.spread_move * clampf(speed / 5.0, 0.0, 1.6) * (1.0 - 0.6 * ads)
 	if airborne:
 		s += def.spread_air
@@ -253,30 +227,19 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			else:
 				events.append({"type": "reload_end"})
 
-	# The ЧМП: on with the weapon empty to the last round, off once a reload put rounds in it. Training never runs dry:
-	# there the key 1 (cmd.cmp) toggles it.
-	if cmp_part:
-		if infinite_reserve:
-			if cmd.cmp:
-				cmp = not cmp
-		elif not cmp and mags[index] == 0 and reserves[index] == 0 and left_mag == 0:
-			cmp = true
-		elif cmp and mags[index] > 0:
-			cmp = false
-
-	# Grenade: the cannon is out GRENADE_OUT after G goes down and stays out while it is held; it fires when G is let go
-	# (owner, 2026-11-02), aimed where the player looks at that moment. Not while vaulting (the hands are on the ledge)
-	# or punching.
+	# Grenade: the hoof is swung back GRENADE_OUT after G goes down and stays back while it is held; it throws when G is
+	# let go (owner, 2026-11-02), aimed where the player looks at that moment. Not while vaulting (the hands are on the
+	# ledge) or punching.
 	if grenade_ticks > 0:
 		if is_grenade_ready() and cmd.grenade:
-			pass  # held: the cannon waits
+			pass  # held: the hoof waits
 		elif is_grenade_ready():
 			grenade_ticks -= 1
 			events.append({"type": "grenade", "pitch": cmd.pitch, "yaw": cmd.yaw})
 		else:
 			grenade_ticks -= 1
 			if is_grenade_ready() and not cmd.grenade:
-				grenade_ticks -= 1  # let go before it was out: it fires the moment it is
+				grenade_ticks -= 1  # let go before the swing was done: it throws the moment it is
 				events.append({"type": "grenade", "pitch": cmd.pitch, "yaw": cmd.yaw})
 	elif cmd.grenade and grenades > 0 and melee_ticks == 0 and switch_ticks == 0 and not ctx["mantling"]:
 		grenades -= 1
@@ -304,9 +267,9 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "equip"})
 
 	# Aim down sights (not while sprinting, reloading or equipping).
-	var want_ads: bool = cmd.aim and not cmp and left_mag == 0 and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+	var want_ads: bool = cmd.aim and left_mag == 0 and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and not ctx["sprinting"]
-	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / (def.ads_time * ads_time_mult))
+	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / def.ads_time)
 
 	# Manual reload.
 	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
@@ -316,21 +279,20 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
-	# Fire (the ЧМП's while the hands reload too).
+	# Fire.
 	var fired := false
-	var gun := firing_def()
+	var gun := current()
 	burst = burst + 1 if wants_fire(cmd) else 0
-	if gun.automatic or switch_ticks > 0 or (reload_ticks > 0 and not cmp) or melee_ticks > 0 or grenade_ticks > 0:
+	if gun.automatic or switch_ticks > 0 or reload_ticks > 0 or melee_ticks > 0 or grenade_ticks > 0:
 		fire_queued = false
 	elif cmd.fire and not fire_prev and cooldown > 0.0 and cooldown <= FIRE_BUFFER * 60.0:
 		fire_queued = true
-	if (cmd.fire or fire_queued) and switch_ticks == 0 and (reload_ticks == 0 or cmp) and melee_ticks == 0 and grenade_ticks == 0 \
+	if (cmd.fire or fire_queued) and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and cooldown <= 0.0 and (gun.automatic or not fire_prev or fire_queued):
 		fire_queued = false
-		if cmp or mags[index] > 0:
+		if mags[index] > 0:
 			fired = true
-			if not cmp:
-				mags[index] -= 1
+			mags[index] -= 1
 			cooldown += gun.fire_ticks(burst / 60.0)
 			events.append(_shot(cmd, ctx, gun, false))
 		else:
@@ -416,7 +378,7 @@ func _shot(cmd: PlayerCmd, ctx: Dictionary, gun: WeaponDef, left: bool) -> Dicti
 	rng.seed = hash([ctx["peer_id"], shots, 99])
 	recoil.x = minf(recoil.x + gun.recoil_pitch * (1.0 - 0.35 * ads), MAX_RECOIL)
 	recoil.y = clampf(recoil.y + rng.randf_range(-1.0, 1.0) * gun.recoil_yaw, -MAX_RECOIL, MAX_RECOIL)
-	var event := {"type": "shot", "weapon": CMP if cmp else index, "dirs": dirs}
+	var event := {"type": "shot", "weapon": index, "dirs": dirs}
 	if left:
 		event["left"] = true
 	return event
@@ -432,7 +394,7 @@ func _drop_left(events: Array) -> void:
 
 
 func _reload_ticks() -> int:
-	return maxi(1, roundi(current().reload_ticks() * reload_mult))
+	return maxi(1, current().reload_ticks())
 
 
 ## Direction for view angles (pitch, yaw) with a random offset inside a cone of half angle `angle`.
@@ -446,7 +408,7 @@ static func _spread_dir(pitch: float, yaw: float, angle: float, rng: RandomNumbe
 
 func to_array() -> Array:
 	return [index, Array(mags), Array(reserves), cooldown, reload_ticks, switch_ticks, shots, ads, recoil, fire_prev,
-			melee_ticks, burst, grenades, grenade_ticks, cmp, fire_queued, left_mag, left_cooldown, left_burst, left_prev,
+			melee_ticks, burst, grenades, grenade_ticks, fire_queued, left_mag, left_cooldown, left_burst, left_prev,
 			left_queued, recoil_held, look_prev, look_known]
 
 
@@ -465,13 +427,12 @@ func from_array(a: Array) -> void:
 	burst = a[11]
 	grenades = a[12]
 	grenade_ticks = a[13]
-	cmp = a[14]
-	fire_queued = a[15]
-	left_mag = a[16]
-	left_cooldown = a[17]
-	left_burst = a[18]
-	left_prev = a[19]
-	left_queued = a[20]
-	recoil_held = a[21]
-	look_prev = a[22]
-	look_known = a[23]
+	fire_queued = a[14]
+	left_mag = a[15]
+	left_cooldown = a[16]
+	left_burst = a[17]
+	left_prev = a[18]
+	left_queued = a[19]
+	recoil_held = a[20]
+	look_prev = a[21]
+	look_known = a[22]

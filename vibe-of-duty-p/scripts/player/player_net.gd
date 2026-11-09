@@ -14,7 +14,6 @@ func _encode_cmd(cmd: PlayerCmd) -> Array:
 	flags |= FLAG_RELOAD if cmd.reload else 0
 	flags |= FLAG_MELEE if cmd.melee else 0
 	flags |= FLAG_GRENADE if cmd.grenade else 0
-	flags |= FLAG_CMP if cmd.cmp else 0
 	flags |= (cmd.select + 1) << FLAG_SELECT_SHIFT
 	return [_cmd_seq, cmd.move, cmd.yaw, cmd.pitch, flags, cmd.view_tick]
 
@@ -34,7 +33,6 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	cmd.reload = flags & FLAG_RELOAD != 0
 	cmd.melee = flags & FLAG_MELEE != 0
 	cmd.grenade = flags & FLAG_GRENADE != 0
-	cmd.cmp = flags & FLAG_CMP != 0
 	cmd.select = ((flags >> FLAG_SELECT_SHIFT) & SELECT_MASK) - 1
 	cmd.view_tick = entry[5]
 	return cmd
@@ -134,8 +132,7 @@ func get_net_state() -> Array:
 	flags |= STATE_AKIMBO if weapons.is_akimbo() else 0
 	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
-	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle,
-			_air_jumps]
+	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
 	return [peer_id, global_position, body_yaw, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
 
 
@@ -151,13 +148,6 @@ func push_snapshot(state: Array, tick: int) -> void:
 	_buffer_pose(seq, state[1], state[2], state[3], tick)
 	var flags: int = state[5]
 	_puppet_sounds(flags, state[4])
-	# The "Прыг-Прыг": its jumps in the air since the floor; one more is a jump in the air (the exhaust, the hiss).
-	var air_jumps: int = (state[7] as Array)[7]
-	if air_jumps > _puppet_air_jumps:
-		Audio.play("air_jump", global_position)
-		_visual.air_jump()
-	_puppet_air_jumps = air_jumps
-	_visual.set_air_jump_ready(air_jumps < int(mods["air_jumps"]))
 	is_crouched = flags & STATE_CROUCHED != 0
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0
@@ -318,7 +308,6 @@ func _apply_server_state(state: Array) -> void:
 	_mantle_dir = mantle[7]
 	_mantle_cooldown = mantle[8]
 	_floor_y = mantle[9]
-	_air_jumps = extra[7]
 	_orient(body_yaw)
 	_apply_stance()
 
@@ -329,7 +318,7 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	if _puppet_on_floor and not on_floor and new_velocity.dot(Gravity.up(global_position)) > 2.0:
 		Audio.play("jump", global_position)
 	elif on_floor and not _puppet_on_floor:
-		Audio.play("land", global_position, mods["land_db"])
+		Audio.play("land", global_position)
 	_puppet_on_floor = on_floor
 	var sliding := flags & STATE_SLIDING != 0
 	if sliding and not _puppet_sliding:
@@ -347,7 +336,7 @@ func _puppet_sounds(flags: int, new_velocity: Vector3) -> void:
 	_visual.set_meleeing(meleeing)
 	var launching := flags & STATE_GRENADE != 0
 	if launching and not _puppet_launching:
-		Audio.play("cannon_out", global_position)
+		Audio.play("grenade_pin", global_position)
 	_puppet_launching = launching
 	_visual.set_launching(launching, flags & STATE_GRENADE_READY != 0)
 	# The akimbo's left gun: in the hand, or thrown away (alive: dying keeps it, it falls with the body).

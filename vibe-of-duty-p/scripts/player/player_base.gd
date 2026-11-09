@@ -24,11 +24,9 @@ const STAND_HEIGHT := 1.8
 const CROUCH_HEIGHT := 1.1
 const STAND_EYE := 1.65
 const CROUCH_EYE := 0.95
-## The "Гренадир"'s grenade leaves the chest cannon this high over the feet (Mannequin.CANNON_AT, standing / crouched)
-## and this far in front of the body's axis.
-const GRENADE_CHEST := 1.33
-const GRENADE_CHEST_CROUCH := 0.85
-const GRENADE_OUT := 0.3
+## The grenade leaves the hoof here from the eyes (x right, y up, -z the way the body faces): in front, a little to the
+## left and below, about where the first-person throw lets it go (FirstPersonArms.THROW_OUT).
+const GRENADE_THROW := Vector3(-0.15, -0.1, -0.4)
 
 const JUMP_BUFFER_TIME := 0.12
 const LAND_SOUND_MIN_SPEED := 4.0
@@ -58,7 +56,6 @@ const FLAG_FIRE := 8
 const FLAG_AIM := 16
 const FLAG_RELOAD := 32
 const FLAG_GRENADE := 64
-const FLAG_CMP := 128
 const FLAG_JUMP_HELD := 256
 const FLAG_MELEE := 512
 const FLAG_SELECT_SHIFT := 10  # 4 bits: weapon index + 1, 0 = no switch (up to 15 weapons; 3 bits until the 8th)
@@ -67,8 +64,8 @@ const STATE_CROUCHED := 1
 const STATE_SLIDING := 2
 const STATE_SPRINTING := 4
 const STATE_ON_FLOOR := 8
-const STATE_GRENADE := 16  # launching a grenade (the cannon is out)
-const STATE_GRENADE_READY := 32  # ...and held out, waiting for G to be let go
+const STATE_GRENADE := 16  # throwing a grenade
+const STATE_GRENADE_READY := 32  # ...and the hoof held back, waiting for G to be let go
 const STATE_WEAPON_SHIFT := 10  # 4 bits (SELECT_MASK): current weapon index
 const STATE_RELOADING := 64
 const STATE_ADS := 128
@@ -136,7 +133,6 @@ var _slide_speed := 0.0
 var _slide_time := 0.0
 var _slide_cooldown := 0.0
 var _prev_crouch := false
-var _air_jumps := 0  # jumps made since the floor (the "Прыг-Прыг": PartDB mods "air_jumps")
 var _prev_on_floor := true
 var _prev_vy := 0.0
 var _step_distance := 0.0
@@ -172,19 +168,17 @@ var _replaying := false
 var weapons := WeaponSim.new()
 var world: NetWorld
 var health := MAX_HEALTH
-var max_health := MAX_HEALTH  # kid mode (set_toughness) + build (set_build)
-var regen_delay := REGEN_DELAY  # kid mode + build
-var base_max_health := MAX_HEALTH    # kid mode's, before the build
-var base_regen_delay := REGEN_DELAY  # kid mode's, before the build
-## The build this life is played with (PartDB part ids, SLOTS order) and its numbers (PartDB.mods). Applied at
+var max_health := MAX_HEALTH  # kid mode (set_toughness), the "Хардкор"
+var regen_delay := REGEN_DELAY  # kid mode
+var base_max_health := MAX_HEALTH    # kid mode's, before the "Хардкор"
+var base_regen_delay := REGEN_DELAY  # kid mode's
+## The build this life is played with (PartDB part ids, SLOTS order): the weapon and its modules. Applied at
 ## (re)spawn on every machine at once (NetWorld._apply_respawn), so prediction and the server agree.
 var build: Array = PartDB.default_build()
-var mods: Dictionary = PartDB.DEFAULT_MODS.duplicate()
 var wanted_build: Array = PartDB.default_build()  # server: what the player picked for the next life
 var back_damage := 1.0          # kid mode: damage multiplier for shots from behind (damage_mult_from)
 var alive := true
 var spawn_protect := 0      # server: ticks of invulnerability left after a respawn
-var bomb_armed := false     # the "Хрях-бабах" is counting down (Grenades tells every machine)
 var last_attacker := 0      # server: peer id of the last player who hurt this one...
 var last_hit_ms := 0        # ...and when (Time.get_ticks_msec)
 var _regen_wait := 0.0      # server: seconds until health starts coming back
@@ -198,7 +192,6 @@ var dry_total := 0       # server, for MatchStats: trigger pulls with no rounds 
 var bags_total := 0      # ammo bags picked up
 var healed_total := 0    # health regenerated or eaten from bags
 var jumps_total := 0     # jumps off the ground (MatchStats reads the server's; a client's counts replays too)
-var air_jumps_total := 0  # jumps in the air (the "Прыг-Прыг")
 var slides_total := 0    # slides started
 var judge_rewind_ms := 0.0  # how far back in time the last shot / punch was judged (LagComp)
 var _shown_pitch := 0.0  # host: aim pitch of a remote player as drawn (_buffered_pose)
@@ -206,14 +199,12 @@ var _space: ViewmodelSpace  # first person: the gun's and the arms' own field of
 var _view: WeaponView
 var _left_view: WeaponView  # first person: the akimbo's left gun (WeaponView.mirrored), shown while it is in the hand
 var _arms: FirstPersonArms
-var _cannon_view: GrenadeCannon  # first person: the chest cannon, seen only while launching
-var _bomb_view: ChestBomb  # first person: the "Хрях-бабах", seen only while it counts
 var _crosshair: Crosshair
 var _scope: ScopeOverlay  # looking through a scope (PSO)
 var _ammo_hud: HudAmmo
 var _left_ammo_hud: HudAmmo  # the akimbo's left gun (no reserve: it is never reloaded)
 var _health_hud: HudHealth
-var _augs_hud: HudAugs
+var _grenade_hud: HudGrenade
 var _damage_dirs: DamageIndicator
 var _hurt_rect: ColorRect  # HURT_SHADER vignette
 var _death_label: Label
@@ -234,7 +225,6 @@ var _death_drift_v := Vector3.ZERO  # ...and how fast (catches up with the groun
 var _cam_land := 0.0             # landing dip (m) and its spring velocity
 var _cam_land_v := 0.0
 var _land_impact := 0.0          # fall speed of a landing not yet shown (set by the simulation)
-var _air_jump_fx := false        # a jump in the air not yet shown (the "Прыг-Прыг"'s exhaust; set by the simulation)
 var _bob_amount := 0.0
 var _bob_side := 1.0             # which foot the current step is on
 var _punch := Vector2.ZERO       # damage jolt: x = pitch, y = roll (rad)
@@ -262,7 +252,6 @@ var _puppet_reloading := false
 var _puppet_meleeing := false
 var _puppet_launching := false
 var _puppet_akimbo := false
-var _puppet_air_jumps := 0
 var _puppet_last_pos := Vector3.ZERO
 var _correction := Vector3.ZERO   # visual offset hiding a position correction, decays to zero
 

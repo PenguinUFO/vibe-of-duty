@@ -152,14 +152,12 @@ const MODULE_SLOT_NAMES := {"barrel": "Ствол", "suppressor": "Глушит�
 
 static var _defs: Array[WeaponDef] = []
 static var _base := {}       # weapon id -> its config section (config units)
-static var _modules := {}    # "ak.mag.drum75" -> {id, weapon, slot, name, info, cost, requires, values}
+static var _modules := {}    # "ak.mag.drum75" -> {id, weapon, slot, name, info, requires, values}
 static var _module_ids: Array[String] = []  # in file order: the first of each slot is its default
 static var _kits := []        # [kit.<id>] sections in file order (kits())
 static var config_text := ""  # the config in play (sent to clients)
 static var _loaded := false
 static var version := 0       # +1 on every config loaded (PartDB rebuilds its module list)
-static var _cmp: WeaponDef    # cmp_def, made from the config of _cmp_version
-static var _cmp_version := -1
 
 
 static func count() -> int:
@@ -173,22 +171,10 @@ static func preload_scenes() -> void:
 		load(get_def(i).scene_path)
 
 
-## A number of the "Гренадир"'s grenade (weapons.cfg [grenade]: speed, fuse, blast_damage, ...), `fallback` if not set.
+## A number of the grenade (weapons.cfg [grenade]: speed, fuse, blast_damage, ...), `fallback` if not set.
 static func grenade(key: String, fallback: float) -> float:
 	_build()
 	return float((_base.get("grenade", {}) as Dictionary).get(key, fallback))
-
-
-## The "ЧМП"'s numbers (weapons.cfg [cmp]; WeaponSim.CMP): a weapon of no list - no model, no modules, no kit.
-static func cmp_def() -> WeaponDef:
-	_build()
-	if _cmp == null or _cmp_version != version:
-		_cmp = WeaponDef.new()
-		_cmp.id = "cmp"
-		_cmp.display_name = WeaponSim.CMP_NAME
-		_write(_cmp, _base.get("cmp", {}))
-		_cmp_version = version
-	return _cmp
 
 
 ## The base weapon (no modules).
@@ -302,12 +288,11 @@ static func load_text(text: String) -> bool:
 		elif path.size() == 3 and MODULE_SLOTS.has(path[1]):
 			var module := {"id": section, "weapon": path[0], "slot": path[1],
 					"name": str(values.get("name", path[2])), "info": str(values.get("info", "")),
-					"cost": int(values.get("cost", 0)),
 					"requires": _part_id(path[0], str(values.get("requires", ""))),
 					"forces": _part_id(path[0], str(values.get("forces", ""))),
 					"excludes": str(values.get("excludes", "")), "hidden": bool(values.get("hidden", false)), "values": {}}
 			for key in values:
-				if not key in ["name", "info", "cost", "requires", "forces", "excludes", "hidden"]:
+				if not key in ["name", "info", "requires", "forces", "excludes", "hidden"]:
 					module["values"][key] = values[key]
 			_modules[section] = module
 			_module_ids.append(section)
@@ -320,7 +305,7 @@ static func load_text(text: String) -> bool:
 	return true
 
 
-## A part id from the config: "slot.name" is a module of `weapon`, a bare id any other part ("pig_arms").
+## A part id from the config: "slot.name" is a module of `weapon`, a bare id any other part.
 static func _part_id(weapon: String, id: String) -> String:
 	return weapon + "." + id if "." in id else id
 

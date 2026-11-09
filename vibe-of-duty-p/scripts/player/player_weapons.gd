@@ -4,8 +4,6 @@ extends PlayerMantle
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
 const SHOT_LISTENER := &"on_shot"
-## The ЧМП's shot seen from the eyes (camera frame): the flash and the trail start here, by the left eye, low.
-const CMP_VIEW := Vector3(-0.05, -0.03, -0.15)
 
 
 func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
@@ -20,9 +18,6 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 	}
 	var events := weapons.tick(cmd, dt, ctx)
 	aiming = weapons.ads > 0.5
-	if cmd.grenade and not _replaying and alive and not bomb_armed and build.has(PartDB.BOMB) and world != null \
-			and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		world.grenades.server_arm_bomb(self)
 	for event in events:
 		match event["type"]:
 			"shot":
@@ -44,7 +39,7 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 				event["view_tick"] = cmd.view_tick
 				_on_melee(event)
 			"grenade_start":
-				_sfx("cannon_out")
+				_sfx("grenade_pin")
 			"grenade":
 				_on_grenade(event)
 			"akimbo_drop":
@@ -101,9 +96,6 @@ func _on_shot(event: Dictionary) -> void:
 		hits_total += hits.size()
 		for hit in hits:
 			head_hits_total += 1 if hit["zone"] == "head" else 0
-		if event["weapon"] == WeaponSim.CMP:
-			Game.count("cmp_shots")
-			Game.count("cmp_hits", hits.size())
 		if left:
 			Game.count("akimbo_left_shots")
 			Game.count("akimbo_left_hits", hits.size())
@@ -121,13 +113,11 @@ func _on_shot(event: Dictionary) -> void:
 			if is_local:
 				on_hit_confirmed(knocked, t_entry["head"])
 	if is_local:
-		var cmp: bool = event["weapon"] == WeaponSim.CMP  # the hands hold the empty weapon still: only a small flash
 		var gun := _left_view if left else _view
-		if not cmp:
-			gun.flash(def.muzzle_flash)
-			gun.kick(1.0 if def.pellets == 1 else 2.0)
+		gun.flash(def.muzzle_flash)
+		gun.kick(1.0 if def.pellets == 1 else 2.0)
 		Audio.play(def.sound_shot, null, def.loudness, def.sound_pitch)
-		var muzzle := _camera.global_transform * CMP_VIEW if cmp else gun.muzzle_global_position()
+		var muzzle := gun.muzzle_global_position()
 		if def.muzzle_flash:
 			MuzzleLights.flash(self, muzzle)
 		if world != null and world.kill_cam != null:
@@ -158,7 +148,7 @@ func _tell_shot_level(results: Array) -> void:
 
 
 func melee_reach() -> float:
-	return WeaponSim.MELEE_RANGE + mods["melee_range_add"]
+	return WeaponSim.MELEE_RANGE
 
 
 ## The fan of a punch along a view: the first body found (it goes from the middle outwards), else the middle ray's
@@ -169,7 +159,7 @@ func _melee_fan(pitch: float, yaw: float, tick: float) -> Dictionary:
 	var middle := {}
 	for offset in MELEE_FAN:
 		var r := _trace(origin, frame * Basis.from_euler(Vector3(pitch + offset.y, yaw + offset.x, 0.0)) * Vector3.FORWARD,
-				melee_reach(), tick, WeaponSim.MELEE_PAD + mods["melee_pad"])
+				melee_reach(), tick, WeaponSim.MELEE_PAD)
 		if r["player"] != null or r.get("target") != null:
 			return r
 		if middle.is_empty():
@@ -192,7 +182,7 @@ func _on_melee(event: Dictionary) -> void:
 	if hit["player"] == null and hit.get("target") == null:
 		return
 	var head: bool = hit["zone"] == "head"
-	var damage: float = WeaponSim.MELEE_DAMAGE * mods["melee_damage_mult"] * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
+	var damage: float = WeaponSim.MELEE_DAMAGE * (NetWorld.HEAD_DAMAGE_MULT if head else 1.0)
 	if is_local:
 		Audio.play("punch_hit", hit["pos"])
 		if hit["player"] != null:
@@ -228,8 +218,8 @@ func show_remote_melee(pos: Vector3) -> void:
 				(world.players[id] as Player).react_to_shot(origin, pos)
 
 
-## The launch of the "Гренадир"'s grenade (Docs/LOADOUT.md): out of the chest cannon, along the view lofted up, plus
-## the player's own velocity. The server launches it for everybody (Grenades); the shooter's client at once on its own
+## The throw of the grenade (Docs/LOADOUT.md, "Граната"): out of the left hoof, along the view lofted up, plus the
+## player's own velocity. The server throws it for everybody (Grenades); the thrower's client at once on its own
 ## (prediction). It also ends the spawn protection, as shooting does not (owner, 2026-11-02).
 func _on_grenade(event: Dictionary) -> void:
 	if _replaying or world == null:
@@ -241,56 +231,32 @@ func _on_grenade(event: Dictionary) -> void:
 	elif is_local:
 		world.grenades.predict(self, launch[0], launch[1])
 	if is_local:
-		Audio.play("grenade_launch")
-		_view.kick(2.0)
+		Audio.play("grenade_throw")
 		if world.kill_cam != null:
 			world.kill_cam.record_shot(peer_id, WeaponSim.GRENADE, launch[0], PackedVector3Array([launch[1]]))
-		cannon_smoke(launch[0], launch[1])
 
 
-## [where the grenade leaves the chest cannon (world), its velocity] for a launch at these look angles. The same on every
-## machine for the same state (the body's position and stance, not the drawn pose); not out of the far side of a wall
-## the chest is pressed against.
+## [where the grenade leaves the hoof (world), its velocity] for a throw at these look angles. The same on every machine
+## for the same state (the eyes, not the drawn pose): a little ahead of the eyes, to the left and below them; not out of
+## the far side of a wall the pig is pressed against.
 func grenade_launch(pitch: float, yaw: float) -> Array[Vector3]:
 	var frame := Gravity.frame(global_position)
-	var chest := global_position + frame.y * (GRENADE_CHEST_CROUCH if is_crouched else GRENADE_CHEST)
-	var forward := frame * Basis(Vector3.UP, yaw) * Vector3.FORWARD
-	var origin := chest + forward * GRENADE_OUT
+	var eye := eye_position()
+	var origin := eye + frame * Basis(Vector3.UP, yaw) * GRENADE_THROW
 	var blocked := get_world_3d().direct_space_state.intersect_ray(
-			PhysicsRayQueryParameters3D.create(chest, origin + forward * Grenade.RADIUS, Layers.WORLD))
+			PhysicsRayQueryParameters3D.create(eye, origin + (origin - eye).normalized() * Grenade.RADIUS, Layers.WORLD))
 	if not blocked.is_empty():
-		origin = chest
+		origin = eye
 	var loft := deg_to_rad(WeaponDB.grenade("loft", 10.0))
 	var dir := frame * Basis.from_euler(Vector3(minf(pitch + loft, PI * 0.5), yaw, 0.0)) * Vector3.FORWARD
 	return [origin, dir * WeaponDB.grenade("speed", 18.0) + velocity]
 
 
-## Smoke out of the cannon after a launch at `origin` going off at `vel` (cosmetic): a puff at the muzzle, then the
-## empty barrel smokes for a moment.
-func cannon_smoke(origin: Vector3, vel: Vector3) -> void:
-	var out := vel.normalized()
-	Dust.puff(self, origin, out * 3.0, 0.35, 0.5)
-	MuzzleLights.flash(self, origin)
-	for k in 4:
-		get_tree().create_timer(0.15 + 0.2 * k).timeout.connect(func() -> void:
-			if is_inside_tree():
-				Dust.puff(self, _cannon_muzzle(), body_up() * 0.4, 0.12, 0.8))
-
-
-## Where the chest cannon's muzzle is now (world): on the drawn body, or in the first-person view.
-func _cannon_muzzle() -> Vector3:
-	if is_local and _cannon_view != null:
-		return _cannon_view.muzzle_global_position()
-	return _visual.cannon_muzzle_position()
-
-
-## Cosmetics of somebody else's launch (called by Grenades on clients and on the host).
+## Cosmetics of somebody else's throw (called by Grenades on clients and on the host).
 func show_remote_grenade(origin: Vector3, vel: Vector3) -> void:
 	if world != null and world.kill_cam != null:
 		world.kill_cam.record_shot(peer_id, WeaponSim.GRENADE, origin, PackedVector3Array([vel]))
-	Audio.play("grenade_launch", origin)
-	cannon_smoke(origin, vel)
-
+	Audio.play("grenade_throw", origin)
 
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),
 ## or -1 to use everyone's live positions.
@@ -400,14 +366,11 @@ func show_remote_shot(weapon: int, origin: Vector3, ends: PackedVector3Array, le
 	var def := weapons.def_at(weapon)  # with this player's modules (their build is known everywhere)
 	if world != null and world.kill_cam != null:
 		world.kill_cam.record_shot(peer_id, weapon, origin, ends, left)
-	var cmp := weapon == WeaponSim.CMP  # out of the left eye; the weapon in the hands stays as it is
-	if not cmp:
-		_visual.set_weapon(weapon, def)
+	_visual.set_weapon(weapon, def)
 	Audio.play(def.sound_shot, origin, def.loudness, def.sound_pitch)
 	var scene_root := get_tree().current_scene
-	var muzzle := _visual.eye_gun_muzzle_position() if cmp else _visual.muzzle_global_position(left)
-	if not cmp:
-		_visual.show_shot(def.muzzle_flash, left)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
+	var muzzle := _visual.muzzle_global_position(left)
+	_visual.show_shot(def.muzzle_flash, left)  # a suppressor (weapons.cfg): no flash, no light, no trail - only the hit shows
 	if def.muzzle_flash:
 		MuzzleLights.flash(self, muzzle)
 	for i in ends.size():
