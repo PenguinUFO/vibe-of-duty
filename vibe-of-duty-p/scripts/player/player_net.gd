@@ -22,7 +22,7 @@ func _decode_cmd(entry: Array) -> PlayerCmd:
 	var cmd := PlayerCmd.new()
 	cmd.move = entry[1]
 	cmd.yaw = entry[2]
-	cmd.pitch = entry[3]
+	cmd.pitch = clampf(entry[3], -MAX_PITCH, MAX_PITCH)  # the head's hitbox follows it
 	var flags: int = entry[4]
 	cmd.jump = flags & FLAG_JUMP != 0
 	cmd.sprint = flags & FLAG_SPRINT != 0
@@ -75,7 +75,8 @@ func submit_cmds(entries: Array) -> void:
 	for entry in entries:
 		if entry is Array and entry.size() == 6 and entry[0] is int and entry[0] > _last_received_seq \
 				and entry[1] is Vector2 and entry[2] is float and entry[3] is float and entry[4] is int \
-				and entry[5] is float:
+				and entry[5] is float and (entry[1] as Vector2).is_finite() and is_finite(entry[2]) \
+				and is_finite(entry[3]) and is_finite(entry[5]):
 			_last_received_seq = entry[0]
 			_cmd_queue.append(entry)
 	queue_peak = maxi(queue_peak, _cmd_queue.size())
@@ -86,7 +87,11 @@ func submit_cmds(entries: Array) -> void:
 
 func _pop_server_cmd() -> PlayerCmd:
 	var next_seq: int = _cmd_queue[0][0]
-	if _acked_seq > 0 and next_seq > _acked_seq + 1:
+	if _acked_seq > 0 and next_seq > _acked_seq + 1 + MAX_GAP_FILL:
+		# A long gap (a burst of loss): the lost time is skipped, not replayed - a repeat of the last input for that
+		# long (fire held too) would leave the player's input seconds behind. Their client is corrected once.
+		cmds_dropped += next_seq - _acked_seq - 1
+	elif _acked_seq > 0 and next_seq > _acked_seq + 1:
 		# A command never arrived (packet loss / reordering). Simulate the missing tick anyway with a repeat
 		# of the previous input, so the server keeps exactly one step per client tick and stays in lockstep with
 		# the client's prediction; the client is corrected if the guess was wrong.
@@ -108,15 +113,10 @@ func _pop_server_cmd() -> PlayerCmd:
 	return _last_cmd
 
 
-## The ledge height of a vault in a snapshot entry (get_net_state: extra -> mantle -> the pull-up point).
-static func _snapshot_mantle_top(state: Array) -> Vector3:
-	var extra: Array = state[7]
-	var mantle: Array = extra[6]
-	return mantle[5]
-
-
-## Server: compact per-player state for snapshots.
-func get_net_state() -> Array:
+## Server: per-player state for snapshots. `full`: for the player's own client, with the hidden state its
+## reconciliation needs (`extra`: slide, weapon, vault); everybody else gets only the vault's pull-up point in its
+## place (the body's pose) - `extra` is most of the entry's size.
+func get_net_state(full: bool) -> Array:
 	var flags := 0
 	flags |= STATE_CROUCHED if is_crouched else 0
 	flags |= STATE_SLIDING if is_sliding else 0
@@ -130,7 +130,9 @@ func get_net_state() -> Array:
 	flags |= STATE_GRENADE if weapons.is_launching() else 0
 	flags |= STATE_GRENADE_READY if weapons.is_grenade_ready() else 0
 	flags |= STATE_AKIMBO if weapons.is_akimbo() else 0
-	var mantle := [is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
+	if not full:
+		return [peer_id, global_position, body_yaw, _head.rotation.x, velocity, flags, _acked_seq, _mantle_up, health]
+	var mantle :=[is_mantling, _mantle_tick, _mantle_total, _mantle_rise, _mantle_from, _mantle_up, _mantle_to, _mantle_dir,
 			_mantle_cooldown, _floor_y]
 	var extra := [_slide_dir, _slide_speed, _slide_time, _slide_cooldown, _prev_crouch, weapons.to_array(), mantle]
 	return [peer_id, global_position, body_yaw, _head.rotation.x, velocity, flags, _acked_seq, extra, health]
@@ -138,10 +140,16 @@ func get_net_state() -> Array:
 
 ## Client: feed a server snapshot entry for this player.
 func push_snapshot(state: Array, tick: int) -> void:
+	if tick <= life_tick:
+		return  # of the life before: it came after the respawn event (another channel), a corpse's health and place
 	if control == Mode.LOCAL:
+		if not (state[7] is Array):
+			return
 		last_server_state = state
 		health = state[8]
 		_pending_state = state  # applied at the start of the next physics tick (needs the physics delta)
+		return
+	if not (state[7] is Vector3):
 		return
 	# Their last command the server has simulated; the host's own player has none, its steps are the server ticks.
 	var seq: int = state[6] if state[6] > 0 else tick
@@ -152,7 +160,7 @@ func push_snapshot(state: Array, tick: int) -> void:
 	is_sliding = flags & STATE_SLIDING != 0
 	is_sprinting = flags & STATE_SPRINTING != 0
 	is_mantling = flags & STATE_MANTLING != 0
-	_visual.set_mantling(is_mantling, _snapshot_mantle_top(state))
+	_visual.set_mantling(is_mantling, state[7])
 	velocity = state[4]
 	weapons.index = (flags >> STATE_WEAPON_SHIFT) & SELECT_MASK
 	_visual.set_weapon(weapons.index, weapons.current())
@@ -308,6 +316,8 @@ func _apply_server_state(state: Array) -> void:
 	_mantle_dir = mantle[7]
 	_mantle_cooldown = mantle[8]
 	_floor_y = mantle[9]
+	_floor_hint = 1 if flags & STATE_ON_FLOOR != 0 else 0
+	_prev_on_floor = _floor_hint == 1
 	_orient(body_yaw)
 	_apply_stance()
 

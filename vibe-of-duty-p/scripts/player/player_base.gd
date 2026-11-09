@@ -49,6 +49,7 @@ const MAX_CMD_QUEUE := 120        # received commands kept per player (2 s); bey
 const CMD_BUDGET_PER_TICK := 1.1  # server steps a client may take per tick (10% slack lets bursts catch up, caps speed hacks)
 const CMD_BUDGET_MAX := 8.0
 const CMD_REDUNDANCY := 3  # last N commands are re-sent in every packet to survive packet loss
+const MAX_GAP_FILL := 8    # lost commands in a row the server replaces by a repeat; a longer gap is skipped (_pop_server_cmd)
 const FLAG_JUMP := 1
 const FLAG_SPRINT := 2
 const FLAG_CROUCH := 4
@@ -164,6 +165,8 @@ var rtt_ms := 0.0                 # debug: round trip estimate from command ack 
 var _history: Array = []          # client: [{seq, cmd, pos, t}] for commands not yet acknowledged
 var _pending_state: Array = []    # client: latest server state for this player, applied next physics tick
 var _replaying := false
+var _floor_hint := -1             # client: the server's on-floor flag for the next step (1 / 0; -1: none), see step()
+var life_tick := 0                # client: server tick of this player's last respawn; older snapshots are of the life before
 
 var weapons := WeaponSim.new()
 var world: NetWorld

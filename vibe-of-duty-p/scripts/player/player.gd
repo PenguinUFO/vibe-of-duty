@@ -96,7 +96,8 @@ func _physics_process(delta: float) -> void:
 		if Game.net_perturb and _cmd_seq > 0 and _cmd_seq % 240 == 0:
 			global_position += Vector3(0.6, 0.0, 0.3)  # test hook: fake a prediction error
 		var cmd := _gather_cmd(delta)
-		cmd.view_tick = world.get_view_tick() if world != null else 0.0
+		cmd.view_tick = world.get_view_tick(eye_position(), Gravity.frame(global_position)
+				* Basis.from_euler(Vector3(cmd.pitch, cmd.yaw, 0.0)) * Vector3.FORWARD) if world != null else 0.0
 		step(cmd, delta)
 		if weapons.look_shift != Vector2.ZERO:  # recoil the player held down: it stays in the look, does not return
 			look_pitch = clampf(look_pitch + weapons.look_shift.x, -MAX_PITCH, MAX_PITCH)

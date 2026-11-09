@@ -4,6 +4,10 @@ extends Node
 const DEFAULT_PORT := 27015
 const MAX_PLAYERS := 8  # the host included when it plays (not --server)
 const TRAINING_PORT := 27120
+## A silent peer is dropped after this long (ENet's own limits are 5-30 s: a crashed host left its clients frozen for
+## half a minute). ENet drops between the two once its resends ran out.
+const TIMEOUT_MIN_MS := 4000
+const TIMEOUT_MAX_MS := 8000
 
 signal hosted
 signal connected_to_server
@@ -27,6 +31,11 @@ func is_server() -> bool:
 
 
 func _on_peer_connected(id: int) -> void:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	# A client has a link only to the server (id 1); the other players are relayed.
+	var link := enet.get_peer(id) if enet != null and (multiplayer.is_server() or id == 1) else null
+	if link != null:
+		link.set_timeout(0, TIMEOUT_MIN_MS, TIMEOUT_MAX_MS)  # 0: ENet's own number of resends
 	if multiplayer.is_server():
 		# The newcomer takes our map, match rules and weapon balance (weapons.cfg), loads the map, then reports ready
 		# to NetWorld.

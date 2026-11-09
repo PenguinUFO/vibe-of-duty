@@ -12,7 +12,9 @@ extends Node
 const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
 const SNAPSHOT_INTERVAL := 1  # physics ticks between snapshots (60 Hz: others can be drawn only ~30 ms behind)
 const VIEW_TICK_STALE := 0.5  # s: a shown pose this far behind the freshest one is a frozen one (get_view_tick)
+const VIEW_TICK_CHEST := 1.0  # m above the feet: the point of a player the line of aim is measured to (get_view_tick)
 const KILL_HEIGHT := -20.0
+const PHYSICS_PRIORITY := 100  # after every Player's step of the tick, wherever World is in the level's tree
 
 ## Below this height (Gravity.height: y, on the ring station how far in from the rim) a living player dies (fell off
 ## the map). Maps may raise it: on the train the ground beside the track is deadly (it rushes past at 80 km/h).
@@ -33,8 +35,6 @@ var lag_comp_enabled := true
 
 var _ready_peers: Array[int] = []  # server: peers whose level has finished loading
 var _last_oink := {}               # server: peer_id -> time (s) of their last oink
-var _last_snap_tick := 0           # client: tick of the most recent snapshot...
-var _last_snap_time := 0.0         # ...and when it arrived (seconds)
 var _clock_offset := INF           # client: server time minus this machine's clock (s), smoothed (shared_time)
 var hud: GameHud
 var kill_cam: KillCam
@@ -54,6 +54,7 @@ var _random := RandomWeapons.new()  # server: the next weapon of each player in 
 
 
 func _ready() -> void:
+	process_physics_priority = PHYSICS_PRIORITY
 	lag_comp_enabled = Game.lag_comp_enabled
 	_started_at = Time.get_ticks_msec() / 1000.0
 	Game.stats.clear()
@@ -119,7 +120,7 @@ func _physics_process(delta: float) -> void:
 	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
 	_server_match_clock(delta)
-	# Runs after every Player has stepped this tick (Players come before World in the scene tree).
+	# Runs after every Player has stepped this tick (PHYSICS_PRIORITY).
 	server_tick += 1
 	for id in players.keys():
 		var player: Player = players[id]
@@ -208,25 +209,30 @@ func _sync_clock(tick: int) -> void:
 
 
 ## The server tick the local player sees the others at (they are drawn slightly in the past, Player._buffered_pose):
-## the average over the living ones. Sent with every command so the server can rewind targets to what was on screen;
-## 0 when nobody else is shown (shots are then judged against live positions). A dead player's (or one whose poses
-## stopped) shown_tick freezes: ticks more than VIEW_TICK_STALE behind the freshest are left out, or one corpse
-## pulled the average seconds back (playtest 2026-11-02: hits judged 1 s in the past).
-func get_view_tick() -> float:
-	var ticks: Array[float] = []
+## that of the living one nearest to the line of aim (from `eye` along `dir`, world) - each is drawn with a delay of
+## their own (their jitter), and the one aimed at is the one the shot is about. Sent with every command so the server
+## can rewind targets to what was on screen; 0 when nobody else is shown (shots are then judged against live
+## positions). A dead player's (or one whose poses stopped) shown_tick freezes: ticks more than VIEW_TICK_STALE behind
+## the freshest are left out (playtest 2026-11-02: hits judged 1 s in the past).
+func get_view_tick(eye: Vector3, dir: Vector3) -> float:
 	var freshest := 0.0
 	for id in players:
 		var p: Player = players[id]
-		if p.control != Player.Mode.LOCAL and p.alive and p.shown_tick > 0.0:
-			ticks.append(p.shown_tick)
+		if p.control != Player.Mode.LOCAL and p.alive:
 			freshest = maxf(freshest, p.shown_tick)
-	var total := 0.0
-	var count := 0
-	for tick in ticks:
-		if tick >= freshest - VIEW_TICK_STALE * Engine.physics_ticks_per_second:
-			total += tick
-			count += 1
-	return total / count if count > 0 else 0.0
+	var best := 0.0
+	var best_dot := -INF
+	for id in players:
+		var p: Player = players[id]
+		if p.control == Player.Mode.LOCAL or not p.alive or p.shown_tick <= 0.0 \
+				or p.shown_tick < freshest - VIEW_TICK_STALE * Engine.physics_ticks_per_second:
+			continue
+		var to := p.global_position + p.body_up() * VIEW_TICK_CHEST - eye
+		var dot := dir.dot(to.normalized())
+		if dot > best_dot:
+			best_dot = dot
+			best = p.shown_tick
+	return best
 
 
 # --- Server --------------------------------------------------------------------------------------
@@ -237,7 +243,7 @@ func _client_ready(player_name: String, uid: String, toughness: Vector3, build: 
 		return
 	var id := multiplayer.get_remote_sender_id()
 	if players.has(id):
-		return
+		_server_remove_player(id)  # their level loaded once more: they have nobody in it, start them over
 	_server_add_player(id, _unique_name(player_name), uid.strip_edges().left(64), Player.clamp_toughness(toughness),
 			PartDB.sanitize(build))
 
@@ -272,9 +278,9 @@ func _server_want_build(id: int, build: Array) -> void:
 		var pitch := player.look_pitch
 		var xform := Transform3D(Gravity.frame(player.global_position) * Basis(Vector3.UP, player.look_yaw),
 				player.global_position)
-		_apply_respawn(id, xform, player.wanted_build)
+		_apply_respawn(id, xform, player.wanted_build, server_tick)
 		for peer in _ready_peers:
-			_player_respawned.rpc_id(peer, id, xform, player.wanted_build)
+			_player_respawned.rpc_id(peer, id, xform, player.wanted_build, server_tick)
 		player.look_pitch = pitch
 
 
@@ -376,25 +382,38 @@ func random_weapons_on() -> bool:
 func _on_peer_left(id: int) -> void:
 	if not multiplayer.is_server():
 		return
+	_server_remove_player(id)
+	_random.forget(id)
+	_last_oink.erase(id)
+	Game.scores.erase(id)
+	_broadcast_scores()
+
+
+## Server: takes a player out of the level on every machine (they left, or their level is loading again).
+func _server_remove_player(id: int) -> void:
 	_ready_peers.erase(id)
 	lag_comp.forget(id)
-	_random.forget(id)
 	if _stats != null and players.has(id):
 		_stats.left(players[id])
 	_despawn_player(id)
 	for peer in _ready_peers:
 		_despawn_player.rpc_id(peer, id)
-	Game.scores.erase(id)
-	_broadcast_scores()
 
 
 func _broadcast_snapshot() -> void:
 	if _ready_peers.is_empty():
 		return
-	var states: Array = []
-	for id in players:
-		states.append((players[id] as Player).get_net_state())
+	# Everybody's short state; each client gets its own player's full one in its place (Player.get_net_state).
+	var ids := players.keys()
+	var short: Array = []
+	for id in ids:
+		short.append((players[id] as Player).get_net_state(false))
 	for peer in _ready_peers:
+		var states := short
+		var own := ids.find(peer)
+		if own >= 0:
+			states = short.duplicate()
+			states[own] = (players[peer] as Player).get_net_state(true)
 		if Game.sim_lag_ms > 0:
 			_send_snapshot_delayed(peer, server_tick, states)
 		else:
@@ -519,9 +538,9 @@ func _server_respawn(id: int, force: bool) -> void:
 	player.alive = true
 	lag_comp.clear(id)
 	var build := _random.next_build(id) if random_weapons_on() else player.wanted_build
-	_apply_respawn(id, xform, build)
+	_apply_respawn(id, xform, build, server_tick)
 	for peer in _ready_peers:
-		_player_respawned.rpc_id(peer, id, xform, build)
+		_player_respawned.rpc_id(peer, id, xform, build, server_tick)
 	if _stats != null:
 		_stats.spawned(player, spot)
 
@@ -773,14 +792,16 @@ func _sync_match(state: int, time_left: float, intermission_left: float, winners
 
 
 @rpc("authority", "reliable")
-func _player_respawned(id: int, xform: Transform3D, build: Array) -> void:
-	_apply_respawn(id, xform, build)
+func _player_respawned(id: int, xform: Transform3D, build: Array, tick: int) -> void:
+	_apply_respawn(id, xform, build, tick)
 
 
-## Respawns a player with the build of their new life (the same on every machine, before the first step).
-func _apply_respawn(id: int, xform: Transform3D, build: Array) -> void:
+## Respawns a player with the build of their new life (the same on every machine, before the first step). `tick`:
+## the server tick it happened at - snapshots up to it are of the life before (Player.push_snapshot).
+func _apply_respawn(id: int, xform: Transform3D, build: Array, tick: int) -> void:
 	if players.has(id):
 		var player: Player = players[id]
+		player.life_tick = tick
 		player.set_build(build)
 		player.respawn(xform)
 		if multiplayer.is_server():
@@ -796,8 +817,6 @@ func _despawn_player(id: int) -> void:
 
 @rpc("authority", "unreliable_ordered")
 func _receive_snapshot(tick: int, states: Array) -> void:
-	_last_snap_tick = tick
-	_last_snap_time = Time.get_ticks_msec() / 1000.0
 	_sync_clock(tick)
 	for state in states:
 		if state is Array and state.size() == 9 and players.has(state[0]):

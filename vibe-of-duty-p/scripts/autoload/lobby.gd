@@ -164,8 +164,7 @@ func _hello(player_name: String) -> void:
 	if not Net.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
-	if phase == Phase.NONE:  # the lobby ended while it was loading
-		_go_map.rpc_id(id, Game.map_scene)
+	if phase == Phase.NONE:  # the lobby ended while it was loading: _go_map (server_start) is already on its way there
 		return
 	if not roster.has(id):
 		roster[id] = NetWorld.unique_name(player_name, roster.values())

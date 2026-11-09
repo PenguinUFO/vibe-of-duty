@@ -37,6 +37,11 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 	if not is_local:
 		_head.rotation.x = cmd.pitch
 	var on_floor := is_on_floor()
+	if _floor_hint >= 0:
+		# The first step after a server state was adopted (_apply_server_state): is_on_floor() is still the predicted
+		# body's, not that state's - a jump or a landing in between would be replayed wrong.
+		on_floor = _floor_hint == 1
+		_floor_hint = -1
 	var frame := Gravity.frame(global_position)
 	var v := frame.inverse() * velocity  # in the frame
 	var horiz := Vector3(v.x, 0.0, v.z)

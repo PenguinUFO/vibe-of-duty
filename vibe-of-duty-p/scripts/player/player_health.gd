@@ -103,6 +103,8 @@ func _apply_stats() -> void:
 
 ## What the server accepts from a player: no less health, no slower regeneration and no more damage than normal.
 static func clamp_toughness(t: Vector3) -> Vector3:
+	if not t.is_finite():
+		t = Vector3(MAX_HEALTH, REGEN_DELAY, 1.0)  # clampf passes NaN on
 	return Vector3(clampf(roundf(t.x), MAX_HEALTH, KID_HEALTH_MAX), clampf(t.y, 0.0, REGEN_DELAY), clampf(t.z, 0.0, 1.0))
 
 
