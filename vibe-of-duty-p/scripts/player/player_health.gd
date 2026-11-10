@@ -46,21 +46,19 @@ func server_regen(delta: float) -> void:
 		_regen_carry -= whole
 
 
-## Server: picks up an ammo bag - one magazine more for every weapon, up to its reserve_max. False (the bag stays)
-## when every reserve is already full. The owner's client learns of it through the weapon state in the snapshots
-## (its prediction is corrected, as for any server-side change).
+## Server: picks up an ammo bag - one magazine more for the weapon in the hands (the only one of the build), up to its
+## reserve_max. False (the bag stays) when its reserve is already full. The owner's client learns of it through the
+## weapon state in the snapshots (its prediction is corrected, as for any server-side change).
 func server_take_ammo() -> bool:
 	if not alive:
 		return false
-	var took := false
-	for i in WeaponDB.count():
-		var def := weapons.def_at(i)
-		var room := def.reserve_max - weapons.reserves[i]
-		if room > 0:
-			weapons.reserves[i] += mini(def.mag_size, room)
-			took = true
-	bags_total += 1 if took else 0
-	return took
+	var def := weapons.current()
+	var room := def.reserve_max - weapons.reserves[weapons.index]
+	if room <= 0:
+		return false
+	weapons.reserves[weapons.index] += mini(def.mag_size, room)
+	bags_total += 1
+	return true
 
 
 ## Kid mode (Settings.toughness: sent to the server on join and whenever the player changes it, even mid-match):

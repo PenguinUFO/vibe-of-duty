@@ -3,6 +3,11 @@ extends PlayerWeapons
 ## Player, part 4 of 9: step(): walking, sprint, slide, crouch, jump; stance; teleport.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
+## The moving floor (a Block with ride_offset_at) the player rides: stood on last, in the air since. Positions are
+## checked against the server's in its frame (PlayerNet._ride_slip).
+var _ride_block: Block
+
+
 ## Teleports the player and resets all movement state.
 func teleport(xform: Transform3D) -> void:
 	global_position = xform.origin
@@ -14,6 +19,7 @@ func teleport(xform: Transform3D) -> void:
 	_prev_yaw = body_yaw
 	_curr_yaw = body_yaw
 	velocity = Vector3.ZERO
+	_ride_block = null
 	is_mantling = false
 	_floor_y = Gravity.height(global_position)
 	_snapshots.clear()
@@ -33,6 +39,7 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 		dead.yaw = cmd.yaw
 		dead.pitch = cmd.pitch
 		cmd = dead
+		weapons.cancel_actions()  # or the punch lands, the held grenade flies and the buffered shot fires after death
 	_orient(cmd.yaw)
 	if not is_local:
 		_head.rotation.x = cmd.pitch
@@ -132,13 +139,41 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 
 	_prev_vy = v.y
 	velocity = frame * v
+	# A moving floor (the crane's corridor, the plane's cargo): leaving it into the air keeps its speed, landing on it
+	# drops it - `velocity` on a floor is counted from that floor. Without it a jump in the corridor left the player
+	# behind on the server and not on the client.
+	var ride := _ride_velocity() if on_floor else Vector3.ZERO
 	move_and_slide()
+	if on_floor and not is_on_floor():
+		velocity += ride
+	elif not on_floor and is_on_floor():
+		velocity -= _ride_velocity()
+	if is_on_floor() and Block.movers > 0:
+		var under := floor_block()
+		_ride_block = under if under != null and under.ride_offset_at.is_valid() else null
 	if Gravity.is_ring():
 		# The floor curves under us: carry the velocity round with the frame, so it stays the same in it.
 		velocity = Gravity.frame(global_position) * (frame.inverse() * velocity)
 		_orient(cmd.yaw)
 	_post_move(dt)
 	_weapon_step(cmd, dt)
+
+
+## The speed of the moving floor under the feet (Block.ride_velocity), zero on any other.
+func _ride_velocity() -> Vector3:
+	var block := floor_block()
+	return block.ride_velocity if block != null else Vector3.ZERO
+
+
+## The block under the feet, null: none, or no level script moves blocks here (Block.movers). A test move down, not
+## the last move's collisions: walking along a floor, the move has none with it.
+func floor_block() -> Block:
+	if Block.movers == 0:
+		return null
+	var hit := move_and_collide(-up_direction * 0.1, true)
+	if hit != null and hit.get_normal().dot(up_direction) > 0.7:
+		return hit.get_collider() as Block
+	return null
 
 
 func _post_move(dt: float) -> void:

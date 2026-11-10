@@ -3,6 +3,10 @@ extends PlayerHealth
 ## Player, part 6 of 9: commands to the server, snapshots, reconciliation, interpolation of other players.
 ## The parts form a chain of scripts, each extending the previous one (map: player.gd).
 
+var _pending_tick := 0  # client: the server tick of _pending_state
+var _ride_slip_last := Vector3.ZERO  # client: see _ride_slip
+
+
 func _encode_cmd(cmd: PlayerCmd) -> Array:
 	var flags := 0
 	flags |= FLAG_JUMP if cmd.jump else 0
@@ -45,7 +49,8 @@ func _send_cmd(cmd: PlayerCmd) -> void:
 	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
 		return
 	_history.append({"seq": _cmd_seq, "cmd": cmd, "pos": global_position, "w": weapons.to_array(),
-			"t": Time.get_ticks_msec()})
+			"t": Time.get_ticks_msec(), "ride": _ride_block, "floor": is_on_floor(),
+			"ride_at": _ride_block.ride_offset if _ride_block != null else Vector3.ZERO})
 	if _history.size() > HISTORY_MAX:
 		_history.pop_front()
 	_sent_cmds.append(_encode_cmd(cmd))
@@ -148,6 +153,7 @@ func push_snapshot(state: Array, tick: int) -> void:
 		last_server_state = state
 		health = state[8]
 		_pending_state = state  # applied at the start of the next physics tick (needs the physics delta)
+		_pending_tick = tick
 		return
 	if not (state[7] is Vector3):
 		return
@@ -267,16 +273,26 @@ func _reconcile_pending(delta: float) -> void:
 		return  # nothing to compare against (e.g. right after a teleport)
 	var record: Dictionary = _history.pop_front()
 	rtt_ms = float(Time.get_ticks_msec() - record["t"])
-	last_error = (record["pos"] as Vector3).distance_to(state[1])
+	var riding: bool = record["ride"] != null and record["floor"] and (state[5] as int) & STATE_ON_FLOOR != 0
+	var slip := _ride_slip(record, riding)
+	last_error = (record["pos"] as Vector3 - slip).distance_to(state[1])
 	if last_error < RECONCILE_EPS and record["w"] == (state[7] as Array)[5]:
 		return
 	recon_count += 1
 	var old_pos := global_position
 	_apply_server_state(state)
+	if riding:  # onto the moving floor where this machine has it now: nothing carries the replay
+		var block: Block = record["ride"]
+		global_position += block.ride_offset - (block.ride_offset_at.call(_pending_tick) as Vector3)
+	else:
+		global_position += slip
 	_replaying = true
 	for r in _history:
 		step(r["cmd"], delta)
 		r["pos"] = global_position
+		r["floor"] = is_on_floor()
+		r["ride"] = _ride_block
+		r["ride_at"] = _ride_block.ride_offset if _ride_block != null else Vector3.ZERO
 		r["w"] = weapons.to_array()
 	_replaying = false
 	var shift := global_position - old_pos
@@ -290,6 +306,20 @@ func _reconcile_pending(delta: float) -> void:
 		print("[RECONCILE] ack=%d err=%.3f weapon_match=%s replayed=%d" % [ack, last_error,
 				str(record["w"] == (state[7] as Array)[5]), _history.size()])
 		print("  client pos ", record["pos"], " server pos ", state[1], " client w ", record["w"], " server w ", (state[7] as Array)[5])
+
+
+## On a moving floor (_ride_block: the crane's corridor) the server's place for a command is not the predicted one
+## even when both agree: the floor was elsewhere when the server stepped it (the ping; commands bunching up - it
+## carries riders once a tick). Returns that gap, the floor's travel between the two; the places are compared, and
+## the server's adopted, less it - in the floor's frame. In the air over it (not `riding`: on the floor here and
+## there) nobody is carried: the gap stays what it was at the take-off - the last one seen on the floor.
+func _ride_slip(record: Dictionary, riding: bool) -> Vector3:
+	var block: Block = record["ride"]
+	if block == null:
+		_ride_slip_last = Vector3.ZERO
+	elif riding:
+		_ride_slip_last = (record["ride_at"] as Vector3) - (block.ride_offset_at.call(_pending_tick) as Vector3)
+	return _ride_slip_last
 
 
 func _apply_server_state(state: Array) -> void:

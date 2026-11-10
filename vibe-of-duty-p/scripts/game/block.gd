@@ -10,6 +10,9 @@ const NOISE_CONTRAST := 0.45    # darkest texel = 1 - this (x the block's colour
 
 static var _materials := {}  # Color -> StandardMaterial3D, shared by all blocks of that colour
 static var _noise: ImageTexture
+## Level scripts in the scene that move blocks under players (CraneBridge, PlaneBank). None: Player.floor_block() has
+## nothing to look for.
+static var movers := 0
 
 @export var size := Vector3.ONE:
 	set(value):
@@ -25,6 +28,14 @@ static var _noise: ImageTexture
 	set(value):
 		mesh_layers = value
 		_rebuild()
+
+## The block's speed while a level script moves it (CraneBridge, PlaneBank; zero: it stands): whoever leaves it into
+## the air takes it along, whoever lands on it loses it (PlayerMovement.step).
+var ride_velocity := Vector3.ZERO
+## How far that script has moved the block from its place in the scene, and the same on the server at the snapshot of
+## a server tick: (tick: int) -> Vector3. A client checks its rider's prediction against them (PlayerNet._ride_slip).
+var ride_offset := Vector3.ZERO
+var ride_offset_at := Callable()
 
 
 func _ready() -> void:

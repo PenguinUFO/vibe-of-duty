@@ -10,10 +10,13 @@ extends Node
 ## - Standing in it is safe: it carries you (see Riders below). Whoever is in its way is pushed along
 ##   (the server, and each client its own player, before the players step); pushed against anything solid - crushed
 ##   (the server kills them, as a fall).
+## - A jump keeps the load's speed (Block.ride_velocity, PlayerMovement.step): you come down where you left it.
 ## Must come before Players in the scene: the load moves before anybody steps.
 
 const CRUSH_SLACK := 0.03          # m: a push blocked by more than this crushes
 const ON_TOP := 0.25               # m: feet this close below a block's top stand on it (not pushed)
+const LEAD_TRIM := 0.0             # s off the measured round trip (it counts the wait for this machine's tick too)
+const JUMP := 0.5                  # m a tick: more is the clock being set (joining), not travel - placed, no pushes
 
 @export var load_path := ^"../Shell/CraneLoad"
 @export var travel := 11.0         # m along +z from the first dock to the second
@@ -29,6 +32,7 @@ var _load: Node3D
 var _blocks: Array[Block] = []
 var _offset := 0.0
 var _placed := false
+var _lead := 0.0                   # s, client: how far ahead of the clock the load is shown (see _time)
 
 
 func _ready() -> void:
@@ -37,26 +41,36 @@ func _ready() -> void:
 	if _load:
 		for child in _load.find_children("*", "Block", true, false):
 			_blocks.append(child as Block)
+			(child as Block).ride_offset_at = _server_offset
+	Block.movers += 1
+
+
+func _exit_tree() -> void:
+	Block.movers -= 1
 
 
 func _physics_process(delta: float) -> void:
 	if _load == null:
 		return
 	var offset := offset_at(_time())
-	if not _placed:  # a late joiner's load is placed, no pushes
+	if not _placed or absf(offset - _offset) > JUMP:  # a late joiner's load is placed, no pushes
 		_placed = true
 		_offset = offset
 		_load.position.z = offset
+		for block in _blocks:
+			block.ride_offset = Vector3(0.0, 0.0, offset)
 		return
 	var moved := offset - _offset
 	_offset = offset
 	var server := multiplayer.has_multiplayer_peer() and multiplayer.is_server()
-	# Riders: a client's own player rides on the blocks' velocity (its prediction and replays step with it). The
-	# server carries them itself, once a tick: it steps a client 0-2 commands a tick (Player.CMD_BUDGET_PER_TICK), and
-	# a carry per step drifted - a rider ended 1.4 m past the dock after one trip.
-	var velocity := Vector3.ZERO if server else Vector3(0.0, 0.0, moved / delta)
+	# Riders are carried here, once a tick - the server's, and a client's own player the same way. Not on the blocks'
+	# velocity (CharacterBody3D's moving platform): the server steps a client 0-2 commands a tick
+	# (Player.CMD_BUDGET_PER_TICK), and a carry per step drifted - a rider ended 1.4 m past the dock after one trip;
+	# on a client it dropped the carry against a tower's wall. A client's replays are not carried: PlayerNet puts the
+	# server's place onto the load where it is now (Block.ride_offset).
 	for block in _blocks:
-		block.constant_linear_velocity = velocity
+		block.ride_velocity = Vector3(0.0, 0.0, moved / delta)
+		block.ride_offset = Vector3(0.0, 0.0, offset)
 	if moved == 0.0:
 		return
 	_load.position.z = offset
@@ -64,17 +78,33 @@ func _physics_process(delta: float) -> void:
 		for player: Player in _world.players.values():
 			if not player.alive or not (server or player.control == Player.Mode.LOCAL):
 				continue
-			if _rides(player):  # the server carries a rider; a client's own rider goes with the floor (no push on top)
-				if server:
-					_shove(player, Vector3(0.0, 0.0, moved), server)
+			if _rides(player):
+				_shove(player, Vector3(0.0, 0.0, moved), server)
 			else:
 				_push(player, signf(moved), server)
 
 
+## A client shows the load where the server will have it when the command stepped now gets there - its own player's
+## round trip ahead of the clock (the clock itself is a snapshot's delay behind). Read at the clock, a rider's
+## predicted place was the load's travel over the ping away from the server's: corrected on every snapshot.
 func _time() -> float:
 	if time_override >= 0.0:
 		return time_override
-	return _world.shared_time() if _world else Time.get_ticks_usec() / 1e6
+	if _world == null:
+		return Time.get_ticks_usec() / 1e6
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		return _world.server_tick / float(Engine.physics_ticks_per_second)  # to the tick: _server_offset repeats it
+	if multiplayer.has_multiplayer_peer():
+		for player: Player in _world.players.values():
+			if player.control == Player.Mode.LOCAL and player.rtt_ms > 0.0:
+				_lead = lerpf(_lead, player.rtt_ms / 1000.0 - LEAD_TRIM, 0.05 if _lead > 0.0 else 1.0)
+	return _world.shared_time() + _lead
+
+
+## Block.ride_offset_at: where the server had the load when it sent the snapshot of this tick (NetWorld counts the
+## tick after this node and the players have run).
+func _server_offset(tick: int) -> Vector3:
+	return Vector3(0.0, 0.0, offset_at((tick - 1) / float(Engine.physics_ticks_per_second)))
 
 
 ## The load's z offset from the first dock at time t: hold, move over, hold, move back.
@@ -117,25 +147,24 @@ func _push(player: Player, side: float, server: bool) -> void:
 		_shove(player, Vector3(0.0, 0.0, side * need), server)
 
 
-## Stands on the load: on the floor, and the floor is one of its blocks (the last move's collisions).
+## Stands on the load: on the floor, and the floor is one of its blocks. Not by the last move's collisions: walking,
+## the move has none with the floor, and the server left whoever walked in the corridor behind.
 func _rides(player: Player) -> bool:
-	if not player.is_on_floor():
-		return false
-	for i in player.get_slide_collision_count():
-		var hit := player.get_slide_collision(i)
-		if hit.get_normal().y > 0.7 and _blocks.has(hit.get_collider()):
-			return true
-	return false
+	return player.is_on_floor() and _blocks.has(player.floor_block())
 
 
 ## Moves a player through the load's blocks (not through the level); blocked - crushed.
 func _shove(player: Player, motion: Vector3, server: bool) -> void:
 	for block in _blocks:
 		player.add_collision_exception_with(block)
+	var from := player.global_position
 	var hit := player.move_and_collide(motion)
+	if hit != null:  # along a wall they lean on: the rest of the way slides (stopped dead, a rider fell behind the load)
+		player.move_and_collide(hit.get_remainder().slide(hit.get_normal()))
 	for block in _blocks:
 		player.remove_collision_exception_with(block)
-	if server and hit != null and hit.get_remainder().length() > CRUSH_SLACK:
+	var lost := motion.length() - (player.global_position - from).dot(motion.normalized())
+	if server and hit != null and lost > CRUSH_SLACK:
 		var game := get_node_or_null(^"/root/Game")  # not Game: tools load this without the autoloads
 		if game:
 			game.count("crushed")

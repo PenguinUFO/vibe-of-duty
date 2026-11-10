@@ -1,7 +1,7 @@
 class_name AmmoBags
 extends Node3D
 ## Ammo bags: a killed player drops a small pouch of rounds where they fell; walking over it gives one magazine more
-## for every weapon (Player.server_take_ammo, up to the weapon's reserve_max). A player whose reserves are all full
+## for the weapon in the hands (Player.server_take_ammo, up to the weapon's reserve_max). A player whose reserve is full
 ## leaves it lying. A bag disappears when taken, after LIFETIME s, or when a new match starts.
 ##
 ## The server owns the bags (drops, pickups, expiry) and tells the clients with reliable RPCs; a joining client gets

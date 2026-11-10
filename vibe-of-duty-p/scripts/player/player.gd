@@ -28,6 +28,7 @@ func _ready() -> void:
 	floor_snap_length = 0.4
 	floor_max_angle = deg_to_rad(46.0)
 	floor_stop_on_slope = true
+	platform_on_leave = PLATFORM_ON_LEAVE_DO_NOTHING  # step() does it (_ride_velocity): the same on the server
 	look_yaw = rotation.y
 	body_yaw = rotation.y
 	weapons.infinite_reserve = Game.training  # training maps: ammo never runs out (only reloads)

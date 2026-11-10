@@ -159,10 +159,14 @@ func _get_stream(id: String) -> AudioStream:
 
 
 func _free_player(pool: Array) -> Node:
+	var pick: Node = pool[0]  # all busy: steal the oldest (the pool is kept in the order the players were last taken)
 	for p in pool:
 		if not p.playing:
-			return p
-	return pool[0]  # all busy: steal the oldest
+			pick = p
+			break
+	pool.erase(pick)
+	pool.append(pick)
+	return pick
 
 
 func _scan_dir(dir_path: String) -> void:

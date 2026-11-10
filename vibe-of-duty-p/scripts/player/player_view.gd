@@ -174,8 +174,10 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 	_arms.ledge_weight = _mantle_view
 
 	_camera.position = bob + Vector3(0.0, _cam_land - 0.04 * _mantle_view, 0.0)
+	# The plane's bank (zero elsewhere) is about the level's z: looking along -z it rolls the view one way, along +z
+	# the other, across the plane not at all - or the hold leans against the way its cargo slides.
 	_camera.rotation = Vector3(_punch.x - 0.12 * _mantle_view, 0.0,
-			_cam_roll + _punch.y + 0.004 * sway + PlaneBank.view_roll)  # the plane's bank (zero elsewhere)
+			_cam_roll + _punch.y + 0.004 * sway + PlaneBank.view_roll * cos(look_yaw))
 
 
 func _update_viewmodel(delta: float, speed: float) -> void:

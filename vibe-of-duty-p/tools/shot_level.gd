@@ -233,7 +233,7 @@ func _ready() -> void:
 			await get_tree().process_frame
 		if bank:  # the player's camera leans with the bank
 			cam.look_at_from_position(views[view][0], views[view][1])
-			cam.rotate_object_local(Vector3.BACK, bank.lean())
+			cam.rotate_object_local(Vector3.BACK, bank.lean() * cam.global_basis.z.z)  # as PlayerView: by the facing
 		if OS.has_environment("SHOT_HOLES"):  # bullet holes (BulletHoles) from this many shots in a cone off the camera
 			var space := cam.get_world_3d().direct_space_state
 			for i in int(OS.get_environment("SHOT_HOLES")):

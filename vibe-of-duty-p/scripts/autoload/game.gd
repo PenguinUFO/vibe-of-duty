@@ -266,6 +266,8 @@ func ensure_player(peer_id: int) -> void:
 
 
 func add_kill(killer_id: int, victim_id: int) -> void:
+	if state == State.ENDED:  # the winners are picked: a grenade still in the air or a fall changes nothing
+		return
 	ensure_player(killer_id)
 	ensure_player(victim_id)
 	if killer_id != victim_id:

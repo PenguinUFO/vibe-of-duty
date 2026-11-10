@@ -102,6 +102,15 @@ func reset() -> void:
 	left_queued = false
 
 
+## The player died or the match ended (PlayerMovement.step): what was started is dropped - no blow, no throw and no
+## buffered shot after that.
+func cancel_actions() -> void:
+	melee_ticks = 0
+	grenade_ticks = 0
+	fire_queued = false
+	left_queued = false
+
+
 static func melee_total_ticks() -> int:
 	return roundi((MELEE_WINDUP + MELEE_RECOVER) * 60.0)
 

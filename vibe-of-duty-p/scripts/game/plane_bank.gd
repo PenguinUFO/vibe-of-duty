@@ -28,7 +28,8 @@ const VIEW_LEAN := 0.5             # part of the bank the local camera leans
 const CRUSH_SLACK := 0.03          # m: a push blocked by more than this crushes
 const ON_TOP := 0.25               # m: feet this close below cargo's top stand on it (not pushed)
 
-## Radians the local camera leans now (0 off this map).
+## Radians the local camera leans now, about the level's z (0 off this map): PlayerView rolls the view by it looking
+## along -z, the other way looking along +z.
 static var view_roll := 0.0
 
 ## Tools (screenshots): the time the schedule is read at instead of the server's clock (negative: off).
@@ -50,6 +51,7 @@ var _visuals := true
 
 func _ready() -> void:
 	_world = get_node_or_null("../World") as NetWorld
+	Block.movers += 1
 	_visuals = DisplayServer.get_name() != "headless"
 	for node in get_parent().find_children("*", "LooseCargo", true, false):
 		var cargo := node as LooseCargo
@@ -71,6 +73,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	Block.movers -= 1
 	view_roll = 0.0
 	if _environment:  # the environment is shared with the next load of the scene
 		_environment.sky_rotation = Vector3.ZERO
@@ -91,6 +94,7 @@ func _physics_process(delta: float) -> void:
 		var velocity := Vector3.ZERO if server else Vector3(moved / delta, 0.0, 0.0)
 		for block: Block in _cargo[i]["blocks"]:
 			block.constant_linear_velocity = velocity
+			block.ride_velocity = Vector3(moved / delta, 0.0, 0.0)
 		if moved == 0.0:
 			continue
 		var cargo: LooseCargo = _cargo[i]["node"]
@@ -257,16 +261,10 @@ func _push(player: Player, cargo: Dictionary, side: float, server: bool) -> void
 		_shove(player, cargo, Vector3(side * need, 0.0, 0.0), server)
 
 
-## Stands on this cargo: on the floor, and the floor is one of its blocks (the last move's collisions).
+## Stands on this cargo: on the floor, and the floor is one of its blocks (not by the last move's collisions:
+## walking, the move has none with the floor).
 func _rides(player: Player, cargo: Dictionary) -> bool:
-	if not player.is_on_floor():
-		return false
-	var blocks: Array[Block] = cargo["blocks"]
-	for i in player.get_slide_collision_count():
-		var hit := player.get_slide_collision(i)
-		if hit.get_normal().y > 0.7 and blocks.has(hit.get_collider()):
-			return true
-	return false
+	return player.is_on_floor() and (cargo["blocks"] as Array[Block]).has(player.floor_block())
 
 
 ## Moves a player through the cargo's blocks (not through the level or other cargo); blocked - crushed.
