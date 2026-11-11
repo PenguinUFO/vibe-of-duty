@@ -105,6 +105,8 @@ signal server_shot(player: Player, weapon: int, origin: Vector3, ends: PackedVec
 var control: Mode = Mode.LOCAL
 var peer_id := 1
 var player_name := "Игрок"
+## Team mode (Game.teams): 0 or 1, the same on every machine (NetWorld._spawn_player); -1: every pig for itself.
+var team := -1
 var player_uid := ""  # server only: Settings.player_uid of whoever plays it (MatchStats)
 var is_local: bool:
 	get:

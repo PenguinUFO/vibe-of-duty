@@ -40,6 +40,11 @@ func _ready() -> void:
 	var vis := PlayerVisual.new()
 	root3d.add_child(vis)
 	vis.setup(0, "T")
+	# SHOT_LOOK=friend|enemy: the team mode's colours (Mannequin.Look); the file names get the look in front.
+	var look_name := OS.get_environment("SHOT_LOOK")
+	if look_name != "":
+		Mannequin.set_rim(Settings.psx_style)
+		vis.set_look(Mannequin.Look.FRIEND if look_name == "friend" else Mannequin.Look.ENEMY)
 	var weapon := int(OS.get_environment("SHOT_WEAPON")) if OS.has_environment("SHOT_WEAPON") else 0  # WeaponDB index
 	# SHOT_MODULES=luger.akimbo.on,...: the weapon with these modules (akimbo: a gun in each hoof).
 	var modules := Array(OS.get_environment("SHOT_MODULES").split(",", false))
@@ -66,5 +71,6 @@ func _ready() -> void:
 			for i in (6 if c == "run_f" and view == "front" else 25):
 				vis.update_motion(1.0 / 60.0, CASES[c][0], CASES[c][4])
 				await get_tree().process_frame
-			get_tree().root.get_texture().get_image().save_png(dir.path_join("%s_%s.png" % [c, view]))
+			var prefix := look_name + "_" if look_name != "" else ""
+			get_tree().root.get_texture().get_image().save_png(dir.path_join("%s%s_%s.png" % [prefix, c, view]))
 	get_tree().quit()

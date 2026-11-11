@@ -258,6 +258,11 @@ func show_remote_grenade(origin: Vector3, vel: Vector3) -> void:
 		world.kill_cam.record_shot(peer_id, WeaponSim.GRENADE, origin, PackedVector3Array([vel]))
 	Audio.play("grenade_throw", origin)
 
+## Whether `other` is on this player's team (team mode).
+func is_teammate(other: PlayerBase) -> bool:
+	return team >= 0 and other != self and other.team == team
+
+
 ## Which server tick to judge a shot at: the shooter's view tick (server, remote shooters, lag comp on),
 ## or -1 to use everyone's live positions.
 func _judge_tick(view_tick: float, is_server: bool) -> float:
@@ -273,6 +278,7 @@ func _judge_tick(view_tick: float, is_server: bool) -> float:
 
 ## A shot's path: the first thing hit - level, player (rewound to `tick` when >= 0) or training target. Bullets do
 ## not go through cover (owner, 2026-10-31: no penetration; a special weapon may get it, decided one by one).
+## Teammates are not in the way unless they can be hurt (Game.friendly_fire): the shot goes through them.
 ## `pad`: m the body is widened by, for a ray that misses the real hitboxes (a punch).
 func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0, pad := 0.0) -> Dictionary:
 	var space := get_world_3d().direct_space_state
@@ -289,7 +295,7 @@ func _trace(origin: Vector3, dir: Vector3, max_range: float, tick: float = -1.0,
 	# Players are hit-tested analytically (see LagComp), at their rewound position when `tick` >= 0.
 	for id in world.players:
 		var other: Player = world.players[id]
-		if other == self or not other.alive:
+		if other == self or not other.alive or (is_teammate(other) and not Game.friendly_fire()):
 			continue
 		var state := _target_state(other, tick)
 		if state.is_empty():

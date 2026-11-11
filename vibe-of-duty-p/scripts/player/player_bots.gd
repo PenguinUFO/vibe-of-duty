@@ -27,6 +27,14 @@ var _arch_crouch_time := 0.0
 var _arch_shots := 0                 # shots in this burst
 var _arch_pause := 0.0               # s until the next burst
 var _arch_mag := -1                  # rounds in the magazine last tick (fewer now: a shot went out); -1: not started
+var _arch_nav: BotNav = null         # the way round the level's walls
+var _arch_known := Vector3.INF       # where (feet) it last saw an enemy, or the enemy that hit it from out of view
+var _arch_known_left := 0.0          # s it still goes there to look (0: knows nothing)
+var _arch_goal := Vector3.INF        # the patrol's goal: a spawn point (INF: none chosen)
+var _arch_health := 0.0              # health last tick (less now: it was hit)
+var _arch_stuck := 0.0               # s standing still while trying to walk
+const ARCH_FOV := 65.0               # deg off the look it notices an enemy within (about the screen's half width)
+const ARCH_MEMORY := 12.0            # s it goes to the place an enemy was last seen at
 ## --bot-course: corners of the obstacle course loop (x, z), in running order (prefabs/levels/course.tscn).
 const COURSE_LOOP: Array[Vector2] = [Vector2(-30, 22), Vector2(30, 22), Vector2(30, -22), Vector2(-30, -22)]
 
@@ -240,7 +248,7 @@ func _bot_melee_cmd(t: float) -> PlayerCmd:
 	var best := INF
 	for id in world.players:
 		var other: Player = world.players[id]
-		if other != self and other.alive:
+		if other != self and other.alive and not is_teammate(other):
 			var d := other.global_position.distance_to(global_position)
 			if d < best:
 				best = d
@@ -266,7 +274,7 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 	var best := INF
 	for id in world.players:
 		var other: Player = world.players[id]
-		if other != self and other.alive:
+		if other != self and other.alive and not is_teammate(other):
 			var d := other.global_position.distance_to(global_position)
 			if d < best:
 				best = d
@@ -293,11 +301,15 @@ func _bot_aim_cmd(t: float) -> PlayerCmd:
 	return cmd
 
 
-## An archetype bot (--bot-style, --bot-skill; BotProfiles, Docs/BOTS.md): picks the nearest enemy in sight (else walks
-## at the nearest one), notices it `react` s late, turns at most `turn` deg/s towards where it was `react` s ago (leading
-## `lead` of its motion), with a wandering aim error (`noise`), pulls down `recoil` of the kick. Fires when it thinks the
-## aim is within `gate` body widths, in bursts or holding the trigger; keeps its distance, strafes, crouches, jumps and
-## punches as its style says. Sees what this client shows (other players interpolated), like a human.
+## An archetype bot (--bot-style, --bot-skill; BotProfiles, Docs/BOTS.md). Team mode: teammates are no targets.
+## Knows only what it sees: the nearest enemy
+## in its view (ARCH_FOV, a clear line) is the target; out of sight, it walks to where it last saw one (ARCH_MEMORY s),
+## then from spawn point to spawn point. A hit from out of view turns it to the nearest enemy that could have fired.
+## It walks along BotNav's path (round walls, up stairs), jumps when stuck. In a fight: notices the target `react` s
+## late, turns at most `turn` deg/s towards where it was `react` s ago (leading `lead` of its motion), with a
+## wandering aim error (`noise`), pulls down `recoil` of the kick. Fires when it thinks the aim is within `gate` body
+## widths, in bursts or holding the trigger; keeps its distance, strafes, crouches, jumps and punches as its style
+## says. Sees what this client shows (other players interpolated), like a human.
 func _bot_arch_cmd(delta: float) -> PlayerCmd:
 	var cmd := PlayerCmd.new()
 	var style := BotProfiles.style(Game.bot_style)
@@ -305,33 +317,55 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 	if _arch_mag < 0:
 		_arch_rng.seed = hash(Settings.player_name) ^ Time.get_ticks_usec()
 		_arch_aim = Vector2(look_yaw, look_pitch)
+		_arch_nav = BotNav.new()
+		_arch_nav.build(get_tree().current_scene)
 	if not alive:
 		_arch_target = null
+		_arch_seen = false
 		_arch_hist.clear()
 		_arch_mag = 0
 		_arch_aim = Vector2(look_yaw, look_pitch)
+		_arch_known_left = 0.0
+		_arch_goal = Vector3.INF
+		_arch_health = 0.0
 		cmd.yaw = look_yaw
 		cmd.pitch = look_pitch
 		return cmd
 	var eye := global_position + body_up() * (CROUCH_EYE if is_crouched else STAND_EYE)
-	var space := get_world_3d().direct_space_state
-	# The target: the nearest enemy in sight; none in sight - the nearest one, to walk to.
+	var frame_inv := Gravity.frame(global_position).inverse()  # look angles are in the gravity frame
+	# The target: the nearest enemy it sees. The one it fights stays seen while the line is clear.
 	var target: Player = null
-	var seen := false
 	var best := INF
+	var shooter: Player = null  # the nearest enemy with a clear line, in view or not
+	var shooter_dist := INF
 	for id in world.players:
 		var other: Player = world.players[id]
-		if other == self or not other.alive:
+		if other == self or not other.alive or is_teammate(other):
 			continue
-		var d := other.global_position.distance_to(global_position)
 		var other_seg := LagComp.body_segment(other.hitbox_state())
 		var chest: Vector3 = (other_seg[0] as Vector3).lerp(other_seg[1], 0.6)
-		var visible := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, chest, Layers.WORLD)).is_empty()
-		if (visible and not seen) or (visible == seen and d < best):
+		if not _arch_clear(eye, chest):
+			continue
+		var d := other.global_position.distance_to(global_position)
+		if d < shooter_dist:
+			shooter = other
+			shooter_dist = d
+		var to := frame_inv * (chest - eye)
+		var off_view := absf(angle_difference(_arch_aim.x, atan2(-to.x, -to.z)))
+		if d < best and ((other == _arch_target and _arch_seen) or off_view < deg_to_rad(ARCH_FOV)):
 			target = other
-			seen = visible
 			best = d
-	if target != _arch_target or (seen and not _arch_seen):
+	var seen := target != null
+	if seen:
+		_arch_known = target.global_position
+		_arch_known_left = ARCH_MEMORY
+	elif health < _arch_health and shooter != null:  # hit from out of view
+		_arch_known = shooter.global_position
+		_arch_known_left = ARCH_MEMORY
+	else:
+		_arch_known_left -= delta
+	_arch_health = health
+	if seen and (target != _arch_target or not _arch_seen):
 		_arch_notice = skill["react"] * _arch_rng.randf_range(0.8, 1.2)
 		_arch_hist.clear()
 	_arch_target = target
@@ -341,11 +375,30 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 	if _arch_head_time <= 0.0:
 		_arch_head_time = 1.0
 		_arch_head = _arch_rng.randf() < skill["head"]
-	var fighting := false
+	var keep: float = style["keep"]
 	var dist := best
+	# Where it walks: to its distance from the target, to the place an enemy was last seen at, or on patrol.
+	var goal := Vector3.INF
+	if seen:
+		if dist > keep + 2.0:
+			goal = target.global_position
+	elif _arch_known_left > 0.0 and global_position.distance_to(_arch_known) > 1.5:
+		goal = _arch_known
+	else:
+		_arch_known_left = 0.0
+		if _arch_goal == Vector3.INF or global_position.distance_to(_arch_goal) < 2.0:
+			_arch_goal = _arch_patrol_point()
+		goal = _arch_goal
+	var walk := Vector3.ZERO  # the way's direction, flat, in the gravity frame
+	if goal != Vector3.INF:
+		walk = frame_inv * (_arch_nav.next_point(global_position, goal, delta) - global_position)
+		walk.y = 0.0
+		walk = walk.normalized()
+	var fighting := false
 	var shot := weapons.mags[weapons.index] < _arch_mag
 	_arch_mag = weapons.mags[weapons.index]
-	if target != null:
+	var step := deg_to_rad(skill["turn"]) * delta
+	if seen:
 		var state := target.hitbox_state()
 		var seg := LagComp.body_segment(state)
 		_arch_hist.append(LagComp.head_center(state) if _arch_head else (seg[0] as Vector3).lerp(seg[1], 0.6))
@@ -360,21 +413,15 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 		var tau := 0.35
 		for i in 2:
 			_arch_noise[i] += -_arch_noise[i] / tau * delta + sigma * sqrt(2.0 * delta / tau) * _arch_rng.randfn()
-		var dir := Gravity.frame(global_position).inverse() * (point - eye).normalized()  # look angles: gravity frame
-		var clean := Vector2(atan2(-dir.x, -dir.z), asin(clampf(dir.y, -1.0, 1.0)))
-		var want := clean + _arch_noise
-		if seen:
-			_arch_notice -= delta
-		var step := deg_to_rad(skill["turn"]) * delta
-		if seen and _arch_notice <= 0.0:
+		var dir := frame_inv * (point - eye).normalized()
+		var want := Vector2(atan2(-dir.x, -dir.z), asin(clampf(dir.y, -1.0, 1.0))) + _arch_noise
+		_arch_notice -= delta
+		if _arch_notice <= 0.0:
 			var off := Vector2(angle_difference(_arch_aim.x, want.x), want.y - _arch_aim.y)
 			if off.length() > step:
 				off = off.normalized() * step
 			_arch_aim += off
 			fighting = true
-		elif not seen:  # walks to it, looking its way
-			_arch_aim.x = rotate_toward(_arch_aim.x, clean.x, step)
-			_arch_aim.y = move_toward(_arch_aim.y, 0.0, step)
 		_arch_aim.y = clampf(_arch_aim.y, -MAX_PITCH, MAX_PITCH)
 		look_yaw = _arch_aim.x - weapons.recoil.y * skill["recoil"]
 		look_pitch = clampf(_arch_aim.y - weapons.recoil.x * skill["recoil"], -MAX_PITCH, MAX_PITCH)
@@ -399,24 +446,40 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 			if not cmd.fire and _arch_pause <= 0.0:
 				_arch_shots = 0  # let go on its own: the next press is a new burst
 			cmd.melee = style["melee"] and dist < melee_reach() - 0.2 and not weapons.is_meleeing()
+			# Friendly fire on: holds its fire while a teammate stands in the line.
+			if team >= 0 and Game.friendly_fire() and (cmd.fire or cmd.melee):
+				var view_dir := Gravity.frame(global_position) * Basis.from_euler(Vector3(look_pitch, look_yaw, 0.0)) \
+						* Vector3.FORWARD
+				var in_line: Player = _trace(eye, view_dir, dist + 1.0)["player"]
+				if in_line != null and is_teammate(in_line):
+					cmd.fire = false
+					cmd.melee = false
+	else:
+		# Nobody in view: looks at the place the enemy was last seen at while it is in sight, else along the way.
+		var look := Vector2(_arch_aim.x, 0.0)
+		var spot := _arch_known + body_up() * 1.2
+		if _arch_known_left > 0.0 and _arch_clear(eye, spot):
+			var dir := frame_inv * (spot - eye).normalized()
+			look = Vector2(atan2(-dir.x, -dir.z), asin(clampf(dir.y, -1.0, 1.0)))
+		elif walk != Vector3.ZERO:
+			look.x = atan2(-walk.x, -walk.z)
+		_arch_aim.x = rotate_toward(_arch_aim.x, look.x, step)
+		_arch_aim.y = clampf(move_toward(_arch_aim.y, look.y, step), -MAX_PITCH, MAX_PITCH)
+		look_yaw = _arch_aim.x
+		look_pitch = _arch_aim.y
 	# Out of a fight: a half-empty magazine is reloaded.
 	if not fighting and weapons.mags[weapons.index] < weapons.current().mag_size / 2.0:
 		cmd.reload = true
-	# Movement (x: right, y: back), relative to where it looks.
-	var keep: float = style["keep"]
-	var forward := 0.0
-	if target != null:
-		if not seen or dist > keep + 2.0:
-			forward = -1.0
-		elif style["back_off"] > 0.0 and dist < style["back_off"]:
-			forward = 1.0
-	var side := 0.0
+	# Movement (x: right, y: back), relative to where it looks: along the way, in a fight - its distance and strafe.
+	var move := Vector2(walk.x * cos(look_yaw) - walk.z * sin(look_yaw), walk.x * sin(look_yaw) + walk.z * cos(look_yaw))
+	if seen and goal == Vector3.INF and style["back_off"] > 0.0 and dist < style["back_off"]:
+		move.y = 1.0
 	if fighting:
 		_arch_strafe_time -= delta
 		if _arch_strafe_time <= 0.0:
 			_arch_strafe = -_arch_strafe
 			_arch_strafe_time = style["strafe_time"] * _arch_rng.randf_range(0.6, 1.4)
-		side = _arch_strafe * style["strafe"]
+		move.x += _arch_strafe * style["strafe"]
 		_arch_crouch_time -= delta
 		if _arch_crouch_time <= 0.0:
 			_arch_crouch_time = 1.5 * _arch_rng.randf_range(0.6, 1.4)
@@ -425,13 +488,43 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 		cmd.jump = _arch_rng.randf() < style["jump"] * delta
 		cmd.jump_held = cmd.jump
 	if style["stand_fire"] and cmd.fire:
-		forward = 0.0
-		side = 0.0
-	cmd.move = Vector2(side, forward)
-	if style["sprint"] and forward < 0.0 and (not seen or dist > keep + 6.0) and not cmd.fire:
+		move = Vector2.ZERO
+	# Stuck on the way (a crate, a sill): jumps - the jump held in the air grabs the ledge; no luck - another way.
+	var blocked: bool = goal != Vector3.INF and not (style["stand_fire"] and cmd.fire) and flat_speed() < 0.5
+	_arch_stuck = _arch_stuck + delta if blocked and not is_mantling else 0.0
+	if _arch_stuck > 0.4:
+		cmd.jump = is_on_floor()
+		cmd.jump_held = true
+		cmd.crouch = false
+	if _arch_stuck > 2.5:
+		Game.count("nav_stuck")
+		_arch_stuck = 0.0
+		_arch_known_left = 0.0
+		_arch_goal = Vector3.INF
+		_arch_nav.forget()
+	cmd.move = move
+	if style["sprint"] and move.y < -0.7 and (not seen or dist > keep + 6.0) and not cmd.fire:
 		cmd.sprint = true
 		cmd.aim = false
 		cmd.crouch = false
 	cmd.yaw = look_yaw
 	cmd.pitch = look_pitch
 	return cmd
+
+
+## Whether nothing of the level stands between the two points.
+func _arch_clear(from: Vector3, to: Vector3) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(from, to, Layers.WORLD)
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## A patrol goal: a random spawn point of the level farther than 10 m (INF: the level has none).
+func _arch_patrol_point() -> Vector3:
+	var spawns := get_tree().current_scene.get_node_or_null("SpawnPoints")
+	var far: Array[Vector3] = []
+	if spawns != null:
+		for spawn in spawns.get_children():
+			var at: Vector3 = (spawn as Node3D).global_position
+			if at.distance_to(global_position) > 10.0:
+				far.append(at)
+	return far[_arch_rng.randi() % far.size()] if not far.is_empty() else Vector3.INF

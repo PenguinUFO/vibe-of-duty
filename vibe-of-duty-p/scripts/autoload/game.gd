@@ -1,5 +1,5 @@
 extends Node
-## Match state (Free-for-All): scores, timer, winner. The server owns it; clients receive it through NetWorld RPCs.
+## Match state (Free-for-All, or two teams - teams): scores, timer, winner. The server owns it; clients receive it through NetWorld RPCs.
 
 enum State { MENU, LOBBY, PLAYING, ENDED }
 
@@ -24,6 +24,8 @@ const TRAINING_INFO := {
 	"test_level": "Укрытия, уступы и склоны: проверка движения и залезания",
 }
 const SCORE_LIMIT := 20
+const TEAM_SCORE_LIMIT := 50  # team mode: kills of a whole team
+const TEAM_SIZE := 4          # team mode: players a team, bots fill the empty places (BotLauncher)
 const MATCH_TIME := 600.0  # seconds
 const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the next one
 
@@ -32,7 +34,8 @@ const INTERMISSION_TIME := 10.0  # seconds between the end of a match and the ne
 # --bot (scripted input for tests), --netlog (periodic net debug prints),
 # --lag=MS and --perturb (network simulation for tests), --score-limit=N, --match-time=S, --intermission=S (match rules),
 # --summary=S (after S s print one [SUMMARY] line with this machine's results, then quit: compact output for tests),
-# --random-weapons (the "Бойня рандом" mode on a dedicated server), --stats (record MatchStats),
+# --random-weapons (the "Бойня рандом" mode on a dedicated server), --teams (the "Командная бойня" mode there),
+# --stats (record MatchStats),
 # --tool=name (tools/run_tool.tscn runs tools/<name>.gd: screenshots with the autoloads).
 var dedicated := false
 var bot_mode := false
@@ -46,6 +49,9 @@ var test_build: Array = []     # --build=part,part,...: the build bots play (Par
 var bot_aim := false       # --bot-aim: bots strafe and shoot at the nearest enemy
 var bot_style := ""        # --bot-style=ID: an archetype bot (BotProfiles.STYLES) - balance tests, Docs/BOTS.md
 var bot_skill := "average" # --bot-skill=ID: the archetype bot's skill (BotProfiles.SKILLS)
+var host_bots := 0         # bots the server starts (BotLauncher): HostPanel "Боты", a dedicated server's --bots=N
+var host_bot_skill := "average"  # their skill: HostPanel, a dedicated server's --bot-skill=ID
+var bot_key := ""          # --bot-key=KEY: this process is a bot BotLauncher started - what it tells the server (Net._identify)
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_ttk := ""          # --bot-ttk=NODE: --bot-targets shoot only that target's body and time each kill (balance test)
@@ -78,6 +84,10 @@ var random_weapons := false
 ## "Хардкор" checkbox (host panel, lobby), on top of either mode: everybody has PlayerBase.HARDCORE_HEALTH, kid mode
 ## ignored (PlayerBase._apply_stats). Chosen by the host, sent to clients by Net.
 var hardcore := false
+## Game mode "Командная бойня" (host panel, lobby): two teams of TEAM_SIZE, the server deals the players out evenly
+## (NetWorld.server_join_team) and bots fill the rest (BotLauncher); kills count for the team (team_scores). Friendly
+## fire only with "Хардкор" (friendly_fire). Chosen by the host, sent to clients by Net.
+var teams := false
 var score_limit := SCORE_LIMIT
 var match_time := MATCH_TIME
 var intermission_time := INTERMISSION_TIME
@@ -86,9 +96,11 @@ var time_left := MATCH_TIME       # seconds left in the running match
 var intermission_left := 0.0      # seconds until the next match starts (while ENDED)
 var winners: Array = []           # peer ids of the winners of the last match
 var scores: Dictionary = {}  # peer_id -> {"kills": int, "deaths": int}
+var team_scores: Array = [0, 0]  # team mode: kills of each team (a player who left took none away)
 
 
 func _ready() -> void:
+	var limit_given := false
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--server":
 			dedicated = true
@@ -127,6 +139,8 @@ func _ready() -> void:
 			bot_style = arg.trim_prefix("--bot-style=")
 		elif arg.begins_with("--bot-skill="):
 			bot_skill = arg.trim_prefix("--bot-skill=")
+		elif arg.begins_with("--bots="):
+			host_bots = int(arg.trim_prefix("--bots="))
 		elif arg == "--bot-aim":
 			bot_mode = true
 			bot_aim = true
@@ -139,6 +153,10 @@ func _ready() -> void:
 			test_spawn = Vector3(float(xyz[0]), float(xyz[1]), float(xyz[2]))
 		elif arg == "--random-weapons":
 			random_weapons = true
+		elif arg == "--teams":
+			teams = true
+		elif arg.begins_with("--bot-key="):
+			bot_key = arg.trim_prefix("--bot-key=")
 		elif arg == "--hardcore":
 			hardcore = true
 		elif arg == "--stats":
@@ -153,6 +171,7 @@ func _ready() -> void:
 			sim_lag_ms = int(arg.trim_prefix("--lag="))
 		elif arg.begins_with("--score-limit="):
 			score_limit = maxi(1, int(arg.trim_prefix("--score-limit=")))
+			limit_given = true
 		elif arg.begins_with("--match-time="):
 			match_time = maxf(1.0, float(arg.trim_prefix("--match-time=")))
 		elif arg.begins_with("--build="):
@@ -189,8 +208,15 @@ func _ready() -> void:
 				map_scene = path
 			else:
 				push_error("Unknown map %s; maps: %s" % [path, ", ".join(list_maps())])
+	if teams and not limit_given:
+		score_limit = TEAM_SCORE_LIMIT
 	if is_test_launch():
 		Settings.player_uid = Settings.new_uid()  # bots share the player's profile: tell them apart in the stats
+	if bot_mode:
+		Settings.kid_mode = false  # a bot of a hosted game runs on the host's profile: not its kid mode
+	if bot_style != "" and auto_join != "":  # a bot without its server has nothing to do (BotLauncher: no window to close)
+		Net.disconnected.connect(get_tree().quit)
+		Net.connection_failed.connect(get_tree().quit)
 	if dedicated:
 		var err := Net.host(launch_port)
 		if err != OK:
@@ -199,6 +225,7 @@ func _ready() -> void:
 			return
 		print("Dedicated server listening on port %d" % launch_port)
 		print("Map: %s" % map_scene)
+		BotLauncher.start(host_bots, bot_skill)
 		get_tree().change_scene_to_file.call_deferred(map_scene)
 
 
@@ -265,13 +292,18 @@ func ensure_player(peer_id: int) -> void:
 		scores[peer_id] = {"kills": 0, "deaths": 0}
 
 
-func add_kill(killer_id: int, victim_id: int) -> void:
+## `killer_team`: the killer's team in team mode (-1: none) - the kill counts for it too. `team_kill`: the victim was
+## the killer's teammate (friendly fire) - it takes a kill away from both instead.
+func add_kill(killer_id: int, victim_id: int, killer_team := -1, team_kill := false) -> void:
 	if state == State.ENDED:  # the winners are picked: a grenade still in the air or a fall changes nothing
 		return
 	ensure_player(killer_id)
 	ensure_player(victim_id)
 	if killer_id != victim_id:
-		scores[killer_id]["kills"] += 1
+		var gain := -1 if team_kill else 1
+		scores[killer_id]["kills"] += gain
+		if killer_team >= 0:
+			team_scores[killer_team] += gain
 	scores[victim_id]["deaths"] += 1
 	score_changed.emit(killer_id)
 	score_changed.emit(victim_id)
@@ -295,6 +327,7 @@ func is_frozen() -> bool:
 ## Starts a fresh match: clears scores and the clock.
 func reset_match() -> void:
 	scores.clear()
+	team_scores = [0, 0]
 	winners = []
 	time_left = match_time
 	intermission_left = 0.0
@@ -325,7 +358,22 @@ func leaders() -> Array:
 	return result
 
 
+## The team ahead (team mode): 0 or 1, -1 for a draw.
+func leading_team() -> int:
+	if team_scores[0] == team_scores[1]:
+		return -1
+	return 0 if team_scores[0] > team_scores[1] else 1
+
+
+## Whether teammates hurt each other (team mode): only with "Хардкор" (owner, 2026-11-10).
+func friendly_fire() -> bool:
+	return hardcore
+
+
+## What the kill limit is measured against: the best player's kills, in team mode the best team's.
 func top_kills() -> int:
+	if teams:
+		return maxi(team_scores[0], team_scores[1])
 	var best := 0
 	for id in scores:
 		best = maxi(best, scores[id]["kills"])
@@ -334,16 +382,19 @@ func top_kills() -> int:
 
 ## The game modes the host picks from (HostPanel, LobbyMenu): index = Mode.
 ## "Хардкор" is not a mode: a separate checkbox (hardcore).
-enum Mode { DEATHMATCH, RANDOM_WEAPONS }
-const MODE_NAMES: Array[String] = ["Бойня", "Бойня рандом"]
+enum Mode { DEATHMATCH, RANDOM_WEAPONS, TEAM_DEATHMATCH }
+const MODE_NAMES: Array[String] = ["Бойня", "Бойня рандом", "Командная бойня"]
 
 
 func mode() -> Mode:
+	if teams:
+		return Mode.TEAM_DEATHMATCH
 	return Mode.RANDOM_WEAPONS if random_weapons else Mode.DEATHMATCH
 
 
 func set_mode(m: int) -> void:
 	random_weapons = m == Mode.RANDOM_WEAPONS
+	teams = m == Mode.TEAM_DEATHMATCH
 
 
 ## The mode's name for the lobby and the like: "Бойня рандом · Хардкор".

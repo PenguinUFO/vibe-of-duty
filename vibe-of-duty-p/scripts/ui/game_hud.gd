@@ -7,6 +7,8 @@ extends CanvasLayer
 const FEED_MAX := 6
 const FEED_TIME := 6.0
 const BOARD_REFRESH := 0.25
+## Team mode: the colours of names and scores - teammates, enemies (as the bodies: Mannequin.LOOK_RIM).
+const LOOK_COLORS := {Mannequin.Look.FRIEND: Color(0.45, 0.66, 1.0), Mannequin.Look.ENEMY: Color(1.0, 0.38, 0.28)}
 
 var world: NetWorld
 
@@ -104,8 +106,10 @@ func refresh() -> void:
 
 
 ## One kill feed line on a plate: killer, weapon, a headshot mark, victim (or "victim погиб" for a suicide). Lines about
-## the local player get the accent plate and their names highlighted.
-func add_kill(killer: String, victim: String, weapon: String, headshot: bool, involves_me: bool) -> void:
+## the local player get the accent plate and their names highlighted. Team mode: the names in their team's colour
+## (`killer_look`, `victim_look`: Mannequin.Look as the local player sees them).
+func add_kill(killer: String, victim: String, weapon: String, headshot: bool, involves_me: bool,
+		killer_look := Mannequin.Look.PLAIN, victim_look := Mannequin.Look.PLAIN) -> void:
 	var entry := PanelContainer.new()
 	entry.theme_type_variation = "FeedEntryMine" if involves_me else "FeedEntry"
 	entry.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -114,15 +118,16 @@ func add_kill(killer: String, victim: String, weapon: String, headshot: bool, in
 	row.add_theme_constant_override("separation", 8)
 	entry.add_child(row)
 	var name_color := UiTheme.HIGHLIGHT if involves_me else UiTheme.TEXT
+	var victim_color: Color = LOOK_COLORS.get(victim_look, name_color)
 	if killer == "":
-		row.add_child(_feed_label(victim, name_color))
+		row.add_child(_feed_label(victim, victim_color))
 		row.add_child(_feed_label("погиб", UiTheme.TEXT_DIM, 13))
 	else:
-		row.add_child(_feed_label(killer, name_color))
+		row.add_child(_feed_label(killer, LOOK_COLORS.get(killer_look, name_color)))
 		row.add_child(_feed_label(weapon, UiTheme.TEXT_DIM, 13))
 		if headshot:
 			row.add_child(HeadshotMark.new())
-		row.add_child(_feed_label(victim, name_color))
+		row.add_child(_feed_label(victim, victim_color))
 	_feed.add_child(entry)
 	entry.modulate.a = 0.0
 	entry.create_tween().tween_property(entry, "modulate:a", 1.0, 0.15)
@@ -159,11 +164,23 @@ func _update_labels() -> void:
 	_timer_label.text = "%d:%02d" % [seconds / 60, seconds % 60]
 	var mine: Dictionary = Game.scores.get(multiplayer.get_unique_id(), {"kills": 0, "deaths": 0})
 	_score_label.text = "УБИЙСТВА %d / %d    СМЕРТИ %d" % [mine["kills"], Game.score_limit, mine["deaths"]]
+	var my_team := _my_team()
+	if my_team >= 0:
+		_score_label.text = "СВОИ %d : %d ВРАГИ    ДО %d" % [Game.team_scores[my_team], Game.team_scores[1 - my_team],
+				Game.score_limit]
 	_top.visible = not Game.training  # training: no match to count down or score
 	# The last half minute in red (the label's own colour is near white, so the tint gives the red).
 	_timer_label.self_modulate = UiTheme.DANGER if Game.state == Game.State.PLAYING and Game.time_left <= 30.0 else Color.WHITE
 	_banner.visible = ended
-	if ended:
+	if ended and Game.teams:
+		var best := Game.leading_team()
+		var result := "НИЧЬЯ" if best < 0 else ("Команда %d побеждает" % (best + 1))
+		if my_team >= 0 and best >= 0:
+			result = "ПОБЕДА" if best == my_team else "ПОРАЖЕНИЕ"
+		var first := maxi(my_team, 0)
+		_banner.text = "МАТЧ ОКОНЧЕН\n%s  %d : %d\n%s через %d" % [result, Game.team_scores[first],
+				Game.team_scores[1 - first], "Лобби" if Lobby.enabled() else "Следующий матч", ceili(Game.intermission_left)]
+	elif ended:
 		var names: PackedStringArray = []
 		for id in Game.winners:
 			names.append(_player_name(id))
@@ -187,8 +204,26 @@ func _rebuild_board() -> void:
 	for id in world.players:
 		var entry: Dictionary = Game.scores.get(id, {"kills": 0, "deaths": 0})
 		rows.append({"id": id, "name": (world.players[id] as Player).player_name, "kills": entry["kills"], "deaths": entry["deaths"],
-				"score": Game.score_of(entry), "kd": Game.kd_of(entry)})
+				"score": Game.score_of(entry), "kd": Game.kd_of(entry), "team": (world.players[id] as Player).team})
 	rows.sort_custom(Game.ranks_above)
+	if not Game.teams:
+		_add_board_rows(rows)
+		return
+	# Team mode: a block a team under its score - the local player's team first.
+	var my_team := _my_team()
+	for team: int in ([my_team, 1 - my_team] if my_team >= 0 else [0, 1]):
+		var color: Color = LOOK_COLORS[Mannequin.Look.FRIEND if team == my_team else Mannequin.Look.ENEMY]
+		var title := ("СВОИ" if team == my_team else "ВРАГИ") if my_team >= 0 else "КОМАНДА %d" % (team + 1)
+		for text in [title, str(Game.team_scores[team]), "", "", ""]:
+			var cell := _make_label(20)
+			cell.text = text
+			cell.add_theme_font_override("font", UiTheme.heavy_font())
+			cell.add_theme_color_override("font_color", color)
+			_board_grid.add_child(cell)
+		_add_board_rows(rows.filter(func(row: Dictionary) -> bool: return row["team"] == team))
+
+
+func _add_board_rows(rows: Array) -> void:
 	var me := multiplayer.get_unique_id()
 	for row in rows:
 		for text in [row["name"], str(row["score"]), str(row["kills"]), str(row["deaths"]), "%.2f" % row["kd"]]:
@@ -197,6 +232,12 @@ func _rebuild_board() -> void:
 			if row["id"] == me:
 				cell.add_theme_color_override("font_color", UiTheme.HIGHLIGHT)
 			_board_grid.add_child(cell)
+
+
+## The local player's team (-1: no teams, or no player here yet).
+func _my_team() -> int:
+	var me: Player = world.players.get(multiplayer.get_unique_id()) if multiplayer.has_multiplayer_peer() else null
+	return me.team if me != null and Game.teams else -1
 
 
 func _player_name(id: int) -> String:

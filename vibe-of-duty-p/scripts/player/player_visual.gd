@@ -36,6 +36,7 @@ var _grenade_ready := false       # the hoof is held back (G down)
 var _grenade_t := -1.0            # s into the throw being shown, -1 = none
 var _shown_grenade := -2.0        # replay: throw progress given directly (show_grenade), -2 = not given
 var _ads_target := false
+var _peer_id := 0
 
 
 static func preload_scenes() -> void:
@@ -43,6 +44,7 @@ static func preload_scenes() -> void:
 
 
 func setup(peer_id: int, _display_name: String) -> void:
+	_peer_id = peer_id
 	_mannequin = Mannequin.new()
 	add_child(_mannequin)
 	_mannequin.build(Mannequin.color_for(peer_id))
@@ -53,6 +55,12 @@ func setup(peer_id: int, _display_name: String) -> void:
 	_left_weapon.visible = false
 	add_child(_left_weapon)
 	_mannequin.left_weapon = _left_weapon
+
+
+## Team mode: the body in a teammate's or an enemy's colours (Mannequin.Look); PLAIN - the player's own colour back.
+func set_look(look: Mannequin.Look) -> void:
+	if _mannequin:
+		Mannequin.apply_look(_mannequin, look, Mannequin.color_for(_peer_id))
 
 
 ## `def`: the player's weapon with their modules (null: the base one).

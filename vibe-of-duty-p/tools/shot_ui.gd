@@ -1,9 +1,12 @@
 extends Node
 ## Renders the menu panels at the base 1280x720 (canvas_items stretch: every window lays them out at this size) to
 ## ../shots/ui_<panel>.png and prints each panel's size - a panel taller than 720 does not fit. SHOT_PANEL=build: one.
+## SHOT_HOST_MODE=2: the host panel with this game mode chosen (Game.Mode; not saved).
+## SHOT_PANEL=lobby (only when asked): the host's lobby after a team match - a vote, 8 players in two teams. Opens a
+## server on port 27555 for the time of the shot (the lobby's host is a server).
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_ui
 
-var panels := {"settings": SettingsPanel, "build": BuildPanel, "kid": KidPanel}
+var panels := {"settings": SettingsPanel, "build": BuildPanel, "kid": KidPanel, "host": HostPanel}
 
 
 func _ready() -> void:
@@ -11,6 +14,12 @@ func _ready() -> void:
 	var dir := ProjectSettings.globalize_path("res://").path_join("../shots")
 	DirAccess.make_dir_recursive_absolute(dir)
 	var only := OS.get_environment("SHOT_PANEL")
+	if OS.has_environment("SHOT_HOST_MODE"):
+		Settings.host_mode = int(OS.get_environment("SHOT_HOST_MODE"))
+	if only == "lobby":
+		await _lobby(dir)
+		get_tree().quit()
+		return
 	for id: String in panels:
 		if only != "" and id != only:
 			continue
@@ -76,6 +85,34 @@ func _ready() -> void:
 		holder.queue_free()
 		await get_tree().process_frame
 	get_tree().quit()
+
+
+func _lobby(dir: String) -> void:
+	Net.host(27555)
+	Game.set_mode(Game.Mode.TEAM_DEATHMATCH)
+	Game.score_limit = Game.TEAM_SCORE_LIMIT
+	Lobby.phase = Lobby.Phase.VOTING
+	Lobby.time_left = Lobby.VOTE_TIME
+	Lobby.options = Lobby._ballot()
+	Lobby.roster = {1: Settings.player_name}
+	for i in 7:
+		Lobby.roster[100 + i] = Settings.pick_nickname()
+	var menu: LobbyMenu = load(Lobby.SCENE).instantiate()
+	get_tree().root.add_child(menu)
+	for i in 8:
+		await get_tree().process_frame
+	for id in [102, 103, 104, 105, 106]:
+		Net._bot_peers[id] = true  # as BotLauncher's bots
+	Lobby.teams.clear()
+	Lobby._broadcast()
+	for i in 8:
+		await get_tree().process_frame
+	_report("lobby", menu._panel, dir)
+	print("teams dealt: ", Lobby.teams)
+	Lobby.server_move(101)
+	for i in 8:
+		await get_tree().process_frame
+	print("teams after moving 101: ", Lobby.teams)  # the server closes with the process (Net.leave would open the menu)
 
 
 func _report(id: String, panel: Control, dir: String) -> void:

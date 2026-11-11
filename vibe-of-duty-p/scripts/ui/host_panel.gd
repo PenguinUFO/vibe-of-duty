@@ -1,7 +1,8 @@
 class_name HostPanel
 extends PanelContainer
 ## Host settings, opened by the main menu's "Создать игру": map, match rules (kill limit, match length, the game
-## mode - Game.Mode, the "Хардкор" checkbox) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
+## mode - Game.Mode: the team mode has a kill limit of its own (a team's kills) and fills its teams with bots itself,
+## the "Хардкор" checkbox), the bots (how many and how skilled - BotLauncher) and, under the folded "Дополнительно", the port. Below it, "Тестирование" behind
 ## the kid mode code (KidModeEntry): the right code opens a section of test options - for now recording the match
 ## statistics (Game.record_stats, MatchStats).
 ## "Start" emits start_requested after copying the choices into Game (and saving them for next time);
@@ -20,7 +21,13 @@ var _match_minutes: SpinBox
 var _port: SpinBox
 var _mode: OptionButton
 var _hardcore: CheckBox
+var _bots: SpinBox
+var _bot_skill: OptionButton
 var _record_stats: CheckBox
+var _bots_row: Control
+var _fill_row: Control
+var _limits: Array[int] = []  # the kill limit of the other modes, of the team mode
+var _team_mode := false       # the limit on show is the team mode's
 
 
 func _init() -> void:
@@ -47,19 +54,36 @@ func _init() -> void:
 			_map.select(_map.item_count - 1)
 	_map.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
 	_add_row(box, "Карта", _map)
-	_score_limit = _add_spin(box, "Лимит убийств", 1, 100, Settings.host_score_limit, "")
+	_limits = [Settings.host_score_limit, Settings.host_team_score_limit]
+	_score_limit = _add_spin(box, "Лимит убийств", 1, 200, Settings.host_score_limit, "")
 	_match_minutes = _add_spin(box, "Длительность матча", 1, 60, Settings.host_match_minutes, " мин")
 	_mode = OptionButton.new()
 	for mode_name in Game.MODE_NAMES:
 		_mode.add_item(mode_name)
 	_mode.select(Settings.host_mode)
-	_mode.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
+	_mode.item_selected.connect(func(_i: int) -> void:
+		Audio.play("ui_click")
+		_show_mode())
 	_add_row(box, "Режим", _mode)
 	_hardcore = CheckBox.new()
 	_hardcore.text = "%d HP у всех" % PlayerBase.HARDCORE_HEALTH
 	_hardcore.button_pressed = Settings.host_hardcore
 	_hardcore.toggled.connect(func(_on: bool) -> void: Audio.play("ui_click"))
 	_add_row(box, "Хардкор", _hardcore)
+	_bots = _add_spin(box, "Боты", 0, Net.MAX_PLAYERS - 1, Settings.host_bots, "")
+	_bots_row = _bots.get_parent()
+	var fill := Label.new()
+	fill.text = "добор до %d на %d" % [Game.TEAM_SIZE, Game.TEAM_SIZE]
+	fill.theme_type_variation = "Hint"
+	_fill_row = _add_row(box, "Боты", fill)
+	_bot_skill = OptionButton.new()
+	for skill_id: String in BotProfiles.SKILLS:
+		_bot_skill.add_item(BotProfiles.SKILLS[skill_id]["name"])
+		_bot_skill.set_item_metadata(_bot_skill.item_count - 1, skill_id)
+		if skill_id == Settings.host_bot_skill:
+			_bot_skill.select(_bot_skill.item_count - 1)
+	_bot_skill.item_selected.connect(func(_i: int) -> void: Audio.play("ui_click"))
+	_add_row(box, "Навык ботов", _bot_skill)
 	# Rarely needed settings, folded away: the port (only when 27015 is taken or a router forwards another one).
 	var advanced := FoldableContainer.new()
 	advanced.title = "Дополнительно"
@@ -70,6 +94,7 @@ func _init() -> void:
 	advanced.add_child(advanced_box)
 	_port = _add_spin(advanced_box, "Порт", 1024, 65535, Settings.host_port, "")
 	_add_testing(box)
+	_show_mode()
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
@@ -96,23 +121,39 @@ func _unhandled_input(event: InputEvent) -> void:
 		closed.emit()
 
 
+## The chosen mode's rows: the team mode has its own kill limit and no number of bots (they fill the teams).
+func _show_mode() -> void:
+	_limits[1 if _team_mode else 0] = int(_score_limit.value)
+	_team_mode = _mode.selected == Game.Mode.TEAM_DEATHMATCH
+	_score_limit.value = _limits[1 if _team_mode else 0]
+	_bots_row.visible = not _team_mode
+	_fill_row.visible = _team_mode
+
+
 func _on_start() -> void:
 	Audio.play("ui_click")
 	if _map.selected >= 0:
 		Settings.host_map = _map.get_item_metadata(_map.selected)
-	Settings.host_score_limit = int(_score_limit.value)
+	_limits[1 if _team_mode else 0] = int(_score_limit.value)
+	Settings.host_score_limit = _limits[0]
+	Settings.host_team_score_limit = _limits[1]
 	Settings.host_match_minutes = int(_match_minutes.value)
 	Settings.host_port = int(_port.value)
 	Settings.host_mode = _mode.selected
 	Settings.host_hardcore = _hardcore.button_pressed
+	Settings.host_bots = int(_bots.value)
+	if _bot_skill.selected >= 0:
+		Settings.host_bot_skill = _bot_skill.get_item_metadata(_bot_skill.selected)
 	Settings.save_settings()
 	Game.map_scene = Settings.host_map if Game.list_maps().has(Settings.host_map) else Game.DEFAULT_MAP
-	Game.score_limit = Settings.host_score_limit
 	Game.match_time = Settings.host_match_minutes * 60.0
 	Game.launch_port = Settings.host_port
 	Game.training = false
 	Game.set_mode(Settings.host_mode)
+	Game.score_limit = Settings.host_team_score_limit if Game.teams else Settings.host_score_limit
 	Game.hardcore = Settings.host_hardcore
+	Game.host_bots = Settings.host_bots
+	Game.host_bot_skill = Settings.host_bot_skill
 	record_stats = _record_stats.button_pressed
 	Game.record_stats = record_stats
 	start_requested.emit()
@@ -161,7 +202,7 @@ func _add_spin(parent: Container, label_text: String, min_value: int, max_value:
 	return spin
 
 
-func _add_row(parent: Container, label_text: String, control: Control) -> void:
+func _add_row(parent: Container, label_text: String, control: Control) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var label := Label.new()
@@ -171,3 +212,4 @@ func _add_row(parent: Container, label_text: String, control: Control) -> void:
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(control)
 	parent.add_child(row)
+	return row

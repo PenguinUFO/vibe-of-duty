@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|build|moves|grenade|akimbo|smg|val|striker|random|hardcore|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|build|moves|grenade|akimbo|smg|val|striker|random|hardcore|tdm|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -95,11 +95,19 @@ run() {
 		$R --join=127.0.0.1 --bot-aim --name=H1 --hardcore --summary=37 > "$O/hardcore_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=H2 --hardcore --build=kit.ak --lag=40 --summary=37 > "$O/hardcore_c2.log" 2>&1 &
 		wait;;
+	tdm)  # killhouse: "Командная бойня" - the server fills both teams with bots (BotLauncher); two aim bots stand in for
+		# humans, the second joins late: a bot leaves for each, the two land in different teams, 4 a team
+		$R --server --teams --map=killhouse --summary=60 > "$O/tdm_srv.log" 2>&1 &
+		sleep 4
+		$R --join=127.0.0.1 --bot-aim --name=H1 --summary=54 > "$O/tdm_c1.log" 2>&1 &
+		sleep 18
+		$R --join=127.0.0.1 --bot-aim --name=H2 --summary=36 > "$O/tdm_c2.log" 2>&1 &
+		wait;;
 	*) echo "unknown test: $1"; return;;
 	esac
 	echo "== $1"
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee build moves grenade akimbo smg val striker random hardcore; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee build moves grenade akimbo smg val striker random hardcore tdm; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"

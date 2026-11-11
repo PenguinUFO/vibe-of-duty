@@ -60,10 +60,13 @@ func _server_flight(grenade: Grenade, from: Vector3, to: Vector3) -> bool:
 	var best := length
 	var victim: Object = null
 	var victim_head := false
+	var thrower: Player = world.players.get(grenade.owner_id)
 	for id in world.players:
 		var other: Player = world.players[id]
 		if other.peer_id == grenade.owner_id or not other.alive:
 			continue
+		if thrower != null and thrower.is_teammate(other) and not Game.friendly_fire():
+			continue  # flies through a teammate it cannot hurt
 		var hit := _ray_hitbox(from, dir, other.hitbox_state())
 		if hit.x >= 0.0 and hit.x < best:
 			best = hit.x

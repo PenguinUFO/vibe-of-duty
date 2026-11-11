@@ -73,10 +73,13 @@ var window_size := Vector2i(1280, 720)  # windowed resolution (one of WINDOW_SIZ
 # Last host settings (HostPanel).
 var host_map := "res://prefabs/levels/train.tscn"
 var host_score_limit := 20
+var host_team_score_limit := 50  # the kill limit of the team mode (a team's kills)
 var host_match_minutes := 10
 var host_port := 27015
 var host_mode := 0  # the game mode (Game.Mode)
 var host_hardcore := false  # the "Хардкор" checkbox (Game.hardcore)
+var host_bots := 0  # bots the host starts with the game (BotLauncher)
+var host_bot_skill := "average"  # their skill (BotProfiles.SKILLS)
 
 
 var _psx_layer: CanvasLayer  # full-screen PSX post-process (assets/shaders/psx_post.gdshader), under every UI layer
@@ -390,10 +393,13 @@ func save_settings() -> void:
 		cfg.set_value("kid", key, get(key))
 	cfg.set_value("host", "map", host_map)
 	cfg.set_value("host", "score_limit", host_score_limit)
+	cfg.set_value("host", "team_score_limit", host_team_score_limit)
 	cfg.set_value("host", "match_minutes", host_match_minutes)
 	cfg.set_value("host", "port", host_port)
 	cfg.set_value("host", "mode", host_mode)
 	cfg.set_value("host", "hardcore", host_hardcore)
+	cfg.set_value("host", "bots", host_bots)
+	cfg.set_value("host", "bot_skill", host_bot_skill)
 	for bus in BUS_NAMES:
 		cfg.set_value("audio", String(bus), volumes[bus])
 	cfg.save(SAVE_PATH)
@@ -440,11 +446,16 @@ func load_settings() -> void:
 	kid_back_damage = clampf(cfg.get_value("kid", "kid_back_damage", kid_back_damage), 0.0, 1.0)
 	host_map = cfg.get_value("host", "map", host_map)
 	host_score_limit = clampi(cfg.get_value("host", "score_limit", host_score_limit), 1, 100)
+	host_team_score_limit = clampi(cfg.get_value("host", "team_score_limit", host_team_score_limit), 1, 200)
 	host_match_minutes = clampi(cfg.get_value("host", "match_minutes", host_match_minutes), 1, 60)
 	host_port = clampi(cfg.get_value("host", "port", host_port), 1024, 65535)
 	var old_random := bool(cfg.get_value("host", "random_weapons", false))  # before "Хардкор": a checkbox
 	var saved_mode := int(cfg.get_value("host", "mode", 1 if old_random else host_mode))
-	host_hardcore = bool(cfg.get_value("host", "hardcore", saved_mode == 2))  # "Хардкор" was mode 2
-	host_mode = clampi(saved_mode, 0, 1) if saved_mode != 2 else 0  # Game.Mode
+	# "Хардкор" was mode 2 until it became a checkbox (no "hardcore" key yet then); now 2 is the team mode.
+	var old_hardcore := saved_mode == 2 and not cfg.has_section_key("host", "hardcore")
+	host_hardcore = bool(cfg.get_value("host", "hardcore", old_hardcore))
+	host_mode = 0 if old_hardcore else clampi(saved_mode, 0, 2)  # Game.Mode
+	host_bots = clampi(int(cfg.get_value("host", "bots", host_bots)), 0, 7)
+	host_bot_skill = str(cfg.get_value("host", "bot_skill", host_bot_skill))
 	for bus in BUS_NAMES:
 		volumes[bus] = cfg.get_value("audio", String(bus), volumes[bus])

@@ -107,8 +107,16 @@ const PALETTE: Array[Color] = [
 	Color(0.33, 0.39, 0.22), Color(0.52, 0.44, 0.22), Color(0.45, 0.2, 0.19),
 ]
 
-static var _materials := {}
-static var _rim: ShaderMaterial  # readability rim (assets/shaders/player_rim.gdshader), set_rim
+## Team mode (owner, 2026-11-10): a body as the local player sees it - teammates blue, enemies red, both in the torso
+## and shoulders (LOOK_ACCENT) and in the rim (LOOK_RIM; a team's rim is on whatever the PSX style). PLAIN: no teams.
+enum Look { PLAIN, FRIEND, ENEMY }
+const LOOK_ACCENT := {Look.FRIEND: Color(0.13, 0.27, 0.55), Look.ENEMY: Color(0.56, 0.13, 0.1)}
+const LOOK_RIM := {Look.FRIEND: Color(0.35, 0.6, 1.0), Look.ENEMY: Color(1.0, 0.3, 0.2)}
+const ACCENT_META := &"accent"  # a part in the player's colour (torso, shoulders)
+const TINT_META := &"tint"      # a part's own colour
+
+static var _materials := {}  # "colour|look" -> ShaderMaterial
+static var _rims := {}       # Look -> readability rim (assets/shaders/player_rim.gdshader), set_rim
 static var _rim_on := false
 static var _faceted := {}  # shape key -> flat-shaded ArrayMesh (_facet)
 ## What tells the primitive shapes apart (a missing property reads as null), for the _facet cache key.
@@ -204,6 +212,7 @@ static func run_lean(local_velocity: Vector3) -> Vector2:
 func build(accent: Color) -> void:
 	_part("Pelvis", _capsule(0.14, 0.36), SUIT)
 	_part("Torso", _capsule(0.2, 0.64), accent)
+	(_parts["Torso"] as Node).set_meta(ACCENT_META, true)
 	_part("Neck", _capsule(0.05, 0.16), SKIN)
 	_parts["Head"] = make_head(self)
 	_ears = [_parts["Head"].get_node("EarL"), _parts["Head"].get_node("EarR")]
@@ -1043,6 +1052,7 @@ static func make_arm(parent: Node3D, side: String, accent: Color, length_scale: 
 	var arm := {"side": side, "upper": UPPER_ARM * length_scale, "fore": FOREARM * length_scale, "accent": accent,
 			"thickness": thickness, "toes": []}
 	arm["shoulder"] =_new_part(parent, "Shoulder" + side, _sphere(0.075 * thickness), accent)
+	(arm["shoulder"] as Node).set_meta(ACCENT_META, true)
 	arm["upper_mesh"] = _new_part(parent, "UpperArm" + side, _limb(0.058 * thickness, 0.046 * thickness, arm["upper"]), SUIT)
 	arm["elbow"] = _new_part(parent, "Elbow" + side, _sphere(0.047 * thickness), SUIT)
 	arm["fore_mesh"] = _new_part(parent, "Forearm" + side, _limb(0.045 * thickness, 0.033 * thickness, arm["fore"]), SUIT)
@@ -1099,6 +1109,7 @@ static func _new_part(parent: Node3D, part_name: String, mesh: Mesh, color: Colo
 	instance.name = part_name
 	instance.mesh = _facet(mesh)
 	instance.material_override = _material(color)
+	instance.set_meta(TINT_META, color)
 	parent.add_child(instance)
 	return instance
 
@@ -1107,6 +1118,7 @@ static func _attach(parent: Node3D, mesh: Mesh, color: Color, offset: Vector3) -
 	var instance := MeshInstance3D.new()
 	instance.mesh = _facet(mesh)
 	instance.material_override = _material(color)
+	instance.set_meta(TINT_META, color)
 	instance.position = offset
 	parent.add_child(instance)
 	return instance
@@ -1214,18 +1226,41 @@ static func _box(size: Vector3) -> BoxMesh:
 
 ## The PSX mood's readability rim on every body part (Mood): a faint glow on the silhouette's edges.
 static func set_rim(on: bool) -> void:
-	if on and _rim == null:
-		_rim = ShaderMaterial.new()
-		_rim.shader = load("res://assets/shaders/player_rim.gdshader")
 	_rim_on = on
-	for material in _materials.values():
-		(material as Material).next_pass = _rim if on else null
+	for material: Material in _materials.values():
+		material.next_pass = _rim_for(material.get_meta(&"look"))
+
+
+## The rim of a look: the warm one of the PSX style (only while it is on), a team's colour (always).
+static func _rim_for(look: Look) -> ShaderMaterial:
+	if look == Look.PLAIN and not _rim_on:
+		return null
+	if not _rims.has(look):
+		var rim := ShaderMaterial.new()
+		rim.shader = load("res://assets/shaders/player_rim.gdshader")
+		if look != Look.PLAIN:
+			rim.set_shader_parameter("rim_color", LOOK_RIM[look])
+			rim.set_shader_parameter("strength", 0.9)
+		_rims[look] = rim
+	return _rims[look]
+
+
+## Puts every part under `root` (a body built here) into `look`: the accent parts in the look's colour (PLAIN:
+## `accent`, the player's own), all with the look's rim.
+static func apply_look(root: Node3D, look: Look, accent: Color) -> void:
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		if node.has_meta(TINT_META):
+			var color: Color = node.get_meta(TINT_META)
+			if node.has_meta(ACCENT_META):
+				color = LOOK_ACCENT.get(look, accent)
+			(node as MeshInstance3D).material_override = _material(color, look)
 
 
 ## A part's material: its colour under the skin texture (SKIN_SHADER) - matte, dirty; the eyes and nostrils (VISOR)
-## wet-looking and clean.
-static func _material(color: Color) -> ShaderMaterial:
-	if not _materials.has(color):
+## wet-looking and clean. `look`: whose rim it carries (_rim_for).
+static func _material(color: Color, look := Look.PLAIN) -> ShaderMaterial:
+	var key := "%s|%d" % [color.to_html(), look]
+	if not _materials.has(key):
 		var wet := color == VISOR
 		var grain: Array = WeaponSkin.noise("skin")
 		var material := ShaderMaterial.new()
@@ -1237,6 +1272,7 @@ static func _material(color: Color) -> ShaderMaterial:
 		material.set_shader_parameter("dirt_amount", 0.0 if wet else 0.55)
 		material.set_shader_parameter("roughness_value", 0.35 if wet else 0.92)
 		material.set_shader_parameter("specular_value", 0.5 if wet else 0.3)
-		material.next_pass = _rim if _rim_on else null
-		_materials[color] = material
-	return _materials[color]
+		material.set_meta(&"look", look)
+		material.next_pass = _rim_for(look)
+		_materials[key] = material
+	return _materials[key]

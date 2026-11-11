@@ -316,6 +316,7 @@ func _ghost_for(id: int) -> PlayerVisual:
 		var ghost := PlayerVisual.new()
 		add_child(ghost)
 		ghost.setup(id, (world.players[id] as Player).player_name if world.players.has(id) else _names.get(id, "Игрок"))
+		ghost.set_look(world.look_of(id))
 		_show_ghost(ghost, false)
 		_ghosts[id] = ghost
 	return _ghosts[id]

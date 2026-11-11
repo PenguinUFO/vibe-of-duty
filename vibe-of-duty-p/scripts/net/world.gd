@@ -11,6 +11,7 @@ extends Node
 
 const PLAYER_SCENE := preload("res://prefabs/player/player.tscn")
 const SNAPSHOT_INTERVAL := 1  # physics ticks between snapshots (60 Hz: others can be drawn only ~30 ms behind)
+const SNAPSHOT_PLAYERS := 4   # players a snapshot packet: 8 in one are over the MTU (1454 of 1392 bytes)
 const VIEW_TICK_STALE := 0.5  # s: a shown pose this far behind the freshest one is a frozen one (get_view_tick)
 const VIEW_TICK_CHEST := 1.0  # m above the feet: the point of a player the line of aim is measured to (get_view_tick)
 const KILL_HEIGHT := -20.0
@@ -176,14 +177,18 @@ func _print_summary() -> void:
 		var score: Dictionary = Game.scores.get(id, {"kills": 0, "deaths": 0})
 		var line := "%s%s %d/%d %s" % [p.player_name, "*" if p.is_local else "", score["kills"], score["deaths"],
 				p.weapons.current().id]
+		if p.team >= 0:
+			line += " team=%d" % p.team
 		if is_server:
 			line += " shots=%d hits=%d head=%d vaults=%d gaps=%d dropped=%d" % [p.shots_total, p.hits_total,
 					p.head_hits_total, p.mantle_count, p.gaps_filled, p.cmds_dropped]
 		elif p.is_local:
 			line += " recon=%d rtt=%dms err=%.2fm" % [p.recon_count, p.rtt_ms, p.last_error]
 		parts.append(line)
-	print("[SUMMARY %s] t=%.0fs map=%s state=%s | %s | %s" % [role, Time.get_ticks_msec() / 1000.0 - _started_at,
-			Game.map_scene.get_file().get_basename(), Game.State.keys()[Game.state], " | ".join(parts), str(Game.stats)])
+	var teams := " teams=%d:%d" % [Game.team_scores[0], Game.team_scores[1]] if Game.teams else ""
+	print("[SUMMARY %s] t=%.0fs map=%s state=%s%s | %s | %s" % [role, Time.get_ticks_msec() / 1000.0 - _started_at,
+			Game.map_scene.get_file().get_basename(), Game.State.keys()[Game.state], teams, " | ".join(parts),
+			str(Game.stats)])
 
 
 ## The server's clock: seconds of server ticks since the level started there, the same on every machine to within
@@ -349,29 +354,74 @@ func _server_add_player(id: int, player_name: String, uid: String, toughness: Ve
 		print("[SERVER] player %d joined as %s" % [id, player_name])
 	if random_weapons_on():
 		build = _random.next_build(id)
-	var spot := _pick_spawn(-1)
+	var team := server_join_team(Net.is_bot(id), id)
+	if team >= 0:
+		Lobby.teams[id] = team  # the next lobby starts from the teams as played
+	var spot := _pick_spawn(-1, team)
 	var xform: Transform3D = spot["xform"]
 	# Tell the newcomer about everyone already here (their current position), then add the newcomer.
 	if id != 1:
 		for other_id in players:
 			var other: Player = players[other_id]
 			_spawn_player.rpc_id(id, other_id, other.player_name, other.global_transform,
-					Vector3(other.base_max_health, other.base_regen_delay, other.back_damage), other.build)
-	_spawn_player(id, player_name, xform, toughness, build)
+					Vector3(other.base_max_health, other.base_regen_delay, other.back_damage), other.build, other.team)
+	_spawn_player(id, player_name, xform, toughness, build, team)
 	(players[id] as Player).player_uid = uid
 	Game.ensure_player(id)
 	for peer in _ready_peers:
-		_spawn_player.rpc_id(peer, id, player_name, xform, toughness, build)
+		_spawn_player.rpc_id(peer, id, player_name, xform, toughness, build, team)
 	if id != 1:
-		_spawn_player.rpc_id(id, id, player_name, xform, toughness, build)
+		_spawn_player.rpc_id(id, id, player_name, xform, toughness, build, team)
 		_ready_peers.append(id)
 		ammo_bags.server_send_all(id)
-		_sync_scores.rpc_id(id, Game.scores)
+		_sync_scores.rpc_id(id, Game.scores, Game.team_scores)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	if _stats != null:
 		_stats.joined(players[id])
 		_stats.spawned(players[id], spot)
 	_broadcast_scores()
+
+
+## Server, team mode (Game.teams): the team a newcomer takes (-1: no teams). A human - the team with fewer humans; a
+## bot (`bot`, BotLauncher's) - the smaller team; a tie - the smaller team, then the one with fewer bots, then any. So
+## the humans are dealt out evenly and the bots fill both teams up, whatever the order they load the level in.
+## `newcomer`: their peer id - whoever has a team from the lobby (Lobby.teams: dealt there, moved by the host) keeps it.
+func server_join_team(bot: bool, newcomer := 0) -> int:
+	if not Game.teams or Game.training:
+		return -1
+	if Lobby.teams.has(newcomer):
+		return clampi(Lobby.teams[newcomer], 0, 1)
+	var size := [0, 0]
+	var humans := [0, 0]
+	for id in players:
+		var team: int = (players[id] as Player).team
+		if team >= 0:
+			size[team] += 1
+			humans[team] += 0 if Net.is_bot(id) else 1
+	if not bot and humans[0] != humans[1]:
+		return 0 if humans[0] < humans[1] else 1
+	if size[0] != size[1]:
+		return 0 if size[0] < size[1] else 1
+	if humans[0] != humans[1]:
+		return 0 if humans[0] > humans[1] else 1  # as many in both: the bot goes where the bots are fewer
+	return randi() % 2
+
+
+## How the local player sees player `id` (Mannequin.Look): a teammate, an enemy, or plain (no teams, no local player).
+func look_of(id: int) -> Mannequin.Look:
+	var me: Player = players.get(multiplayer.get_unique_id()) if multiplayer.has_multiplayer_peer() else null
+	var other: Player = players.get(id)
+	if me == null or other == null or me.team < 0 or other.team < 0:
+		return Mannequin.Look.PLAIN
+	return Mannequin.Look.FRIEND if other.team == me.team else Mannequin.Look.ENEMY
+
+
+## Team mode: every body in its colours for this machine's player - teammates blue, enemies red (owner, 2026-11-10).
+func _refresh_looks() -> void:
+	if Game.dedicated:
+		return
+	for id in players:
+		(players[id] as Player).set_look(look_of(id))
 
 
 ## The "Бойня рандом" mode (Game.random_weapons): lives get RandomWeapons' builds, not the players' own.
@@ -414,10 +464,12 @@ func _broadcast_snapshot() -> void:
 		if own >= 0:
 			states = short.duplicate()
 			states[own] = (players[peer] as Player).get_net_state(true)
-		if Game.sim_lag_ms > 0:
-			_send_snapshot_delayed(peer, server_tick, states)
-		else:
-			_receive_snapshot.rpc_id(peer, server_tick, states)
+		for from in range(0, states.size(), SNAPSHOT_PLAYERS):
+			var part := states.slice(from, from + SNAPSHOT_PLAYERS)
+			if Game.sim_lag_ms > 0:
+				_send_snapshot_delayed(peer, server_tick, part)
+			else:
+				_receive_snapshot.rpc_id(peer, server_tick, part)
 
 
 func _send_snapshot_delayed(peer: int, tick: int, states: Array) -> void:
@@ -429,7 +481,8 @@ func _send_snapshot_delayed(peer: int, tick: int, states: Array) -> void:
 ## Spawn point: first out of sight of living players (eye to eye through the world), then farthest from them by
 ## straight line; of the two best, one at random - the second only if it is seen by as few. Returns {xform, pt (index
 ## in SpawnPoints, -1: --test-spawn), near (m to the nearest living player, INF: none), seen (players that see it)}.
-func _pick_spawn(exclude_id: int) -> Dictionary:
+## Team mode (`team` >= 0): only enemies count; equally good points - the one farther from the teammates.
+func _pick_spawn(exclude_id: int, team := -1) -> Dictionary:
 	if Game.test_spawn != Vector3.INF:
 		return {"xform": Transform3D(Gravity.frame(Game.test_spawn), Game.test_spawn), "pt": -1, "near": INF, "seen": 0}
 	var space := get_viewport().find_world_3d().direct_space_state
@@ -438,18 +491,27 @@ func _pick_spawn(exclude_id: int) -> Dictionary:
 		var spawn: Node3D = _spawns[i]
 		var eye := spawn.global_position + spawn.global_basis.y * Player.STAND_EYE
 		var nearest := INF
+		var ally := INF
 		var seen := 0
 		for id in players:
 			var other: Player = players[id]
 			if id == exclude_id or not other.alive:
+				continue
+			if team >= 0 and other.team == team:
+				ally = minf(ally, other.global_position.distance_to(spawn.global_position))
 				continue
 			nearest = minf(nearest, other.global_position.distance_to(spawn.global_position))
 			var other_eye := other.global_position + other.body_up() * (Player.CROUCH_EYE if other.is_crouched
 					else Player.STAND_EYE)
 			if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, other_eye, Layers.WORLD)).is_empty():
 				seen += 1
-		scored.append({"xform": spawn.global_transform, "pt": i, "near": nearest, "seen": seen})
-	scored.sort_custom(func(a, b): return a["seen"] < b["seen"] or a["seen"] == b["seen"] and a["near"] > b["near"])
+		scored.append({"xform": spawn.global_transform, "pt": i, "near": nearest, "seen": seen, "ally": ally})
+	scored.sort_custom(func(a, b):
+		if a["seen"] != b["seen"]:
+			return a["seen"] < b["seen"]
+		if a["near"] != b["near"]:
+			return a["near"] > b["near"]
+		return a["ally"] > b["ally"])
 	var choices := 2 if scored.size() > 1 and scored[1]["seen"] == scored[0]["seen"] else 1
 	return scored[randi() % choices]
 
@@ -459,6 +521,8 @@ func _pick_spawn(exclude_id: int) -> Dictionary:
 func server_apply_damage(attacker: Player, victim: Player, amount: float, head: bool, weapon: int,
 		from := Vector3.INF) -> void:
 	if not victim.alive or victim.spawn_protect > 0 or attacker == victim:
+		return
+	if attacker.is_teammate(victim) and not Game.friendly_fire():
 		return
 	var hp_before := victim.health
 	var block := attacker.weapons.def_at(weapon).regen_block if weapon >= 0 else 0.0
@@ -509,7 +573,7 @@ func _server_suicide(player: Player, cause: String) -> void:
 
 
 func _server_kill(killer: Player, victim: Player, weapon: int, head: bool, cause := "") -> void:
-	Game.add_kill(killer.peer_id, victim.peer_id)
+	Game.add_kill(killer.peer_id, victim.peer_id, killer.team, killer.is_teammate(victim))
 	if _stats != null:
 		_stats.killed(killer, victim, weapon, head, cause)
 	_broadcast_scores()
@@ -532,7 +596,7 @@ func _server_respawn(id: int, force: bool) -> void:
 	var player: Player = players[id]
 	if not force and (player.alive or Game.is_frozen()):
 		return
-	var spot := _pick_spawn(id)
+	var spot := _pick_spawn(id, player.team)
 	var xform: Transform3D = spot["xform"]
 	player.spawn_protect = SPAWN_PROTECTION_TICKS
 	player.alive = true
@@ -565,6 +629,9 @@ func _server_match_clock(delta: float) -> void:
 
 func _server_end_match(reason: String) -> void:
 	Game.end_match()
+	if Game.teams:  # the winning team's players; a draw - nobody
+		var best := Game.leading_team()
+		Game.winners = players.keys().filter(func(id: int) -> bool: return (players[id] as Player).team == best)
 	if _stats != null:
 		_stats.match_ended(players, reason)
 	Audio.play("match_end")
@@ -603,7 +670,7 @@ func _server_start_match() -> void:
 
 func _broadcast_scores() -> void:
 	for peer in _ready_peers:
-		_sync_scores.rpc_id(peer, Game.scores)
+		_sync_scores.rpc_id(peer, Game.scores, Game.team_scores)
 	_apply_match_state()
 
 
@@ -621,13 +688,15 @@ func _apply_match_state() -> void:
 # --- Client (also called locally on the server) ---------------------------------------------------
 
 @rpc("authority", "reliable")
-func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: Vector3, build: Array) -> void:
+func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: Vector3, build: Array,
+		team: int) -> void:
 	if players.has(id):
 		return
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.name = str(id)
 	player.peer_id = id
 	player.player_name = player_name
+	player.team = clampi(team, -1, 1)
 	player.set_build(build)
 	player.wanted_build = player.build
 	player.set_toughness(toughness)
@@ -644,6 +713,8 @@ func _spawn_player(id: int, player_name: String, xform: Transform3D, toughness: 
 	if kill_cam != null and kill_cam.is_playing():
 		player.set_kill_cam(true)
 	players[id] = player
+	if team >= 0:
+		_refresh_looks()  # this one's, and everybody's when it is this machine's player (their team is known now)
 	if multiplayer.is_server():
 		player.server_shot.connect(_on_server_shot)
 		player.server_melee.connect(_on_server_melee)
@@ -758,7 +829,8 @@ func _apply_death(victim_id: int, killer_id: int, weapon: int, head: bool, delay
 		var weapon_name := WeaponDB.get_def(weapon).display_name if weapon >= 0 else \
 				(WeaponSim.MELEE_NAME if weapon == WeaponSim.MELEE else
 				WeaponSim.GRENADE_NAME if weapon == WeaponSim.GRENADE else "")
-		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me)
+		hud.add_kill(killer_name, victim.player_name, weapon_name, head, killer_id == me or victim_id == me,
+				look_of(killer_id), look_of(victim_id))
 
 
 @rpc("authority", "reliable")
@@ -768,8 +840,10 @@ func _player_toughness(id: int, t: Vector3) -> void:
 
 
 @rpc("authority", "reliable")
-func _sync_scores(scores: Dictionary) -> void:
+func _sync_scores(scores: Dictionary, team_scores: Array) -> void:
 	Game.scores = scores.duplicate(true)
+	if team_scores.size() == 2:
+		Game.team_scores = [int(team_scores[0]), int(team_scores[1])]
 	_apply_match_state()
 
 

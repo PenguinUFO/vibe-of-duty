@@ -80,7 +80,7 @@ func match_ended(players: Dictionary, reason: String) -> void:
 ## A player joined the server (their first spawn follows).
 func joined(player: Player) -> void:
 	_write({"e": "join", "m": _match, "p": player.player_name, "uid": player.player_uid, "id": player.peer_id,
-			"ping": _ping(player),
+			"ping": _ping(player), "team": player.team,
 			"playing": Game.state == Game.State.PLAYING})
 
 

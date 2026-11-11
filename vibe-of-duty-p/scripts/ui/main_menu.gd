@@ -113,6 +113,7 @@ func _start_server() -> void:
 	if err != OK:
 		_status.text = "Не удалось создать игру на порту %d: %s" % [Game.launch_port, error_string(err)]
 		return
+	BotLauncher.start(Game.host_bots, Game.host_bot_skill)
 	if Lobby.enabled():
 		Lobby.server_open_waiting()  # the match starts when the host presses Start there
 	else:

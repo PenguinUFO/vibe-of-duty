@@ -7,6 +7,10 @@ extends Node
 ## start it earlier; a dedicated server just waits for the clock.
 ## In either phase the host may switch the game mode (Game.mode()) and pick the map itself: in WAITING that is
 ## the map, in VOTING it overrides the ballot (host_map; "" = the vote decides).
+## Team mode (Game.teams): the teams are made here (teams) - everybody in the roster is dealt out as NetWorld would
+## (join_team), and the host may move anyone to the other team (server_move; e.g. the humans against the bots): a bot
+## then goes the other way to keep the teams even. The match plays these teams (NetWorld.server_join_team); they stay
+## for the next lobby.
 ## Every peer shows the lobby scene (LobbyMenu) while a phase is on; Start sends everybody to the map, where NetWorld
 ## takes over as on a normal join. Automated tests (bots, --summary) and training skip the lobby: the next match starts
 ## in place, as before (enabled()).
@@ -27,6 +31,8 @@ var options: Array[String] = []  # VOTING: map paths on the ballot, the last one
 var votes := {}                  # VOTING: peer_id -> index in options
 var time_left := 0.0             # VOTING: seconds until the vote ends (clients count down locally between syncs)
 var host_map := ""               # VOTING: the map the host picked over the vote ("" = the vote decides)
+var teams := {}                  # team mode: peer_id -> 0 / 1 (server-made, synced; kept from lobby to lobby)
+var bots: Array = []             # peer ids of the roster's bots (BotLauncher's; synced, for the list)
 var _sync_timer := 0.0
 
 
@@ -63,6 +69,7 @@ func _process(delta: float) -> void:
 
 ## Host: the game was just created - wait for the host's Start on the map chosen in HostPanel (Game.map_scene).
 func server_open_waiting() -> void:
+	teams.clear()
 	_open(Phase.WAITING, {})
 	get_tree().change_scene_to_file.call_deferred(SCENE)
 
@@ -111,7 +118,7 @@ func server_start() -> void:
 		Game.map_scene = host_map if host_map != "" else _vote_result()
 	phase = Phase.NONE
 	if Game.net_log:
-		print("[LOBBY] start %s" % Game.map_scene)
+		print("[LOBBY] start %s teams=%s" % [Game.map_scene, str(teams) if Game.teams else "-"])
 	_go_map.rpc(Game.map_scene)
 	get_tree().change_scene_to_file.call_deferred(Game.map_scene)
 
@@ -146,11 +153,84 @@ func vote_counts() -> Array[int]:
 
 func _broadcast() -> void:
 	_sync_timer = 1.0
-	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.mode(), Game.hardcore)
+	_deal()
+	bots = roster.keys().filter(Net.is_bot)
+	_sync.rpc(phase, roster, options, votes, time_left, Game.map_scene, host_map, Game.mode(), Game.hardcore,
+			Game.score_limit, teams, bots)
 	changed.emit()
 
 
+## Team mode: the team a newcomer to the roster takes, by NetWorld's rule - a human the team with fewer humans, a bot
+## the smaller team; a tie - the smaller team, then the one with fewer bots, then any.
+func join_team(bot: bool) -> int:
+	var size := team_sizes()
+	var humans := [0, 0]
+	for id in roster:
+		if teams.has(id) and not Net.is_bot(id):
+			humans[teams[id]] += 1
+	if not bot and humans[0] != humans[1]:
+		return 0 if humans[0] < humans[1] else 1
+	if size[0] != size[1]:
+		return 0 if size[0] < size[1] else 1
+	if humans[0] != humans[1]:
+		return 0 if humans[0] > humans[1] else 1
+	return randi() % 2
+
+
+## Players of the roster in each team.
+func team_sizes() -> Array[int]:
+	var size: Array[int] = [0, 0]
+	for id in roster:
+		if teams.has(id):
+			size[teams[id]] += 1
+	return size
+
+
+## Server, team mode: everybody in the roster has a team (the humans are dealt first), nobody else does.
+func _deal() -> void:
+	if not Game.teams:
+		return
+	for id in teams.keys():
+		if not roster.has(id):
+			teams.erase(id)
+	var ids := roster.keys()
+	ids.sort()
+	for bot: bool in [false, true]:
+		for id: int in ids:
+			if not teams.has(id) and Net.is_bot(id) == bot:
+				teams[id] = join_team(bot)
+	_even_out(0)
+
+
+## Server: bots go from the bigger team to the smaller one until the teams are even (or the bigger has no bot to
+## give). `keep`: a peer left where it is - the one the host has just moved.
+func _even_out(keep: int) -> void:
+	for step in Net.MAX_PLAYERS:
+		var size := team_sizes()
+		if absi(size[0] - size[1]) < 2:
+			return
+		var big := 0 if size[0] > size[1] else 1
+		var moved := false
+		for id: int in roster:
+			if id != keep and teams.get(id, -1) == big and Net.is_bot(id):
+				teams[id] = 1 - big
+				moved = true
+				break
+		if not moved:
+			return
+
+
+## Host, team mode: player `id` to the other team; a bot takes their place there, if the teams came out uneven.
+func server_move(id: int) -> void:
+	if not is_host() or phase == Phase.NONE or not Game.teams or not teams.has(id):
+		return
+	teams[id] = 1 - int(teams[id])
+	_even_out(id)
+	_broadcast()
+
+
 func _on_peer_left(id: int) -> void:
+	teams.erase(id)
 	if not Net.is_server() or phase == Phase.NONE:
 		return
 	roster.erase(id)
@@ -197,11 +277,14 @@ func server_set_map(path: String) -> void:
 	_broadcast()
 
 
-## Host: the game mode of the next match (Game.Mode).
+## Host: the game mode of the next match (Game.Mode). The team mode has its own kill limit (the host's settings) and
+## its bots: as many as fill the teams (BotLauncher).
 func server_set_mode(mode: int) -> void:
 	if not is_host() or phase == Phase.NONE:
 		return
 	Game.set_mode(mode)
+	Game.score_limit = Settings.host_team_score_limit if Game.teams else Settings.host_score_limit
+	BotLauncher.sync()
 	_broadcast()
 
 
@@ -256,7 +339,8 @@ func _go_map(path: String) -> void:
 
 @rpc("authority", "reliable")
 func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes: Dictionary, new_time_left: float,
-		map: String, new_host_map: String, mode: int, hardcore: bool) -> void:
+		map: String, new_host_map: String, mode: int, hardcore: bool, score_limit: int, new_teams: Dictionary,
+		new_bots: Array) -> void:
 	if phase == Phase.NONE:  # already on the way to the map
 		return
 	phase = new_phase as Phase
@@ -267,6 +351,9 @@ func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes
 	host_map = new_host_map if Game.is_map(new_host_map) else ""
 	Game.set_mode(mode)
 	Game.hardcore = hardcore
+	Game.score_limit = maxi(score_limit, 1)
+	teams = new_teams
+	bots = new_bots
 	if Game.is_map(map):
 		Game.map_scene = map
 	changed.emit()
@@ -274,6 +361,8 @@ func _sync(new_phase: int, new_roster: Dictionary, new_options: Array, new_votes
 
 func _reset() -> void:
 	phase = Phase.NONE
+	teams.clear()
+	bots.clear()
 	roster.clear()
 	options.clear()
 	votes.clear()

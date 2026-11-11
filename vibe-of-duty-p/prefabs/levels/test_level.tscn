@@ -23,6 +23,12 @@ shader_parameter/cloud_shading = 9.0
 shader_parameter/cloud_thickness_dark = 0.35
 shader_parameter/cloud_horizon_fade = 0.18
 shader_parameter/cloud_offset = Vector2(0, 0)
+shader_parameter/sea_coverage = 0.0
+shader_parameter/sea_scale = 0.6
+shader_parameter/sea_light = Color(0.9, 0.9, 0.88, 1)
+shader_parameter/sea_shadow = Color(0.45, 0.5, 0.58, 1)
+shader_parameter/sea_offset = Vector2(0, 0)
+shader_parameter/sea_horizon_fade = 0.08
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")

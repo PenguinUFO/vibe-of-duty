@@ -36,14 +36,21 @@ func _stick_look(delta: float) -> void:
 	_turn_rate = lerpf(_turn_rate, turn.length() / maxf(delta, 0.0001), 1.0 - exp(-8.0 * delta))
 
 
-## Aim assist targets: every other living player, as a line from mid-torso to the head centre (the hitboxes).
+## Team mode: this body as the local player sees it - a teammate's or an enemy's colours (NetWorld._refresh_looks).
+func set_look(look: Mannequin.Look) -> void:
+	if not is_local:
+		_visual.set_look(look)
+
+
+## Aim assist targets: every other living player (not a teammate), as a line from mid-torso to the head centre (the
+## hitboxes).
 func _assist_targets() -> Array:
 	var targets := []
 	if world == null:
 		return targets
 	for id in world.players:
 		var other = world.players[id]
-		if not is_instance_valid(other) or other == self or not other.alive:
+		if not is_instance_valid(other) or other == self or not other.alive or is_teammate(other):
 			continue
 		var state: Dictionary = other.hitbox_state()
 		var body := LagComp.body_segment(state)

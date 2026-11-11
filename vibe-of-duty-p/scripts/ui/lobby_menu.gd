@@ -5,6 +5,8 @@ extends Control
 ## clock; the host can start before it runs out. The host also has the mode and the map (after a match "Голосование"
 ## first: the vote decides; a map overrides it, the ballot then hides for everyone). Always: the players, "Сборка" (BuildPanel; not in "Бойня рандом")
 ## and "Покинуть". A dedicated server loads the scene too, but shows nothing.
+## Team mode: the players in two columns, this machine's team on the left; the host's are buttons - a press moves the
+## player to the other team (Lobby.server_move).
 
 var _box: VBoxContainer
 var _panel: PanelContainer
@@ -97,8 +99,11 @@ func _refresh() -> void:
 	if _box == null:
 		return
 	var voting := Lobby.phase == Lobby.Phase.VOTING
-	_rules.text = "До %d убийств · %d мин · %s" % [Game.score_limit, roundi(Game.match_time / 60.0),
-			Game.mode_text()]
+	_rules.text = "До %d убийств%s · %d мин · %s" % [Game.score_limit, " команды" if Game.teams else "",
+			roundi(Game.match_time / 60.0), Game.mode_text()]
+	if Game.teams:
+		_rules.text += "\n%d на %d, пустые места займут боты%s" % [Game.TEAM_SIZE, Game.TEAM_SIZE,
+				" · огонь по своим" if Game.friendly_fire() else ""]
 	_builds.visible = not Game.random_weapons  # "Бойня рандом": the server picks every life's weapon
 	if _map != null:
 		_select_meta(_map, Lobby.host_map if voting else Game.map_scene)
@@ -202,25 +207,78 @@ static func _votes_text(n: int) -> String:
 	return "%d голосов" % n
 
 
-## The players by peer id (the host first); this machine's own line in the highlight colour.
+## The players by peer id (the host first); this machine's own line in the highlight colour. Team mode: a column a
+## team (_build_teams).
 func _build_players() -> void:
+	var focused := 0  # the peer whose button has the focus: it keeps it over the rebuild
+	for button in _players.find_children("*", "Button", true, false):
+		if (button as Button).has_focus():
+			focused = button.get_meta(&"peer", 0)
 	for child in _players.get_children():
 		_players.remove_child(child)
 		child.queue_free()
 	var ids := Lobby.roster.keys()
 	ids.sort()
 	var me := multiplayer.get_unique_id()
-	for id in ids:
-		var label := Label.new()
-		label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # a nickname
-		label.text = "%s%s" % [Lobby.roster[id], "  · хост" if id == 1 else ""]
-		if id == me:
-			label.add_theme_color_override("font_color", UiTheme.HIGHLIGHT)
-		_players.add_child(label)
+	if Game.teams:
+		_build_teams(ids, me, focused)
+	else:
+		for id in ids:
+			var label := Label.new()
+			label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # a nickname
+			label.text = _player_text(id)
+			if id == me:
+				label.add_theme_color_override("font_color", UiTheme.HIGHLIGHT)
+			_players.add_child(label)
 	var count := Label.new()
 	count.text = "%d / %d" % [ids.size(), Net.MAX_PLAYERS]
+	if Game.teams and Lobby.is_host():
+		count.text += " · нажми на игрока — перейдёт в другую команду"
 	count.theme_type_variation = "Hint"
 	_players.add_child(count)
+
+
+func _player_text(id: int) -> String:
+	return "%s%s%s" % [Lobby.roster[id], "  · хост" if id == 1 else "", "  · бот" if Lobby.bots.has(id) else ""]
+
+
+## Team mode: two columns, this machine's team first ("СВОИ" / "ВРАГИ", in the colours of the match). The host's
+## lines are buttons: a press moves the player to the other team.
+func _build_teams(ids: Array, me: int, focused: int) -> void:
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 10)
+	_players.add_child(columns)
+	var my_team: int = Lobby.teams.get(me, 0)
+	for team: int in [my_team, 1 - my_team]:
+		var look := Mannequin.Look.FRIEND if team == my_team else Mannequin.Look.ENEMY
+		var color: Color = GameHud.LOOK_COLORS[look]
+		var column := VBoxContainer.new()
+		column.add_theme_constant_override("separation", 4)
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.add_child(column)
+		var members := ids.filter(func(id: int) -> bool: return Lobby.teams.get(id, -1) == team)
+		var title := Label.new()
+		title.text = "%s · %d" % ["СВОИ" if team == my_team else "ВРАГИ", members.size()]
+		title.add_theme_color_override("font_color", color)
+		column.add_child(title)
+		for id: int in members:
+			var line: Control
+			if Lobby.is_host():
+				var button := Button.new()
+				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				button.set_meta(&"peer", id)
+				button.pressed.connect(func() -> void:
+					Audio.play("ui_click")
+					Lobby.server_move(id))
+				if id == focused:
+					button.grab_focus.call_deferred()
+				line = button
+			else:
+				line = Label.new()
+			line.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # a nickname
+			line.set("text", _player_text(id))
+			line.add_theme_color_override("font_color", UiTheme.TEXT if id == me else color)  # own: white (the highlight is the enemies' red)
+			column.add_child(line)
 
 
 func _add_button(parent: Container, text: String, action: Callable) -> Button:
