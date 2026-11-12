@@ -25,10 +25,10 @@ const GRENADE_OUT := 0.15      # s from the press to the launch
 const GRENADE_BACK := 0.2      # s after the launch until the gun is back
 const GRENADE_NAME := "граната"  # kill feed
 const GRENADES := 1            # grenades a life starts with (owner, 2026-11-09)
-## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with one magazine, fired by the
-## aim button (cmd.aim), never reloaded. Empty - or R, which then reloads the right one - it is thrown away and the
-## weapon plays as usual again. Meanwhile no sights, no punch, the spread x akimbo_spread; an empty right one only
-## clicks (no reload by itself: that would throw the left one away).
+## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with its own magazine, fired by
+## the aim button (cmd.aim); it stays in the hand all life. R reloads both at once (reload_time x akimbo_reload; a tube
+## loads a round into each a cycle); both empty - the reload starts by itself. No sights, no punch, the spread x
+## akimbo_spread. Neither fires while reloading; a press of either stops a tube's loading.
 
 var index := 0
 var mags := PackedInt32Array()
@@ -54,7 +54,7 @@ var fire_queued := false  # a semi-automatic press during the cooldown, fires wh
 var melee_ticks := 0    # ticks left in the current punch (0 = not punching)
 var grenades := 0       # grenades left this life
 var grenade_ticks := 0  # ticks left in the current launch (0 = not launching); held at the launch while G is down
-var left_mag := 0       # rounds in the akimbo's left gun (0: none in the hand)
+var left_mag := 0       # rounds in the akimbo's left gun
 var left_cooldown := 0.0  # the left gun's cooldown, burst, trigger and queued press: as the right one's above
 var left_burst := 0
 var left_prev := false
@@ -147,9 +147,9 @@ func is_meleeing() -> bool:
 	return melee_ticks > 0
 
 
-## The akimbo's left gun is in the hand.
+## The weapon is held akimbo (the left gun is in the hand all life).
 func is_akimbo() -> bool:
-	return left_mag > 0
+	return current().akimbo
 
 
 func is_launching() -> bool:
@@ -205,9 +205,7 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 ## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding, mantling}.
 ## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_end", "equip",
 ## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow), "grenade_start",
-## {"type": "grenade", "pitch": float, "yaw": float} (the launch), {"type": "akimbo_drop", "rounds": int} (the left gun thrown away, with
-## this many still in it: 0 - emptied, more - R); a shot of the
-## akimbo's left gun has "left": true.
+## {"type": "grenade", "pitch": float, "yaw": float} (the launch); a shot of the akimbo's left gun has "left": true.
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 	var events: Array = []
 	var def := current()
@@ -219,7 +217,8 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		left_cooldown -= 1.0
 	if switch_ticks > 0:
 		switch_ticks -= 1
-	if reload_ticks > 0 and def.reload_single and cmd.fire and not fire_prev and mags[index] > 0 and grenade_ticks == 0:
+	var press_stops := cmd.fire and not fire_prev and mags[index] > 0 			or is_akimbo() and cmd.aim and not left_prev and left_mag > 0
+	if reload_ticks > 0 and def.reload_single and press_stops and grenade_ticks == 0:
 		reload_ticks = 0  # a tube magazine: a shot stops the loading, what is in stays
 		events.append({"type": "reload_end"})
 	if reload_ticks > 0 and grenade_ticks == 0:  # a launch pauses the reload
@@ -231,7 +230,14 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			mags[index] += take
 			if not infinite_reserve:
 				reserves[index] -= take
-			if def.reload_single and mags[index] < def.mag_size and reserves[index] > 0:
+			if is_akimbo():  # the left gun from what is left
+				var take_left := mini(def.mag_size - left_mag, reserves[index])
+				if def.reload_single:
+					take_left = mini(take_left, 1)
+				left_mag += take_left
+				if not infinite_reserve:
+					reserves[index] -= take_left
+			if def.reload_single and _needs_reload() and reserves[index] > 0:
 				reload_ticks = _reload_ticks()  # the next round
 			else:
 				events.append({"type": "reload_end"})
@@ -260,7 +266,7 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		melee_ticks -= 1
 		if melee_ticks == melee_total_ticks() - melee_windup_ticks():
 			events.append({"type": "melee", "pitch": cmd.pitch, "yaw": cmd.yaw})
-	elif cmd.melee and switch_ticks == 0 and grenade_ticks == 0 and left_mag == 0 and not ctx["sliding"]:
+	elif cmd.melee and switch_ticks == 0 and grenade_ticks == 0 and not is_akimbo() and not ctx["sliding"]:
 		melee_ticks = melee_total_ticks()
 		reload_ticks = 0
 		events.append({"type": "melee_start"})
@@ -276,15 +282,13 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "equip"})
 
 	# Aim down sights (not while sprinting, reloading or equipping).
-	var want_ads: bool = cmd.aim and left_mag == 0 and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
+	var want_ads: bool = cmd.aim and not is_akimbo() and switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
 			and not ctx["sprinting"]
 	ads = move_toward(ads, 1.0 if want_ads else 0.0, dt / def.ads_time)
 
 	# Manual reload.
 	if cmd.reload and reload_ticks == 0 and switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0 \
-			and mags[index] < def.mag_size and reserves[index] > 0:
-		if left_mag > 0:
-			_drop_left(events)  # the hand is needed for the reload
+			and _needs_reload() and reserves[index] > 0:
 		reload_ticks = _reload_ticks()
 		events.append({"type": "reload_start"})
 
@@ -307,15 +311,15 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		else:
 			if not fire_prev:
 				events.append({"type": "dry"})
-			if reserves[index] > 0 and left_mag == 0:  # empty magazine: reload automatically
+			if reserves[index] > 0 and left_mag == 0:  # empty magazine (akimbo: both): reload automatically
 				reload_ticks = _reload_ticks()
 				events.append({"type": "reload_start"})
 	fire_prev = cmd.fire
 
 	# The akimbo's left gun: the aim button is its trigger (the same rules as the right one's above).
 	var left_fired := false
-	if left_mag > 0:
-		var can_fire := switch_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0
+	if is_akimbo():
+		var can_fire := switch_ticks == 0 and reload_ticks == 0 and melee_ticks == 0 and grenade_ticks == 0
 		left_burst = left_burst + 1 if cmd.aim and can_fire else 0
 		if gun.automatic or not can_fire:
 			left_queued = false
@@ -323,12 +327,17 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 			left_queued = true
 		if (cmd.aim or left_queued) and can_fire and left_cooldown <= 0.0 and (gun.automatic or not left_prev or left_queued):
 			left_queued = false
-			left_fired = true
-			left_mag -= 1
-			left_cooldown += gun.fire_ticks(left_burst / 60.0)
-			events.append(_shot(cmd, ctx, gun, true))
-			if left_mag == 0:
-				_drop_left(events)  # empty: thrown away
+			if left_mag > 0:
+				left_fired = true
+				left_mag -= 1
+				left_cooldown += gun.fire_ticks(left_burst / 60.0)
+				events.append(_shot(cmd, ctx, gun, true))
+			else:
+				if not left_prev:
+					events.append({"type": "dry"})
+				if reserves[index] > 0 and mags[index] == 0:  # both empty: reload automatically
+					reload_ticks = _reload_ticks()
+					events.append({"type": "reload_start"})
 	left_prev = cmd.aim
 
 	if not fired:
@@ -354,7 +363,7 @@ func _track_held(cmd: PlayerCmd) -> void:
 	var moved := Vector2(look.x - look_prev.x, angle_difference(look_prev.y, look.y)) if look_known else Vector2.ZERO
 	look_prev = look
 	look_known = true
-	var trigger := cmd.fire or cmd.aim and left_mag > 0
+	var trigger := cmd.fire or cmd.aim and is_akimbo()
 	if not trigger or cooldown <= 0.0 and left_cooldown <= 0.0:  # not in a burst: the look's motion is the player's
 		return
 	recoil_held.x = _clamp_held(recoil_held.x - moved.x, recoil.x)
@@ -393,17 +402,15 @@ func _shot(cmd: PlayerCmd, ctx: Dictionary, gun: WeaponDef, left: bool) -> Dicti
 	return event
 
 
-## The akimbo's left gun out of the hand (empty, or R): the weapon is a single one again.
-func _drop_left(events: Array) -> void:
-	events.append({"type": "akimbo_drop", "rounds": left_mag})
-	left_mag = 0
-	left_cooldown = 0.0
-	left_burst = 0
-	left_queued = false
+## A magazine is not full (akimbo: either).
+func _needs_reload() -> bool:
+	var size := current().mag_size
+	return mags[index] < size or is_akimbo() and left_mag < size
 
 
 func _reload_ticks() -> int:
-	return maxi(1, current().reload_ticks())
+	var def := current()
+	return maxi(1, roundi(def.reload_ticks() * (def.akimbo_reload if is_akimbo() else 1.0)))
 
 
 ## Direction for view angles (pitch, yaw) with a random offset inside a cone of half angle `angle`.

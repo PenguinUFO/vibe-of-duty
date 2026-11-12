@@ -105,6 +105,7 @@ func _kill(def: WeaponDef, akimbo: bool, health: int, distance: float, head: boo
 	var burst := 0
 	var left_burst := 0
 	var reload := 0
+	var reload_ticks := maxi(1, roundi(def.reload_ticks() * (def.akimbo_reload if akimbo else 1.0)))
 	for tick in MAX_TICKS:
 		if cooldown > 0.0:
 			cooldown -= 1.0
@@ -114,8 +115,10 @@ func _kill(def: WeaponDef, akimbo: bool, health: int, distance: float, head: boo
 			reload -= 1
 			if reload == 0:
 				mag = def.mag_size if not def.reload_single else mini(mag + 1, def.mag_size)
-				if def.reload_single and mag < def.mag_size:
-					reload = def.reload_ticks()  # a tube: the next round
+				if akimbo:  # both at once
+					left_mag = def.mag_size if not def.reload_single else mini(left_mag + 1, def.mag_size)
+				if def.reload_single and (mag < def.mag_size or akimbo and left_mag < def.mag_size):
+					reload = reload_ticks  # a tube: the next round
 		var fired := false
 		burst = burst + 1 if reload == 0 else 0
 		if reload == 0 and cooldown <= 0.0:
@@ -128,9 +131,9 @@ func _kill(def: WeaponDef, akimbo: bool, health: int, distance: float, head: boo
 				if hp <= 0:
 					return {"hits": hits, "ticks": tick}
 			if mag == 0 and left_mag == 0:
-				reload = def.reload_ticks()
+				reload = reload_ticks
 		var left_fired := false
-		if left_mag > 0:
+		if left_mag > 0 and reload == 0:
 			left_burst += 1
 			if left_cooldown <= 0.0:
 				left_mag -= 1
@@ -145,7 +148,7 @@ func _kill(def: WeaponDef, akimbo: bool, health: int, distance: float, head: boo
 		if not left_fired:
 			left_cooldown = maxf(left_cooldown, 0.0)
 		if mag == 0 and left_mag == 0 and reload == 0:
-			reload = def.reload_ticks()
+			reload = reload_ticks
 	return {"hits": -1, "ticks": 0}
 
 

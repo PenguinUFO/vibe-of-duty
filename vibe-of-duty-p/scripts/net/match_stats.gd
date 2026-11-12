@@ -200,20 +200,6 @@ func oink(player: Player, fart: bool) -> void:
 			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
 
 
-## The akimbo's left gun left the hand with `rounds` still in it: 0 - emptied, more - R threw it away for a reload.
-## When in the life, how the right one stood, was it in a fight (a hit either way or the spawn within CALM_GAP).
-func akimbo_drop(player: Player, rounds: int) -> void:
-	var now := _now()
-	var life: Dictionary = _lives.get(player.peer_id, {})
-	var weapons := player.weapons
-	var nearest := _nearest(player)
-	_write({"e": "akimbo_drop", "m": _match, "p": player.player_name, "w": _variant(player), "rounds": rounds,
-			"size": weapons.current().mag_size, "mag": weapons.mags[weapons.index], "reserve": weapons.reserves[weapons.index],
-			"life_t": (now - int(life["start"])) / 1000.0 if not life.is_empty() else null,
-			"fight": now - int(life["fight"]) <= CALM_GAP * 1000.0 if not life.is_empty() else null,
-			"near": snappedf(_distance(player, nearest), 0.1) if nearest != null else null, "a_state": _state(player)})
-
-
 ## Damage the player did to themselves (their own grenade): `gun` as in "hit".
 func hurt_self(player: Player, hp_before: int, gun: String) -> void:
 	_write({"e": "self_hit", "m": _match, "p": player.player_name, "w": _variant(player), "gun": gun,

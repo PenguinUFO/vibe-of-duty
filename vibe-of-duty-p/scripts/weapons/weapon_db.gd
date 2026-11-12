@@ -370,6 +370,7 @@ static func _write(def: WeaponDef, v: Dictionary) -> void:
 	def.sound_pitch = float(v.get("sound_pitch", def.sound_pitch))
 	def.akimbo = bool(v.get("akimbo", def.akimbo))
 	def.akimbo_spread = float(v.get("akimbo_spread", def.akimbo_spread))
+	def.akimbo_reload = float(v.get("akimbo_reload", def.akimbo_reload))
 
 
 static func _build() -> void:

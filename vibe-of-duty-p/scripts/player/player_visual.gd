@@ -204,7 +204,7 @@ func _update_reload(delta: float) -> void:
 	if _reload_t < 0.0:
 		_mannequin.reload = -1.0
 		return
-	var length := _weapon.def.reload_time
+	var length := _weapon.def.reload_time * (_weapon.def.akimbo_reload if _left_weapon.visible else 1.0)
 	_reload_t += delta * (1.0 if _reloading else 3.0)
 	if _reload_t >= length:
 		_reload_t = -1.0

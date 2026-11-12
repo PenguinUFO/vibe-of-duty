@@ -23,6 +23,7 @@ const HELD_SCALE := 0.8  # the grenade in the hoof, x its model: at the full siz
 
 var _weapon: WeaponView
 var left_weapon: WeaponView  # the akimbo's left gun (WeaponView.mirrored): while it is shown, the left hoof holds it
+var left_reload := 0.0  # akimbo, 0..1: the left hoof lets its gun go down and reloads the right one
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
 var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
@@ -117,10 +118,12 @@ func pose() -> void:
 		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
 	if left_weapon != null and left_weapon.visible and left_weapon.def != null:
 		# Akimbo: the left hoof round the left gun's grip (the gun drops out of view on its own for a grenade).
+		# A reload: the hoof goes from it to the right gun's reload (the left gun is out of view by then).
 		var left_xform := transform.affine_inverse() * left_weapon.transform
-		left_palm = left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s)
-		left_fingers = left_xform.basis * Mannequin.LEFT_GRIP_FINGERS
-		left_dir = left_xform.basis * Mannequin.LEFT_GRIP_PALM
+		var on_grip := 1.0 - left_reload
+		left_palm = left_palm.lerp(left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s), on_grip)
+		left_fingers = left_fingers.lerp(left_xform.basis * Mannequin.LEFT_GRIP_FINGERS, on_grip)
+		left_dir = left_dir.lerp(left_xform.basis * Mannequin.LEFT_GRIP_PALM, on_grip)
 	var throw := Mannequin.throw_curve(grenade)
 	if throw.x > 0.0:
 		left_palm = left_palm.lerp(THROW_WIND.lerp(THROW_OUT, throw.y), throw.x)

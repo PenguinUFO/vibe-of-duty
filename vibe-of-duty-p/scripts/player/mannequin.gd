@@ -599,9 +599,9 @@ func pose() -> void:
 	_joints["gun_top"] = weapon_local * (_view_point(BUTT) + Vector3(0.0, 0.1, 0.0))
 
 
-## Akimbo: each hoof holds its gun by the grip, arms out in front along the aim (no sights, no reload, no punch). A
-## grenade: the left hoof throws it with the left gun hanging in it, barrel down; a vault puts both hoofs - guns and
-## all - on the ledge.
+## Akimbo: each hoof holds its gun by the grip, arms out in front along the aim (no sights, no punch). A reload: both
+## guns come in to the chest, barrels down (no magazine work shown). A grenade: the left hoof throws it with the left
+## gun hanging in it, barrel down; a vault puts both hoofs - guns and all - on the ledge.
 func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, throw: Vector2) -> void:
 	var aim := Basis(Vector3.RIGHT, pitch)
 	var grip := _view_point(def.right_hand)  # the left gun is a copy: held by the same point
@@ -609,6 +609,13 @@ func _pose_akimbo(chest: Transform3D, shoulder_r: Vector3, shoulder_l: Vector3, 
 	var left_palm := shoulder_l + aim * AKIMBO_LEFT
 	var right_basis := aim
 	var left_basis := aim
+	if reload >= 0.0:
+		var dip := clampf(minf(reload, 1.0 - reload) * 6.0, 0.0, 1.0)  # in over the first sixth, out over the last
+		var down := chest.basis * Basis(Vector3.RIGHT, -0.9)
+		right_palm = right_palm.lerp(chest * Vector3(AKIMBO_PRESENT.x, -0.05, AKIMBO_PRESENT.z), dip)
+		left_palm = left_palm.lerp(chest * Vector3(-AKIMBO_PRESENT.x, -0.05, AKIMBO_PRESENT.z), dip)
+		right_basis = right_basis.slerp(down, dip)
+		left_basis = left_basis.slerp(down, dip)
 	if throw.x > 0.0:
 		var hoof := throw_hoof(throw.y, chest.basis, aim, shoulder_l)
 		left_palm = left_palm.lerp(hoof[0], throw.x)

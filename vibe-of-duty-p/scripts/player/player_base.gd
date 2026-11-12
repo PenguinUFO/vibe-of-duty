@@ -223,6 +223,7 @@ var _look_delta := Vector2.ZERO
 var _turn_rate := 0.0  # rad/s the stick (and aim assist) turns the view, smoothed; F3 only
 var _prev_look := Vector2.ZERO
 var _retract := 0.0
+var _left_reload_drop := 0.0  # first person, akimbo: 0..1, the left gun down out of view for a reload
 # First-person camera effects (_update_camera_fx; cosmetic: shots go where the look angles point, not the camera).
 var _cam_roll := 0.0             # death tilt / slide lean
 var _death_drift := Vector3.ZERO    # local, dead beside the train: how far the view has ridden away with the ground...

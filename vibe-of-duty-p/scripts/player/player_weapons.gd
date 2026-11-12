@@ -42,14 +42,6 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 				_sfx("grenade_pin")
 			"grenade":
 				_on_grenade(event)
-			"akimbo_drop":
-				if not _replaying and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-					Game.count("akimbo_drops")
-					if world != null and world._stats != null:
-						world._stats.akimbo_drop(self, event["rounds"])
-				# Thrown away: the shooter's from the first-person gun (others' bodies - PlayerVisual.set_akimbo).
-				if is_local and not _replaying and _left_view != null:
-					DroppedGun.toss(self, _left_view, velocity)
 
 
 func _local_sfx(id: String) -> void:
