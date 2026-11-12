@@ -32,10 +32,12 @@ var _arch_known := Vector3.INF       # where (feet) it last saw an enemy, or the
 var _arch_known_left := 0.0          # s it still goes there to look (0: knows nothing)
 var _arch_goal := Vector3.INF        # the patrol's goal: a spawn point (INF: none chosen)
 var _arch_health := 0.0              # health last tick (less now: it was hit)
-var _arch_stuck := 0.0               # s standing still while trying to walk
+var _arch_stuck := 0.0               # s within ARCH_STUCK_RANGE of _arch_stuck_at while trying to walk
+var _arch_stuck_at := Vector3.INF
 var _arch_no_way := 0                # patrol goals in a row the mesh has no way to (it stands on an island of the mesh)
 const ARCH_FOV := 65.0               # deg off the look it notices an enemy within (about the screen's half width)
 const ARCH_MEMORY := 12.0            # s it goes to the place an enemy was last seen at
+const ARCH_STUCK_RANGE := 0.7        # m: walking and still this near where it was 0.5 s (jumps) / 2.5 s ago - stuck
 const ARCH_NO_WAY := 6               # patrol goals with no way in a row before it walks straight at one
 ## --bot-course: corners of the obstacle course loop (x, z), in running order (prefabs/levels/course.tscn).
 const COURSE_LOOP: Array[Vector2] = [Vector2(-30, 22), Vector2(30, 22), Vector2(30, -22), Vector2(-30, -22)]
@@ -510,9 +512,14 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 	if style["stand_fire"] and cmd.fire:
 		move = Vector2.ZERO
 	# Stuck on the way (a crate, a sill): jumps - the jump held in the air grabs the ledge; no luck - another way.
-	var blocked: bool = move != Vector2.ZERO and (not seen or goal != Vector3.INF) and flat_speed() < 0.5
-	_arch_stuck = _arch_stuck + delta if blocked and not is_mantling else 0.0
-	if _arch_stuck > 0.4:
+	# By the way it gets, not by its speed: running to and fro along a ledge it cannot step on is stuck too.
+	var walking: bool = move != Vector2.ZERO and (not seen or goal != Vector3.INF) and not is_mantling
+	if not walking or global_position.distance_to(_arch_stuck_at) > ARCH_STUCK_RANGE:
+		_arch_stuck_at = global_position
+		_arch_stuck = 0.0
+	else:
+		_arch_stuck += delta
+	if _arch_stuck > 0.5:
 		cmd.jump = is_on_floor()
 		cmd.jump_held = true
 		cmd.crouch = false
@@ -521,6 +528,7 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 		print("[NAV] stuck at %s floor=%s, goal %s, next %s, seen=%s" % [global_position.snappedf(0.01), is_on_floor(),
 				goal.snappedf(0.01), _arch_nav.next_point(global_position, goal, 0.0).snappedf(0.01), seen])
 		_arch_stuck = 0.0
+		_arch_stuck_at = Vector3.INF
 		_arch_known_left = 0.0
 		_arch_goal = Vector3.INF
 		_arch_no_way = 0
