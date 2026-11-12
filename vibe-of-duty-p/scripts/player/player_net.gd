@@ -191,6 +191,10 @@ func _update_puppet() -> void:
 	if delta > 0.0 and previous_pos.distance_to(global_position) < 2.0:
 		var drawn_vel := (global_position - previous_pos) / delta
 		_puppet_velocity = _puppet_velocity.lerp(drawn_vel.slide(body_up()), 1.0 - exp(-12.0 * delta))
+	if Game.unwatched:  # nobody sees the pose; the hitboxes go by the state (LagComp), the stance below still counts
+		if _stance_crouched != is_crouched:
+			_apply_stance()
+		return
 	_visual.set_crouched(is_crouched)
 	_visual.set_sliding(is_sliding)
 	_visual.set_aim_pitch(_head.rotation.x)

@@ -11,6 +11,8 @@ class_name BotLauncher
 
 const MAX_LAUNCHES := 64     # bots started per game: a bot that keeps dying is not started for ever
 const KILL_AFTER_MS := 3000  # a dropped bot quits by itself (it lost the server); still running this long after - killed
+const MAX_FPS := 60          # a bot's frames per second: headless, uncapped, it spun ~50 % of a core idle (60: ~30 %);
+                            # its moves are made in the physics tick, which this does not touch
 
 static var _active := false  # a game with bots is on (start ... stop)
 static var _count := 0       # the bots the host asked for (not the team mode's fill)
@@ -147,7 +149,7 @@ static func _launch() -> void:
 	var args := PackedStringArray()
 	if OS.has_feature("editor"):  # run from the editor: the executable is the editor, it needs the project
 		args.append_array(["--path", ProjectSettings.globalize_path("res://")])
-	args.append_array(["--headless", "--", "--join=127.0.0.1", "--port=%d" % Game.launch_port,
+	args.append_array(["--headless", "--max-fps", str(MAX_FPS), "--", "--join=127.0.0.1", "--port=%d" % Game.launch_port,
 			"--bot-style=%s" % _styles[_serial % _styles.size()], "--bot-skill=%s" % _skill,
 			"--build=%s" % kits.pick_random().id, "--name=%s" % bot_name, "--bot-key=%s" % key])
 	var pid := OS.create_process(OS.get_executable_path(), args)

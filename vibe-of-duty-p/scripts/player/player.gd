@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 	_camera.fov = lerpf(_camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
 	_cam_roll = lerpf(_cam_roll, 0.7 if not alive else (-0.05 if is_sliding else 0.0), 1.0 - exp(-10.0 * delta))
 	_camera.rotation.z = _cam_roll
-	if is_local:
+	if is_local and not Game.unwatched:
 		_update_camera_fx(delta, speed)
 		_update_viewmodel(delta, speed)
 		_update_hud(speed, delta)

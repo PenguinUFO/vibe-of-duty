@@ -75,9 +75,10 @@ func _ready() -> void:
 		pause_menu = PauseMenu.new()
 		pause_menu.world = self
 		add_child(pause_menu)
-		kill_cam = KillCam.new()
-		kill_cam.world = self
-		add_child(kill_cam)
+		if not Game.unwatched:
+			kill_cam = KillCam.new()
+			kill_cam.world = self
+			add_child(kill_cam)
 		var picker := BuildPicker.new()
 		picker.world = self
 		add_child(picker)

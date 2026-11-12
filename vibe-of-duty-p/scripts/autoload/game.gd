@@ -52,6 +52,9 @@ var bot_skill := "average" # --bot-skill=ID: the archetype bot's skill (BotProfi
 var host_bots := 0         # bots the server starts (BotLauncher): HostPanel "Боты", a dedicated server's --bots=N
 var host_bot_skill := "average"  # their skill: HostPanel, a dedicated server's --bot-skill=ID
 var bot_key := ""          # --bot-key=KEY: this process is a bot BotLauncher started - what it tells the server (Net._identify)
+var unwatched := false     # an archetype bot without a window: nobody sees this process, so it skips what is only drawn -
+                           # the others' poses (hitboxes do not follow them: LagComp), its viewmodel, camera, HUD and kill
+                           # cam (Docs/BOTS.md). The test bots (--bot-aim ...) keep them: the tests run that code.
 var bot_course := false    # --bot-course: bots run the obstacle course (course test)
 var bot_targets := false   # --bot-targets: bots shoot the training targets in turn (training range test)
 var bot_ttk := ""          # --bot-ttk=NODE: --bot-targets shoot only that target's body and time each kill (balance test)
@@ -214,6 +217,7 @@ func _ready() -> void:
 		Settings.player_uid = Settings.new_uid()  # bots share the player's profile: tell them apart in the stats
 	if bot_mode:
 		Settings.kid_mode = false  # a bot of a hosted game runs on the host's profile: not its kid mode
+	unwatched = bot_style != "" and DisplayServer.get_name() == "headless"
 	if bot_style != "" and auto_join != "":  # a bot without its server has nothing to do (BotLauncher: no window to close)
 		Net.disconnected.connect(get_tree().quit)
 		Net.connection_failed.connect(get_tree().quit)
