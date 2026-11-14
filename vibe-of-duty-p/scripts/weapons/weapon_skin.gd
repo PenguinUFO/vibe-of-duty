@@ -23,7 +23,9 @@ static var _textures := {}   # kind -> [ImageTexture, mean]
 static var _materials := {}  # [kind, colour, metallic, roughness] -> ShaderMaterial; "chrome" -> its material
 
 
-## Swaps the plain materials under `root` for their skins (glass, unshaded dots and the like stay as they are).
+## Swaps the plain materials under `root` for their skins (glass and unshaded dots stay as they are). Textured models
+## (the IDW, the Contender, Docs/MODELS.md): the skin's noise over their own colour map (shrunk to ~4 mm a texel when
+## baked, sampled nearest); their normal and roughness maps are dropped.
 ## `finish` "chrome": the metal is chrome instead - smooth, bright, mirror-like (the Хрюгер); wood and polymer as ever.
 static func apply(root: Node, finish := "") -> void:
 	var meshes := root.find_children("*", "MeshInstance3D", true, false)
@@ -57,12 +59,14 @@ static func _chrome() -> StandardMaterial3D:
 
 static func _skin(source: StandardMaterial3D) -> ShaderMaterial:
 	var kind := _kind(source)
-	var key := [kind, source.albedo_color, source.metallic, source.roughness]
+	var key := [kind, source.albedo_color, source.metallic, source.roughness, source.albedo_texture]
 	if not _materials.has(key):
 		var texture: Array = noise(kind)
 		var material := ShaderMaterial.new()
 		material.shader = SHADER
 		material.set_shader_parameter("grain", texture[0])
+		if source.albedo_texture:
+			material.set_shader_parameter("albedo_map", source.albedo_texture)
 		material.set_shader_parameter("gain", 1.0 / texture[1])
 		material.set_shader_parameter("tint", source.albedo_color)
 		material.set_shader_parameter("metallic_value", source.metallic)

@@ -11,9 +11,9 @@ const MODULE_SLOTS: Array[String] = ["barrel", "suppressor", "conversion", "stoc
 		"akimbo"]
 ## The Luger drawn bigger than life: life size it is a toy next to a pig, and the two fists hid it.
 const LUGER_SCALE := 1.2
-## The Luger's tangent rear sight on its 200 mm artillery barrel: this far (life size) ahead of the P08's notch on the
-## toggle, where the eye relief was set.
-const LUGER_SIGHT_AHEAD := 0.136
+## How far the Luger's rear sight is (life size) ahead of the P08's notch on the toggle, where the eye relief was set: the
+## model (Docs/MODELS.md) aims through the notch itself.
+const LUGER_SIGHT_AHEAD := 0.0
 ## Modules' geometry (the config holds only their numbers), WeaponDef properties set on top of the base weapon's: an
 ## optic's model (SightModels) and the aim line through it, prefab space like _build_geometry's iron sights; a model
 ## variant (model_variants, merged into the base's); a muzzle that moved. A key ending in "_add" adds to the property
@@ -33,17 +33,21 @@ const MODULE_GEOMETRY := {
 			"rear_sight": Vector3(0.0, 0.104, -0.075), "front_sight": Vector3(0.0, 0.104, 0.05), "eye_relief": 0.06},
 	"mp7.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.0239, 0.0), "model_variants": {"Sights": "Down"},
 			"rear_sight": Vector3(0.0, 0.1071, -0.075), "front_sight": Vector3(0.0, 0.1071, 0.05), "eye_relief": 0.06},
-	# The PH IDW's CompM on the ACR's rail (0.027 higher), the flip-ups folded (the rear's ears would be in its ocular).
-	# The eye where it is with the irons (0.15 behind the rear sight at z -0.05).
-	"acr.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.027, 0.0), "model_variants": {"Sights": "Down"},
-			"rear_sight": Vector3(0.0, 0.125, -0.06), "front_sight": Vector3(0.0, 0.125, 0.06), "eye_relief": 0.14},
-	"pdw.sight.compm": {"sight": "compm", "rear_sight": Vector3(0.0, 0.098, -0.06),
-			"front_sight": Vector3(0.0, 0.098, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
+	# The Aimpoint (SightModels._compm: its frame's rail top 0.068, axis 0.105) on each model's rail, its top measured on
+	# the model (Docs/MODELS.md): the aim line at the rail's top + 0.037. The ACR's flip-ups folded (the rear's ears would be in
+	# its ocular).
+	"acr.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0297, 0.0), "model_variants": {"Sights": "Down"},
+			"rear_sight": Vector3(0.0, 0.1347, -0.06), "front_sight": Vector3(0.0, 0.1347, 0.06), "eye_relief": 0.14},
+	# Where it sits on the PH IDW's model (rail top 0.0585).
+	"pdw.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, -0.0095, -0.0478), "rear_sight": Vector3(0.0, 0.0955, -0.06),
+			"front_sight": Vector3(0.0, 0.0955, 0.06), "eye_relief": 0.255},  # the eye where it is with the irons
 	# The PH IDW's CompM and the ACR's ACOG on the Mk 14's rail (its top 0.0896: 0.0216 over the PH IDW's, 0.0054 under
 	# the ACR's), forward over the receiver's front (z +0.13), the aperture cranked down; the eye where it is with the
 	# irons, ACOG: 6 cm behind its eyepiece, as on the ACR.
-	"mk14.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0216, 0.13), "model_variants": {"Sights": "Down"},
-			"rear_sight": Vector3(0.0, 0.1196, 0.07), "front_sight": Vector3(0.0, 0.1196, 0.19), "eye_relief": 0.205},
+	# The Aimpoint: the model has no rail over the receiver - on the handguard's (top 0.083, from z 0.16), its clamp at
+	# its back end.
+	"mk14.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.015, 0.215), "model_variants": {"Sights": "Down"},
+			"rear_sight": Vector3(0.0, 0.12, 0.07), "front_sight": Vector3(0.0, 0.12, 0.19), "eye_relief": 0.205},
 	"mk14.sight.acog": {"sight": "acog", "sight_offset": Vector3(0.0, -0.0054, 0.13),
 			"model_variants": {"Sights": "Down", "FrontSight": "Off"},  # the post showed at the 4x view's bottom
 			"rear_sight": Vector3(0.0, 0.1256, 0.055), "front_sight": Vector3(0.0, 0.1256, 0.18), "eye_relief": 0.06},
@@ -66,9 +70,9 @@ const MODULE_GEOMETRY := {
 	"mp7.suppressor.on": {"model_variants": {"Muzzle": "Can"}, "muzzle": Vector3(0.0, 0.0217, 0.3198),
 			"sound_shot": "shot_suppressed"},
 	# The PDW's CompM on the MP7's rail (0.0031 higher), the flip-up sights folded under it.
-	"mp7.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0031, 0.0),
-			"model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.1011, -0.06),
-			"front_sight": Vector3(0.0, 0.1011, 0.06), "eye_relief": 0.202},  # the eye where it is with the irons
+	"mp7.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.005, 0.0),  # the rail's top 0.073
+			"model_variants": {"Sights": "Down"}, "rear_sight": Vector3(0.0, 0.11, -0.06),
+			"front_sight": Vector3(0.0, 0.11, 0.06), "eye_relief": 0.202},  # the eye where it is with the irons
 	"acr.stock.collapsed": {"model_variants": {"Stock/Extended/Butt": "In"}},  # slid in along the beam
 	# Every barrel has its own muzzle group (the others are gone by then); the can is 0.103 m longer than the brake.
 	"acr.suppressor.on": {"model_variants": {"Barrel/B105/Muzzle": "Can", "Barrel/B145/Muzzle": "Can",
@@ -82,7 +86,7 @@ const MODULE_GEOMETRY := {
 	# over the rail's back, the flip-ups folded; the eye at the cheek (z -0.215) as with the scope and the irons.
 	"aug.sight.compm": {"sight": "compm", "sight_offset": Vector3(0.0, 0.0181, -0.07),
 			"model_variants": {"Upper": "A3", "Upper/A3/Sights": "Down", "Barrel/B508/Front": "Rail"},
-			"rear_sight": Vector3(0.0, 0.1161, -0.13), "front_sight": Vector3(0.0, 0.1161, -0.01), "eye_relief": 0.085},
+			"rear_sight": Vector3(0.0, 0.1231, -0.13), "front_sight": Vector3(0.0, 0.1231, -0.01), "eye_relief": 0.085},
 	"aug.sight.iron": {"sight": "",
 			"model_variants": {"Upper": "A3", "Upper/A3/Sights": "Up", "Barrel/B508/Front": "Rail"},
 			"rear_sight": Vector3(0.0, 0.1041, -0.1136), "front_sight": Vector3(0.0, 0.1041, 0.1172), "eye_relief": 0.1016},
@@ -387,12 +391,12 @@ static func _build_geometry() -> void:
 	var rifle := WeaponDef.new()
 	rifle.id = "ak"
 	rifle.display_name = "Хрюкашников"
-	rifle.scene_path = "res://prefabs/weapons/ak_blockout.tscn"  # tools/make_ak_blockout.py
+	rifle.scene_path = "res://assets/models/ak/ak.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/ak_blockout.tscn (tools/make_ak_blockout.py)
 	rifle.model_variants = {"Muzzle": "Slant", "Mags": "AK_Mag_30"}
 	rifle.muzzle = Vector3(0.0, 0.045, 0.565)
-	rifle.rear_sight = Vector3(0.0, 0.118, 0.28)   # top of the rear leaf (the post's tip flush with it)
-	rifle.front_sight = Vector3(0.0, 0.118, 0.5)   # tip of the front post
-	rifle.eye_relief = 0.46  # eye over the stock comb, behind the receiver
+	rifle.rear_sight = Vector3(0.0, 0.0995, 0.124)  # the rear leaf's tops (the post's tip flush with them; the model's post is lower)
+	rifle.front_sight = Vector3(0.0, 0.094, 0.544)  # the front post's tip
+	rifle.eye_relief = 0.304  # eye over the stock comb, behind the receiver
 	rifle.right_hand = Vector3(0.0, -0.055, -0.062)
 	rifle.left_hand = Vector3(0.0, 0.0, 0.35)
 	rifle.ejection_port = Vector3(-0.027, 0.058, 0.07)  # right side of the receiver (prefab -x = the shooter's right)
@@ -404,12 +408,12 @@ static func _build_geometry() -> void:
 	var pdw := WeaponDef.new()
 	pdw.id = "pdw"
 	pdw.display_name = "PH IDW"
-	pdw.scene_path = "res://prefabs/weapons/pdw_blockout.tscn"  # tools/make_pdw_blockout.py
+	pdw.scene_path = "res://assets/models/pdw/pdw.glb"  # moog!, Docs/MODELS.md; was res://prefabs/weapons/pdw_blockout.tscn (tools/make_pdw_blockout.py)
 	pdw.model_variants = {"Stock": "Extended", "Mags": "PDW_Mag_32", "Muzzle": "Suppressor"}  # .45 with the can
 	pdw.muzzle = Vector3(0.0, 0.02, 0.385)
-	pdw.rear_sight = Vector3(0.0, 0.086, -0.115)  # top of the rear ears (the post's tip flush with them)
-	pdw.front_sight = Vector3(0.0, 0.086, 0.115)   # tip of the front post
-	pdw.eye_relief = 0.2  # over the stock, in front of the butt (behind it the U butt framed the whole view)
+	pdw.rear_sight = Vector3(0.0, 0.064, -0.19)  # no irons on the model (its RDO is a module): along the rail, 6 mm over it
+	pdw.front_sight = Vector3(0.0, 0.064, 0.03)  # the rail's front end
+	pdw.eye_relief = 0.125  # over the stock, in front of the butt (behind it the U butt framed the whole view)
 	pdw.right_hand = Vector3(0.0, -0.085, -0.1)
 	pdw.left_hand = Vector3(0.0, -0.08, 0.076)    # the left hand holds the magazine well
 	pdw.ejection_port = Vector3(-0.023, 0.04, 0.03)
@@ -422,12 +426,12 @@ static func _build_geometry() -> void:
 	var luger := WeaponDef.new()
 	luger.id = "luger"
 	luger.display_name = "Хрюгер"
-	luger.scene_path = "res://prefabs/weapons/luger_blockout.tscn"  # tools/make_luger_blockout.py
+	luger.scene_path = "res://assets/models/luger/luger.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/luger_blockout.tscn (tools/make_luger_blockout.py)
 	# The artillery model's 200 mm barrel (owner, 2026-10-23): its tangent sight replaces the toggle's notch.
 	luger.model_variants = {"Barrel": "B200", "Toggle/LinkRear/Sight": "Plain", "Stock": "None", "Mags": "Luger_Mag_8"}
 	luger.muzzle = Vector3(0.0, 0.03, 0.21)
-	luger.rear_sight = Vector3(0.0, 0.05, 0.0485)  # the tangent sight's ears' tops
-	luger.front_sight = Vector3(0.0, 0.05, 0.202)
+	luger.rear_sight = Vector3(0.0, 0.053, -0.087)  # the toggle's notch, its ears' tops (the post's tip flush with them)
+	luger.front_sight = Vector3(0.0, 0.048, 0.201)  # the front post's tip
 	luger.eye_relief = 0.38 + LUGER_SIGHT_AHEAD * LUGER_SCALE  # arms out, a little bent: 0.38 behind the toggle's notch
 	luger.model_scale = LUGER_SCALE
 	luger.right_hand = Vector3(0.0, -0.035, -0.06)   # the middle of the grip
@@ -442,14 +446,14 @@ static func _build_geometry() -> void:
 	var acr := WeaponDef.new()
 	acr.id = "acr"
 	acr.display_name = "ACR"
-	acr.scene_path = "res://prefabs/weapons/acr_blockout.tscn"  # tools/make_acr_blockout.py
+	acr.scene_path = "res://assets/models/acr/acr.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/acr_blockout.tscn (tools/make_acr_blockout.py)
 	acr.model_variants = {"Barrel": "B145", "Barrel/B105/Muzzle": "Brake", "Barrel/B145/Muzzle": "Brake",
 			"Barrel/B185/Muzzle": "Brake", "Stock": "Extended", "Stock/Extended/Butt": "Out", "Stock/Folded/Butt": "In",
 			"Mags": "ACR_Mag_30", "Sights": "Up"}
 	acr.muzzle = Vector3(0.0, 0.05, 0.548)
-	acr.rear_sight = Vector3(0.0, 0.113, -0.05)   # top of the rear ears (the post's tip flush with them)
-	acr.front_sight = Vector3(0.0, 0.113, 0.31)   # tip of the front post
-	acr.eye_relief = 0.15  # cheek on the comb
+	acr.rear_sight = Vector3(0.0, 0.127, -0.107)  # the rear aperture's middle
+	acr.front_sight = Vector3(0.0, 0.127, 0.288)  # the front post's tip
+	acr.eye_relief = 0.093  # cheek on the comb
 	acr.right_hand = Vector3(0.0, -0.04, -0.076)
 	acr.left_hand = Vector3(0.0, 0.015, 0.29)
 	acr.ejection_port = Vector3(-0.027, 0.06, 0.06)
@@ -463,13 +467,13 @@ static func _build_geometry() -> void:
 	var mp7 := WeaponDef.new()
 	mp7.id = "mp7"
 	mp7.display_name = "MP7"
-	mp7.scene_path = "res://prefabs/weapons/mp7_blockout.tscn"  # tools/make_mp7_blockout.py
+	mp7.scene_path = "res://assets/models/mp7/mp7.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/mp7_blockout.tscn (tools/make_mp7_blockout.py)
 	mp7.model_variants = {"Stock": "Extended", "Foregrip": "Unfolded", "Muzzle": "Hider", "Sights": "Up",
 			"Mags": "MP7_Mag_40"}
 	mp7.muzzle = Vector3(0.0, 0.0217, 0.2106)
-	mp7.rear_sight = Vector3(0.0, 0.104, -0.132)  # top of the rear ears (the post's tip flush with them)
-	mp7.front_sight = Vector3(0.0, 0.104, 0.108)  # tip of the front post
-	mp7.eye_relief = 0.23  # the stock out (0.223 m on its rods): 0.1 further than the cheek right behind the receiver
+	mp7.rear_sight = Vector3(0.0, 0.102, -0.121)  # the rear aperture
+	mp7.front_sight = Vector3(0.0, 0.102, 0.104)  # the front post's tip
+	mp7.eye_relief = 0.241  # the stock out (0.223 m on its rods): 0.1 further than the cheek right behind the receiver
 	mp7.right_hand = Vector3(0.0, -0.045, -0.047)  # the middle of the grip
 	mp7.left_hand = Vector3(0.0, -0.05, 0.124)     # on the foregrip
 	mp7.ejection_port = Vector3(-0.022, 0.04, 0.015)
@@ -483,11 +487,11 @@ static func _build_geometry() -> void:
 	var contender := WeaponDef.new()
 	contender.id = "contender"
 	contender.display_name = "Contender"
-	contender.scene_path = "res://prefabs/weapons/contender_blockout.tscn"  # tools/make_contender_blockout.py
+	contender.scene_path = "res://assets/models/contender/contender.glb"  # samanthacford, Docs/MODELS.md; was res://prefabs/weapons/contender_blockout.tscn (tools/make_contender_blockout.py)
 	contender.muzzle = Vector3(0.0, 0.0438, 0.335)
-	contender.rear_sight = Vector3(0.0, 0.069, 0.002)   # the rear leaf's ears' tops (the blade's tip flush with them)
-	contender.front_sight = Vector3(0.0, 0.069, 0.314)  # the front blade's tip
-	contender.eye_relief = 0.48  # arms out, as the Luger's: the eye ~0.48 behind the trigger
+	contender.rear_sight = Vector3(0.0, 0.065, 0.02)  # the rear notch's ears' tops (the blade's tip flush with them)
+	contender.front_sight = Vector3(0.0, 0.067, 0.316)  # the front blade's tip
+	contender.eye_relief = 0.498  # arms out, as the Luger's: the eye ~0.48 behind the trigger
 	contender.right_hand = Vector3(0.0, -0.03, -0.054)  # the middle of the grip
 	contender.left_hand = Vector3(0.0, -0.075, -0.07)   # cupped under the right hand
 	contender.break_hinge = Vector3(0.0, 0.0149, 0.0231)
@@ -500,11 +504,11 @@ static func _build_geometry() -> void:
 	var winchester := WeaponDef.new()
 	winchester.id = "winchester"
 	winchester.display_name = "Winchester 1887"
-	winchester.scene_path = "res://prefabs/weapons/winchester_blockout.tscn"  # tools/make_winchester_blockout.py
+	winchester.scene_path = "res://assets/models/winchester/winchester.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/winchester_blockout.tscn (tools/make_winchester_blockout.py)
 	winchester.muzzle = Vector3(0.0, 0.073, 0.64)
-	winchester.rear_sight = Vector3(0.0, 0.0895, 0.094)  # the top of the receiver front's cheeks round the slot
-	winchester.front_sight = Vector3(0.0, 0.0895, 0.625)  # the bead's top (the hammer stays under the eye's line to the slot)
-	winchester.eye_relief = 0.22  # the cheek on the comb's nose; at 0.42 (near the butt) the gun was a speck, the hand in view
+	winchester.rear_sight = Vector3(0.0, 0.0855, 0.043)  # the receiver's top, its front end
+	winchester.front_sight = Vector3(0.0, 0.0855, 0.619)  # the bead's top
+	winchester.eye_relief = 0.169  # the cheek on the comb's nose; at 0.42 (near the butt) the gun was a speck, the hand in view
 	winchester.right_hand = Vector3(0.0, -0.024, -0.061)  # on the wrist, the fingers in the lever's loop
 	winchester.left_hand = Vector3(0.0, 0.028, 0.27)     # under the fore-end
 	winchester.lever_pivot = Vector3(0.0, 0.012, 0.07)
@@ -516,12 +520,12 @@ static func _build_geometry() -> void:
 	var mk14 := WeaponDef.new()
 	mk14.id = "mk14"
 	mk14.display_name = "MK14"
-	mk14.scene_path = "res://prefabs/weapons/mk14_blockout.tscn"  # tools/make_mk14_blockout.py
+	mk14.scene_path = "res://assets/models/mk14/mk14.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/mk14_blockout.tscn (tools/make_mk14_blockout.py)
 	mk14.model_variants = {"Mags": "Mk14_Mag_20", "Sights": "Up", "FrontSight": "On"}
 	mk14.muzzle = Vector3(0.0, 0.063, 0.647)
-	mk14.rear_sight = Vector3(0.0, 0.097, 0.025)   # the rear aperture's middle (the post's tip in it)
-	mk14.front_sight = Vector3(0.0, 0.097, 0.546)  # the front post's tip
-	mk14.eye_relief = 0.16  # cheek on the rest, the eye close behind the aperture
+	mk14.rear_sight = Vector3(0.0, 0.085, 0.026)  # the rear aperture's middle
+	mk14.front_sight = Vector3(0.0, 0.085, 0.577)  # the front post's tip
+	mk14.eye_relief = 0.161  # cheek on the rest, the eye close behind the aperture
 	mk14.right_hand = Vector3(0.0, -0.042, -0.067)  # the middle of the grip
 	mk14.left_hand = Vector3(0.0, 0.003, 0.34)      # under the handguard
 	mk14.ejection_port = Vector3(-0.012, 0.072, 0.09)  # up and right out of the receiver's top
@@ -534,13 +538,13 @@ static func _build_geometry() -> void:
 	var p90 := WeaponDef.new()
 	p90.id = "p90"
 	p90.display_name = "P90"
-	p90.scene_path = "res://prefabs/weapons/p90_blockout.tscn"  # tools/make_p90_blockout.py
+	p90.scene_path = "res://assets/models/p90/p90.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/p90_blockout.tscn (tools/make_p90_blockout.py)
 	p90.model_variants = {"Muzzle": "Hider"}
 	p90.sight = "ring"  # the integral ring sight: its housing is the gun's, SightModels draws the glass and the reticle
 	p90.muzzle = Vector3(0.0, 0.0209, 0.1678)
-	p90.rear_sight = Vector3(0.0, 0.0871, -0.0272)  # the sight window's middle, its back
-	p90.front_sight = Vector3(0.0, 0.0871, 0.1254)  # and its front
-	p90.eye_relief = 0.12  # cheek forward on the butt's top: at 0.2 the window was a slot in a black box
+	p90.rear_sight = Vector3(0.0, 0.12, 0.067)  # the model's mini red dot: its window's middle, back
+	p90.front_sight = Vector3(0.0, 0.12, 0.077)  # and front
+	p90.eye_relief = 0.214  # cheek forward on the butt's top: at 0.2 the window was a slot in a black box
 	p90.right_hand = Vector3(0.0, -0.024, -0.038)  # the grip between the thumb hole and the trigger hole
 	p90.left_hand = Vector3(0.0, -0.024, 0.093)    # under the front, behind the hook
 	p90.ejection_port = Vector3(0.0, -0.063, -0.166)  # the chute in the bottom behind the grip
@@ -556,7 +560,7 @@ static func _build_geometry() -> void:
 	var aug := WeaponDef.new()
 	aug.id = "aug"
 	aug.display_name = "AUG"
-	aug.scene_path = "res://prefabs/weapons/aug_blockout.tscn"  # tools/make_aug_blockout.py
+	aug.scene_path = "res://assets/models/aug/aug.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/aug_blockout.tscn (tools/make_aug_blockout.py)
 	aug.model_variants = {"Upper": "A1", "Upper/A3/Sights": "Up", "Barrel": "B508", "Barrel/B508/Muzzle": "Hider",
 			"Barrel/B350/Muzzle": "Hider", "Barrel/B508/Front": "Bare", "Barrel/B508/Front/Bare/Grip": "Unfolded",
 			"Barrel/B508/Front/Rail/Grip": "On", "Barrel/B350/Grip": "On", "Mags": "AUG_Mag_30"}
@@ -578,13 +582,13 @@ static func _build_geometry() -> void:
 	var m16 := WeaponDef.new()
 	m16.id = "m16"
 	m16.display_name = "M16A1"
-	m16.scene_path = "res://prefabs/weapons/m16_blockout.tscn"  # tools/make_m16_blockout.py
+	m16.scene_path = "res://assets/models/m16_tastytony/m16.glb"  # TEST: Sketchfab "Low-Poly M16" by TastyTony (CC BY); was res://prefabs/weapons/m16_blockout.tscn
 	m16.model_variants = {"Barrel": "B508", "Barrel/B508/Muzzle": "Hider", "Barrel/B368/Muzzle": "Hider",
 			"Stock": "A1", "Stock/CAR/Slide": "Out", "Mags": "M16_Mag_30"}
 	m16.muzzle = Vector3(0.0, 0.0548, 0.6814)
-	m16.rear_sight = Vector3(0.0, 0.1183, -0.0286)  # the A1 aperture's middle, on the handle's back (2.5" over the bore)
-	m16.front_sight = Vector3(0.0, 0.1183, 0.4926)  # the post's tip
-	m16.eye_relief = 0.09  # the cheek on the comb
+	m16.rear_sight = Vector3(0.0, 0.1195, -0.008)  # the middle of the A1 aperture's hole (0.1175..0.1215)
+	m16.front_sight = Vector3(0.0, 0.1131, 0.5025)  # the post's tip: lower, WeaponView tilts the gun
+	m16.eye_relief = 0.11  # the cheek on the comb
 	m16.right_hand = Vector3(0.0, -0.0405, -0.0655)  # the middle of the grip
 	m16.left_hand = Vector3(0.0, 0.0286, 0.2859)    # under the handguard
 	m16.ejection_port = Vector3(-0.016, 0.0596, 0.0655)
@@ -598,12 +602,12 @@ static func _build_geometry() -> void:
 	var groza := WeaponDef.new()
 	groza.id = "groza"
 	groza.display_name = "Гроза"
-	groza.scene_path = "res://prefabs/weapons/groza_blockout.tscn"  # tools/make_groza_blockout.py
+	groza.scene_path = "res://assets/models/groza/groza.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/groza_blockout.tscn (tools/make_groza_blockout.py)
 	groza.model_variants = {"Muzzle": "Comp", "Mags": "Groza_Mag_30"}
 	groza.muzzle = Vector3(0.0, 0.0295, 0.1159)
-	groza.rear_sight = Vector3(0.0, 0.1226, -0.1211)  # the rear leaf's ears' tops in the frame's rear post
-	groza.front_sight = Vector3(0.0, 0.1226, 0.0461)  # the post's tip in the front post
-	groza.eye_relief = 0.12  # the cheek forward on the receiver
+	groza.rear_sight = Vector3(0.0, 0.121, -0.131)  # in the rear notch (bottom 0.118, ears 0.125)
+	groza.front_sight = Vector3(0.0, 0.121, 0.0)  # the post's tip in the front ears
+	groza.eye_relief = 0.11  # the cheek forward on the receiver
 	groza.right_hand = Vector3(0.0, -0.0541, -0.0522)  # the middle of the grip
 	groza.left_hand = Vector3(0.0, -0.01, 0.045)      # under the front body, by the frame's front post
 	groza.ejection_port = Vector3(-0.017, 0.0437, -0.2612)  # the AK's port by the cheek
@@ -616,12 +620,12 @@ static func _build_geometry() -> void:
 	var val := WeaponDef.new()
 	val.id = "val"
 	val.display_name = "АС ВАЛ"
-	val.scene_path = "res://prefabs/weapons/val_blockout.tscn"  # tools/make_val_blockout.py
+	val.scene_path = "res://assets/models/val/val.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/val_blockout.tscn (tools/make_val_blockout.py)
 	val.model_variants = {"Barrel": "Can", "Stock": "Wire", "Mags": "Val_Mag_20"}
 	val.muzzle = Vector3(0.0, 0.0174, 0.5237)
-	val.rear_sight = Vector3(0.0, 0.0498, 0.2101)  # the notch's top, on the can's back
-	val.front_sight = Vector3(0.0, 0.0498, 0.4996)  # the post's tip on the can's nose
-	val.eye_relief = 0.3701  # the eye over the stock, behind the receiver
+	val.rear_sight = Vector3(0.0, 0.049, 0.216)  # the notch's ears' tops, on the can's back (the post's tip flush with them)
+	val.front_sight = Vector3(0.0, 0.047, 0.508)  # the post's tip on the can's nose
+	val.eye_relief = 0.376  # the eye over the stock, behind the receiver
 	val.right_hand = Vector3(0.0, -0.0541, -0.0541)  # the middle of the grip
 	val.left_hand = Vector3(0.0, -0.0127, 0.1575)    # under the handguard
 	val.ejection_port = Vector3(-0.017, 0.0268, 0.0658)
@@ -634,12 +638,12 @@ static func _build_geometry() -> void:
 	var striker := WeaponDef.new()
 	striker.id = "striker"
 	striker.display_name = "Striker"
-	striker.scene_path = "res://prefabs/weapons/striker_blockout.tscn"  # tools/make_striker_blockout.py
+	striker.scene_path = "res://assets/models/striker/striker.glb"  # TastyTony, Docs/MODELS.md; was res://prefabs/weapons/striker_blockout.tscn (tools/make_striker_blockout.py)
 	striker.model_variants = {"Body": "Striker", "Body/Striker/Stock": "Extended"}
 	striker.muzzle = Vector3(0.0, 0.0458, 0.4205)
-	striker.rear_sight = Vector3(0.0, 0.0826, 0.0454)   # the notch's ears on the strap's back, over the drum
-	striker.front_sight = Vector3(0.0, 0.0826, 0.3649)  # the blade's tip
-	striker.eye_relief = 0.25  # the cheek on the stock's arm, behind the receiver
+	striker.rear_sight = Vector3(0.0, 0.108, 0.11)  # the model's mini red dot over the drum: its window's middle, back
+	striker.front_sight = Vector3(0.0, 0.108, 0.122)  # and front
+	striker.eye_relief = 0.315  # the cheek on the stock's arm, behind the receiver
 	striker.right_hand = Vector3(0.0, -0.0583, -0.07)  # the middle of the grip
 	striker.left_hand = Vector3(0.0, -0.0174, 0.2478)  # on the foregrip
 	# The loading gate: the chamber at 3 o'clock seen from behind, on the drum's back right; the left hand pushes the

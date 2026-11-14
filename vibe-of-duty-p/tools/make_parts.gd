@@ -373,7 +373,7 @@ const PARTS := {
 					Vector2(-0.0817, -0.0004), Vector2(-0.0698, -0.0004), Vector2(-0.0167, -0.0004), Vector2(0.002, 0.0004),
 					Vector2(0.0299, 0.0004), Vector2(0.0518, 0), Vector2(0.0698, 0.0028), Vector2(0.0857, 0.0048),
 					Vector2(0.1016, 0.0048), Vector2(0.1096, 0.006), Vector2(0.1124, 0.0096)],
-					"width": [Vector2(0.1124, 0.02), Vector2(-0.403, 0.027)], "chamfer": 0.005},
+					"width": [Vector2(0.1124, 0.02), Vector2(-0.403, 0.027)], "chamfer": 0.005, "round": [0.018, 0.021, 4]},
 			"grip": {"points": [Vector2(-0.0167, 0.0008), Vector2(-0.0698, 0.0008), Vector2(-0.0682, -0.008),
 					Vector2(-0.0678, -0.0151), Vector2(-0.0698, -0.0259), Vector2(-0.0737, -0.0307), Vector2(-0.0777, -0.0359),
 					Vector2(-0.0817, -0.0423), Vector2(-0.0857, -0.0502), Vector2(-0.0897, -0.0618), Vector2(-0.0925, -0.0749),
@@ -381,7 +381,7 @@ const PARTS := {
 					Vector2(-0.0546, -0.0988), Vector2(-0.0546, -0.0861), Vector2(-0.0498, -0.0745), Vector2(-0.0419, -0.0566),
 					Vector2(-0.0339, -0.0399), Vector2(-0.0279, -0.0311), Vector2(-0.0219, -0.0279), Vector2(-0.0179, -0.0239),
 					Vector2(-0.0167, -0.0112)],
-					"width": [Vector2(0.3886, 0.015)], "chamfer": 0.004},
+					"width": [Vector2(0.3886, 0.015)], "chamfer": 0.004, "round": [0.013, 0.0145, 4]},
 			"guard": {"points": [Vector2(0.0897, 0.0136), Vector2(0.0737, 0.0008), Vector2(0.0618, -0.006),
 					Vector2(0.0538, -0.0151), Vector2(0.0458, -0.0243), Vector2(0.0339, -0.0419), Vector2(0.0219, -0.0554),
 					Vector2(0.006, -0.0757), Vector2(-0.01, -0.0941), Vector2(-0.0179, -0.0992), Vector2(-0.0259, -0.1016),
@@ -390,32 +390,32 @@ const PARTS := {
 					Vector2(-0.0179, -0.0861), Vector2(-0.01, -0.0797), Vector2(0.006, -0.0602), Vector2(0.014, -0.0494),
 					Vector2(0.0219, -0.0371), Vector2(0.0319, -0.0223), Vector2(0.0411, -0.0072), Vector2(0.0458, 0.0048),
 					Vector2(0.0618, 0.0136)],
-					"width": [Vector2(0.3886, 0.008)], "chamfer": 0.002},
+					"width": [Vector2(0.3886, 0.008)], "chamfer": 0.002, "round": [0.004, 0.006]},
 			"trigger": {"points": [Vector2(0.0012, 0.0004), Vector2(-0.0112, 0.0004), Vector2(-0.0163, -0.0052),
 					Vector2(-0.0159, -0.0171), Vector2(-0.0124, -0.0231), Vector2(-0.0068, -0.0223), Vector2(-0.0044, -0.0132),
 					Vector2(0.0004, -0.0048)],
-					"width": [Vector2(0.3886, 0.005)], "chamfer": 0.0015},
+					"width": [Vector2(0.3886, 0.005)], "chamfer": 0.0015, "round": [0.002, 0.004]},
 			"receiver": {"points": [Vector2(0.1295, 0.0207), Vector2(0.1295, 0.047), Vector2(0.1244, 0.0494),
 					Vector2(-0.0219, 0.0494), Vector2(-0.0243, 0.0179), Vector2(0.1275, 0.0179)],
-					"width": [Vector2(0.3886, 0.0195)], "chamfer": 0.003},
+					"width": [Vector2(0.3886, 0.0195)], "chamfer": 0.003, "round": [0.012, 0.019, 5]},
 			"bridge_front": {"points": [Vector2(0.1096, 0.049), Vector2(0.0889, 0.049), Vector2(0.0482, 0.0917),
 					Vector2(0.0749, 0.0917)],
-					"width": [Vector2(0.3886, 0.009)], "chamfer": 0.003},
+					"width": [Vector2(0.3886, 0.009)], "chamfer": 0.003, "round": [0.003, 0.006]},
 			"bridge_rear": {"points": [Vector2(-0.0112, 0.049), Vector2(-0.0124, 0.0686), Vector2(-0.0155, 0.0845),
 					Vector2(-0.0199, 0.0917), Vector2(-0.0578, 0.0917), Vector2(-0.0438, 0.0853), Vector2(-0.0347, 0.0765),
 					Vector2(-0.0291, 0.0666), Vector2(-0.0259, 0.0566), Vector2(-0.0251, 0.049)],
-					"width": [Vector2(0.3886, 0.009)], "chamfer": 0.003},
+					"width": [Vector2(0.3886, 0.009)], "chamfer": 0.003, "round": [0.003, 0.006]},
 			"upper_a3": {"points": [Vector2(0.1287, 0.0179), Vector2(0.1287, 0.0805), Vector2(0.1248, 0.0829),
 					Vector2(-0.1295, 0.0829), Vector2(-0.1315, 0.0805), Vector2(-0.1315, 0.0562), Vector2(-0.0243, 0.0562),
 					Vector2(-0.0243, 0.0179)],
-					"width": [Vector2(0.3886, 0.0175)], "chamfer": 0.003},
+					"width": [Vector2(0.3886, 0.0175)], "chamfer": 0.003, "round": [0.004, 0.006]},
 			"steyr_grip": {"points": [Vector2(0.1507, 0.0036), Vector2(0.1264, 0.0036), Vector2(0.1224, -0.0112),
 					Vector2(0.1192, -0.0351), Vector2(0.1164, -0.059), Vector2(0.116, -0.0889), Vector2(0.1204, -0.0977),
 					Vector2(0.1495, -0.0981), Vector2(0.1543, -0.0929), Vector2(0.1531, -0.067), Vector2(0.1511, -0.0351)],
-					"width": [Vector2(0.3886, 0.014)], "chamfer": 0.005},
+					"width": [Vector2(0.3886, 0.014)], "chamfer": 0.005, "round": [0.013, 0.0135, 4]},
 			"handguard": {"points": [Vector2(0.2491, 0.0829), Vector2(0.1287, 0.0829), Vector2(0.1287, 0.008),
 					Vector2(0.2392, 0.008), Vector2(0.2491, 0.0128)],
-					"width": [Vector2(0.3886, 0.021)], "chamfer": 0.003},
+					"width": [Vector2(0.3886, 0.021)], "chamfer": 0.003, "round": [0.014, 0.018, 4]},
 			"mag_30": {"points": [Vector2(-0.2192, -0.0223), Vector2(-0.1543, -0.0223), Vector2(-0.1543, -0.0271),
 					Vector2(-0.154, -0.0426), Vector2(-0.1533, -0.0581), Vector2(-0.1522, -0.0736), Vector2(-0.1505, -0.0891),
 					Vector2(-0.1484, -0.1044), Vector2(-0.1459, -0.1198), Vector2(-0.1429, -0.135), Vector2(-0.1394, -0.1501),
@@ -423,10 +423,10 @@ const PARTS := {
 					Vector2(-0.2025, -0.1656), Vector2(-0.2064, -0.1485), Vector2(-0.2098, -0.1314), Vector2(-0.2127, -0.1141),
 					Vector2(-0.215, -0.0968), Vector2(-0.2169, -0.0795), Vector2(-0.2182, -0.062), Vector2(-0.219, -0.0446),
 					Vector2(-0.2192, -0.0271)],
-					"width": [Vector2(0, 0.0125)], "chamfer": 0.003},
+					"width": [Vector2(0, 0.0125)], "chamfer": 0.003, "round": [0.004, 0.007]},
 			"mag_30_base": {"points": [Vector2(-0.1311, -0.18), Vector2(-0.1303, -0.1827), Vector2(-0.1294, -0.1854),
 					Vector2(-0.1913, -0.2053), Vector2(-0.1923, -0.2023), Vector2(-0.1932, -0.1992)],
-					"width": [Vector2(0, 0.0135)], "chamfer": 0.002},
+					"width": [Vector2(0, 0.0135)], "chamfer": 0.002, "round": [0.002, 0.005]},
 			"mag_42": {"points": [Vector2(-0.2192, -0.0223), Vector2(-0.1543, -0.0223), Vector2(-0.1543, -0.0271),
 					Vector2(-0.1539, -0.0469), Vector2(-0.1527, -0.0666), Vector2(-0.1509, -0.0863), Vector2(-0.1482, -0.1058),
 					Vector2(-0.1449, -0.1253), Vector2(-0.1407, -0.1446), Vector2(-0.1359, -0.1638), Vector2(-0.1303, -0.1827),
@@ -434,10 +434,10 @@ const PARTS := {
 					Vector2(-0.1923, -0.2023), Vector2(-0.1985, -0.1809), Vector2(-0.204, -0.1594), Vector2(-0.2086, -0.1376),
 					Vector2(-0.2124, -0.1157), Vector2(-0.2154, -0.0937), Vector2(-0.2175, -0.0715), Vector2(-0.2188, -0.0493),
 					Vector2(-0.2192, -0.0271)],
-					"width": [Vector2(0, 0.0125)], "chamfer": 0.003},
+					"width": [Vector2(0, 0.0125)], "chamfer": 0.003, "round": [0.004, 0.007]},
 			"mag_42_base": {"points": [Vector2(-0.117, -0.2199), Vector2(-0.1159, -0.2226), Vector2(-0.1149, -0.2252),
 					Vector2(-0.1749, -0.25), Vector2(-0.1761, -0.2471), Vector2(-0.1773, -0.2441)],
-					"width": [Vector2(0, 0.0135)], "chamfer": 0.002},
+					"width": [Vector2(0, 0.0135)], "chamfer": 0.002, "round": [0.002, 0.005]},
 		},
 		"sections": {},
 	},
@@ -714,7 +714,10 @@ func _initialize() -> void:
 		var profiles: Dictionary = PARTS[weapon]["profiles"]
 		for name: String in profiles:
 			var p: Dictionary = profiles[name]
-			_save(_profile_solid(PackedVector2Array(p["points"]), p["width"], p["chamfer"]), weapon, name)
+			if p.has("round"):
+				_save(_round_solid(PackedVector2Array(p["points"]), p["width"], p["round"]), weapon, name)
+			else:
+				_save(_profile_solid(PackedVector2Array(p["points"]), p["width"], p["chamfer"]), weapon, name)
 		var sections: Dictionary = PARTS[weapon]["sections"]
 		for name: String in sections:
 			var s: Dictionary = sections[name]
@@ -766,6 +769,78 @@ static func _profile_solid(points: PackedVector2Array, width: Array, chamfer: fl
 			_quad(st, a, b, c, d, (out + Vector3(side, 0.0, 0.0)).normalized())
 		_quad(st, _at(points[k], _hw(width, points[k].x) - chamfer), _at(points[k2], _hw(width, points[k2].x) - chamfer),
 				_at(points[k2], chamfer - _hw(width, points[k2].x)), _at(points[k], chamfer - _hw(width, points[k].x)), out)
+	return st.commit()
+
+
+## A side profile pushed across the gun with its edges rounded: `round` = [radius in the side plane, radius across,
+## steps (optional, 3)] - a quarter ellipse from the flat side to the edge band; with the radius across near the half
+## width the section turns oval (a grip, a stock seen from above). Where the profile is thin (a tip, a spur) both radii
+## shrink at that point, so the inset outline never crosses itself.
+static func _round_solid(points: PackedVector2Array, width: Array, rnd: Array) -> Mesh:
+	if _area(points) < 0.0:
+		points.reverse()
+	var r: float = rnd[0]
+	var rx: float = rnd[1]
+	var steps: int = rnd[2] if rnd.size() > 2 else 3
+	var n := points.size()
+	var dirs := PackedVector2Array()  # inward, a unit inset per unit of `by` (mitred)
+	var scale := PackedFloat32Array()
+	for k in n:
+		var e1 := (points[k] - points[(k - 1 + n) % n]).normalized()
+		var e2 := (points[(k + 1) % n] - points[k]).normalized()
+		var n1 := Vector2(-e1.y, e1.x)
+		var mid := (n1 + Vector2(-e2.y, e2.x)).normalized()
+		var dir := mid * minf(1.0 / maxf(mid.dot(n1), 0.2), 3.0)
+		dirs.append(dir)
+		var thick := INF  # how far inwards the outline is met again
+		var far := points[k] + mid * 1.0
+		for j in n:
+			var j2 := (j + 1) % n
+			if j == k or j2 == k:
+				continue
+			var hit: Variant = Geometry2D.segment_intersects_segment(points[k], far, points[j], points[j2])
+			if hit != null:
+				thick = minf(thick, ((hit as Vector2) - points[k]).length())
+		scale.append(minf(1.0, 0.4 * thick / (r * dir.length())))
+	var rings: Array[PackedVector2Array] = []  # ring i: the outline inset at step i (0 - the flat side, steps - the edge)
+	var xs: Array[PackedFloat32Array] = []  # its half width
+	for i in steps + 1:
+		var t := 0.5 * PI * i / steps
+		var ring := PackedVector2Array()
+		var x := PackedFloat32Array()
+		for k in n:
+			var p := points[k] + dirs[k] * r * scale[k] * (1.0 - sin(t))
+			ring.append(p)
+			var hw := _hw(width, p.x)
+			x.append(hw - minf(rx * scale[k], hw) * (1.0 - cos(t)))
+		rings.append(ring)
+		xs.append(x)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tris := Geometry2D.triangulate_polygon(rings[0])
+	if tris.is_empty():
+		tris = Geometry2D.triangulate_polygon(points)  # the same points, the outline's own triangles
+	for side in [1.0, -1.0]:
+		for i in range(0, tris.size(), 3):
+			var a := tris[i]
+			var b := tris[i + 1]
+			var c := tris[i + 2]
+			_tri(st, _at(rings[0][a], side * xs[0][a]), _at(rings[0][b], side * xs[0][b]),
+					_at(rings[0][c], side * xs[0][c]), Vector3(side, 0.0, 0.0))
+	for k in n:
+		var k2 := (k + 1) % n
+		var edge := points[k2] - points[k]
+		var out := Vector3(0.0, -edge.x, edge.y).normalized()
+		for i in steps:
+			var t := 0.5 * PI * (i + 0.5) / steps
+			var ra := rings[i]
+			var rb := rings[i + 1]
+			for side in [1.0, -1.0]:
+				_quad(st, _at(ra[k], side * xs[i][k]), _at(ra[k2], side * xs[i][k2]), _at(rb[k2], side * xs[i + 1][k2]),
+						_at(rb[k], side * xs[i + 1][k]), (out * sin(t) + Vector3(side, 0.0, 0.0) * cos(t)).normalized())
+		var e := rings[steps]
+		var ex := xs[steps]
+		_quad(st, _at(e[k], ex[k]), _at(e[k2], ex[k2]), _at(e[k2], -ex[k2]), _at(e[k], -ex[k]), out)
 	return st.commit()
 
 

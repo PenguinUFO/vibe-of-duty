@@ -11,6 +11,7 @@ extends RefCounted
 ## line from the eye crosses that plane (WeaponView._aim_dot): it is at infinity, so it marks where the gun points from
 ## wherever the eye is, and is seen only through the window.
 
+const AIMPOINT := preload("res://assets/models/aimpoint/aimpoint.glb")
 const DOT_RADIUS := 0.0012  # the dot sphere's own radius (WeaponView scales it to dot_share)
 const LENS_CLEAR := 0.07  # the window's glass at full aim: a hint of a tint
 ## The windows' share of the screen's height at full aim (WeaponView._ads_pos), as in the screenshots: a red dot small,
@@ -117,65 +118,21 @@ static func _kobra() -> Node3D:
 	return root
 
 
-## Aimpoint CompM (CompM2/M4, owner 2026-10-26: after photos, detailed): a red dot sight, no magnification, life size,
-## 122 mm long, on the PDW's rail, its axis at (0, 0.098). One turned body, hollow through (at full aim: a thin ring
-## round the dot, the world all round it - no scope view): the ocular ring, the 30 mm tube, the objective flaring to
-## 40 mm with the lens set back in it (red-amber coat). Round the tube's middle the saddle - a rounded square - with the
-## knurled elevation cap on top (a cross on it) and the windage cap on the right; the battery tube along its upper
-## left with a knurled cap at each end (front: the battery, back: the brightness dial). No flip covers (owner,
-## 2026-10-26). Under it the QRP mount: a clamp on the rail, a spacer with its row of holes, the big knurled knob on
-## the right.
+## Aimpoint (owner, 2026-11-13: the red dot off the PH IDW's model, Docs/MODELS.md - assets/models/aimpoint, baked with
+## its rail clamp; WeaponSkin over its own colours). The frame as the blockout CompM's was: the rail's top at y 0.068, the
+## tube's back end at z -0.06; the bore open round (0, 0.105), 12 mm (measured on the model) - the window, the dot in it.
 static func _compm() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Sight_CompM"
-	var paint := _material(Color(0.09, 0.09, 0.095), 0.25, 0.6)
-	paint.resource_name = "polymer"  # WeaponSkin: the anodised finish's fine grit, not the steel's mottle
-	var steel := _material(Color(0.13, 0.13, 0.14), 0.55, 0.45)
-	var hole := _material(Color(0.03, 0.03, 0.035), 0.2, 0.8)
-	var y := 0.098  # the tube's axis
-	var bore := 0.0145  # the hole through it: the window
-	# The body, turned: (radius, z) round the outside from the back, then back along the bore.
-	_lathe(root, PackedVector2Array([
-		Vector2(bore, -0.06), Vector2(0.0172, -0.06), Vector2(0.0178, -0.0594), Vector2(0.0178, -0.0476),
-		Vector2(0.0168, -0.046), Vector2(0.015, -0.0455), Vector2(0.015, 0.018), Vector2(0.0158, 0.022),
-		Vector2(0.0188, 0.03), Vector2(0.0198, 0.033), Vector2(0.0198, 0.0605), Vector2(0.0191, 0.062),
-		Vector2(0.0175, 0.062), Vector2(0.0175, 0.052), Vector2(bore, 0.05)]), Vector3(0.0, y, 0.0), paint)
-	_lathe(root, PackedVector2Array([Vector2(0.0199, 0.036), Vector2(0.0202, 0.036), Vector2(0.0202, 0.0375),
-			Vector2(0.0199, 0.0375)]), Vector3(0.0, y, 0.0), paint)  # the groove's edge on the bell
-	# The saddle round the middle and its foot down to the mount.
-	_prism(root, _rounded(Vector2(0.0, y), 0.0188, 40), -0.024, 0.016, paint, _arch(Vector2(0.0, y), 0.0, 0.0, 40, bore))
-	_box(root, Vector3(-0.0135, 0.0755, -0.022), Vector3(0.0135, 0.086, 0.014), paint)
-	var top := y + 0.0188
-	_tube(root, 0.0095, 0.003, Vector3(0.0, top + 0.0015, -0.004), paint, Vector3.UP)          # elevation: collar,
-	_knurled(root, 0.0085, 0.0065, Vector3(0.0, top + 0.00625, -0.004), paint, Vector3.UP)    # knurled cap,
-	_box(root, Vector3(-0.006, top + 0.0094, -0.0048), Vector3(0.006, top + 0.0098, -0.0032), hole)  # its cross
-	_box(root, Vector3(-0.0008, top + 0.0094, -0.01), Vector3(0.0008, top + 0.0098, 0.002), hole)
-	_tube(root, 0.0095, 0.003, Vector3(-0.0203, y, -0.004), paint, Vector3.RIGHT)              # windage (right)
-	_knurled(root, 0.0085, 0.0065, Vector3(-0.0251, y, -0.004), paint, Vector3.RIGHT)
-	_box(root, Vector3(-0.0287, y - 0.0008, -0.01), Vector3(-0.0283, y + 0.0008, 0.002), hole)
-	# The battery along the upper left (prefab +x), knurled at both ends; the brightness dial's pointer behind.
-	var battery := Vector3(0.0165, y + 0.0165, 0.0)
-	_tube(root, 0.0075, 0.036, battery + Vector3(0.0, 0.0, -0.006), paint)
-	_box_turned(root, Vector3(0.0135, y + 0.0135, -0.006), Vector3(0.008, 0.006, 0.03), paint,
-			Vector3(0.0, 0.0, PI * 0.25))  # its web onto the saddle, outside the bore
-	_knurled(root, 0.0085, 0.009, battery + Vector3(0.0, 0.0, 0.0165), paint, Vector3.BACK)  # battery cap
-	_knurled(root, 0.0088, 0.008, battery + Vector3(0.0, 0.0, -0.028), paint, Vector3.BACK)  # brightness dial
-	_box(root, battery + Vector3(-0.0008, 0.004, -0.0325), battery + Vector3(0.0008, 0.0075, -0.0318), steel)
-	# The QRP mount: the clamp on the rail, the spacer with its holes, the knob on the right.
-	_box(root, Vector3(-0.016, 0.068, -0.03), Vector3(0.016, 0.0755, 0.022), steel)
-	for x in [0.0145, -0.0145]:
-		_box(root, Vector3(minf(x, x + signf(x) * 0.0035), 0.059, -0.03),
-				Vector3(maxf(x, x + signf(x) * 0.0035), 0.068, 0.022), steel)  # jaws round the rail
-	for i in 6:
-		_tube(root, 0.0016, 0.001, Vector3(0.0162, 0.0718, -0.024 + i * 0.0078), hole, Vector3.RIGHT)
-	_tube(root, 0.0035, 0.008, Vector3(-0.0215, 0.0655, -0.004), steel, Vector3.RIGHT)  # the knob's screw
-	_knurled(root, 0.0082, 0.011, Vector3(-0.0305, 0.0655, -0.004), steel, Vector3.RIGHT, 22)
+	root.add_child(AIMPOINT.instantiate())
+	var y := 0.105  # the tube's axis
+	var bore := 0.012  # the hole through it: the window
 	var glass := StandardMaterial3D.new()
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glass.albedo_color = Color(0.95, 0.3, 0.12, 0.16)  # the objective's red-amber coat
 	glass.roughness = 0.05
 	glass.metallic_specular = 1.0
-	_disc(root, 0.0175, Vector3(0.0, y, 0.051), glass, Vector3.BACK)
+	_disc(root, bore, Vector3(0.0, y, 0.049), glass, Vector3.BACK)
 	_lens(root, bore, Vector3(0.0, y, -0.0595))
 	_dot(root, Color(1.0, 0.08, 0.05), -0.0585, Vector2(0.0, y), bore, 0.035)
 	_window(root, -0.06, Vector2(0.0, y), bore, DOT_WINDOW)

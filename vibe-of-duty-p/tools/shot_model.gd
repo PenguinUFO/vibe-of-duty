@@ -1,5 +1,6 @@
 extends Node
-## Renders a weapon model in side profile (barrel to the left; "_r" cases from the other side) to ../shots/model_<case>.png:
+## Renders a weapon model in side profile (barrel to the left; "_r" cases from the other side) to ../shots/model_<case>.png;
+## "_top" / "_bot": from above / below, barrel to the left; "_fp": from behind and above the right shoulder, as in the hands.
 ## Godot_v4.7.2.exe --path vibe-of-duty-p res://tools/run_tool.tscn -- --tool=shot_model
 
 const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a break-open's reload progress, loading shells]
@@ -52,6 +53,9 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"aug_folded": [9, ["aug.grip.off", "aug.mag.42"]],
 	"aug_a3": [9, ["aug.sight.iron", "aug.suppressor.blk"]],
 	"aug_acog": [9, ["aug.sight.acog"]],
+	"aug_top": [9, []],
+	"aug_bot": [9, []],
+	"aug_fp": [9, []],
 	"m16": [10, []],
 	"m16_r": [10, []],
 	"m16_fired_r": [10, [], 1.0],
@@ -125,6 +129,11 @@ func _ready() -> void:
 			cam.look_at_from_position(Vector3(1.4, 0.2, -1.4), Vector3(0.0, -0.1, -0.1))
 		if c.ends_with("_f") or c.ends_with("_b"):  # "_f": from the muzzle; "_b": from the shooter
 			cam.look_at_from_position(Vector3(0.0, 0.0, -2.0 if c.ends_with("_f") else 2.0), Vector3.ZERO)
+		if c.ends_with("_top") or c.ends_with("_bot"):
+			var y := 2.0 if c.ends_with("_top") else -2.0
+			cam.look_at_from_position(Vector3(0.0, y, -0.1), Vector3(0.0, 0.0, -0.1), Vector3(-signf(y), 0.0, 0.0))
+		if c.ends_with("_fp"):
+			cam.look_at_from_position(Vector3(0.9, 0.9, 1.5), Vector3(0.0, -0.02, -0.1))
 		await get_tree().process_frame
 		await get_tree().process_frame
 		get_tree().root.get_texture().get_image().save_png(dir.path_join("model_%s.png" % c))

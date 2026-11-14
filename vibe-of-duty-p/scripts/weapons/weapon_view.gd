@@ -112,6 +112,7 @@ var grenade := -1.0       # grenade throw progress 0..1 (-1: none): the gun dips
 var _ads_view_fov := IRON_VIEW_FOV
 var _hip_pos := Vector3.ZERO
 var _ads_pos := Vector3.ZERO
+var _ads_tilt := 0.0  # rad about x at full aim: the sight line (rear to front, not level on every model) along the view
 
 
 func _init() -> void:
@@ -176,6 +177,9 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	_bolt = _model.get_node_or_null("Bolt")
 	if _bolt:
 		_bolt_rest = _bolt.position
+		var extras: Dictionary = _bolt.get_meta("extras", {})  # a GLB model's (Blender custom properties)
+		if extras.has("travel") and not _bolt.has_meta("travel"):
+			_bolt.set_meta("travel", float(extras["travel"]))
 	_break = _model.get_node_or_null("Break")
 	if _break:
 		_round = _break.get_node("Round")
@@ -256,7 +260,10 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 		var radius := float(optic.get_meta("see_through_radius")) * def.model_scale * scale_factor
 		var away := radius / (float(optic.get_meta("window_share")) * tan(deg_to_rad(ADS_VIEW_FOV) * 0.5))
 		eye = rear + aim * (aim.dot(window - rear) - away)
-	_ads_pos = -eye
+	# The gun turned so the sight line runs straight ahead (a front post lower than the rear notch's tops tips it down),
+	# about the eye: the sights stay at screen centre.
+	_ads_tilt = -atan2(aim.y, -aim.z)
+	_ads_pos = -(Basis(Vector3.RIGHT, _ads_tilt) * eye)
 
 
 func _process(delta: float) -> void:
@@ -521,7 +528,7 @@ func update_pose(dt: float, ads: float, reload_p: float, equip_p: float, sprint_
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-KICK_DECAY * dt))
 
 	var pos := _hip_pos.lerp(_ads_pos, ads)
-	var rot := Vector3.ZERO
+	var rot := Vector3(_ads_tilt * ads, 0.0, 0.0)
 
 	# Walking bob (weaker while aiming).
 	if on_floor and speed > 0.5:

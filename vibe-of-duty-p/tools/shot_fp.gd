@@ -26,6 +26,8 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"acr_compm_ads": [3, 1.0, -1.0, ["acr.sight.compm"]], "pdw_acog_ads": [1, 1.0, -1.0, ["pdw.sight.acog"]],
 	"mp7_compm_ads": [4, 1.0, -1.0, ["mp7.sight.compm"]], "mp7_acog_ads": [4, 1.0, -1.0, ["mp7.sight.acog"]],
 	"acr_mods": [3, 0.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
+	"acr_r30": [3, 0.0, -1.0, [], 0.3], "acr_r60": [3, 0.0, -1.0, [], 0.6], "acr_r85": [3, 0.0, -1.0, [], 0.85],
+	"acr_mag40": [3, 0.0, -1.0, ["acr.mag.40"]],
 	"acr_mods_ads": [3, 1.0, -1.0, ["acr.suppressor.on", "acr.stock.collapsed"]],
 	"mp7_hip": [4, 0.0, -1.0, []], "mp7_ads": [4, 1.0, -1.0, []],
 	"mp7_mods": [4, 0.0, -1.0, ["mp7.grip.folded", "mp7.suppressor.on", "mp7.sight.compm"]],

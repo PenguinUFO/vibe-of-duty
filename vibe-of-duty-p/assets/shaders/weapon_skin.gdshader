@@ -7,6 +7,7 @@
 shader_type spatial;
 
 uniform sampler2D grain : source_color, filter_nearest_mipmap, repeat_enable;
+uniform sampler2D albedo_map : source_color, filter_nearest_mipmap, hint_default_white;  // a textured model's own colours
 uniform vec3 tint : source_color = vec3(0.5);
 uniform float gain = 1.0;            // 1 / the texture's mean: the part keeps its colour on average
 uniform float metallic_value = 0.0;
@@ -50,7 +51,7 @@ void fragment() {
 	w /= w.x + w.y + w.z;
 	vec3 p = part_pos * tiles_per_metre;
 	float g = texture(grain, p.zy).r * w.x + texture(grain, p.zx).r * w.y + texture(grain, p.xy).r * w.z;
-	ALBEDO = tint * g * gain;
+	ALBEDO = tint * texture(albedo_map, UV).rgb * g * gain;
 	METALLIC = metallic_value;
 	ROUGHNESS = roughness_value;
 }
