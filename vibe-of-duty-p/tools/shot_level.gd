@@ -125,6 +125,20 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"cap": [Vector3(0.00, 1.65, -8.00), Vector3(0.00, 9.00, 12.00)],
 	"ahead": [Vector3(-5.57, 2.30, 0.00), Vector3(25.99, 25.16, 0.00)],
 	"axis": [Vector3(0.0, 22.0, 11.5), Vector3(0.0, 26.0, -12.0)],
+}, "gigachurch": {  # the west facade x -50, the nave x -50 .. 18, the crossing x 18 .. 32, the apse x 32 .. 52
+	"entrance": [Vector3(-58.0, 4.0, 0.0), Vector3(-50.25, 4.0, 0.0)],
+	"nave": [Vector3(-36.0, 1.65, 0.0), Vector3(18.0, 3.5, 0.0)],
+	"nave_back": [Vector3(14.0, 1.65, 5.0), Vector3(-50.0, 10.0, 0.0)],
+	"rose": [Vector3(-44.0, 8.0, 0.0), Vector3(-50.0, 14.0, 0.0)],
+	"crossing": [Vector3(12.0, 1.65, 8.0), Vector3(30.0, 7.0, 0.0)],
+	"stage": [Vector3(28.0, 1.65, 0.0), Vector3(48.0, 6.0, 0.0)],
+	"gallery": [Vector3(-30.0, 11.4, 14.0), Vector3(10.0, 10.5, -2.0)],
+	"gallery_window": [Vector3(-4.0, 11.4, 14.5), Vector3(-4.0, 11.0, 10.0)],
+	"crypt": [Vector3(-32.0, -2.35, 0.0), Vector3(20.0, -3.0, 0.0)],
+	"chapel": [Vector3(-20.0, 1.65, 15.0), Vector3(-20.0, 2.0, 23.0)],
+	"backstage": [Vector3(50.0, 1.65, 0.0), Vector3(46.0, 2.0, 0.0)],
+	"outside": [Vector3(-90.0, 30.0, 40.0), Vector3(-50.0, 10.0, 0.0)],
+	"above": [Vector3(0.0, 80.0, 0.0), Vector3(0.0, 0.0, 0.0)],
 }}
 ## Where the three puppet players stand, per map (readability checks).
 const SPOTS := {
@@ -136,6 +150,7 @@ const SPOTS := {
 	"elysium": [Vector3(-7.0, 0.05, -9.0), Vector3(-20.0, 4.05, -2.0), Vector3(48.0, 0.05, 6.0)],
 	"chernobyl": [Vector3(3.0, 0.05, 6.0), Vector3(-19.4, 0.05, -2.0), Vector3(-16.0, 3.05, 3.5)],
 	"station": [Vector3(7.86, 1.27, -2.00), Vector3(-0.02, 51.95, 1.00), Vector3(16.55, 11.35, 8.00)],
+	"gigachurch": [Vector3(-46.0, 0.05, 0.0), Vector3(-20.0, 0.05, 0.0), Vector3(-10.0, 9.85, 14.5)],
 }
 const FRAMES := 120
 

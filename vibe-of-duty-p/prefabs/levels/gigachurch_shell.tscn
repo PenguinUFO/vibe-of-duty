@@ -1,0 +1,3375 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+
+[node name="GigachurchShell" type="Node3D"]
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="NarthexFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, -0.25, 0)
+size = Vector3(8, 0.5, 36)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="NaveFloorN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.25, -6.5)
+size = Vector3(60, 0.5, 9)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="NaveFloorS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.25, 6.5)
+size = Vector3(60, 0.5, 9)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="NaveFloorE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, -0.25, 0)
+size = Vector3(54, 0.5, 4)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="AisleFloorS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.25, 14.5)
+size = Vector3(60, 0.5, 7)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="AisleFloorN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -0.25, -14.5)
+size = Vector3(60, 0.5, 7)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="ChapelFloorS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, -0.25, 21)
+size = Vector3(68, 0.5, 6)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="ChapelFloorN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, -0.25, -21)
+size = Vector3(68, 0.5, 6)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="TranseptFloorN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, -0.25, -13)
+size = Vector3(14, 0.5, 22)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="TranseptFloorS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, -0.25, 13)
+size = Vector3(14, 0.5, 22)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="TranseptFloorW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, -0.25, 0)
+size = Vector3(6, 0.5, 4)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="TranseptFloorE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, -0.25, 0)
+size = Vector3(2, 0.5, 4)
+color = Color(0.3, 0.29, 0.27, 1)
+mesh_layers = 8
+
+[node name="ApseFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 0.3, 0)
+size = Vector3(18.8, 0.6, 24)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 8
+
+[node name="CryptFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -4.65, 0)
+size = Vector3(60, 0.3, 12)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptCeil" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -1.25, 0)
+size = Vector3(60.54, 0.5, 12)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="CryptWallN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27, -3, -6)
+size = Vector3(18, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptWallN1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -3, -6)
+size = Vector3(36, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptWallS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, -3, 6)
+size = Vector3(38, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptWallS1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, -3, 6)
+size = Vector3(16, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptEndW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -2.99, -4)
+size = Vector3(0.5, 3.02, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptEndW1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -2.99, 4)
+size = Vector3(0.5, 3.02, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptEndE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, -2.99, -4)
+size = Vector3(0.5, 3.02, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptEndE1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, -2.99, 4)
+size = Vector3(0.5, 3.02, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptEntryInsertW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -0.5, 0)
+size = Vector3(0.5, 1, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 28
+
+[node name="CryptEntryInsertE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, -0.5, 0)
+size = Vector3(0.5, 1, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 28
+
+[node name="CryptChamberFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -4.65, -8)
+size = Vector3(10, 0.3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberCeil" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -1.25, -8)
+size = Vector3(10, 0.5, 4)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="CryptChamberWall" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -3, -10)
+size = Vector3(10, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberWall1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, -3, -8)
+size = Vector3(0.5, 3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberWall2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, -3, -8)
+size = Vector3(0.5, 3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberFloor1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -4.65, 8)
+size = Vector3(10, 0.3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberCeil1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -1.25, 8)
+size = Vector3(10, 0.5, 4)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="CryptChamberWall3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -3, 10)
+size = Vector3(10, 3, 0.5)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberWall4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3, 8)
+size = Vector3(0.5, 3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptChamberWall5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -3, 8)
+size = Vector3(0.5, 3, 4)
+color = Color(0.28, 0.27, 0.25, 1)
+mesh_layers = 4
+
+[node name="CryptStairW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.6, -0.8, 0, 0.8, 0.6, 1, -0, 0, -39, -2.4062, 0)
+size = Vector3(4, 0.25, 7.5)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.75, -0.1875, -2.25)
+size = Vector3(0.5, 0.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.75, -0.1875, 2.25)
+size = Vector3(0.5, 0.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.25, -0.375, -2.25)
+size = Vector3(0.5, 0.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.25, -0.375, 2.25)
+size = Vector3(0.5, 0.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.75, -0.5625, -2.25)
+size = Vector3(0.5, 1.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.75, -0.5625, 2.25)
+size = Vector3(0.5, 1.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.25, -0.75, -2.25)
+size = Vector3(0.5, 1.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.25, -0.75, 2.25)
+size = Vector3(0.5, 1.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.75, -0.9375, -2.25)
+size = Vector3(0.5, 1.875, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.75, -0.9375, 2.25)
+size = Vector3(0.5, 1.875, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.25, -1.125, -2.25)
+size = Vector3(0.5, 2.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.25, -1.125, 2.25)
+size = Vector3(0.5, 2.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.75, -1.3125, -2.25)
+size = Vector3(0.5, 2.625, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.75, -1.3125, 2.25)
+size = Vector3(0.5, 2.625, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.25, -1.5, -2.25)
+size = Vector3(0.5, 3, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.25, -1.5, 2.25)
+size = Vector3(0.5, 3, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.75, -1.6875, -2.25)
+size = Vector3(0.5, 3.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.75, -1.6875, 2.25)
+size = Vector3(0.5, 3.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.25, -1.875, -2.25)
+size = Vector3(0.5, 3.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.25, -1.875, 2.25)
+size = Vector3(0.5, 3.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.75, -2.0625, -2.25)
+size = Vector3(0.5, 4.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.75, -2.0625, 2.25)
+size = Vector3(0.5, 4.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.25, -2.25, -2.25)
+size = Vector3(0.5, 4.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallW23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.25, -2.25, 2.25)
+size = Vector3(0.5, 4.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptStairE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.6, 0.8, 0, 0.8, 0.6, -1, -0, 0, 27, -2.4062, 0)
+size = Vector3(4, 0.25, 7.5)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.75, -0.1875, -2.25)
+size = Vector3(0.5, 0.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.75, -0.1875, 2.25)
+size = Vector3(0.5, 0.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.25, -0.375, -2.25)
+size = Vector3(0.5, 0.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.25, -0.375, 2.25)
+size = Vector3(0.5, 0.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.75, -0.5625, -2.25)
+size = Vector3(0.5, 1.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.75, -0.5625, 2.25)
+size = Vector3(0.5, 1.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.25, -0.75, -2.25)
+size = Vector3(0.5, 1.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.25, -0.75, 2.25)
+size = Vector3(0.5, 1.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.75, -0.9375, -2.25)
+size = Vector3(0.5, 1.875, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.75, -0.9375, 2.25)
+size = Vector3(0.5, 1.875, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.25, -1.125, -2.25)
+size = Vector3(0.5, 2.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.25, -1.125, 2.25)
+size = Vector3(0.5, 2.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.75, -1.3125, -2.25)
+size = Vector3(0.5, 2.625, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.75, -1.3125, 2.25)
+size = Vector3(0.5, 2.625, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.25, -1.5, -2.25)
+size = Vector3(0.5, 3, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.25, -1.5, 2.25)
+size = Vector3(0.5, 3, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.75, -1.6875, -2.25)
+size = Vector3(0.5, 3.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.75, -1.6875, 2.25)
+size = Vector3(0.5, 3.375, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.25, -1.875, -2.25)
+size = Vector3(0.5, 3.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.25, -1.875, 2.25)
+size = Vector3(0.5, 3.75, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.75, -2.0625, -2.25)
+size = Vector3(0.5, 4.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.75, -2.0625, 2.25)
+size = Vector3(0.5, 4.125, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.25, -2.25, -2.25)
+size = Vector3(0.5, 4.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="CryptSideWallE23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.25, -2.25, 2.25)
+size = Vector3(0.5, 4.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Facade" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3, -14)
+size = Vector3(0.5, 6, 20)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="Facade1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3, 14)
+size = Vector3(0.5, 6, 20)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="Facade2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 8.75, 0)
+size = Vector3(0.5, 5.5, 48)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="Facade3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 14.5, -14)
+size = Vector3(0.5, 6, 20)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="Facade4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 14.5, 14)
+size = Vector3(0.5, 6, 20)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="Facade5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 20.75, 0)
+size = Vector3(0.5, 6.5, 48)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="MainDoorLeaf" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3, -2)
+size = Vector3(0.5, 6, 4)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 8
+
+[node name="MainDoorLeaf2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3, 2)
+size = Vector3(0.5, 6, 4)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 0.88, -1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 0.88, 1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3.08, -1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 3.08, 1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 5.28, -1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorStrap5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.25, 5.28, 1.975)
+size = Vector3(0.56, 0.16, 3.65)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 8
+
+[node name="MainDoorHandle" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.27, 3, 0)
+size = Vector3(0.58, 0.4, 0.36)
+color = Color(0.62, 0.46, 0.16, 1)
+mesh_layers = 8
+
+[node name="FacadeGable" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 18.45, 0)
+size = Vector3(0.2, 0.9, 48)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeGable1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 19.35, 0)
+size = Vector3(0.2, 0.9, 40)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeGable2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 20.25, 0)
+size = Vector3(0.2, 0.9, 32)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeGable3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 21.15, 0)
+size = Vector3(0.2, 0.9, 24)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeGable4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 22.05, 0)
+size = Vector3(0.2, 0.9, 16)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeGable5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.6, 22.95, 0)
+size = Vector3(0.2, 0.9, 8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="FacadeCornice" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.675, 17.8, 0)
+size = Vector3(0.55, 0.4, 48)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, -22)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, -16)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, -10)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, 10)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, 16)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="FacadePilaster5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.75, 12, 22)
+size = Vector3(0.5, 24, 1)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 16
+
+[node name="OuterWall" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.25, -24)
+size = Vector3(82, 2.5, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 4, -24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 4, -24)
+size = Vector3(16, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 6.75, -24)
+size = Vector3(82, 2.5, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 12, -24)
+size = Vector3(70, 8, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 12, -24)
+size = Vector3(2, 8, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 17, -24)
+size = Vector3(82, 2, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.25, 24)
+size = Vector3(82, 2.5, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall24" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall25" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall26" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall27" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall28" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 4, 24)
+size = Vector3(4, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall29" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 4, 24)
+size = Vector3(16, 3, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 8
+
+[node name="OuterWall30" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 6.75, 24)
+size = Vector3(82, 2.5, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall31" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 12, 24)
+size = Vector3(70, 8, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall32" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 12, 24)
+size = Vector3(2, 8, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="OuterWall33" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 17, 24)
+size = Vector3(82, 2, 0.5)
+color = Color(0.36, 0.35, 0.32, 1)
+mesh_layers = 16
+
+[node name="ChapelCeil" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 6.625, 21)
+size = Vector3(68, 0.25, 6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="ChapelCeil1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 6.625, -21)
+size = Vector3(68, 0.25, 6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="TranseptEast" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 4, -18)
+size = Vector3(0.5, 8, 12)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="TranseptEast1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 12, -23)
+size = Vector3(0.5, 8, 2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="TranseptEast2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 12, -13)
+size = Vector3(0.5, 8, 2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="TranseptEast3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 17, -18)
+size = Vector3(0.5, 2, 12)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="TranseptEast4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 4, 18)
+size = Vector3(0.5, 8, 12)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="TranseptEast5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 12, 13)
+size = Vector3(0.5, 8, 2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="TranseptEast6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 12, 23)
+size = Vector3(0.5, 8, 2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="TranseptEast7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.75, 17, 18)
+size = Vector3(0.5, 2, 12)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 4, -12)
+size = Vector3(20, 8, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ApseWall1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 11, -12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 11, -12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 11, -12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 16, -12)
+size = Vector3(20, 4, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 4, 12)
+size = Vector3(20, 8, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ApseWall6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 11, 12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 11, 12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 11, 12)
+size = Vector3(4, 6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseWall9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 16, 12)
+size = Vector3(20, 4, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="ApseEast" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.25, 11, 0)
+size = Vector3(0.5, 22, 24)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="Carpet" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.0105, 0)
+size = Vector3(60, 0.019, 6)
+color = Color(0.23, 0.1, 0.08, 1)
+mesh_layers = 8
+
+[node name="Carpet1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0.0105, 0)
+size = Vector3(2, 0.019, 6)
+color = Color(0.23, 0.1, 0.08, 1)
+mesh_layers = 8
+
+[node name="Column" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade24" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade25" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade26" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade27" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade28" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade29" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade30" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade31" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade32" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade33" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade34" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade35" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Arcade36" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8.2, -11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade37" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade38" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 7.15, -11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade39" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 8.2, 11)
+size = Vector3(6.6, 1.2, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade40" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Arcade41" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 7.15, 11)
+size = Vector3(0.6, 1.3, 0.7)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="Column14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 9, -11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3, -11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 17.65, -11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Column15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 9, 11)
+size = Vector3(1.4, 18, 1.4)
+color = Color(0.42, 0.39, 0.34, 1)
+mesh_layers = 28
+
+[node name="ColumnBase15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.3, 11)
+size = Vector3(1.8, 0.6, 1.8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ColumnCap15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 17.65, 11)
+size = Vector3(1.8, 0.7, 1.8)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.9, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.9, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.9, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.9, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.9, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.9, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.9, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.9, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.9, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory24" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 10.375, -11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory25" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 17, -11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.1, 13.5, -11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory26" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 10.375, 11)
+size = Vector3(6, 1.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory27" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 17, 11)
+size = Vector3(6, 2, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="ClerestoryMullion13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.1, 13.5, 11)
+size = Vector3(0.2, 5, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Clerestory28" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 13.875, -11)
+size = Vector3(3, 8.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory29" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 13.875, 11)
+size = Vector3(3, 8.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory30" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.5, 13.875, -11)
+size = Vector3(3, 8.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="Clerestory31" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.5, 13.875, 11)
+size = Vector3(3, 8.25, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="NaveCeiling" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 18.2, 0)
+size = Vector3(68, 0.4, 36)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="TranseptCeiling" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, 18.2, 0)
+size = Vector3(3, 0.4, 48)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="TranseptCeiling1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 18.2, -14)
+size = Vector3(8, 0.4, 20)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="TranseptCeiling2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 18.2, 14)
+size = Vector3(8, 0.4, 20)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="TranseptCeiling3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.5, 18.2, 0)
+size = Vector3(3, 0.4, 48)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="ApseCeiling" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 18.2, 0)
+size = Vector3(20, 0.4, 24)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 9.625, 14.5)
+size = Vector3(14, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 9.625, 12.5)
+size = Vector3(4, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 9.625, 17.5)
+size = Vector3(4, 0.25, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 9.625, 14.5)
+size = Vector3(24, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 9.625, 12.5)
+size = Vector3(4, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 9.625, 17.5)
+size = Vector3(4, 0.25, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 9.625, 14.5)
+size = Vector3(14, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 9.625, -14.5)
+size = Vector3(14, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 9.625, -17.5)
+size = Vector3(4, 0.25, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 9.625, -12.5)
+size = Vector3(4, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 9.625, -14.5)
+size = Vector3(24, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 9.625, -17.5)
+size = Vector3(4, 0.25, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 9.625, -12.5)
+size = Vector3(4, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryFloor13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 9.625, -14.5)
+size = Vector3(14, 0.25, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="GalleryOuter" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 12.25, -18)
+size = Vector3(68, 11.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="GalleryOuter1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 12.25, 18)
+size = Vector3(68, 11.5, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 10.15, 14)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 10.15, 14)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 10.15, 17)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 10.15, 17)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 10.15, 15.5)
+size = Vector3(0.08, 0.8, 3)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 10.15, 15.5)
+size = Vector3(0.08, 0.8, 3)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 10.15, -17)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 10.15, -17)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 10.15, -14)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 10.15, -14)
+size = Vector3(4, 0.8, 0.08)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 10.15, -15.5)
+size = Vector3(0.08, 0.8, 3)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="StairHoleRail11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 10.15, -15.5)
+size = Vector3(0.08, 0.8, 3)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="GalleryStairW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 4.7328, 15.5)
+size = Vector3(3, 0.25, 20.471)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="GalleryStairE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 4.7328, 15.5)
+size = Vector3(3, 0.25, 20.471)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 5.2632, 13.95)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 5.2632, 13.95)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailW1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 5.2632, 17.05)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailE1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 5.2632, 17.05)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairW1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 4.7328, -15.5)
+size = Vector3(3, 0.25, 20.471)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="GalleryStairE1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 4.7328, -15.5)
+size = Vector3(3, 0.25, 20.471)
+color = Color(0.33, 0.32, 0.3, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailW2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 5.2632, -17.05)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailE2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 5.2632, -17.05)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailW3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4763, 0.8793, 0, 0.8793, 0.4763, -1, -0, 0, -33, 5.2632, -13.95)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryStairRailE3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.4763, -0.8793, 0, 0.8793, 0.4763, 1, -0, 0, 9, 5.2632, -13.95)
+size = Vector3(0.1, 0.9, 20.471)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="GalleryEndRail" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 10.15, 14.5)
+size = Vector3(0.08, 0.8, 7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="GalleryEndRail1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 10.15, 14.5)
+size = Vector3(0.08, 0.8, 7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="GalleryEndRail2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 10.15, -14.5)
+size = Vector3(0.08, 0.8, 7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="GalleryEndRail3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 10.15, -14.5)
+size = Vector3(0.08, 0.8, 7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="LoftFloor" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 6.375, 0)
+size = Vector3(8, 0.25, 36)
+color = Color(0.48, 0.34, 0.23, 1)
+mesh_layers = 24
+
+[node name="LoftRail" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 6.9, 0)
+size = Vector3(0.08, 0.8, 22)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="ChapelArcade" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.6, 2.3, -18)
+size = Vector3(4.8, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.7, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.7, 2.3, -18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 5.55, -18)
+size = Vector3(68, 1.9, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.6, 2.3, 18)
+size = Vector3(4.8, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.7, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.7, 2.3, 18)
+size = Vector3(2.2, 4.6, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="ChapelArcade23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 5.55, 18)
+size = Vector3(68, 1.9, 0.5)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 8
+
+[node name="DomeRing" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.9239, 0, -0.3827, 0, 1, 0, 0.3827, 0, 0.9239, 29.4346, 19, 1.8369)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.3827, 0, -0.9239, 0, 1, 0, 0.9239, 0, 0.3827, 26.8369, 19, 4.4346)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(-0.3827, 0, -0.9239, 0, 1, 0, 0.9239, 0, -0.3827, 23.1631, 19, 4.4346)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(-0.9239, 0, -0.3827, 0, 1, 0, 0.3827, 0, -0.9239, 20.5654, 19, 1.8369)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(-0.9239, 0, 0.3827, 0, 1, 0, -0.3827, 0, -0.9239, 20.5654, 19, -1.8369)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(-0.3827, 0, 0.9239, 0, 1, 0, -0.9239, 0, -0.3827, 23.1631, 19, -4.4346)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.3827, 0, 0.9239, 0, 1, 0, -0.9239, 0, 0.3827, 26.8369, 19, -4.4346)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeRing7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.9239, 0, 0.3827, 0, 1, 0, -0.3827, 0, 0.9239, 29.4346, 19, -1.8369)
+size = Vector3(1.2, 2, 4.2)
+color = Color(0.4, 0.38, 0.35, 1)
+mesh_layers = 28
+
+[node name="DomeCap" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 20.2, 0)
+size = Vector3(8, 0.6, 8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="DomeCap1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.7071, 0, 0.7071, 0, 1, 0, -0.7071, 0, 0.7071, 25, 20.2, 0)
+size = Vector3(8, 0.6, 8)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="ChoirRamp" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4472, 0.8944, 0, 0.8944, 0.4472, -1, -0, 0, 32.6, 0.1602, 0)
+size = Vector3(24, 0.25, 1.3416)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 28
+
+[node name="StageRamp" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, -0.4472, 0.8944, 0, 0.8944, 0.4472, -1, -0, 0, 38.6, 0.7602, 0)
+size = Vector3(18, 0.25, 1.3416)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 28
+
+[node name="Stage" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 0.6, 0)
+size = Vector3(6.8, 1.2, 18)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 8
+
+[node name="StageSide" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 9.6, 45.2)
+size = Vector3(0.5, 16.8, 13.6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="BackstageSide" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 2.1, 47)
+size = Vector3(0.5, 3, 2)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="BackstageSide1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 2.1, 51.5)
+size = Vector3(0.5, 3, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="BackstageSide2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 3.9, 49)
+size = Vector3(0.5, 0.6, 6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="StageSide1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 9.6, 45.2)
+size = Vector3(0.5, 16.8, 13.6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="BackstageSide3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 2.1, 47)
+size = Vector3(0.5, 3, 2)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="BackstageSide4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 2.1, 51.5)
+size = Vector3(0.5, 3, 1)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="BackstageSide5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 3.9, 49)
+size = Vector3(0.5, 0.6, 6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="BackstageCeil" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 4.325, 0)
+size = Vector3(6, 0.25, 18)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="CorridorCeilS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 4.325, 10.5)
+size = Vector3(18.8, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="CorridorCeilN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 4.325, -10.5)
+size = Vector3(18.8, 0.25, 3)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="StageBack" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 2.7, -5.5)
+size = Vector3(0.5, 3, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="StageBack1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 2.7, 5.5)
+size = Vector3(0.5, 3, 7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="StageBack2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 11.1, 0)
+size = Vector3(0.5, 13.8, 18)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="StageScreen" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.925, 9.5, 0)
+size = Vector3(0.15, 9, 12)
+color = Color(0.1, 0.1, 0.11, 1)
+mesh_layers = 28
+
+[node name="StageScreenFrame" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8, 14.25, 0)
+size = Vector3(0.2, 0.5, 13)
+color = Color(0.62, 0.46, 0.16, 1)
+mesh_layers = 28
+
+[node name="StageScreenFrame1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8, 4.75, 0)
+size = Vector3(0.2, 0.5, 13)
+color = Color(0.62, 0.46, 0.16, 1)
+mesh_layers = 28
+
+[node name="StageScreenFrame2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8, 9.5, -6.25)
+size = Vector3(0.2, 10, 0.5)
+color = Color(0.62, 0.46, 0.16, 1)
+mesh_layers = 28
+
+[node name="StageScreenFrame3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8, 9.5, 6.25)
+size = Vector3(0.2, 10, 0.5)
+color = Color(0.62, 0.46, 0.16, 1)
+mesh_layers = 28
+
+[node name="Truss" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 13.2, 0)
+size = Vector3(6.8, 0.4, 18)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="TrussLeg" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 7.1, -6)
+size = Vector3(0.2, 11.8, 0.2)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="TrussLeg1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 7.1, 6)
+size = Vector3(0.2, 11.8, 0.2)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="TrussLeg2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 7.1, -6)
+size = Vector3(0.2, 11.8, 0.2)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="TrussLeg3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 7.1, 6)
+size = Vector3(0.2, 11.8, 0.2)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 28
+
+[node name="StageDoorRamp" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0, 0.2425, 0.9701, 0, 0.9701, -0.2425, -1, 0, 0, 47.2, 0.7712, 0)
+size = Vector3(4, 0.25, 2.4739)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 28
+
+[node name="Cable" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 12.3, 0)
+size = Vector3(0.04, 11.4, 0.04)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="Cable1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 12.3, 0)
+size = Vector3(0.04, 11.4, 0.04)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="Cable2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 12.3, 0)
+size = Vector3(0.04, 11.4, 0.04)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="Cable3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 12.3, 0)
+size = Vector3(0.04, 11.4, 0.04)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 7.75, -8)
+size = Vector3(0.8, 2.5, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.1, -6)
+size = Vector3(0.8, 3.2, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.45, -4)
+size = Vector3(0.8, 3.9, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 7.75, -2)
+size = Vector3(0.8, 2.5, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.1, 0)
+size = Vector3(0.8, 3.2, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.45, 2)
+size = Vector3(0.8, 3.9, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 7.75, 4)
+size = Vector3(0.8, 2.5, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.1, 6)
+size = Vector3(0.8, 3.2, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganPipe8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49, 8.45, 8)
+size = Vector3(0.8, 3.9, 0.7)
+color = Color(0.3, 0.3, 0.29, 1)
+mesh_layers = 16
+
+[node name="OrganBase" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.8, 7.1, 0)
+size = Vector3(1.6, 1.2, 18)
+color = Color(0.38, 0.27, 0.19, 1)
+mesh_layers = 16
+
+[node name="RoofN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.9701, 0.2425, 0, -0.2425, 0.9701, -16, 20.8196, -12)
+size = Vector3(68, 0.35, 24.7386)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="RoofS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.9701, -0.2425, 0, 0.2425, 0.9701, -16, 20.8196, 12)
+size = Vector3(68, 0.35, 24.7386)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="TranseptRoofW" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.7593, -0.6508, 0, 0.6508, 0.7593, 0, 0, 0, 1, 21.5, 20.7695, 0)
+size = Vector3(9.2195, 0.35, 48)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="TranseptRoofE" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(0.7593, 0.6508, 0, -0.6508, 0.7593, 0, 0, 0, 1, 28.5, 20.7695, 0)
+size = Vector3(9.2195, 0.35, 48)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="ApseRoofN" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.9487, 0.3162, 0, -0.3162, 0.9487, 42, 19.8155, -6)
+size = Vector3(20, 0.35, 12.6491)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="ApseRoofS" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.9487, -0.3162, 0, 0.3162, 0.9487, 42, 19.8155, 6)
+size = Vector3(20, 0.35, 12.6491)
+color = Color(0.22, 0.23, 0.24, 1)
+mesh_layers = 28
+
+[node name="Ridge" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 23.85, 0)
+size = Vector3(68, 0.3, 0.6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="RidgeT" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 23.85, 0)
+size = Vector3(0.6, 0.3, 48)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="RidgeA" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 21.85, 0)
+size = Vector3(20, 0.3, 0.6)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 28
+
+[node name="Buttress" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress12" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress13" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress14" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress15" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress16" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress17" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress18" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress19" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress20" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress21" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress22" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress23" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress24" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 8, -24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Buttress25" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 8, 24.5)
+size = Vector3(0.8, 16, 0.5)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 16
+
+[node name="Pilaster" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster1" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster2" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster3" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster4" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster5" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster6" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster7" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster8" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster9" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster10" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3.25, -23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Pilaster11" parent="Geometry" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3.25, 23.75)
+size = Vector3(0.7, 6.5, 0.7)
+color = Color(0.26, 0.25, 0.24, 1)
+mesh_layers = 8
+
+[node name="Lamps" type="Node3D" parent="."]
+
+[node name="CryptLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp2" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp3" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp4" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp5" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp6" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp7" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp8" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, -1.9, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp9" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -1.9, -8)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 6
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CryptLamp10" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -1.9, 8)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 6
+omni_attenuation = 1.4
+light_cull_mask = 7
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 12, -14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 12, 14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp2" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 12, -14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp3" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 12, 14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp4" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 12, -14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp5" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 12, 14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp6" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 12, -14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="GalleryLamp7" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 12, 14.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="TranseptLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 5, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.3
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="TranseptLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 5, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.3
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="CrossingLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 17.2, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1
+light_specular = 0.0
+omni_range = 10
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="StageLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.5, 12.6, -6)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 10
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="StageLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.5, 12.6, -2)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 10
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="StageLamp2" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.5, 12.6, 2)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 10
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="StageLamp3" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.5, 12.6, 6)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.8
+light_specular = 0.0
+omni_range = 10
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="TokenLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.5, 3, -3)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.6
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="TokenLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.5, 3, 3)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.6
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="CorridorLampS" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 3.4, 10.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="CorridorLampN" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 3.4, -10.5)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="BackstageLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 3.6, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="NaveLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 6.4, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.7
+light_specular = 0.0
+omni_range = 13
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="NaveLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 6.4, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.7
+light_specular = 0.0
+omni_range = 13
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="NaveLamp2" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 6.4, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.7
+light_specular = 0.0
+omni_range = 13
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="NaveLamp3" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 6.4, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.7
+light_specular = 0.0
+omni_range = 13
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.5, 0.1, 0.5)
+
+[node name="ChapelLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 5.4, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 5.4, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp2" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 5.4, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp3" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 5.4, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp4" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 5.4, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp5" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 5.4, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp6" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.4, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp7" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 5.4, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp8" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 5.4, -21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="ChapelLamp9" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 5.4, 21)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.2
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="LoftLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 9.5, 0)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.6
+light_specular = 0.0
+omni_range = 9
+omni_attenuation = 1.4
+light_cull_mask = 19
+metadata/shade = Vector3(0.45, 0.1, 0.5)
+
+[node name="NarthexLamp" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 3.5, -8)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)
+
+[node name="NarthexLamp1" type="OmniLight3D" parent="Lamps"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 3.5, 8)
+light_color = Color(1, 0.86, 0.66, 1)
+light_energy = 1.4
+light_specular = 0.0
+omni_range = 7
+omni_attenuation = 1.4
+light_cull_mask = 11
+metadata/shade = Vector3(0.35, 0.35, 0.35)

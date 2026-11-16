@@ -20,14 +20,13 @@ const KINDS := {
 }
 
 static var _textures := {}   # kind -> [ImageTexture, mean]
-static var _materials := {}  # [kind, colour, metallic, roughness] -> ShaderMaterial; "chrome" -> its material
+static var _materials := {}  # [kind, colour, metallic, roughness] -> ShaderMaterial
 
 
 ## Swaps the plain materials under `root` for their skins (glass and unshaded dots stay as they are). Textured models
 ## (the IDW, the Contender, Docs/MODELS.md): the skin's noise over their own colour map (shrunk to ~4 mm a texel when
 ## baked, sampled nearest); their normal and roughness maps are dropped.
-## `finish` "chrome": the metal is chrome instead - smooth, bright, mirror-like (the Хрюгер); wood and polymer as ever.
-static func apply(root: Node, finish := "") -> void:
+static func apply(root: Node) -> void:
 	var meshes := root.find_children("*", "MeshInstance3D", true, false)
 	if root is MeshInstance3D:
 		meshes.append(root)
@@ -40,21 +39,7 @@ static func apply(root: Node, finish := "") -> void:
 			if source == null or source.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED \
 					or source.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
 				continue
-			var chrome := finish == "chrome" and _kind(source) == "metal"
-			mesh_instance.set_surface_override_material(i, _chrome() if chrome else _skin(source))
-
-
-static func _chrome() -> StandardMaterial3D:
-	if not _materials.has("chrome"):
-		var material := StandardMaterial3D.new()
-		# Not all metal: a fully metallic surface shows only what it reflects, and a dark room (the train, the shots'
-		# flat backgrounds) makes it black. Half metallic keeps it bright from the lights, glossy for the highlights.
-		material.albedo_color = Color(0.82, 0.83, 0.86)
-		material.metallic = 0.55
-		material.roughness = 0.15
-		material.metallic_specular = 0.9
-		_materials["chrome"] = material
-	return _materials["chrome"]
+			mesh_instance.set_surface_override_material(i, _skin(source))
 
 
 static func _skin(source: StandardMaterial3D) -> ShaderMaterial:

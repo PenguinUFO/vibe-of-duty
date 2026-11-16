@@ -141,8 +141,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	if index == weapon_index and weapon_def == def:
 		return
 	var same_model := index == weapon_index and def != null and weapon_def.sight == def.sight \
-			and weapon_def.model_variants == def.model_variants and weapon_def.model_scale == def.model_scale \
-			and weapon_def.finish == def.finish
+			and weapon_def.model_variants == def.model_variants and weapon_def.model_scale == def.model_scale
 	weapon_index = index
 	def = weapon_def
 	if same_model:
@@ -222,7 +221,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 		_handle_rest = def.charging_handle / def.model_scale  # in the model, which is scaled
 		_handle.position = _handle_rest
 		_model.add_child(_handle)
-	WeaponSkin.apply(_model, def.finish)
+	WeaponSkin.apply(_model)
 	_see_through = optic if optic and optic.has_meta("see_through_z") and is_viewmodel else null
 	_cut_meshes.clear()
 	_lens = null

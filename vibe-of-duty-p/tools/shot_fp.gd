@@ -8,7 +8,6 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"pdw_hip": [1, 0.0, -1.0, []], "pdw_ads": [1, 1.0, -1.0, []],
 	"pdw_mods": [1, 0.0, -1.0, ["pdw.stock.folded"]],
 	"luger_hip": [2, 0.0, -1.0, []], "luger_ads": [2, 1.0, -1.0, []],
-	"luger_khruger_hip": [2, 0.0, -1.0, ["luger.conversion.khruger"]], "luger_khruger_ads": [2, 1.0, -1.0, ["luger.conversion.khruger"]],
 	"luger_mods": [2, 0.0, -1.0, ["luger.mag.32", "luger.stock.board"]],
 	"luger_snail_hip": [2, 0.0, -1.0, ["luger.mag.32"]], "luger_snail_ads": [2, 1.0, -1.0, ["luger.mag.32"]], "luger_snail_reload": [2, 0.0, -1.0, ["luger.mag.32"], 0.35],
 	"luger_mods_ads": [2, 1.0, -1.0, ["luger.mag.32", "luger.stock.board"]],

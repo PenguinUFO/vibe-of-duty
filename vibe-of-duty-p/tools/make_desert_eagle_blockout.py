@@ -31,7 +31,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prefabs", 
 
 MATERIALS = {
     # The owner's references are the silver gun (and a black one): a light steel shows the facets, and the game's
-    # skin tints it per finish anyway (WeaponSkin).
+    # skin tints it anyway (WeaponSkin).
     "steel": ((0.38, 0.38, 0.40), 0.50, 0.38),       # albedo, metallic, roughness
     "steel_light": ((0.56, 0.56, 0.58), 0.70, 0.24), # the polished pins, levers and the muzzle's crown
     "grip": ((0.16, 0.16, 0.16), 0.0, 0.80),         # the rubber grip

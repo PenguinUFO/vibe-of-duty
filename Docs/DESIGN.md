@@ -29,7 +29,8 @@
   кодом. Ссылка стоит в строке «Карты файлов» и в шапке главного скрипта. Сейчас: `Docs/AIM_ASSIST.md`,
   `Docs/LEVEL_TRAIN.md` (карта поезда), `Docs/LEVEL_PLANE.md` (самолёт), `Docs/LEVEL_TOWER.md` (небоскрёб),
   `Docs/LEVEL_KILLHOUSE.md` (киллхаус), `Docs/LEVEL_CHERNOBYL.md` (Чернобыль), `Docs/LEVEL_DRYDOCK.md` (Сухой
-  док), `Docs/LOADOUT.md` (сборка: комплектации и модули, граната, акимбо; ствол — `Docs/loadout/<ствол>.md`),
+  док), `Docs/LEVEL_GIGACHURCH.md` (Гигацерковь), `Docs/LOADOUT.md` (сборка: комплектации и модули, граната,
+  акимбо; ствол — `Docs/loadout/<ствол>.md`),
   `Docs/STATS.md` (статистика боёв на хосте, режим «Бойня рандом»), `Docs/BOTS.md` (боты-архетипы для тестов
   баланса). Каркас самого дизайна: `Docs/ARCHITECTURE.md` (сеть и код), `Docs/MAPS.md` (карты),
   `Docs/VISUAL.md` (кадр и звук), `Docs/TESTS.md` (запуск и проверки).
@@ -48,10 +49,10 @@
 - Сцены только в `prefabs/`, скрипты только в `scripts/`.
 - Тестовые запуски (боты, `--server`, `--join`, `--training`) не пишут `settings.cfg`; после проверок профиль
   игрока должен остаться нетронутым.
-- Поезд, самолёт, небоскрёб, киллхаус: каркас (`prefabs/levels/<карта>_shell.tscn`) генерирует
-  `tools/make_<карта>_map.py` (самолёт, небоскрёб, киллхаус — через общий `tools/level_gen.py`) — правки
-  каркаса только в скрипте; мебель, спавны и окружение — в `prefabs/levels/<карта>.tscn`, её правит владелец в
-  редакторе. Перед работой с картой — её `Docs/LEVEL_*.md`. Остальные карты правятся как сцены.
+- Поезд, самолёт, небоскрёб, киллхаус, Гигацерковь: каркас (`prefabs/levels/<карта>_shell.tscn`) генерирует
+  `tools/make_<карта>_map.py` (самолёт, небоскрёб, киллхаус, Гигацерковь — через общий `tools/level_gen.py`) —
+  правки каркаса только в скрипте; мебель, спавны и окружение — в `prefabs/levels/<карта>.tscn`, её правит
+  владелец в редакторе. Перед работой с картой — её `Docs/LEVEL_*.md`. Остальные карты правятся как сцены.
 - Решения владельца (не менять без спроса): Forward+ на Vulkan (D3D12 давал рваные кадры); крен камеры в
   подкате остаётся; тень своего тела не рисуется; досрочного возрождения нет; мини-карты нет; здоровье в HUD —
   только сплошная полоса, без числа и делений; ников над игроками нет; хрюканье (F) — пасхалка без подсказки
@@ -185,6 +186,7 @@
 | Карта «Чернобыль» — **сначала `Docs/LEVEL_CHERNOBYL.md`** | `../tools/trace_chernobyl_plan.py` (план → `chernobyl_plan.json`), `../tools/make_chernobyl_map.py` (каркас), `../prefabs/levels/chernobyl.tscn` (спавны, статуя, снег), статуя свиньи — `game/pig_statue.gd`, снег — `game/snowfall.gd` |
 | Карта «Элизиум» — **сначала `Docs/LEVEL_ELYSIUM.md`** | `../tools/make_elysium_map.py` (каркас), `../prefabs/levels/elysium.tscn` (укрытия, спавны, солнце) |
 | Карта «Сухой док» — **сначала `Docs/LEVEL_DRYDOCK.md`** | `../tools/make_drydock_map.py` (каркас), `../prefabs/levels/drydock.tscn` (контейнеры, спавны, луна), шлюз — `game/dock_flood.gd`, сияние — `game/aurora.gd`, торпеда — `game/crane_bridge.gd`, проверка — `../tools/dock_walk_test.gd` |
+| Карта «Гигацерковь» — **сначала `Docs/LEVEL_GIGACHURCH.md`** | `../tools/make_gigachurch_map.py` (каркас), `../prefabs/levels/gigachurch.tscn` (мебель, спавны, роза, закрытая входная дверь) |
 | Карта «Карусель» (станция-кольцо) и гравитация к оси — **сначала `Docs/LEVEL_STATION.md`** | `game/gravity.gd` (`Gravity`: верх и кадр по позиции), `game/ring_gravity.gd`, `game/station_sky.gd`, `../tools/make_station_map.py` (каркас), `../prefabs/levels/station.tscn`, проверка — `../tools/ring_hit_test.gd` |
 | Палитра, свет и стиль PSX, пейзаж поезда | `game/palette.gd`, `game/mood.gd`, `game/train_scenery.gd`; текстура блоков — `game/block.gd` |
 

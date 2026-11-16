@@ -60,11 +60,6 @@ const MODULE_GEOMETRY := {
 	"ak.suppressor.on": {"model_variants": {"Muzzle": "PBS"}, "muzzle": Vector3(0.0, 0.045, 0.73),
 			"sound_shot": "shot_suppressed"},
 	"luger.mag.32": {"model_variants": {"Mags": "Luger_Mag_32"}},
-	# Хрюгер (owner's fantasy, 2026-10-23): the Luger blown up for .50 Action Express, chromed.
-	# Its 200 mm barrel scaled with it; the tangent sight 0.136 m ahead of the toggle's notch goes further forward with
-	# the gun, the eye stays by the hands - the relief grows by the gun's 40%.
-	"luger.conversion.khruger": {"model_scale": LUGER_SCALE * 1.4, "finish": "chrome", "sound_shot": "shot",
-			"eye_relief_add": LUGER_SIGHT_AHEAD * 0.4 / 1.4},
 	"luger.stock.board": {"model_variants": {"Stock": "Board"}, "eye_relief": 0.3 + LUGER_SIGHT_AHEAD * LUGER_SCALE},  # the cheek on the board
 	"mp7.stock.collapsed": {"model_variants": {"Stock": "Collapsed"}, "eye_relief_add": -0.1},  # the gun 0.223 m nearer
 	"mp7.grip.folded": {"model_variants": {"Foregrip": "Folded"}, "left_hand": Vector3(0.0, -0.02, 0.16)},  # on the folded grip

@@ -14,8 +14,6 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"pdw_compm": [1, ["pdw.sight.compm"]],
 	"luger": [2, []],
 	"luger_open": [2, [], 1.0],
-	"luger_khruger": [2, ["luger.conversion.khruger"]],
-	"luger_khruger_mods": [2, ["luger.conversion.khruger", "luger.stock.board"]],
 	"luger_mods": [2, ["luger.mag.32", "luger.stock.board"]],
 	"luger_snail": [2, ["luger.mag.32"]],
 	"luger_snail_r": [2, ["luger.mag.32"]],

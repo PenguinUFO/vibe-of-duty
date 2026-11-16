@@ -1,0 +1,803 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/net/world.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/block.tscn" id="2_block"]
+[ext_resource type="Shader" path="res://assets/shaders/sky_clouds.gdshader" id="3_sky"]
+[ext_resource type="PackedScene" path="res://prefabs/levels/gigachurch_shell.tscn" id="4_shell"]
+[ext_resource type="Script" path="res://scripts/game/train_props.gd" id="5_props"]
+[ext_resource type="Script" path="res://scripts/game/level_mood.gd" id="6_mood"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_sky")
+shader_parameter/zenith_color = Color(0.035, 0.045, 0.07, 1)
+shader_parameter/horizon_color = Color(0.42, 0.29, 0.2, 1)
+shader_parameter/ground_color = Color(0.1, 0.09, 0.08, 1)
+shader_parameter/horizon_curve = 0.25
+shader_parameter/sun_size = 2.0
+shader_parameter/sun_glow = 0.8
+shader_parameter/sun_glow_size = 14.0
+shader_parameter/cloud_coverage = 0.55
+shader_parameter/cloud_softness = 0.12
+shader_parameter/cloud_scale = 1.6
+shader_parameter/cloud_detail = 0.8
+shader_parameter/cloud_light = Color(0.42, 0.33, 0.27, 1)
+shader_parameter/cloud_shadow = Color(0.06, 0.07, 0.09, 1)
+shader_parameter/cloud_shading = 9.0
+shader_parameter/cloud_thickness_dark = 0.2
+shader_parameter/cloud_horizon_fade = 0.18
+shader_parameter/cloud_offset = Vector2(1.7, -2.3)
+shader_parameter/sea_coverage = 0.85
+shader_parameter/sea_scale = 0.5
+shader_parameter/sea_light = Color(0.55, 0.5, 0.45, 1)
+shader_parameter/sea_shadow = Color(0.2, 0.2, 0.24, 1)
+shader_parameter/sea_offset = Vector2(0, 0)
+shader_parameter/sea_horizon_fade = 0.08
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.52, 0.56, 0.64, 1)
+ambient_light_energy = 0.9
+reflected_light_source = 1
+tonemap_mode = 4
+tonemap_exposure = 1.1
+tonemap_white = 8.0
+fog_enabled = true
+fog_light_color = Color(0.075, 0.085, 0.115, 1)
+fog_density = 0.0035
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 0.85
+
+[sub_resource type="StandardMaterial3D" id="rose_mat"]
+albedo_color = Color(0.55, 0.28, 0.12, 1)
+roughness = 0.4
+emission_enabled = true
+emission = Color(0.8, 0.42, 0.15, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="CylinderMesh" id="rose_mesh"]
+top_radius = 4.0
+bottom_radius = 4.0
+height = 0.2
+radial_segments = 24
+rings = 1
+
+[node name="Gigachurch" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0, 0.1392, -0.9903, 0, 0.9903, 0.1392, 1, 0, -0, 0, 30, 0)
+light_color = Color(1, 0.72, 0.5, 1)
+light_energy = 1.6
+shadow_enabled = true
+shadow_bias = 0.05
+shadow_blur = 1.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 70.0
+
+[node name="Shell" parent="." instance=ExtResource("4_shell")]
+
+[node name="Props" type="Node3D" parent="."]
+script = ExtResource("5_props")
+deck_splits = PackedFloat32Array(-1.5, 6.25)
+
+[node name="WelcomeDesk" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 0.5, 7)
+size = Vector3(2, 1, 4)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="HolyWaterFont" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46, 0.6, -7)
+size = Vector3(1, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="NarthexCrate" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 0.5, 14)
+size = Vector3(1, 1, 1)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="NarthexCrate2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 0.5, -14)
+size = Vector3(1, 1, 1)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="Pew" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew7" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew8" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew9" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew10" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew11" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew12" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew13" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew14" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew15" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew16" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew17" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew18" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew19" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew20" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew21" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.55, -6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="Pew22" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.55, 6.5)
+size = Vector3(0.6, 1.1, 6.5)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="PewStack" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.7, -10.5)
+size = Vector3(1.2, 1.4, 2)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="PewStack2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0.7, 10.5)
+size = Vector3(1.2, 1.4, 2)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="PewStack3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, -10.5)
+size = Vector3(1.2, 1.4, 2)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="PewStack4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 10.5)
+size = Vector3(1.2, 1.4, 2)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="Pulpit" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1.2, 0)
+size = Vector3(1.6, 2.4, 1.6)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="SaintStatue" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.4, 0)
+size = Vector3(1.2, 2.8, 1.2)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChoirStall" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.9, -8)
+size = Vector3(1.2, 1.8, 4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="ChoirStall2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.9, 8)
+size = Vector3(1.2, 1.8, 4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="Candelabra" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 1, -10.5)
+size = Vector3(0.6, 2, 0.6)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="Candelabra2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 10.5)
+size = Vector3(0.6, 2, 0.6)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="Confessional" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 1.2, -22.5)
+size = Vector3(1.6, 2.4, 1.4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="Confessional2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 1.2, 22.5)
+size = Vector3(1.6, 2.4, 1.4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="Confessional3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1.2, -22.5)
+size = Vector3(1.6, 2.4, 1.4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="Confessional4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1.2, 22.5)
+size = Vector3(1.6, 2.4, 1.4)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="ChapelAltar" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.6, -23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelAltar2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.6, 23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelAltar3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.6, -23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelAltar4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.6, 23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelAltar5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.6, -23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelAltar6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.6, 23.2)
+size = Vector3(2.4, 1.2, 1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="CandleRack" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 0.8, -22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CandleRack2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 0.8, 22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CandleRack3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 0.8, -22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CandleRack4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 0.8, 22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CandleRack5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 0.8, -22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CandleRack6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 0.8, 22.8)
+size = Vector3(0.5, 1.6, 0.5)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="ChapelStatue" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 1.2, -23.2)
+size = Vector3(0.8, 2.4, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="ChapelStatue2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.2, 23.2)
+size = Vector3(0.8, 2.4, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="TranseptAltar" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.6, -22.5)
+size = Vector3(6, 1.2, 1.4)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="TranseptAltar2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.6, 22.5)
+size = Vector3(6, 1.2, 1.4)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="TranseptPew" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.5, -19.5)
+size = Vector3(6, 1, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="TranseptPew2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0.5, 19.5)
+size = Vector3(6, 1, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="TranseptStatue" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 1.2, -21)
+size = Vector3(0.8, 2.4, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="TranseptStatue2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 1.2, 21)
+size = Vector3(0.8, 2.4, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb7" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb8" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb9" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb10" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb11" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, -4.1, -4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Tomb12" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, -4.1, 4.5)
+size = Vector3(2, 0.8, 1.1)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Sarcophagus" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -3.9, 0)
+size = Vector3(2.4, 1.2, 1.2)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="Sarcophagus2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, -3.9, 0)
+size = Vector3(2.4, 1.2, 1.2)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="BonePile" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -4.1, -8)
+size = Vector3(1.5, 0.8, 1.5)
+color = Color(0.55, 0.52, 0.46, 1)
+
+[node name="BonePile2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -4.1, 8)
+size = Vector3(1.5, 0.8, 1.5)
+color = Color(0.55, 0.52, 0.46, 1)
+
+[node name="CryptAltar" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -4, -9.2)
+size = Vector3(2, 1, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="CryptAltar2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -4, 9.2)
+size = Vector3(2, 1, 0.8)
+color = Color(0.4, 0.38, 0.35, 1)
+
+[node name="OrganConsole" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 7, 0)
+size = Vector3(2, 1, 3)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="ChoirBench" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 6.95, -6)
+size = Vector3(0.6, 0.9, 4)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="ChoirBench2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 6.95, 6)
+size = Vector3(0.6, 0.9, 4)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="GalleryCrate" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 10.35, -15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 10.35, -15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 10.35, 15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 10.35, 15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryBench" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 10.2, -17.4)
+size = Vector3(3, 0.9, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="GalleryBench2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 10.2, -17.4)
+size = Vector3(3, 0.9, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="GalleryBench3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32, 10.2, 17.4)
+size = Vector3(3, 0.9, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="GalleryBench4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 10.2, 17.4)
+size = Vector3(3, 0.9, 0.7)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="GalleryCrate5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 10.35, -15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 10.35, 15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate7" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 10.35, -15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="GalleryCrate8" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 10.35, 15.5)
+size = Vector3(1.2, 1.2, 1.2)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="Token" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.5, 5.2, 0)
+size = Vector3(1.6, 8, 1.6)
+color = Color(0.62, 0.46, 0.16, 1)
+
+[node name="DrumRiser" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 1.35, 0)
+size = Vector3(3, 0.3, 2.4)
+color = Color(0.24, 0.25, 0.26, 1)
+
+[node name="DrumKit" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 1.9, 0)
+size = Vector3(1.8, 0.8, 1.2)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="Amp" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 2.2, -7)
+size = Vector3(1.2, 2, 1.2)
+color = Color(0.24, 0.25, 0.26, 1)
+
+[node name="Amp2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 2.2, 7)
+size = Vector3(1.2, 2, 1.2)
+color = Color(0.24, 0.25, 0.26, 1)
+
+[node name="Speaker" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.5, 2.7, -8)
+size = Vector3(1.2, 3, 1.2)
+color = Color(0.24, 0.25, 0.26, 1)
+
+[node name="Speaker2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.5, 2.7, 8)
+size = Vector3(1.2, 3, 1.2)
+color = Color(0.24, 0.25, 0.26, 1)
+
+[node name="StagePulpit" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 1.9, -5)
+size = Vector3(1.2, 1.4, 1.2)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="ChoirSeat" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1.05, -6)
+size = Vector3(0.7, 0.9, 3)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="ChoirSeat2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1.05, 6)
+size = Vector3(0.7, 0.9, 3)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="ChoirLectern" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 1.2, 0)
+size = Vector3(1, 1.2, 1)
+color = Color(0.31, 0.22, 0.15, 1)
+
+[node name="BackstageCase" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 1.1, -6)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="BackstageCase2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 1.1, 6)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="BackstageCase3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 1.1, -2)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="BackstageCase4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 1.1, 2)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="MakeupTable" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51, 1.1, 0)
+size = Vector3(1, 1, 3)
+color = Color(0.4, 0.28, 0.19, 1)
+
+[node name="CostumeRack" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 1.8, 8)
+size = Vector3(0.8, 2.4, 2)
+color = Color(0.3, 0.3, 0.29, 1)
+
+[node name="CorridorCase" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 1.1, -10.5)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="CorridorCase2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 1.1, 10.5)
+size = Vector3(1.2, 1, 0.8)
+color = Color(0.42, 0.31, 0.22, 1)
+
+[node name="RoseSpoke" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke2" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.7071, -0.7071, 0, 0.7071, 0.7071, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke3" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke4" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, -0.7071, -0.7071, 0, 0.7071, -0.7071, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke5" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, -1, -0, 0, 0, -1, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke6" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, -0.7071, 0.7071, 0, -0.7071, -0.7071, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke7" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, -0, 1, 0, -1, -0, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseSpoke8" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.7071, 0.7071, 0, -0.7071, 0.7071, -50.25, 14.5, 0)
+size = Vector3(0.7, 8, 0.16)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseHub" parent="Props" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.2, 14.5, 0)
+size = Vector3(0.7, 0.8, 0.8)
+color = Color(0.18, 0.18, 0.17, 1)
+
+[node name="RoseWindow" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -50.25, 14.5, 0)
+mesh = SubResource("rose_mesh")
+material_override = SubResource("rose_mat")
+cast_shadow = 0
+
+[node name="RoseBeam" type="SpotLight3D" parent="."]
+transform = Transform3D(-0, 0.1392, -0.9903, 0, 0.9903, 0.1392, 1, 0, -0, -49.6, 14.5, 0)
+light_color = Color(1, 0.72, 0.5, 1)
+light_energy = 4.0
+light_specular = 0.0
+light_cull_mask = 27
+spot_range = 100.0
+spot_angle = 10.0
+spot_attenuation = 1.0
+shadow_enabled = false
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="SpawnNarthexN" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -46, 0.05, -13)
+
+[node name="SpawnNarthexS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -46, 0.05, 13)
+
+[node name="SpawnNaveW" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -30, 0.05, 0)
+
+[node name="SpawnNaveN" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -16, 0.05, -1.5)
+
+[node name="SpawnNaveS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -2, 0.05, 2)
+
+[node name="SpawnAisleNW" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -26, 0.05, -15)
+
+[node name="SpawnAisleSE" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 0.05, 15)
+
+[node name="SpawnChapelN" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14, 0.05, -21)
+
+[node name="SpawnChapelS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -2, 0.05, 21)
+
+[node name="SpawnTranseptN" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, 25, 0.05, -21)
+
+[node name="SpawnTranseptS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 25, 0.05, 21)
+
+[node name="SpawnGalleryN" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -20, 9.8, -14.5)
+
+[node name="SpawnGalleryS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2, 9.8, 13)
+
+[node name="SpawnCryptW" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -34, -4.45, 0)
+
+[node name="SpawnCryptE" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 18, -4.45, 0)
+
+[node name="SpawnBackstage" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 49, 0.65, 0)
+
+[node name="SpawnChoir" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34, 0.65, -4)
+
+[node name="SpawnCorridorS" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 40, 0.65, 10.5)
+
+[node name="LevelMood" type="Node" parent="."]
+script = ExtResource("6_mood")
+values = {
+"ambient_color": Color(0.62, 0.66, 0.74, 1),
+"ambient_energy": 1.6,
+"ambient_sky": 0.45,
+"contrast": 1.12,
+"fog_color": Color(0.075, 0.085, 0.115, 1),
+"fog_density": 0.0035,
+"fog_sky_affect": 0.0,
+"saturation": 0.8,
+"sky": {
+"cloud_coverage": 0.55,
+"cloud_light": Color(0.42, 0.33, 0.27, 1),
+"cloud_offset": Vector2(1.7, -2.3),
+"cloud_shadow": Color(0.06, 0.07, 0.09, 1),
+"ground_color": Color(0.1, 0.09, 0.08, 1),
+"horizon_color": Color(0.42, 0.29, 0.2, 1),
+"horizon_curve": 0.25,
+"sun_glow": 0.8,
+"sun_glow_size": 14.0,
+"zenith_color": Color(0.035, 0.045, 0.07, 1)
+},
+"sun_azimuth": 270.0,
+"sun_color": Color(1, 0.72, 0.5, 1),
+"sun_elevation": 8.0,
+"sun_energy": 1.6
+}
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="World" type="Node" parent="."]
+script = ExtResource("1_world")
+kill_height = -20.0

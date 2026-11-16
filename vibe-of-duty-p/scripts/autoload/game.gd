@@ -282,7 +282,7 @@ static func is_map(path: String) -> bool:
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).
-const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "chernobyl": "Чернобыль", "elysium": "Элизиум", "station": "Карусель", "drydock": "Сухой док", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
+const MAP_NAMES := {"train": "Поезд", "plane": "Самолёт", "tower": "Небоскрёб", "killhouse": "Киллхаус", "chernobyl": "Чернобыль", "elysium": "Элизиум", "station": "Карусель", "drydock": "Сухой док", "gigachurch": "Гигацерковь", "test_level": "Полигон", "range": "Стрельбище", "course": "Полоса препятствий"}
 
 static func map_name(path: String) -> String:
 	var base := path.get_file().get_basename()
