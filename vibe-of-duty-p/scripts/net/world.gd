@@ -507,6 +507,8 @@ func _pick_spawn(exclude_id: int, team := -1) -> Dictionary:
 			if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, other_eye, Layers.WORLD)).is_empty():
 				seen += 1
 		scored.append({"xform": spawn.global_transform, "pt": i, "near": nearest, "seen": seen, "ally": ally})
+	if scored.is_empty():
+		return {"xform": Transform3D.IDENTITY, "pt": -1, "near": INF, "seen": 0, "ally": 0}
 	scored.sort_custom(func(a, b):
 		if a["seen"] != b["seen"]:
 			return a["seen"] < b["seen"]
@@ -584,7 +586,10 @@ func _server_kill(killer: Player, victim: Player, weapon: int, head: bool, cause
 	for peer in _ready_peers:
 		_player_died.rpc_id(peer, victim.peer_id, killer.peer_id, weapon, head, RESPAWN_DELAY)
 	var victim_id := victim.peer_id
-	get_tree().create_timer(RESPAWN_DELAY).timeout.connect(func() -> void: _server_respawn(victim_id, false))
+	var world_ref: WeakRef = weakref(self)  # weak: the lobby may change the scene before the timer fires
+	get_tree().create_timer(RESPAWN_DELAY).timeout.connect(func() -> void:
+		if world_ref.get_ref() != null:
+			(world_ref.get_ref() as NetWorld)._server_respawn(victim_id, false))
 	if Game.state == Game.State.PLAYING and Game.top_kills() >= Game.score_limit:
 		_server_end_match("score limit")
 
@@ -886,6 +891,7 @@ func _apply_respawn(id: int, xform: Transform3D, build: Array, tick: int) -> voi
 @rpc("authority", "reliable")
 func _despawn_player(id: int) -> void:
 	if players.has(id):
+		_players_root.remove_child(players[id])  # out of the tree now: a new player of the same id keeps its name
 		players[id].queue_free()
 		players.erase(id)
 

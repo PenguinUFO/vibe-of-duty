@@ -114,11 +114,19 @@ func _kill(def: WeaponDef, akimbo: bool, health: int, distance: float, head: boo
 		if reload > 0:
 			reload -= 1
 			if reload == 0:
-				mag = def.mag_size if not def.reload_single else mini(mag + 1, def.mag_size)
-				if akimbo:  # both at once
-					left_mag = def.mag_size if not def.reload_single else mini(left_mag + 1, def.mag_size)
+				if def.reload_single:  # a shell a stage: the right gun to the top, then the left one
+					if mag < def.mag_size:
+						mag += 1
+					elif akimbo:
+						left_mag += 1
+				elif not akimbo or mag < def.mag_size:  # a magazine: the right gun, then the left one
+					mag = def.mag_size
+				else:
+					left_mag = def.mag_size
 				if def.reload_single and (mag < def.mag_size or akimbo and left_mag < def.mag_size):
 					reload = reload_ticks  # a tube: the next round
+				elif akimbo and left_mag < def.mag_size:
+					reload = reload_ticks  # the left gun's turn
 		var fired := false
 		burst = burst + 1 if reload == 0 else 0
 		if reload == 0 and cooldown <= 0.0:

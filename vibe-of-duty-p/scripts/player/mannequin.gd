@@ -456,6 +456,8 @@ func hit_zone(world_pos: Vector3) -> String:
 func pose() -> void:
 	if _ragdoll != null:
 		return
+	# NOTE: _jolt and mantle lean the drawn chest (and head) but are visual only; LagComp.head_offset has no
+	# matching terms, so the head hitbox lags the drawn head by a few cm for the moment of a hit flinch / vault.
 	var chest := chest_frame(pitch, crouch, _lean)
 	chest.basis = Basis(Vector3.UP, _jolt) * Basis(Vector3.RIGHT, -0.15 * mantle) * chest.basis
 	chest.origin += _pelvis_offset
@@ -659,17 +661,18 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 	for p in local:
 		points.append(xf * p)
 
+	var up := Gravity.up(points[Ragdoll.PELVIS])
 	var back := xf.basis.z.normalized()
 	var push := back
 	var strength := 1.4
 	if from.is_finite():
 		var away := points[Ragdoll.CHEST] - from
-		away.y = 0.0
+		away = Gravity.flat(away, points[Ragdoll.PELVIS])
 		if away.length() > 0.01:
 			push = away.normalized()
 			strength = 3.2
-	push = (push + Vector3.UP * 0.15).normalized() * strength
-	var side := back.cross(Vector3.UP).normalized() * randf_range(-0.6, 0.6)  # a bit of a turn as it falls
+	push = (push + up * 0.15).normalized() * strength
+	var side := back.cross(up).normalized() * randf_range(-0.6, 0.6)  # a bit of a turn as it falls
 	# How much of the blow each point takes: the upper body is thrown back, the knees buckle the other way, the feet
 	# stay put - so it folds at the knees and falls away from the shooter.
 	var share := {Ragdoll.HEAD: 1.7 if head_hit else 1.0, Ragdoll.CHEST: 1.0, Ragdoll.SHOULDER_L: 0.9,
@@ -685,7 +688,7 @@ func start_ragdoll(body_velocity: Vector3, from := Vector3.INF, head_hit := fals
 		if i in [Ragdoll.KNEE_L, Ragdoll.KNEE_R]:
 			v -= back * 0.9
 		if i >= Ragdoll.GUN_BUTT:
-			v += Vector3.UP * 0.5  # the gun drops out of the hands
+			v += up * 0.5  # the gun drops out of the hands
 		velocities.append(v)
 	_ragdoll = Ragdoll.new(points, velocities, get_world_3d())
 	var scenery := get_tree().get_first_node_in_group(TrainScenery.GROUP) as TrainScenery if is_inside_tree() else null

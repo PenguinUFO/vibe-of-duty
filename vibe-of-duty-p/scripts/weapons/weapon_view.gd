@@ -28,6 +28,7 @@ const VIEWMODEL_SCALE := 0.8  # first-person guns are drawn a bit smaller than l
 const BREAK_ANGLE := 0.5      # rad: how far a break-open's barrel drops for a reload (~29 degrees: room for a round)
 const REFILL_TIME := 0.45     # s after a break-open's reload: the left hand takes the next round from the bandolier
 const HAMMER_DROP := 0.45     # rad: a fired hammer leans forward this far until a reload cocks it
+const TRIGGER_PULL := 0.16    # rad: the trigger goes back on a shot and lets go within 80 ms (the model's "Trigger")
 ## A break-open's round: where the left hand's palm is when it holds it (prefab space from the case head, life size,
 ## along the frame - not the dropped barrel: to its left, below and ahead, the fingers up round the rim; from behind
 ## the hand hid the whole gun), and how far the extractor lifts the spent case out.
@@ -91,6 +92,7 @@ var _round_rest := Vector3.ZERO
 var _bullet: Node3D       # "Break/Round/Bullet": gone while the round is the spent case
 var _hammer: Node3D       # "Hammer": falls forward on a shot, cocked again at the end of a reload
 var _hammer_down := false
+var _trigger: Node3D      # "Trigger": goes back with a shot, comes forward again
 var _break_r := -1.0      # the reload progress the break-open was last posed at
 var _refill_from := -1.0  # s (ticks): when the left hand went for the next round after a reload (-1: it is not)
 var _lever: Node3D        # a lever action's lever (Winchester 1887): "Lever", its origin on the pivot; cycled after a
@@ -196,6 +198,7 @@ func set_weapon(index: int, weapon_def: WeaponDef = null) -> void:
 	_ejected = true
 	_hammer = _model.get_node_or_null("Hammer")
 	_hammer_down = false
+	_trigger = _model.get_node_or_null("Trigger")
 	_toggle = _model.get_node_or_null("Toggle")
 	if _toggle:
 		_toggle_hinge = _toggle.get_node("LinkRear").position
@@ -294,6 +297,8 @@ func _process(delta: float) -> void:
 	if _bolt:
 		var bolt_back := maxf(1.0 - _cycle / 0.07, bolt_pull) if _cycle < 0.07 else bolt_pull
 		_bolt.position = _bolt_rest + Vector3(0.0, 0.0, -float(_bolt.get_meta("travel", 0.0)) * bolt_back)
+	if _trigger:  # back at the shot, forward again within 80 ms - the finger's, and the slide's, reset
+		_trigger.rotation.x = TRIGGER_PULL * maxf(1.0 - _cycle / 0.08, 0.0)
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:

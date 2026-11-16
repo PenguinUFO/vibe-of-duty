@@ -77,3 +77,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if not sleeping:
 		apply_central_force(-Gravity.up(global_position) * GRAVITY * mass)
+
+
+## Leaves the list when the scene (or the LIFETIME) takes it: no dangling references after a map change.
+func _exit_tree() -> void:
+	_all.erase(self)

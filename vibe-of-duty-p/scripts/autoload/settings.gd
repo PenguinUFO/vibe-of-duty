@@ -458,4 +458,4 @@ func load_settings() -> void:
 	host_bots = clampi(int(cfg.get_value("host", "bots", host_bots)), 0, 7)
 	host_bot_skill = str(cfg.get_value("host", "bot_skill", host_bot_skill))
 	for bus in BUS_NAMES:
-		volumes[bus] = cfg.get_value("audio", String(bus), volumes[bus])
+		volumes[bus] = clampf(cfg.get_value("audio", String(bus), volumes[bus]), 0.0, 1.0)

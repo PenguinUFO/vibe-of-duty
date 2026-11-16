@@ -117,7 +117,13 @@ func _refresh() -> void:
 	_build_players()
 	if not _focused and Settings.has_gamepad() and _sub == null:
 		_focused = true
-		var first: Control = _ballot.get_child(0) if _ballot.get_child_count() > 0 else _start
+		var first: Control = null
+		if _ballot.get_child_count() > 0:
+			first = _ballot.get_child(0)
+		elif _start != null:
+			first = _start
+		else:
+			first = _builds  # a non-host in the waiting phase: the D-pad reaches "Сборка" / "Покинуть"
 		if first != null:
 			first.grab_focus.call_deferred()
 
@@ -276,7 +282,10 @@ func _build_teams(ids: Array, me: int, focused: int) -> void:
 			else:
 				line = Label.new()
 			line.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # a nickname
-			line.set("text", _player_text(id))
+			if line is Button:
+				(line as Button).text = _player_text(id)
+			else:
+				(line as Label).text = _player_text(id)
 			line.add_theme_color_override("font_color", UiTheme.TEXT if id == me else color)  # own: white (the highlight is the enemies' red)
 			column.add_child(line)
 

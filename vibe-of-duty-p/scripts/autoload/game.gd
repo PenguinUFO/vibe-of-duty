@@ -306,7 +306,7 @@ func add_kill(killer_id: int, victim_id: int, killer_team := -1, team_kill := fa
 	if killer_id != victim_id:
 		var gain := -1 if team_kill else 1
 		scores[killer_id]["kills"] += gain
-		if killer_team >= 0:
+		if killer_team >= 0 and killer_team < team_scores.size():
 			team_scores[killer_team] += gain
 	scores[victim_id]["deaths"] += 1
 	score_changed.emit(killer_id)

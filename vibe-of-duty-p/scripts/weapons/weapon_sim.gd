@@ -26,9 +26,11 @@ const GRENADE_BACK := 0.2      # s after the launch until the gun is back
 const GRENADE_NAME := "граната"  # kill feed
 const GRENADES := 1            # grenades a life starts with (owner, 2026-11-09)
 ## Akimbo (WeaponDef.akimbo, Docs/LOADOUT.md): a copy of the weapon in the left hand with its own magazine, fired by
-## the aim button (cmd.aim); it stays in the hand all life. R reloads both at once (reload_time x akimbo_reload; a tube
-## loads a round into each a cycle); both empty - the reload starts by itself. No sights, no punch, the spread x
-## akimbo_spread. Neither fires while reloading; a press of either stops a tube's loading.
+## the aim button (cmd.aim); it stays in the hand all life. R reloads both, one gun at a time - the right one first, the
+## left one after it (owner, 2026-11-14; each as long as a single reload, so both take twice as long), a tube (a drum)
+## fills the right gun to the top first and only then starts on the left one (owner, 2026-11-14); both empty - the
+## reload starts by itself. No sights, no punch, the spread x akimbo_spread.
+## Neither fires while reloading; a press of either stops a tube's loading.
 
 var index := 0
 var mags := PackedInt32Array()
@@ -175,6 +177,38 @@ func reload_progress() -> float:
 	return 1.0 - float(reload_ticks) / float(_reload_ticks()) if reload_ticks > 0 else -1.0
 
 
+## The right gun's own reload progress 0..1 (-1: not now). Akimbo: the first half of the reload, the left gun's after;
+## a drum: the gun the shells are going into right now.
+func reload_progress_right() -> float:
+	if reload_ticks <= 0:
+		return -1.0
+	if not is_akimbo():
+		return reload_progress()
+	if current().reload_single:
+		return reload_progress() if mags[index] < current().mag_size else -1.0
+	var stage := _reload_stage_ticks()
+	return 1.0 - float(reload_ticks - stage) / float(stage) if reload_ticks > stage else -1.0
+
+
+## The left (akimbo) gun's own reload progress 0..1 (-1: not now): the second half (a drum: the left one's shells' turn).
+func reload_progress_left() -> float:
+	if reload_ticks <= 0 or not is_akimbo():
+		return -1.0
+	if current().reload_single:
+		return reload_progress() if mags[index] >= current().mag_size else -1.0
+	var stage := _reload_stage_ticks()
+	return 1.0 - float(reload_ticks) / float(stage) if reload_ticks <= stage else -1.0
+
+
+## The plate and the gun of the right one are being reloaded now (a single gun always is).
+func is_reloading_right() -> bool:
+	return reload_progress_right() >= 0.0
+
+
+func is_reloading_left() -> bool:
+	return reload_progress_left() >= 0.0
+
+
 func equip_progress() -> float:
 	return 1.0 - float(switch_ticks) / float(current().equip_ticks()) if switch_ticks > 0 else -1.0
 
@@ -203,7 +237,8 @@ func spread_angle(speed: float, crouched: bool, airborne: bool) -> float:
 
 
 ## Advances one tick. ctx: {peer_id, speed, crouched, airborne, sprinting, sliding, mantling}.
-## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_end", "equip",
+## Returns events: {"type": "shot", "weapon": int, "dirs": Array[Vector3]}, "dry", "reload_start", "reload_half" (akimbo:
+## the right gun's magazine is in), "reload_end", "equip",
 ## "melee_start", {"type": "melee", "pitch": float, "yaw": float} (the blow), "grenade_start",
 ## {"type": "grenade", "pitch": float, "yaw": float} (the launch); a shot of the akimbo's left gun has "left": true.
 func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
@@ -223,24 +258,24 @@ func tick(cmd: PlayerCmd, dt: float, ctx: Dictionary) -> Array:
 		events.append({"type": "reload_end"})
 	if reload_ticks > 0 and grenade_ticks == 0:  # a launch pauses the reload
 		reload_ticks -= 1
-		if reload_ticks == 0:
-			var take := mini(def.mag_size - mags[index], reserves[index])
-			if def.reload_single:
-				take = mini(take, 1)
-			mags[index] += take
-			if not infinite_reserve:
-				reserves[index] -= take
-			if is_akimbo():  # the left gun from what is left
-				var take_left := mini(def.mag_size - left_mag, reserves[index])
-				if def.reload_single:
-					take_left = mini(take_left, 1)
-				left_mag += take_left
-				if not infinite_reserve:
-					reserves[index] -= take_left
-			if def.reload_single and _needs_reload() and reserves[index] > 0:
-				reload_ticks = _reload_ticks()  # the next round
-			else:
-				events.append({"type": "reload_end"})
+		if def.reload_single:
+			# A drum (the Striker): a shell a cycle; the right gun is topped up first, the left one only after it is full
+			# (owner, 2026-11-14: a whole gun, then the whole other).
+			if reload_ticks == 0:
+				var loaded := is_akimbo() and mags[index] >= def.mag_size  # the right drum is full: the left one's turn
+				_take_magazine(loaded, def)
+				if is_akimbo() and not loaded and mags[index] >= def.mag_size and left_mag < def.mag_size:
+					events.append({"type": "reload_half"})  # the right gun is loaded: the left one next
+				if _needs_reload() and reserves[index] > 0:
+					reload_ticks = _reload_ticks()  # the next shell
+				else:
+					events.append({"type": "reload_end"})
+		elif is_akimbo() and reload_ticks == _reload_stage_ticks():
+			_take_magazine(false, def)  # the right gun is loaded at the halfway point, the left one at the end
+			events.append({"type": "reload_half"})
+		elif reload_ticks == 0:
+			_take_magazine(is_akimbo(), def)
+			events.append({"type": "reload_end"})
 
 	# Grenade: the hoof is swung back GRENADE_OUT after G goes down and stays back while it is held; it throws when G is
 	# let go (owner, 2026-11-02), aimed where the player looks at that moment. Not while vaulting (the hands are on the
@@ -402,15 +437,38 @@ func _shot(cmd: PlayerCmd, ctx: Dictionary, gun: WeaponDef, left: bool) -> Dicti
 	return event
 
 
+## A magazine in: the right gun's (`left` false) or the akimbo's left one, from the reserve; a tube takes one round.
+func _take_magazine(left: bool, def: WeaponDef) -> void:
+	var have := left_mag if left else mags[index]
+	var take := maxi(0, mini(def.mag_size - have, reserves[index]))
+	if def.reload_single:
+		take = mini(take, 1)
+	if left:
+		left_mag += take
+	else:
+		mags[index] += take
+	if not infinite_reserve:
+		reserves[index] -= take
+
+
 ## A magazine is not full (akimbo: either).
 func _needs_reload() -> bool:
 	var size := current().mag_size
 	return mags[index] < size or is_akimbo() and left_mag < size
 
 
-func _reload_ticks() -> int:
+## One gun's reload (akimbo: the right one, then the left one after it).
+func _reload_stage_ticks() -> int:
 	var def := current()
-	return maxi(1, roundi(def.reload_ticks() * (def.akimbo_reload if is_akimbo() else 1.0)))
+	if not is_akimbo():
+		return maxi(1, def.reload_ticks())
+	return maxi(1, roundi(def.reload_ticks() * def.akimbo_reload))
+
+
+func _reload_ticks() -> int:
+	if current().reload_single:
+		return _reload_stage_ticks()  # a drum: one shell a cycle, every gun in its turn
+	return _reload_stage_ticks() * 2 if is_akimbo() else _reload_stage_ticks()
 
 
 ## Direction for view angles (pitch, yaw) with a random offset inside a cone of half angle `angle`.

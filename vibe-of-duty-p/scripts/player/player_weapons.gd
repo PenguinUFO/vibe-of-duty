@@ -29,6 +29,8 @@ func _weapon_step(cmd: PlayerCmd, dt: float) -> void:
 					dry_total += 1
 			"reload_start":
 				_local_sfx("reload")
+			"reload_half":
+				_local_sfx("reload")  # akimbo: the right gun's magazine is in, the left one's next
 			"equip":
 				_local_sfx("equip")
 				if _view:

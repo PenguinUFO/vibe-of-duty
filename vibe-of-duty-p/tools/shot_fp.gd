@@ -49,6 +49,9 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"striker_bulldog_ads": [13, 1.0, -1.0, ["striker.conversion.bulldog"]],
 	"striker_bulldog_r62": [13, 0.0, -1.0, ["striker.conversion.bulldog"], 0.62],
 	"striker_akimbo": [13, 0.0, -1.0, ["striker.conversion.bulldog", "striker.akimbo.on"]],
+	"striker_akimbo_r30": [13, 0.0, -1.0, ["striker.conversion.bulldog", "striker.akimbo.on"], 0.3],
+	"striker_akimbo_r60": [13, 0.0, -1.0, ["striker.conversion.bulldog", "striker.akimbo.on"], 0.6],
+	"striker_akimbo_r90": [13, 0.0, -1.0, ["striker.conversion.bulldog", "striker.akimbo.on"], 0.9],
 	"mk14_hip": [7, 0.0, -1.0, []], "mk14_ads": [7, 1.0, -1.0, []], "mk14_r30": [7, 0.0, -1.0, [], 0.3],
 	"mk14_compm_ads": [7, 1.0, -1.0, ["mk14.sight.compm"]], "mk14_acog_ads": [7, 1.0, -1.0, ["mk14.sight.acog"]],
 	"p90_can_hip": [8, 0.0, -1.0, ["p90.suppressor.on"]], "p90_can_ads": [8, 1.0, -1.0, ["p90.suppressor.on"]],
@@ -83,6 +86,16 @@ const CASES := {  # [weapon, ads, punch progress, modules, reload progress, gren
 	"val_wood_hip": [12, 0.0, -1.0, ["val.stock.wood"]], "val_wood_ads": [12, 1.0, -1.0, ["val.stock.wood"]],
 	"val_po_hip": [12, 0.0, -1.0, ["val.sight.po"]], "val_po_ads": [12, 1.0, -1.0, ["val.sight.po"]],
 	"val_short_po_ads": [12, 1.0, -1.0, ["val.barrel.short", "val.sight.po"]],
+	"deagle_hip": [14, 0.0, -1.0, []], "deagle_ads": [14, 1.0, -1.0, []], "deagle_half": [14, 0.6, -1.0, []],
+	"deagle_r30": [14, 0.0, -1.0, [], 0.3], "deagle_r62": [14, 0.0, -1.0, [], 0.62],
+	"deagle_r85": [14, 0.0, -1.0, [], 0.85],
+	"deagle_akimbo": [14, 0.0, -1.0, ["deagle.akimbo.on"]],
+	"deagle_akimbo_r30": [14, 0.0, -1.0, ["deagle.akimbo.on"], 0.3],
+	"deagle_akimbo_r62": [14, 0.0, -1.0, ["deagle.akimbo.on"], 0.62],
+	"deagle_akimbo_r85": [14, 0.0, -1.0, ["deagle.akimbo.on"], 0.85],
+	"deagle_akimbo_sprint": [14, 0.0, -1.0, ["deagle.akimbo.on"], -1.0, -1.0, 1.0],
+	"deagle_akimbo_grenade": [14, 0.0, -1.0, ["deagle.akimbo.on"], -1.0, 0.43],
+	"deagle_sprint": [14, 0.0, -1.0, [], -1.0, -1.0, 1.0],
 }
 
 
@@ -158,16 +171,31 @@ func _ready() -> void:
 		view.melee = CASES[c][2]
 		arms.melee = CASES[c][2]
 		var reload: float = CASES[c][4] if CASES[c].size() > 4 else -1.0
-		arms.reload = reload
+		# Akimbo: the reload takes the right gun first, then the left (WeaponSim.reload_progress_right/left), so each
+		# view gets its own part - and the other gun hangs out of view meanwhile, as PlayerView drops it.
+		var reload_right := reload
+		var reload_left := -1.0
+		if def.akimbo and reload >= 0.0:
+			reload_right = minf(reload * 2.0, 1.0) if reload < 0.5 else -1.0
+			reload_left = maxf((reload - 0.5) * 2.0, 0.0) if reload >= 0.5 else -1.0
+			if def.reload_single:  # a drum: shells, the right one to the top before the left one starts
+				var shells := float(def.mag_size) * 2.0
+				var at := reload * shells
+				reload_right = fposmod(at, 1.0) if at < def.mag_size else -1.0
+				reload_left = fposmod(at, 1.0) if at >= def.mag_size else -1.0
+		arms.reload = reload_right
+		arms.left_reload = reload_left
+		view.lowered = 1.0 if reload_left >= 0.0 else 0.0
+		left_view.lowered = 1.0 if reload_right >= 0.0 else 0.0
 		var grenade: float = CASES[c][5] if CASES[c].size() > 5 else -1.0
 		view.grenade = grenade
 		arms.grenade = grenade
 		if reload >= 0.0:
 			view.flash(false)  # the shot before the reload: the hammer down
 		for i in 30:
-			view.update_pose(1.0 / 60.0, CASES[c][1], reload, -1.0, sprint, 0.0, true, look, 0.0)
+			view.update_pose(1.0 / 60.0, CASES[c][1], reload_right, -1.0, sprint, 0.0, true, look, 0.0)
 			left_view.grenade = grenade
-			left_view.update_pose(1.0 / 60.0, 0.0, -1.0, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
+			left_view.update_pose(1.0 / 60.0, 0.0, reload_left, -1.0, sprint, 0.0, true, Vector2.ZERO, 0.0)
 			arms.pose()
 			await get_tree().process_frame
 		space.blur.follow(view, cam, CASES[c][1])
@@ -175,9 +203,22 @@ func _ready() -> void:
 		await get_tree().process_frame
 		get_tree().root.get_texture().get_image().save_png(dir.path_join("fp_%s.png" % c))
 		space.blur.visible = false
-		# Inspection view: the same pose from the left and below, close up.
+		# Inspection view: the same pose from the left and below, close up; akimbo: both guns in the picture, or the one
+		# that is up while the other hangs out of view (a reload takes them one at a time). A drum is loaded by the
+		# right hoof through the gate on its right: that side, and a long gun needs the camera further out.
 		var target := view.global_position
-		inspect.look_at_from_position(target + Vector3(-0.45, -0.2, -0.15), target + Vector3(0, -0.03, -0.1))
+		var from := Vector3(-0.45, -0.2, -0.15)
+		if def.reload_single:
+			from = Vector3(0.75, -0.05, -0.8)
+		if left_view.visible:
+			from = Vector3(0.75, -0.05, -0.8) if def.reload_single else Vector3(-0.7, -0.05, -0.55)
+			if view.lowered > 0.5:
+				target = left_view.global_position
+			elif left_view.lowered > 0.5:
+				target = view.global_position
+			else:
+				target = (view.global_position + left_view.global_position) * 0.5
+		inspect.look_at_from_position(target + from, target + Vector3(0, -0.03, -0.1))
 		inspect.current = true
 		await get_tree().process_frame
 		await get_tree().process_frame

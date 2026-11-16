@@ -102,6 +102,8 @@ func build(level: Node) -> void:
 		body.collision_layer = off[body]
 	if _ring_r > 0.0:
 		_static = _roll_out(_static, mesh.filter_baking_aabb)
+	# NOTE: LooseCargo is baked in world space and NOT rolled out on a ring map - cargo on `station` would land in
+	# the wrong nav space. Roll its source geometry too before adding cargo to the ring.
 	for cargo: Node3D in cargo_nodes:
 		var source := NavigationMeshSourceGeometryData3D.new()
 		NavigationServer3D.parse_source_geometry_data(mesh, source, cargo)

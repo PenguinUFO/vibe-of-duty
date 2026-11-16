@@ -82,8 +82,8 @@ func step(cmd: PlayerCmd, dt: float) -> void:
 		slide_finished = not cmd.crouch or not on_floor or _slide_speed < SLIDE_END_SPEED \
 				or _slide_time > SLIDE_MAX_TIME
 
-	# Stance (capsule height).
-	if cmd.crouch or is_sliding:
+	# Stance (capsule height). A slide that ends this step no longer holds the press: stand up on this very step.
+	if cmd.crouch or (is_sliding and not slide_finished):
 		is_crouched = true
 	elif is_crouched and _can_stand():
 		is_crouched = false

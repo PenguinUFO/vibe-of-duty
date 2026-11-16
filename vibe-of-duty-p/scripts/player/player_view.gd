@@ -177,7 +177,6 @@ func _update_camera_fx(delta: float, speed: float) -> void:
 		_arms.ledge_hands = [center - right * 0.22, center + right * 0.22]
 	_ledge_set = is_mantling
 	_mantle_view = move_toward(_mantle_view, 1.0 if is_mantling and alive else 0.0, dt * 8.0)
-	_view.lowered = _mantle_view
 	_arms.ledge_weight = _mantle_view
 
 	_camera.position = bob + Vector3(0.0, _cam_land - 0.04 * _mantle_view, 0.0)
@@ -207,26 +206,32 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 		wanted = clampf(1.1 - cam_pos.distance_to(hit["position"]), 0.0, 0.45)
 	_retract = lerpf(_retract, wanted, 1.0 - exp(-18.0 * delta))
 	_view.akimbo = weapons.is_akimbo()
-	_left_view.akimbo = true
+	_left_view.akimbo = weapons.is_akimbo()
 	_space.fit(_camera.fov, _view.view_fov(weapons.ads))
-	_view.update_pose(delta, weapons.ads, weapons.reload_progress(), weapons.equip_progress(), _sprint_blend,
+	# Akimbo: the reload takes one gun at a time (the right one first, WeaponSim.reload_progress_right), so each view
+	# gets its own gun's half; a single gun has the whole reload on the right one.
+	var reload_right := weapons.reload_progress_right() if alive else -1.0
+	var reload_left := weapons.reload_progress_left() if alive else -1.0
+	_right_reload_drop = move_toward(_right_reload_drop, 1.0 if reload_left >= 0.0 and alive else 0.0, delta * 5.0)
+	_left_reload_drop = move_toward(_left_reload_drop, 1.0 if reload_right >= 0.0 and alive else 0.0, delta * 5.0)
+	_view.lowered = maxf(_mantle_view, _right_reload_drop)
+	_view.update_pose(delta, weapons.ads, reload_right, weapons.equip_progress(), _sprint_blend,
 			speed, is_on_floor(), _look_delta, _retract)
-	_arms.reload = weapons.reload_progress() if alive else -1.0
+	_arms.reload = reload_right
 	_view.melee = weapons.melee_progress() if alive else -1.0
 	_arms.melee = _view.melee
 	_view.grenade = weapons.grenade_progress() if alive else -1.0
 	_arms.grenade = _view.grenade
-	# The akimbo's left gun: the right one mirrored, never aimed (Docs/LOADOUT.md, "Акимбо"); it drops out of view while
-	# the left hoof reloads the right one, and comes back up after.
+	# The akimbo's left gun: the right one mirrored, never aimed (Docs/LOADOUT.md, "Акимбо"); it hangs out of view
+	# while the left hoof reloads the right one, and comes up for its own turn (the right hoof then works it).
 	_left_view.visible = _view.visible and weapons.is_akimbo()
-	_left_reload_drop = move_toward(_left_reload_drop, 1.0 if weapons.is_reloading() and alive else 0.0, delta * 5.0)
-	_arms.left_reload = _left_reload_drop
+	_arms.left_reload = reload_left
 	if _left_view.visible:
 		_left_view.set_weapon(weapons.index, weapons.current())
-		_left_view.lowered = maxf(_view.lowered, _left_reload_drop)
+		_left_view.lowered = maxf(_mantle_view, _left_reload_drop)
 		_left_view.grenade = _view.grenade
-		_left_view.update_pose(delta, 0.0, -1.0, weapons.equip_progress(), _sprint_blend, speed, is_on_floor(),
-				_look_delta, _retract)
+		_left_view.update_pose(delta, 0.0, reload_left, weapons.equip_progress(), _sprint_blend, speed,
+				is_on_floor(), _look_delta, _retract)
 	_arms.pose()  # the hands follow the gun
 	_space.blur.follow(_view, _camera, weapons.ads)
 
@@ -234,7 +239,8 @@ func _update_viewmodel(delta: float, speed: float) -> void:
 func _update_hud(speed: float, delta: float) -> void:
 	var def := weapons.current()
 	var reserve := HudAmmo.INFINITE if weapons.infinite_reserve else weapons.reserves[weapons.index]
-	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size, reserve, weapons.is_reloading())
+	_ammo_hud.set_state(def.display_name, weapons.mags[weapons.index], def.mag_size, reserve,
+			weapons.is_reloading_right())
 	var spread := weapons.spread_angle(speed, is_crouched, not is_on_floor())
 	var fov_rad := deg_to_rad(_camera.fov)
 	var px := tan(spread) / tan(fov_rad * 0.5) * get_viewport().get_visible_rect().size.y * 0.5
@@ -245,7 +251,8 @@ func _update_hud(speed: float, delta: float) -> void:
 	_grenade_hud.set_loaded(weapons.grenades > 0)
 	# Akimbo: the left gun's own plate just left of the main one; it goes with the gun.
 	_left_ammo_hud.visible = alive and weapons.is_akimbo()
-	_left_ammo_hud.set_state(def.display_name, weapons.left_mag, def.mag_size, HudAmmo.NONE, weapons.is_reloading())
+	_left_ammo_hud.set_state(def.display_name, weapons.left_mag, def.mag_size, HudAmmo.NONE,
+			weapons.is_reloading_left())
 	_health_hud.set_health(health, max_health)
 	if health < _last_health:
 		_hurt_alpha = minf(1.0, 0.45 + 2.0 * float(_last_health - health) / max_health)

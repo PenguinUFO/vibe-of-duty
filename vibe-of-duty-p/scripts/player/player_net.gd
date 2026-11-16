@@ -111,6 +111,7 @@ func _pop_server_cmd() -> PlayerCmd:
 		filler.fire = _last_cmd.fire
 		filler.aim = _last_cmd.aim
 		filler.grenade = _last_cmd.grenade  # held, like fire
+		filler.jump_held = _last_cmd.jump_held  # held: a jump held in the air keeps its vault grip
 		return filler  # no jump / reload / melee / weapon switch: one-shot events are not repeated
 	var entry: Array = _cmd_queue.pop_front()
 	_acked_seq = entry[0]

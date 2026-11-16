@@ -113,9 +113,9 @@ static func _merge(base: Dictionary, over: Dictionary) -> Dictionary:
 static func _mix(a: Dictionary, b: Dictionary, w: float) -> Dictionary:
 	var out := {}
 	for name in b:
-		var x = a.get(name, b[name])
-		var y = b[name]
-		if y is Dictionary:
+		var x: Variant = a.get(name, b[name])
+		var y: Variant = b[name]
+		if y is Dictionary and x is Dictionary:
 			out[name] = _mix(x, y, w)
 		elif y is Color:
 			out[name] = (x as Color).lerp(y, w)

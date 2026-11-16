@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated bot tests on Windows (Git Bash). Prints only the [SUMMARY] lines and script errors.
-#   bash tools/test.sh [arena|course|range|train|melee|build|moves|grenade|akimbo|smg|val|striker|random|hardcore|tdm|all]     (default: all; run from anywhere)
+#   bash tools/test.sh [arena|course|range|train|melee|build|moves|grenade|akimbo|smg|val|striker|deagle|random|hardcore|tdm|all]     (default: all; run from anywhere)
 # Godot: $GODOT, or Godot_v4.7.2.exe next to the repository (C:\Users\mestr\Documents\Godot).
 # The tests run on a copy of the project in %TEMP%\vod-test (Godot rewrites .godot/ and must not touch the real folder),
 # with APPDATA pointed there too, so user:// (settings, builds, stats) of the real profile stays untouched.
@@ -70,8 +70,9 @@ run() {
 		$R --join=127.0.0.1 --bot-aim --name=V1 --build=kit.val --summary=37 > "$O/val_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=V2 --build=kit.val,val.barrel.short,val.stock.wood,val.sight.po,val.mag.10 --lag=40 --summary=37 > "$O/val_c2.log" 2>&1 &
 		wait;;
-	striker)  # arena: the Armsel Striker - T1 the kit; T2 the Bulldog akimbo, T3 the folded stock
-		$R --server --map=arena --summary=40 > "$O/striker_srv.log" 2>&1 &
+	striker)  # arena: the Armsel Striker - T1 the kit; T2 the Bulldog akimbo (the drum: the right one to the top, then the
+	          # left one), T3 the folded stock
+		$R --server --map=arena --summary=40 --stats > "$O/striker_srv.log" 2>&1 &
 		sleep 3
 		$R --join=127.0.0.1 --bot-aim --name=T1 --build=kit.striker --summary=37 > "$O/striker_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=T2 --build=kit.striker,striker.akimbo.on --lag=40 --summary=37 > "$O/striker_c2.log" 2>&1 &
@@ -82,6 +83,14 @@ run() {
 		sleep 3
 		$R --join=127.0.0.1 --bot-aim --name=S1 --build=kit.mp7,mp7.akimbo.on,mp7.sight.acog --summary=37 > "$O/smg_c1.log" 2>&1 &
 		$R --join=127.0.0.1 --bot-aim --name=S2 --build=kit.pdw,pdw.akimbo.on --lag=40 --summary=37 > "$O/smg_c2.log" 2>&1 &
+		wait;;
+	deagle)  # arena: the Desert Eagle - D1 the kit; D2 with 40 ms lag, fake prediction errors and 10% lost commands;
+	         # D3 akimbo (a gun in each hoof, both triggers from the hip)
+		$R --server --map=arena --summary=40 --stats > "$O/deagle_srv.log" 2>&1 &
+		sleep 3
+		$R --join=127.0.0.1 --bot-aim --name=D1 --build=kit.deagle --summary=37 > "$O/deagle_c1.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=D2 --build=kit.deagle --lag=40 --perturb --loss=10 --summary=37 > "$O/deagle_c2.log" 2>&1 &
+		$R --join=127.0.0.1 --bot-aim --name=D3 --build=kit.deagle,deagle.akimbo.on --summary=37 > "$O/deagle_c3.log" 2>&1 &
 		wait;;
 	random)  # arena: "Бойня рандом" - a random kit with its own modules each life (RandomWeapons)
 		$R --server --map=arena --random-weapons --stats --summary=40 > "$O/random_srv.log" 2>&1 &
@@ -109,5 +118,5 @@ run() {
 	grep -hE 'SCRIPT ERROR|ERROR:|Parse Error' "$O/$1"*.log | grep -v 'at exit' | sort | uniq -c | head
 	grep -h '^\[SUMMARY' "$O/$1"*.log
 }
-if [ "${1:-all}" = all ]; then for t in arena course range train melee build moves grenade akimbo smg val striker random hardcore tdm; do run $t; done; else run "$1"; fi
+if [ "${1:-all}" = all ]; then for t in arena course range train melee build moves grenade akimbo smg val striker deagle random hardcore tdm; do run $t; done; else run "$1"; fi
 echo "logs: $(cygpath -w "$O")"

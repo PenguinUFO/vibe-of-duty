@@ -163,7 +163,8 @@ func _process(delta: float) -> void:
 	var target_fov := lerpf(Settings.fov, Settings.fov * def.ads_fov_mult, weapons.ads) + sprinting_fov
 	_camera.fov = lerpf(_camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
 	_cam_roll = lerpf(_cam_roll, 0.7 if not alive else (-0.05 if is_sliding else 0.0), 1.0 - exp(-10.0 * delta))
-	_camera.rotation.z = _cam_roll
+	# The roll itself goes into the camera with the rest of its rotation (_update_camera_fx): it is drawn only for
+	# the watched local player.
 	if is_local and not Game.unwatched:
 		_update_camera_fx(delta, speed)
 		_update_viewmodel(delta, speed)

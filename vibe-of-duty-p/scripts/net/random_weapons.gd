@@ -22,6 +22,8 @@ func next_build(id: int) -> Array:
 		for part in PartDB.for_slot("kit"):
 			if recent.is_empty() or part.id != recent.back():
 				pool.append(part.id)
+	if pool.is_empty():  # a single kit: repeat it rather than give a null build
+		pool.append(recent.back())
 	var kit: String = pool.pick_random()
 	recent.append(kit)
 	while recent.size() > REST:

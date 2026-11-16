@@ -126,6 +126,8 @@ func _show_mode() -> void:
 	_limits[1 if _team_mode else 0] = int(_score_limit.value)
 	_team_mode = _mode.selected == Game.Mode.TEAM_DEATHMATCH
 	_score_limit.value = _limits[1 if _team_mode else 0]
+	_score_limit.max_value = 200 if _team_mode else 100  # as loaded and clamped in Settings
+	_score_limit.value = minf(_score_limit.value, _score_limit.max_value)
 	_bots_row.visible = not _team_mode
 	_fill_row.visible = _team_mode
 

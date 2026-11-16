@@ -68,6 +68,8 @@ func sample(peer_id: int, tick: float) -> Dictionary:
 ## Head offset over the feet in the player's frame for a hitbox state: exactly where the mannequin's head is
 ## (Mannequin.head_offset; the visual blends crouch / ADS over a fraction of a second, the hitbox switches at once).
 ## It leans with the movement like the body does (Mannequin.run_lean), and back in a slide.
+# NOTE: the drawn head also gets a transient jolt/mantle lean (Mannequin.pose) that the hitbox omits; accepted
+# divergence of a few cm during a hit flinch or vault.
 static func head_offset(state: Dictionary) -> Vector3:
 	var local_velocity := Basis(Vector3.UP, state["yaw"]).inverse() * (state["vel"] as Vector3)
 	var sliding: bool = state.get("sliding", false)

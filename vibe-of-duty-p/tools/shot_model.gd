@@ -88,6 +88,12 @@ const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a bre
 	"striker_bulldog": [13, ["striker.conversion.bulldog"]],
 	"striker_bulldog_r": [13, ["striker.conversion.bulldog"]],
 	"striker_bulldog_q": [13, ["striker.conversion.bulldog"]],
+	"deagle": [14, []],
+	"deagle_r": [14, []],
+	"deagle_q": [14, []],
+	"deagle_top": [14, []],
+	"deagle_f": [14, []],
+	"deagle_fired_r": [14, [], 1.0],
 }
 
 
@@ -97,6 +103,14 @@ func _ready() -> void:
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-35, -60, 0)
 	root3d.add_child(light)
+	var fill := DirectionalLight3D.new()  # from the camera's side: the slab sides' facets (serrations, ports) read
+	fill.rotation_degrees = Vector3(-20, -120, 0)
+	fill.light_energy = 0.6
+	root3d.add_child(fill)
+	var behind := DirectionalLight3D.new()  # the other side too: "_r" cases (the gun's right) came out black
+	behind.rotation_degrees = Vector3(-25, 120, 0)
+	behind.light_energy = 0.5
+	root3d.add_child(behind)
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
 	env.environment.background_mode = Environment.BG_COLOR
@@ -106,7 +120,7 @@ func _ready() -> void:
 	root3d.add_child(env)
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 0.7
+	cam.size = float(OS.get_environment("SHOT_SIZE")) if OS.has_environment("SHOT_SIZE") else 0.7  # a close look
 	root3d.add_child(cam)
 	var view := WeaponView.new()
 	root3d.add_child(view)

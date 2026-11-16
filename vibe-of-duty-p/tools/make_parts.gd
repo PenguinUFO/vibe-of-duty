@@ -37,6 +37,8 @@ extends SceneTree
 ## the wire stock's butt, the Vintorez's stock in five round its two holes, the three magazines.
 ## Armsel Striker - traced off the owner's photos (tools/make_striker_blockout.py --parts): the Striker's receiver, grip,
 ## guard, trigger, foregrip, stock arm and butt; the Bulldog's block body, guard, trigger, front, foregrip; the blades.
+## Desert Eagle - a stand-in before the owner's model, from the real sizes only (no photos yet): the slab slide, the
+## short dust cover, the thick guard, the raked grip with its panels, the barrel's rounded triangle.
 
 const DIR := "res://prefabs/weapons/"
 ## weapon -> {profiles: name -> {points (z, y) in order round it, width [z, hw] along z (linear between), chamfer},
@@ -703,6 +705,78 @@ const PARTS := {
 		},
 		"sections": {},
 	},
+	# Desert Eagle Mark XIX (.50 AE, 6" barrel) - traced off the owner's silver .44 reference (2026-11-14) as a clean
+	# side view: the sights' line 0.0625 is the top of the photo, so every height below is 0.0625 - mm. The short slab
+	# slide at the rear (serrations, safety, rear sight), the long flat-sided barrel in front of it with the slotted
+	# rail and the front sight, the frame's shallow dust cover out to 0.156 with its under-rail, the compact square
+	# guard (its opening 37 x 26 mm, bottom 32 mm under the frame), the big grip with its palm swell and the beavertail's
+	# hooked tang. 273 mm long, 150 high; the bore at y 0.030. Origin under the receiver at the trigger, each part seen
+	# from the gun's left (z to the muzzle, y up).
+	"deagle": {
+		"profiles": {
+			# The slide (it cycles): -0.082 .. 0.022 on the barrel's lines, its rear face square.
+			"d_slide": {"points": [Vector2(-0.072, 0.0505), Vector2(0.022, 0.0505), Vector2(0.022, 0.0145),
+					Vector2(-0.072, 0.0145)],
+					"width": [Vector2(-0.072, 0.0144), Vector2(0.022, 0.0148)], "chamfer": 0.0026},
+			# The barrel (fixed to the frame): from inside the slide to the face 0.170, its bottom's nose broken back;
+			# a hair narrower than the slide so the two never share a face.
+			"d_barrel": {"points": [Vector2(-0.040, 0.0505), Vector2(0.170, 0.0505), Vector2(0.170, 0.0185),
+					Vector2(0.164, 0.0125), Vector2(-0.040, 0.0125)],
+					"width": [Vector2(-0.040, 0.0140), Vector2(0.030, 0.0144), Vector2(0.170, 0.0141)],
+					"chamfer": 0.0018},
+			# The frame: the dust cover out under the barrel to 0.156 (its own rail under it), the bottom over the
+			# guard, the beavertail's tang back past the slide to -0.102 and hooked down at its tip.
+			"d_frame": {"points": [Vector2(0.156, 0.0140), Vector2(0.156, 0.0092), Vector2(0.150, 0.0065),
+					Vector2(0.043, 0.0065), Vector2(-0.010, 0.0065), Vector2(-0.040, 0.0072), Vector2(-0.060, 0.0080),
+					Vector2(-0.070, 0.0085), Vector2(-0.078, 0.0088), Vector2(-0.084, 0.0072), Vector2(-0.088, 0.0050),
+					Vector2(-0.092, 0.0058), Vector2(-0.095, 0.0090), Vector2(-0.094, 0.0125), Vector2(-0.090, 0.0148),
+					Vector2(-0.084, 0.0152), Vector2(-0.076, 0.0150), Vector2(-0.062, 0.0146), Vector2(-0.040, 0.0148),
+					Vector2(-0.010, 0.0144)],
+					"width": [Vector2(-0.095, 0.0122), Vector2(-0.060, 0.0126), Vector2(0.156, 0.0120)],
+					"chamfer": 0.0014},
+			# The guard: a thick square band, the front a flat face, the opening 37 x 26 mm, its bottom at -0.025; the
+			# band's ends 0.010 up, buried in the frame.
+			"d_guard": {"points": [Vector2(0.043, 0.0100), Vector2(0.041, -0.0020), Vector2(0.039, -0.0100),
+					Vector2(0.037, -0.0170), Vector2(0.033, -0.0220), Vector2(0.026, -0.0245), Vector2(0.014, -0.0250),
+					Vector2(0.002, -0.0250), Vector2(-0.008, -0.0235), Vector2(-0.013, -0.0195), Vector2(-0.015, -0.0120),
+					Vector2(-0.015, 0.0100), Vector2(-0.008, -0.0060), Vector2(-0.007, -0.0120), Vector2(-0.005, -0.0170),
+					Vector2(0.000, -0.0200), Vector2(0.008, -0.0205), Vector2(0.017, -0.0200), Vector2(0.024, -0.0185),
+					Vector2(0.029, -0.0150), Vector2(0.031, -0.0090), Vector2(0.032, -0.0020), Vector2(0.037, 0.0100)],
+					"width": [Vector2(0, 0.0115)], "round": [0.003, 0.003, 2]},
+			# The grip: the front strap raked 18 degrees with three finger grooves, the back one a palm swell, the heel
+			# rounded; the top runs into the frame (no seam), the bottom at -0.090 over the magazine's plate.
+			"d_grip": {"points": [Vector2(-0.008, 0.0100), Vector2(-0.010, -0.0040), Vector2(-0.013, -0.0140),
+					Vector2(-0.012, -0.0220), Vector2(-0.016, -0.0300), Vector2(-0.015, -0.0380), Vector2(-0.019, -0.0460),
+					Vector2(-0.018, -0.0540), Vector2(-0.022, -0.0620), Vector2(-0.021, -0.0700), Vector2(-0.025, -0.0780),
+					Vector2(-0.028, -0.0840), Vector2(-0.033, -0.0880), Vector2(-0.042, -0.0900), Vector2(-0.056, -0.0900),
+					Vector2(-0.070, -0.0885), Vector2(-0.082, -0.0860), Vector2(-0.090, -0.0800), Vector2(-0.094, -0.0720),
+					Vector2(-0.094, -0.0620), Vector2(-0.095, -0.0520), Vector2(-0.093, -0.0420), Vector2(-0.090, -0.0320),
+					Vector2(-0.087, -0.0220), Vector2(-0.084, -0.0120), Vector2(-0.081, -0.0040), Vector2(-0.078, 0.0100)],
+					"width": [Vector2(-0.094, 0.0150), Vector2(-0.048, 0.0174), Vector2(-0.008, 0.0152)],
+					"round": [0.004, 0.010, 3]},
+			# The rubber panel on each side of the grip: the grip's outline taken in 7 mm, a plate a hair proud of the
+			# swell (its own width keys), so its border and the medallion read on the flat side.
+			"d_panel": {"points": [Vector2(-0.018, -0.0020), Vector2(-0.070, -0.0020), Vector2(-0.078, -0.0100),
+					Vector2(-0.083, -0.0220), Vector2(-0.086, -0.0360), Vector2(-0.088, -0.0500), Vector2(-0.087, -0.0640),
+					Vector2(-0.085, -0.0760), Vector2(-0.078, -0.0820), Vector2(-0.064, -0.0845), Vector2(-0.050, -0.0845),
+					Vector2(-0.040, -0.0800), Vector2(-0.034, -0.0680), Vector2(-0.030, -0.0500), Vector2(-0.026, -0.0340),
+					Vector2(-0.022, -0.0180)],
+					"width": [Vector2(-0.094, 0.0156), Vector2(-0.048, 0.0180), Vector2(-0.008, 0.0158)],
+					"chamfer": 0.0016},
+			# The trigger: a wide blade, its face curved, out of the frame's bottom into the guard's opening.
+			"d_trigger": {"points": [Vector2(0.010, 0.0100), Vector2(0.011, 0.0000), Vector2(0.010, -0.0080),
+					Vector2(0.007, -0.0140), Vector2(0.002, -0.0180), Vector2(-0.003, -0.0195), Vector2(-0.005, -0.0160),
+					Vector2(-0.002, -0.0110), Vector2(0.000, -0.0050), Vector2(0.000, 0.0020), Vector2(-0.002, 0.0100)],
+					"width": [Vector2(0, 0.0055)], "chamfer": 0.0008},
+			# The hammer (its own node at the pin, 0.004 up and -0.070 back): a solid body with a broad flat spur
+			# behind the slide, its top under the rear sight's.
+			"d_hammer": {"points": [Vector2(0.008, 0.0000), Vector2(0.010, 0.0140), Vector2(0.006, 0.0260),
+					Vector2(0.000, 0.0320), Vector2(-0.008, 0.0340), Vector2(-0.012, 0.0300), Vector2(-0.006, 0.0260),
+					Vector2(-0.001, 0.0180), Vector2(-0.002, 0.0080), Vector2(-0.002, 0.0000)],
+					"width": [Vector2(0, 0.0055)], "chamfer": 0.0012},
+		},
+		"sections": {},
+	},
 }
 
 
@@ -961,13 +1035,16 @@ static func _at(p: Vector2, x: float) -> Vector3:
 	return Vector3(x, p.y, p.x)
 
 
-## Half width at z: linear between the [z, hw] keys, held beyond the ends.
+## Half width at z: linear between the [z, hw] keys (in z order), held beyond the ends.
 static func _hw(width: Array, z: float) -> float:
 	if width.size() == 1:
 		return (width[0] as Vector2).y
-	var a: Vector2 = width[0]
-	var b: Vector2 = width[1]
-	return lerpf(a.y, b.y, clampf((z - a.x) / (b.x - a.x), 0.0, 1.0))
+	for i in width.size() - 1:
+		var a: Vector2 = width[i]
+		var b: Vector2 = width[i + 1]
+		if z <= b.x or i == width.size() - 2:
+			return lerpf(a.y, b.y, clampf((z - a.x) / (b.x - a.x), 0.0, 1.0))
+	return (width[width.size() - 1] as Vector2).y
 
 
 static func _area(points: PackedVector2Array) -> float:
@@ -1015,3 +1092,4 @@ static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward: V
 	for v in [a, b, c]:
 		st.set_normal(normal)
 		st.add_vertex(v)
+

@@ -23,7 +23,7 @@ const HELD_SCALE := 0.8  # the grenade in the hoof, x its model: at the full siz
 
 var _weapon: WeaponView
 var left_weapon: WeaponView  # the akimbo's left gun (WeaponView.mirrored): while it is shown, the left hoof holds it
-var left_reload := 0.0  # akimbo, 0..1: the left hoof lets its gun go down and reloads the right one
+var left_reload := -1.0  # akimbo, the left gun's reload 0..1 (-1: none): the right hoof works its magazine
 var ledge_weight := 0.0                                 # 0..1: hands go from the gun to the ledge (vaulting)
 var reload := -1.0                                      # reload progress 0..1 (-1: none): the left hand reloads
 var melee := -1.0                                       # punch progress 0..1 (-1: none): the left hoof punches
@@ -53,32 +53,33 @@ func _no_shadows() -> void:
 		(mesh as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # floating arms
 
 
-## Reload: the left hand follows Mannequin.reload_hand (gun view space) - to the magazine, down out of view to a
-## pouch and back, the handle - and carries the magazine while it holds it. Returns the hand's target.
-func _reload_hand(def: WeaponDef, handguard: Vector3, s: float) -> Vector3:
-	if _weapon.loads_shells():
-		var gun_from_camera := (transform.affine_inverse() * _weapon.transform).affine_inverse()
-		var with_shell := Mannequin.shell_hand(reload, _weapon, handguard, gun_from_camera * POUCH, s)
-		_weapon.set_shell(reload, with_shell[1])
+## A hoof reloading `view` at progress `progress` (0..1): from `rest` to the magazine, down to the pouch (`pouch_point`,
+## arms space) and back with the next one, then the charging handle if the gun has one; shells, a break-open or a
+## magazine on top as the gun loads them. Returns the hoof's target in the gun's space.
+func _reload_hand(view: WeaponView, progress: float, rest: Vector3, pouch_point: Vector3, s: float) -> Vector3:
+	var def := view.def
+	var xform := transform.affine_inverse() * view.transform
+	var pouch := xform.affine_inverse() * pouch_point  # the pouch is in arms (camera) space
+	if view.loads_shells():
+		var with_shell := Mannequin.shell_hand(progress, view, rest, pouch, s)
+		view.set_shell(progress, with_shell[1])
 		return with_shell[0]
-	if _weapon.breaks_open():
-		var hold := Mannequin.break_hand(reload, _weapon, handguard, s)
-		_weapon.set_break(reload, hold[1])
+	if view.breaks_open():
+		var hold := Mannequin.break_hand(progress, view, rest, s)
+		view.set_break(progress, hold[1])
 		return hold[0]
-	var xform := transform.affine_inverse() * _weapon.transform
-	var pouch := xform.affine_inverse() * POUCH  # pouch is in arms (camera) space
 	var handle := Mannequin._view_point(def.charging_handle) * s if def.charging_handle.is_finite() else Vector3.INF
-	if _weapon.tips_mag():
-		var tipped := Mannequin.tip_mag_hand(reload, _weapon, handguard, pouch, handle, s)
-		_weapon.set_mag_tip(tipped[1], tipped[2], tipped[3])
+	if view.tips_mag():
+		var tipped := Mannequin.tip_mag_hand(progress, view, rest, pouch, handle, s)
+		view.set_mag_tip(tipped[1], tipped[2], tipped[3])
 		return tipped[0]
-	var mag_grip := _weapon.mag_grip_point()
+	var mag_grip := view.mag_grip_point()
 	if not mag_grip.is_finite():
-		return handguard
+		return rest
 	var seated := Mannequin._view_point(mag_grip) * s
-	var path := Mannequin.reload_hand(reload, handguard, seated, pouch, handle, s)
+	var path := Mannequin.reload_hand(progress, rest, seated, pouch, handle, s)
 	var hand: Vector3 = path[0]
-	_weapon.set_mag_shift(Mannequin._view_point((hand - seated) / s) if path[1] else Vector3.ZERO)
+	view.set_mag_shift(Mannequin._view_point((hand - seated) / s) if path[1] else Vector3.ZERO)
 	return hand
 
 
@@ -89,15 +90,17 @@ func pose() -> void:
 	var def := _weapon.def
 	var xform := transform.affine_inverse() * _weapon.transform  # both are children of the camera
 	var s := WeaponView.VIEWMODEL_SCALE
+	var akimbo: bool = left_weapon != null and left_weapon.visible and left_weapon.def != null
 	var right := Mannequin._view_point(_weapon.lever_hand(def.right_hand)) * s
 	var left := Mannequin._view_point(def.left_hand) * s
 	if reload >= 0.0 and _weapon.loads_shells() and def.loads_right_hand:
-		# The right hand off the grip to the shells and into the gate; the left keeps the foregrip.
+		# The right hand off the grip to the shells and into the gate; the left keeps the foregrip (akimbo: it is the
+		# left gun's hoof, and the left gun hangs out of view).
 		var with_shell := Mannequin.shell_hand(reload, _weapon, right, xform.affine_inverse() * POUCH_RIGHT, s)
 		_weapon.set_shell(reload, with_shell[1])
 		right = with_shell[0]
 	elif reload >= 0.0:
-		left = _reload_hand(def, left, s)
+		left = _reload_hand(_weapon, reload, left, POUCH, s)
 	else:
 		_weapon.set_mag_shift(Vector3.ZERO)
 		_weapon.set_break(-1.0)
@@ -111,19 +114,24 @@ func pose() -> void:
 	var left_fingers := xform.basis * Mannequin.LEFT_FINGERS
 	var right_dir := xform.basis * Mannequin.RIGHT_PALM
 	var left_dir := xform.basis * Mannequin.LEFT_PALM
+	if akimbo:
+		# Akimbo (Docs/LOADOUT.md, "Акимбо"): a gun in each hoof, the left hoof round the left gun's grip (the gun drops
+		# out of view on its own for a grenade). A reload takes one gun at a time: the left hoof to the right gun's
+		# magazine while the left gun hangs out of view (WeaponView.lowered), then the right hoof to the left gun's.
+		var left_xform := transform.affine_inverse() * left_weapon.transform
+		var on_grip := 1.0 if reload < 0.0 else 0.0
+		left_palm = left_palm.lerp(left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s), on_grip)
+		left_fingers = left_fingers.lerp(left_xform.basis * Mannequin.LEFT_GRIP_FINGERS, on_grip)
+		left_dir = left_dir.lerp(left_xform.basis * Mannequin.LEFT_GRIP_PALM, on_grip)
+		if left_reload >= 0.0:
+			var at := _reload_hand(left_weapon, left_reload, Mannequin._view_point(left_weapon.def.left_hand) * s,
+					POUCH_RIGHT, s)
+			right_palm = left_xform * at
 	var punch := Mannequin.punch_curve(melee)
 	if punch.y > 0.0:
 		left_palm = left_palm.lerp(PUNCH, punch.x)
 		left_fingers = left_fingers.lerp(Vector3.FORWARD, punch.y)
 		left_dir = left_dir.lerp(Vector3.DOWN, punch.y)
-	if left_weapon != null and left_weapon.visible and left_weapon.def != null:
-		# Akimbo: the left hoof round the left gun's grip (the gun drops out of view on its own for a grenade).
-		# A reload: the hoof goes from it to the right gun's reload (the left gun is out of view by then).
-		var left_xform := transform.affine_inverse() * left_weapon.transform
-		var on_grip := 1.0 - left_reload
-		left_palm = left_palm.lerp(left_xform * (Mannequin._view_point(left_weapon.def.right_hand) * s), on_grip)
-		left_fingers = left_fingers.lerp(left_xform.basis * Mannequin.LEFT_GRIP_FINGERS, on_grip)
-		left_dir = left_dir.lerp(left_xform.basis * Mannequin.LEFT_GRIP_PALM, on_grip)
 	var throw := Mannequin.throw_curve(grenade)
 	if throw.x > 0.0:
 		left_palm = left_palm.lerp(THROW_WIND.lerp(THROW_OUT, throw.y), throw.x)

@@ -28,6 +28,8 @@ var bounce := 0.45
 var friction := 0.7
 ## Server: (grenade, from, to) -> true if the flight from `from` to `to` hit a player (it bounces off them).
 var on_flight: Callable
+## Server: (pos) -> the blast, called by the grenade itself on its fuse (after its own step moved it).
+var on_fuse: Callable
 
 var _lamp: MeshInstance3D
 var _spin_axis := Vector3.RIGHT
@@ -52,6 +54,9 @@ func _physics_process(delta: float) -> void:
 	age += delta
 	if not resting:
 		_fly(delta)
+	if not cosmetic and multiplayer.is_server() and age >= fuse and on_fuse.is_valid():
+		on_fuse.call(global_position)  # this step's position: the parent's step is a tick behind
+		return
 	if _lamp != null:
 		var left := fuse - age  # blinks faster as the fuse burns down
 		_lamp.visible = fmod(age, clampf(left * 0.25, 0.06, 0.3)) < 0.05

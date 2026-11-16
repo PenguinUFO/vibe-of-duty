@@ -29,6 +29,7 @@ func server_launch(shooter: Player, origin: Vector3, vel: Vector3) -> void:
 	_remove(shooter.peer_id)
 	var grenade := _spawn(shooter.peer_id, origin, vel)
 	grenade.on_flight = _server_flight
+	grenade.on_fuse = _server_blast.bind(shooter.peer_id)
 	Game.count("grenades")
 	if world._stats != null:
 		world._stats.grenade_thrown(shooter)
@@ -39,15 +40,13 @@ func server_launch(shooter: Player, origin: Vector3, vel: Vector3) -> void:
 		shooter.show_remote_grenade(origin, vel)
 
 
+## The fuse is the grenade's own (it is a child, so its step comes after this one): here only freed grenades are swept.
 func _physics_process(_delta: float) -> void:
 	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
 	for id in _flying.keys():
-		var grenade = _flying[id]  # untyped: it may have been freed
-		if not is_instance_valid(grenade):
+		if not is_instance_valid(_flying[id]):
 			_flying.erase(id)
-		elif (grenade as Grenade).age >= (grenade as Grenade).fuse:
-			_server_blast(id, grenade.global_position)
 
 
 ## The flight of this tick (from -> to): the first player or target on it, before the first bounce, takes the direct
@@ -115,8 +114,8 @@ static func _ray_hitbox(origin: Vector3, dir: Vector3, state: Dictionary) -> Vec
 
 ## The blast: every player (the shooter too, owner 2026-11-02: full damage) and target it sees takes damage by how
 ## near their hitbox is - blast_damage up to blast_full m, then down to 0 at blast_radius. Cover stops it (owner: only
-## in line of sight, like bullets).
-func _server_blast(shooter_id: int, pos: Vector3) -> void:
+## in line of sight, like bullets). Called by the grenade itself on its fuse: (pos, shooter_id) - the id is bound last.
+func _server_blast(pos: Vector3, shooter_id: int) -> void:
 	_remove(shooter_id)
 	Game.count("grenade_blasts")
 	var shooter: Player = world.players.get(shooter_id)

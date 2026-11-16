@@ -204,11 +204,16 @@ func _update_reload(delta: float) -> void:
 	if _reload_t < 0.0:
 		_mannequin.reload = -1.0
 		return
-	var length := _weapon.def.reload_time * (_weapon.def.akimbo_reload if _left_weapon.visible else 1.0)
+	var drum := _left_weapon.visible and _weapon.def.reload_single
+	var length := _weapon.def.akimbo_reload_time() if _left_weapon.visible else _weapon.def.reload_time
+	if drum:  # a drum in akimbo: a shell a cycle for as long as the reload lasts (WeaponSim.reload_progress_right/left)
+		length = _weapon.def.akimbo_reload_stage_time()
 	_reload_t += delta * (1.0 if _reloading else 3.0)
 	if _reload_t >= length:
 		_reload_t = -1.0
 		_mannequin.reload = -1.0
+	elif drum and _reloading:
+		_mannequin.reload = fposmod(_reload_t, length) / length
 	else:
 		_mannequin.reload = _reload_t / length
 

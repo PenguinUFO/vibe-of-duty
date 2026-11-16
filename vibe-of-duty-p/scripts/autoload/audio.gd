@@ -130,19 +130,26 @@ func play_music_id(id: String) -> void:
 func _next_track() -> void:
 	if _music_id == "":
 		return
-	if _music_queue.is_empty():
-		_music_queue = _music_index[_music_id].duplicate()
-		_music_queue.shuffle()
-		# Do not repeat the track that just ended right after a reshuffle.
-		if _music_queue.size() > 1 and _music_player.stream != null 				and _music_queue[0] == _music_player.stream.resource_path:
-			_music_queue.push_back(_music_queue.pop_front())
-	var stream: AudioStream = load(_music_queue.pop_front())
-	# Looping is off so `finished` fires and the next track starts.
-	if stream is AudioStreamOggVorbis or stream is AudioStreamMP3:
-		stream.loop = false
-	elif stream is AudioStreamWAV:
-		stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
-	play_music(stream)
+	var skipped := 0
+	var most: int = _music_index[_music_id].size()  # a broken or missing file is skipped, not the playlist's end
+	while skipped < most:
+		if _music_queue.is_empty():
+			_music_queue = _music_index[_music_id].duplicate()
+			_music_queue.shuffle()
+			# Do not repeat the track that just ended right after a reshuffle.
+			if _music_queue.size() > 1 and _music_player.stream != null 				and _music_queue[0] == _music_player.stream.resource_path:
+				_music_queue.push_back(_music_queue.pop_front())
+		var stream: AudioStream = load(_music_queue.pop_front())
+		if stream == null:
+			skipped += 1
+			continue
+		# Looping is off so `finished` fires and the next track starts.
+		if stream is AudioStreamOggVorbis or stream is AudioStreamMP3:
+			stream.loop = false
+		elif stream is AudioStreamWAV:
+			stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		play_music(stream)
+		return
 
 
 func _get_stream(id: String) -> AudioStream:

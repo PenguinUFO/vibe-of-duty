@@ -11,6 +11,8 @@ const MODULE_SLOTS: Array[String] = ["barrel", "suppressor", "conversion", "stoc
 		"akimbo"]
 ## The Luger drawn bigger than life: life size it is a toy next to a pig, and the two fists hid it.
 const LUGER_SCALE := 1.2
+## The Desert Eagle drawn as the Luger is (a real pistol in the fists reads as a toy): the biggest handgun of the lot.
+const DEAGLE_SCALE := 1.2
 ## How far the Luger's rear sight is (life size) ahead of the P08's notch on the toggle, where the eye relief was set: the
 ## model (Docs/MODELS.md) aims through the notch itself.
 const LUGER_SIGHT_AHEAD := 0.0
@@ -155,6 +157,7 @@ const MODULE_SLOT_NAMES := {"barrel": "Ствол", "suppressor": "Глушит�
 		"muzzle": "Дульное", "sight": "Прицел", "ammo": "Патрон", "akimbo": "Акимбо"}
 
 static var _defs: Array[WeaponDef] = []
+static var _blueprints: Array[WeaponDef] = []  # the pristine geometry: a new config starts from these, not from _defs
 static var _base := {}       # weapon id -> its config section (config units)
 static var _modules := {}    # "ak.mag.drum75" -> {id, weapon, slot, name, info, requires, values}
 static var _module_ids: Array[String] = []  # in file order: the first of each slot is its default
@@ -263,9 +266,9 @@ static func load_local() -> void:
 	load_text(FileAccess.get_file_as_string(path))
 
 
-## Takes a config (this machine's, or the server's on join). False, and nothing changes, if it does not parse.
+## Takes a config (this machine's, or the server's on join). False, and nothing changes, if it does not parse; only a
+## config that parsed counts as loaded, so a broken one is tried again (it used to lock the numbers for good).
 static func load_text(text: String) -> bool:
-	_loaded = true  # a config given before the first use (the server's) is not replaced by the local one
 	if _defs.is_empty():
 		_build_geometry()
 	var cfg := ConfigFile.new()
@@ -304,9 +307,22 @@ static func load_text(text: String) -> bool:
 			push_error("weapons.cfg: unknown section [%s]" % section)
 	config_text = text
 	version += 1
+	_defs.clear()  # a key the new config lacks falls back to the geometry, not to the previous config's number
+	for blueprint in _blueprints:
+		_defs.append(_copy_def(blueprint))
 	for def in _defs:
 		_write(def, _base.get(def.id, {}))
+	_loaded = true
 	return true
+
+
+## A fresh copy of a weapon's data (WeaponDef is RefCounted: no duplicate()).
+static func _copy_def(src: WeaponDef) -> WeaponDef:
+	var copy := WeaponDef.new()
+	for prop in src.get_property_list():
+		if prop["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			copy.set(prop["name"], src.get(prop["name"]))
+	return copy
 
 
 ## A part id from the config: "slot.name" is a module of `weapon`, a bare id any other part.
@@ -658,6 +674,28 @@ static func _build_geometry() -> void:
 	striker.hip_offset = Vector3(0.17, -0.165, -0.24)
 	_defs.append(striker)
 
+	# Desert Eagle Mark XIX, .50 AE (Docs/LOADOUT.md, "Desert Eagle"). The owner's model (D_U, Sketchfab: Docs/MODELS.md),
+	# 273 mm as the real one, split by tools/make_deagle_glb.py: the slide rides back 30 mm on a shot, carrying the rear
+	# sight and the safety; the hammer falls, the trigger goes back, the magazine off its catch.
+	var deagle := WeaponDef.new()
+	deagle.id = "deagle"
+	deagle.display_name = "Desert Eagle"
+	deagle.scene_path = "res://assets/models/deagle/deagle.glb"  # D_U; was res://prefabs/weapons/deagle_blockout.tscn
+	deagle.muzzle = Vector3(0.0, 0.0338, 0.1383)  # the bore's middle, 2 mm out of the barrel's face
+	deagle.rear_sight = Vector3(0.0, 0.0519, -0.0879)  # the notch's ears' tops
+	deagle.front_sight = Vector3(0.0, 0.0536, 0.1262)  # the blade's tip
+	deagle.eye_relief = 0.42  # arms out, a little bent, as the Luger's
+	deagle.model_scale = DEAGLE_SCALE
+	deagle.right_hand = Vector3(0.0, -0.045, -0.070)  # the middle of the grip
+	deagle.left_hand = Vector3(0.0, -0.085, -0.080)   # cupped under the right hand and the magazine's base
+	deagle.ejection_port = Vector3(-0.015, 0.036, -0.008)  # the port on the right, over the chamber
+	deagle.bolt_travel = 0.030
+	deagle.sound_shot = "shot_pistol"
+	deagle.hip_offset = Vector3(0.13, -0.10, -0.345)  # 4.5 cm further out than the Luger's: 273 mm of gun fill the corner
+	_defs.append(deagle)
+
 	for def in _defs:
 		for prop in SCALED_POINTS:
 			def.set(prop, def.get(prop) * def.model_scale)
+	for def in _defs:
+		_blueprints.append(_copy_def(def))

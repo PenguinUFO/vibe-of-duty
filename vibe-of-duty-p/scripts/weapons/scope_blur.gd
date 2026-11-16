@@ -27,7 +27,7 @@ func _init() -> void:
 ## Follows `view`'s window on `camera`'s screen at this aim blend.
 func follow(view: WeaponView, camera: Camera3D, ads: float) -> void:
 	var window := view.window_on_screen(camera)
-	var magnified := view.visible and view.def.ads_fov_mult < MAGNIFIED_BELOW
+	var magnified := view.visible and view.def != null and view.def.ads_fov_mult < MAGNIFIED_BELOW
 	var amount := smoothstep(WeaponView.LENS_CLEAR_FROM, 0.95, ads) if magnified else 0.0
 	visible = window.size != Vector2.ZERO and amount > 0.0
 	if visible:

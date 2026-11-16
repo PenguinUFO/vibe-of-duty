@@ -36,6 +36,7 @@ var _arch_stuck := 0.0               # s within ARCH_STUCK_RANGE of _arch_stuck_
 var _arch_stuck_at := Vector3.INF
 var _arch_no_way := 0                # patrol goals in a row the mesh has no way to (it stands on an island of the mesh)
 const ARCH_FOV := 65.0               # deg off the look it notices an enemy within (about the screen's half width)
+const ARCH_FOV_V := 35.0             # deg off the look up/down it notices an enemy (about the screen's half height)
 const ARCH_MEMORY := 12.0            # s it goes to the place an enemy was last seen at
 const ARCH_STUCK_RANGE := 0.7        # m: walking and still this near where it was 0.5 s (jumps) / 2.5 s ago - stuck
 const ARCH_NO_WAY := 6               # patrol goals with no way in a row before it walks straight at one
@@ -356,7 +357,9 @@ func _bot_arch_cmd(delta: float) -> PlayerCmd:
 			shooter_dist = d
 		var to := frame_inv * (chest - eye)
 		var off_view := absf(angle_difference(_arch_aim.x, atan2(-to.x, -to.z)))
-		if d < best and ((other == _arch_target and _arch_seen) or off_view < deg_to_rad(ARCH_FOV)):
+		var off_pitch := absf(atan2(to.y, Vector2(to.x, to.z).length()))
+		if d < best and ((other == _arch_target and _arch_seen)
+				or (off_view < deg_to_rad(ARCH_FOV) and off_pitch < deg_to_rad(ARCH_FOV_V))):
 			target = other
 			best = d
 	var seen := target != null

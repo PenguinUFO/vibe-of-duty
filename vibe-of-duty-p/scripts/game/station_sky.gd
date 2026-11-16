@@ -13,6 +13,9 @@ const EARTH_COLOR := Color(0.16, 0.26, 0.42)
 
 
 func _ready() -> void:
+	if DisplayServer.get_name() == "headless":  # a dedicated server draws nothing (as Aurora, Snowfall)
+		set_process(false)
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var quad := QuadMesh.new()

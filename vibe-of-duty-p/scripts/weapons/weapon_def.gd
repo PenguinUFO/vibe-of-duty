@@ -80,23 +80,24 @@ var tracer := true             # others see the bullet's trail
 var head_mult := 1.15          # damage x this on a head hit (NetWorld.HEAD_DAMAGE_MULT; 1: the head as the body)
 var regen_block := 0.0         # s a hit keeps the victim's health from coming back (0: their own delay)
 ## Akimbo (Docs/LOADOUT.md, "Акимбо"): a copy in the left hand with its own magazine (WeaponSim.left_mag), reloaded
-## with the right one by R. Fired by the aim button; no sights, no punch.
+## with the right one by R - one gun after the other, the right one first (a drum: filled to the top before the left one
+## starts). Fired by the aim button; no sights, no punch.
 var akimbo := false
 var akimbo_spread := 1.0       # spread_hip x this in akimbo
-var akimbo_reload := 1.0       # reload_time x this in akimbo (both guns at once)
+var akimbo_reload := 1.0       # a reload of one gun x this in akimbo (the other one follows: akimbo_reload_time)
 
 var sound_shot := "shot"
 var sound_pitch := 1.0         # pitch of the shot sound (the ЧМП: lower)
 var hip_offset := Vector3(0.17, -0.19, -0.32)  # viewmodel position relative to the camera
 
 
-## Damage of a body hit at `distance` m (before head and cover multipliers).
+## Damage of a body hit at `distance` m (before head and cover multipliers). The config's ranges climb: the first one
+## passed is the tier.
 func damage_at(distance: float) -> float:
-	var mult := 1.0
 	for i in mini(falloff_ranges.size(), falloff_mults.size()):
 		if distance > falloff_ranges[i]:
-			mult = falloff_mults[i]
-	return damage * mult
+			return damage * falloff_mults[i]
+	return damage
 
 
 ## Ticks between shots, fractional: WeaponSim carries the remainder over, so any rate is exact on average. `held` - s
@@ -110,6 +111,16 @@ func fire_ticks(held := 0.0) -> float:
 
 func reload_ticks() -> int:
 	return maxi(1, roundi(reload_time * 60.0))
+
+
+## Akimbo: a reload of one gun (the right one, then the left one after it), s.
+func akimbo_reload_stage_time() -> float:
+	return reload_time * akimbo_reload
+
+
+## Akimbo: both guns, one after the other - twice a single one.
+func akimbo_reload_time() -> float:
+	return akimbo_reload_stage_time() * 2.0
 
 
 func equip_ticks() -> int:
