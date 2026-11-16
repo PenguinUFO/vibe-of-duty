@@ -179,6 +179,11 @@ func predict(shooter: Player, origin: Vector3, vel: Vector3) -> void:
 	_spawn(shooter.peer_id, origin, vel)
 
 
+## Drops this owner's grenade on each peer when their player is despawned.
+func cancel_owner(shooter_id: int) -> void:
+	_remove(shooter_id)
+
+
 @rpc("authority", "reliable")
 func _launched(shooter_id: int, origin: Vector3, vel: Vector3) -> void:
 	if shooter_id == multiplayer.get_unique_id():

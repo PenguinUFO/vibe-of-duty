@@ -233,18 +233,25 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred(map_scene)
 
 
+static var _maps_match: Array[String] = []
+static var _maps_all: Array[String] = []
+
+
 ## The maps to play matches on: the scenes in MAPS_DIR except the building blocks and the training maps. Dropping a
 ## new level scene there adds a map. `with_training` includes the training and test maps too.
 static func list_maps(with_training := false) -> Array[String]:
-	var maps: Array[String] = []
-	for file in DirAccess.get_files_at(MAPS_DIR):
-		file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
-		var base := file.get_basename()
-		if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and not base.ends_with("_shell") and \
-				(with_training or not (TRAINING_MAPS.has(base) or TEST_MAPS.has(base))):
-			maps.append(MAPS_DIR.path_join(file))
-	maps.sort()
-	return maps
+	if _maps_all.is_empty():
+		for file in DirAccess.get_files_at(MAPS_DIR):
+			file = file.trim_suffix(".remap")  # exported builds list "x.tscn.remap"
+			var base := file.get_basename()
+			if file.get_extension() == "tscn" and not NOT_MAPS.has(base) and not base.ends_with("_shell"):
+				var path := MAPS_DIR.path_join(file)
+				_maps_all.append(path)
+				if not (TRAINING_MAPS.has(base) or TEST_MAPS.has(base)):
+					_maps_match.append(path)
+		_maps_all.sort()
+		_maps_match.sort()
+	return _maps_all.duplicate() if with_training else _maps_match.duplicate()
 
 
 ## The training maps, in menu order.
@@ -252,7 +259,7 @@ static func list_training_maps() -> Array[String]:
 	var maps: Array[String] = []
 	for base in TRAINING_MAPS:
 		var path := MAPS_DIR.path_join(base + ".tscn")
-		if list_maps(true).has(path):
+		if is_map(path):
 			maps.append(path)
 	return maps
 
@@ -269,7 +276,9 @@ func count(key: String, amount := 1) -> void:
 
 
 static func is_map(path: String) -> bool:
-	return list_maps(true).has(path)
+	if _maps_all.is_empty():
+		list_maps(true)
+	return _maps_all.has(path)
 
 
 ## "res://prefabs/levels/train.tscn" -> "Поезд" (a map without a Russian name shows its file name).

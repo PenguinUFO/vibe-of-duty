@@ -255,7 +255,8 @@ func _update_grenade(delta: float) -> void:
 ## In the air or not: the caller's `on_floor` (players know it) or this node's own vertical movement (replay
 ## ghosts, targets); once off the ground it stays airborne until a short ray finds the floor under the feet.
 func _update_air(on_floor: bool) -> void:
-	var vy := _velocity.y
+	var up := global_basis.y
+	var vy := _velocity.dot(up)
 	if _air:
 		_fall_speed = maxf(_fall_speed, -vy)
 		_air = not (vy <= 0.5 and _floor_below(0.15))
@@ -265,7 +266,7 @@ func _update_air(on_floor: bool) -> void:
 		_air = not on_floor or vy > 1.5 or (vy < -2.5 and not _floor_below(0.3))
 		_fall_speed = 0.0
 	_dust_t -= get_process_delta_time()
-	var flat := Vector3(_velocity.x, 0.0, _velocity.z)
+	var flat := _velocity.slide(up)
 	if _sliding and not _air and flat.length() > 2.0 and _dust_t <= 0.0 and visible:
 		_dust_t = 0.05
 		Dust.trail(self, global_position, flat)

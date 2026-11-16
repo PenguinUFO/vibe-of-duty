@@ -58,6 +58,9 @@ var _head := Vector2.ZERO         # head yaw, pitch (body frame)
 var _net_yaw := 0.0
 var _net_aim := Vector3.UP
 var _net_head := Vector2.ZERO
+var _posed_yaw := INF
+var _posed_aim := Vector3.ZERO
+var _posed_head := Vector2.INF
 
 # Server.
 var _attacker := 0                # peer id; 0: none
@@ -66,6 +69,7 @@ var _cooldown := 0.0
 var _burst := 0
 var _mag := 0
 var _sync_left := 0.0
+var _at_rest := true
 
 
 func _ready() -> void:
@@ -148,6 +152,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	if is_equal_approx(_posed_yaw, _body_yaw) and _posed_aim.is_equal_approx(_aim) and _posed_head.is_equal_approx(_head):
+		return
 	_pose()
 
 
@@ -194,8 +200,13 @@ func _think(delta: float) -> void:
 	_cooldown -= delta
 	if attacker != null and not Game.is_frozen() and _cooldown <= 0.0 and _aim.angle_to(want_aim) < FIRE_CONE:
 		_fire()
+	var resting := attacker == null and is_zero_approx(_body_yaw) and _aim.is_equal_approx(want_aim) \
+			and _head.is_equal_approx(want_head)
+	if resting and _at_rest:
+		return
 	_sync_left -= delta
-	if _sync_left <= 0.0:
+	if resting or _sync_left <= 0.0:
+		_at_rest = resting
 		_sync_left = SYNC_INTERVAL
 		for peer in _world._ready_peers:
 			_sync.rpc_id(peer, _body_yaw, _aim, _head)
@@ -340,6 +351,9 @@ func _show_shot(end: Vector3) -> void:
 ## Body yaw, head and arm with the gun from the current pose. The gun is held by its pistol grip, its barrel along
 ## _aim; raised, its top turns towards the head (the magazine out), levelled, up.
 func _pose() -> void:
+	_posed_yaw = _body_yaw
+	_posed_aim = _aim
+	_posed_head = _head
 	_body.rotation.y = _body_yaw
 	_head_node.transform = Transform3D(Basis(Vector3.UP, _head.x) * Basis(Vector3.RIGHT, _head.y), _head_origin)
 	var aim := Basis(Vector3.UP, -_body_yaw) * _aim  # statue frame -> body frame

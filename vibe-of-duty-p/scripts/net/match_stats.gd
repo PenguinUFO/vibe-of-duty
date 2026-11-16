@@ -441,7 +441,7 @@ static func _move(p: Player) -> String:
 ## What a player was doing: horizontal speed (m/s), sights up, crouched, sliding, sprinting, in the air, vaulting,
 ## reloading.
 static func _state(p: Player) -> Dictionary:
-	return {"speed": snappedf(Vector2(p.velocity.x, p.velocity.z).length(), 0.1), "ads": p.aiming,
+	return {"speed": snappedf(p.flat_speed(), 0.1), "ads": p.aiming,
 			"crouch": p.is_crouched, "slide": p.is_sliding, "sprint": p.is_sprinting, "air": not p.is_on_floor(),
 			"vault": p.is_mantling, "reload": p.weapons.is_reloading()}
 

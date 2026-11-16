@@ -37,6 +37,8 @@ var _ghosts := {}              # peer_id -> PlayerVisual
 var _arms_by_id := {}          # peer_id -> FirstPersonArms in that player's colours
 var _eye := Player.STAND_EYE
 var _ads := 0.0
+var _right_reload_drop := 0.0
+var _left_reload_drop := 0.0
 var _prev_look := Vector2.ZERO
 var _prev_pos := Vector3.ZERO
 
@@ -210,6 +212,8 @@ func _begin() -> void:
 	var first := _pose_at(_killer_id, _replay_t)
 	_eye = Player.CROUCH_EYE if first[3] else Player.STAND_EYE
 	_ads = 1.0 if first[4] else 0.0
+	_right_reload_drop = 0.0
+	_left_reload_drop = 0.0
 	_prev_look = Vector2(first[1], first[2])
 	_prev_pos = first[0]
 	_play(0.0)
@@ -263,27 +267,38 @@ func _play(delta: float) -> void:
 		_prev_look = look
 		var moved: Vector3 = killer[0] - _prev_pos
 		_prev_pos = killer[0]
-		var speed := Vector2(moved.x, moved.z).length() / dt
+		var speed := moved.slide(frame.y).length() / dt
 		_view.set_weapon(killer[6], def)
 		_space.fit(_camera.fov, _view.view_fov(_ads))
 		_scope.set_amount(ScopeOverlay.amount_at(_ads) if killer[5] and def.scope else 0.0)
 		_view.visible = killer[5] and not _scope.hides_view()
 		_arms.visible = _view.visible
+		var akimbo: bool = killer.size() > 11 and killer[11]
+		var reload_p: float = killer[7] if killer[5] else -1.0
+		var reload_right := reload_p
+		var reload_left := -1.0
+		if akimbo and not def.reload_single and reload_p >= 0.0:
+			reload_right = reload_p * 2.0 if reload_p < 0.5 else -1.0
+			reload_left = (reload_p - 0.5) * 2.0 if reload_p >= 0.5 else -1.0
+		_right_reload_drop = move_toward(_right_reload_drop, 1.0 if reload_left >= 0.0 else 0.0, delta * 5.0)
+		_left_reload_drop = move_toward(_left_reload_drop, 1.0 if reload_right >= 0.0 else 0.0, delta * 5.0)
+		_view.lowered = _right_reload_drop
 		_view.melee = killer[9]
 		_view.grenade = killer[10] if killer.size() > 10 else -1.0
-		_view.update_pose(delta, _ads, killer[7], -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
-		_space.blur.follow(_view, _camera, _ads)
-		_arms.reload = killer[7]
-		_arms.melee = killer[9]
-		_view.grenade = killer[10] if killer.size() > 10 else -1.0
-		_arms.grenade = _view.grenade
-		_left_view.visible = _view.visible and killer.size() > 11 and killer[11]
+		_left_view.visible = _view.visible and akimbo
 		_view.akimbo = _left_view.visible
 		_left_view.akimbo = true
+		_view.update_pose(delta, _ads, reload_right, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+		_space.blur.follow(_view, _camera, _ads)
+		_arms.reload = reload_right
+		_arms.left_reload = reload_left
+		_arms.melee = killer[9]
+		_arms.grenade = _view.grenade
 		if _left_view.visible:
 			_left_view.set_weapon(killer[6], def)
+			_left_view.lowered = _left_reload_drop
 			_left_view.grenade = _view.grenade
-			_left_view.update_pose(delta, 0.0, -1.0, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
+			_left_view.update_pose(delta, 0.0, reload_left, -1.0, 0.0, speed if speed < 15.0 else 0.0, true, look_delta, 0.0)
 		_arms.left_weapon = _left_view
 		_arms.pose()
 

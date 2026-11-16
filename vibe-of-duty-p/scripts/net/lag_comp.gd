@@ -16,20 +16,24 @@ const HEAD_RADIUS := 0.17
 
 const NECK_GAP := 0.15         # head centre to the top of the body capsule
 
-var _history := {}  # peer_id -> Array of hitbox states (see Player.hitbox_state) with a "tick" key
+var _history := {}  # peer_id -> {"buf": Array of hitbox states with "tick", "head": int (oldest index)}
 
 
 func record(tick: int, players: Dictionary) -> void:
 	for id in players:
 		var p = players[id]  # Player (untyped: LagComp stays free of Player, which needs the autoloads)
 		if not _history.has(id):
-			_history[id] = []
-		var h: Array = _history[id]
+			_history[id] = {"buf": [], "head": 0}
+		var ring: Dictionary = _history[id]
+		var h: Array = ring["buf"]
 		var state: Dictionary = p.hitbox_state()
 		state["tick"] = tick
-		h.append(state)
-		if h.size() > HISTORY_TICKS:
-			h.pop_front()
+		if h.size() < HISTORY_TICKS:
+			h.append(state)
+		else:
+			var head: int = ring["head"]
+			h[head] = state
+			ring["head"] = (head + 1) % HISTORY_TICKS
 
 
 func forget(peer_id: int) -> void:
@@ -38,23 +42,28 @@ func forget(peer_id: int) -> void:
 
 ## Drops a player's history (after a teleport/respawn) so nobody is hit where they used to be.
 func clear(peer_id: int) -> void:
-	_history[peer_id] = []
+	_history[peer_id] = {"buf": [], "head": 0}
 
 
 ## Position/stance of `peer_id` at (fractional) server tick `tick`; {} if unknown.
 func sample(peer_id: int, tick: float) -> Dictionary:
-	var h: Array = _history.get(peer_id, [])
-	if h.is_empty():
+	if not _history.has(peer_id):
 		return {}
-	var first: Dictionary = h[0]
-	var last: Dictionary = h[h.size() - 1]
+	var ring: Dictionary = _history[peer_id]
+	var h: Array = ring["buf"]
+	var count := h.size()
+	if count == 0:
+		return {}
+	var head: int = ring["head"]
+	var first: Dictionary = h[head]
+	var last: Dictionary = h[(head + count - 1) % count]
 	if tick <= first["tick"]:
 		return first
 	if tick >= last["tick"]:
 		return last
-	var i := clampi(int(floor(tick)) - int(first["tick"]), 0, h.size() - 2)
-	var a: Dictionary = h[i]
-	var b: Dictionary = h[i + 1]
+	var i := clampi(int(floor(tick)) - int(first["tick"]), 0, count - 2)
+	var a: Dictionary = h[(head + i) % count]
+	var b: Dictionary = h[(head + i + 1) % count]
 	var f := clampf((tick - float(a["tick"])) / maxf(float(b["tick"] - a["tick"]), 1.0), 0.0, 1.0)
 	var near: Dictionary = a if f < 0.5 else b
 	return {"pos": (a["pos"] as Vector3).lerp(b["pos"], f), "crouched": near["crouched"], "ads": near["ads"],

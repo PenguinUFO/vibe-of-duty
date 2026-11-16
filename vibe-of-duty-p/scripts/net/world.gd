@@ -890,6 +890,8 @@ func _apply_respawn(id: int, xform: Transform3D, build: Array, tick: int) -> voi
 
 @rpc("authority", "reliable")
 func _despawn_player(id: int) -> void:
+	if grenades != null:
+		grenades.cancel_owner(id)
 	if players.has(id):
 		_players_root.remove_child(players[id])  # out of the tree now: a new player of the same id keeps its name
 		players[id].queue_free()

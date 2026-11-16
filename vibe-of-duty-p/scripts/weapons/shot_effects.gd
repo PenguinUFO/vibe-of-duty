@@ -7,37 +7,38 @@ const IMPACT_LIFETIME := 0.12
 
 static var _tracer_material: StandardMaterial3D
 static var _impact_material: StandardMaterial3D
+static var _tracer_mesh: BoxMesh
+static var _impact_mesh: SphereMesh
 
 
 static func spawn_tracer(parent: Node, from: Vector3, to: Vector3) -> void:
 	var length := from.distance_to(to)
 	if length < 0.5:
 		return
-	if _tracer_material == null:
+	if _tracer_mesh == null:
 		_tracer_material = _emissive(Color(1.0, 0.78, 0.5))  # Palette.EMBER, lightened: a streak of light
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.012, 0.012, length)
-	mesh.material = _tracer_material
+		_tracer_mesh = BoxMesh.new()
+		_tracer_mesh.size = Vector3(0.012, 0.012, 1.0)
+		_tracer_mesh.material = _tracer_material
 	var node := MeshInstance3D.new()
-	node.mesh = mesh
+	node.mesh = _tracer_mesh
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(node)
 	var mid := (from + to) * 0.5
 	var up := Vector3.UP if absf((to - from).normalized().y) < 0.99 else Vector3.RIGHT
-	node.global_transform = Transform3D(Basis.IDENTITY, mid).looking_at(to, up)
-	node.global_position = mid
+	node.global_transform = Transform3D(Basis.IDENTITY, mid).looking_at(to, up).scaled_local(Vector3(1.0, 1.0, length))
 	_free_after(node, TRACER_LIFETIME)
 
 
 static func spawn_impact(parent: Node, pos: Vector3, normal: Vector3) -> void:
-	if _impact_material == null:
+	if _impact_mesh == null:
 		_impact_material = _emissive(Color(1.0, 0.8, 0.4))
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.04
-	mesh.height = 0.08
-	mesh.material = _impact_material
+		_impact_mesh = SphereMesh.new()
+		_impact_mesh.radius = 0.04
+		_impact_mesh.height = 0.08
+		_impact_mesh.material = _impact_material
 	var node := MeshInstance3D.new()
-	node.mesh = mesh
+	node.mesh = _impact_mesh
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(node)
 	node.global_position = pos + normal * 0.02

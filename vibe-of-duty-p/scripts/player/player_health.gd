@@ -187,4 +187,4 @@ func play_oink(fart: bool = false) -> void:
 		Game.count("oinks_heard")
 	if Game.net_log:
 		print("[%d] oink from %d (%s)" % [multiplayer.get_unique_id(), peer_id, voice])
-	Audio.play(voice, null if is_local else global_position + Vector3.UP * 1.5)
+	Audio.play(voice, null if is_local else global_position + body_up() * 1.5)
