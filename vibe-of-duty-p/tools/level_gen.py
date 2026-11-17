@@ -98,8 +98,9 @@ class Level:
     def rail_z(self, z, y, x0, x1, color, name="Rail"):
         self.box(name, x0, x1, y, y + RAIL, z - RAIL_T / 2, z + RAIL_T / 2, color)
 
-    def lamp(self, name, pos, energy=1.2, rng=9.0, shade=(0.7, 0.05, 0.3)):
-        self.lights.append((self.uniq(name), pos, energy, rng, shade, self.group))
+    def lamp(self, name, pos, energy=1.2, rng=9.0, shade=(0.7, 0.05, 0.3), color=None):
+        """color: the light colour; None is the default warm LAMP_COLOR (zone lights pass their tint)."""
+        self.lights.append((self.uniq(name), pos, energy, rng, shade, self.group, color))
 
     def marker(self, group, name, pos):
         self.markers.setdefault(group, []).append((self.uniq(name), pos))
@@ -113,12 +114,12 @@ class Level:
             out.append('[sub_resource type="WorldBoundaryShape3D" id="ground_shape"]\n\n')
         out.append('[node name="%s" type="Node3D"]\n\n[node name="Geometry" type="Node3D" parent="."]\n' % root_name)
         groups = []
-        for item in self.blocks + self.lights:
-            if item[-1] is not None and item[-1] not in groups:
-                groups.append(item[-1])
+        for group in [b[-1] for b in self.blocks] + [l[-2] for l in self.lights]:
+            if group is not None and group not in groups:
+                groups.append(group)
         for group in groups:
             out.append('\n[node name="%s" type="Node3D" parent="."]\n' % group)
-            if any(light[-1] == group for light in self.lights):
+            if any(light[-2] == group for light in self.lights):
                 out.append('\n[node name="Lamps" type="Node3D" parent="%s"]\n' % group)
         for name, c, r, s, col, layers, group in self.blocks:
             out.append('\n[node name="%s" parent="%s" instance=ExtResource("2_block")]\n' % (name, group or "Geometry"))
@@ -133,11 +134,11 @@ class Level:
             out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, %s, 0)\n" % f(ground_y))
             out.append('\n[node name="Shape" type="CollisionShape3D" parent="Ground"]\nshape = SubResource("ground_shape")\n')
         out.append('\n[node name="Lamps" type="Node3D" parent="."]\n')
-        for name, p, energy, rng, shade, group in self.lights:
+        for name, p, energy, rng, shade, group, color in self.lights:
             parent = group + "/Lamps" if group else "Lamps"
             out.append('\n[node name="%s" type="OmniLight3D" parent="%s"]\n' % (name, parent))
             out.append("transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, %s, %s, %s)\n" % tuple(map(f, p)))
-            out.append("light_color = Color(%s, %s, %s, 1)\n" % tuple(map(f, LAMP_COLOR)))
+            out.append("light_color = Color(%s, %s, %s, 1)\n" % tuple(map(f, color or LAMP_COLOR)))
             out.append("light_energy = %s\nlight_specular = 0.0\nomni_range = %s\nomni_attenuation = 1.4\n" % (f(energy), f(rng)))
             out.append("light_cull_mask = %d\n" % (LAYER_WORLD | LAYER_VIEWMODEL | DECK_LAYERS[self.deck_of(p[1])]))
             out.append("metadata/shade = Vector3(%s, %s, %s)\n" % tuple(map(f, shade)))
