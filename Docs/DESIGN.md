@@ -186,7 +186,7 @@
 | Карта «Чернобыль» — **сначала `Docs/LEVEL_CHERNOBYL.md`** | `../tools/trace_chernobyl_plan.py` (план → `chernobyl_plan.json`), `../tools/make_chernobyl_map.py` (каркас), `../prefabs/levels/chernobyl.tscn` (спавны, статуя, снег), статуя свиньи — `game/pig_statue.gd`, снег — `game/snowfall.gd` |
 | Карта «Элизиум» — **сначала `Docs/LEVEL_ELYSIUM.md`** | `../tools/make_elysium_map.py` (каркас), `../prefabs/levels/elysium.tscn` (укрытия, спавны, солнце) |
 | Карта «Сухой док» — **сначала `Docs/LEVEL_DRYDOCK.md`** | `../tools/make_drydock_map.py` (каркас), `../prefabs/levels/drydock.tscn` (контейнеры, спавны, луна), шлюз — `game/dock_flood.gd`, сияние — `game/aurora.gd`, торпеда — `game/crane_bridge.gd`, проверка — `../tools/dock_walk_test.gd` |
-| Карта «Гигацерковь» — **сначала `Docs/LEVEL_GIGACHURCH.md`** | `../tools/make_gigachurch_map.py` (каркас + витраж + студия + мостки), `../prefabs/levels/gigachurch.tscn` (студийный реквизит, спавны, роза, закрытая входная дверь) |
+| Карта «Гигацерковь» — **сначала `Docs/LEVEL_GIGACHURCH.md`** (там правило правки каркаса) | `../tools/make_gigachurch_map.py` (каркас + витраж + мостки), `../prefabs/levels/gigachurch.tscn` (реквизит, спавны, роза, эфир `OnAir`), сверка каркаса со сценой — `../tools/_compare_shell.py` |
 | Карта «Карусель» (станция-кольцо) и гравитация к оси — **сначала `Docs/LEVEL_STATION.md`** | `game/gravity.gd` (`Gravity`: верх и кадр по позиции), `game/ring_gravity.gd`, `game/station_sky.gd`, `../tools/make_station_map.py` (каркас), `../prefabs/levels/station.tscn`, проверка — `../tools/ring_hit_test.gd` |
 | Палитра, свет и стиль PSX, пейзаж поезда | `game/palette.gd`, `game/mood.gd`, `game/train_scenery.gd`; текстура блоков — `game/block.gd` |
 
