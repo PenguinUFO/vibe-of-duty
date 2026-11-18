@@ -28,6 +28,7 @@ const OINK_COOLDOWN := 0.8  # s between two oinks (F) of one player
 const FART_CHANCE := 0.25   # share of oinks (F) that come out as a fart
 const SUMMARY_QUIT_DELAY := 5.0  # s between the --summary line and quitting
 const TOUGHNESS_SEND_INTERVAL := 0.25  # s; kid mode sliders dragged mid-match are sent at most this often
+const STAR_HOLD := 5.0         # s the top of the table must hold before the broadcast switches to them
 
 var players: Dictionary = {}  # peer_id -> Player
 var server_tick := 0          # server: number of physics ticks simulated so far
@@ -48,6 +49,9 @@ var _toughness_sent := Vector3.ZERO  # local player: Settings.toughness() last s
 var _toughness_timer := 0.0
 var _stats: MatchStats              # server: balance statistics of this run (null: not recorded)
 var _random := RandomWeapons.new()  # server: the next weapon of each player in the "Бойня рандом" mode
+var on_air_id := 0        # the broadcast star (Docs/LEVEL_GIGACHURCH.md, "Эфир"): peer id, 0 - off air
+var _star_top := 0        # server: the id currently holding the top of the table
+var _star_hold := 0.0     # server: how long it has held it (STAR_HOLD before the show switches)
 
 @onready var _players_root: Node = $"../Players"
 @onready var _spawns: Array[Node] = $"../SpawnPoints".get_children()
@@ -134,6 +138,7 @@ func _physics_process(delta: float) -> void:
 				Player.CROUCH_HEIGHT if player.is_crouched else Player.STAND_HEIGHT):
 			_server_suicide(player, "tunnel")  # the train's tunnel swept them off a roof
 	ammo_bags.server_tick(delta)
+	_server_pick_star(delta)
 	if _stats != null:
 		_stats.tick(players)
 	lag_comp.record(server_tick, players)
@@ -376,6 +381,7 @@ func _server_add_player(id: int, player_name: String, uid: String, toughness: Ve
 		_ready_peers.append(id)
 		ammo_bags.server_send_all(id)
 		_sync_scores.rpc_id(id, Game.scores, Game.team_scores)
+		_sync_on_air.rpc_id(id, on_air_id)
 		_sync_match.rpc_id(id, Game.state, Game.time_left, Game.intermission_left, Game.winners)
 	if _stats != null:
 		_stats.joined(players[id])
@@ -659,6 +665,9 @@ func _server_to_lobby() -> void:
 
 func _server_start_match() -> void:
 	Game.reset_match()
+	on_air_id = 0
+	_star_top = 0
+	_star_hold = 0.0
 	ammo_bags.server_clear()
 	if _stats != null:
 		_stats.match_started(players)
@@ -678,6 +687,37 @@ func _broadcast_scores() -> void:
 	for peer in _ready_peers:
 		_sync_scores.rpc_id(peer, Game.scores, Game.team_scores)
 	_apply_match_state()
+
+
+## Server: the broadcast star (the gigachurch's OnAir, Docs/LEVEL_GIGACHURCH.md, "Эфир") - the top of the
+## table, score then kills as the scoreboard sorts, on air from the first kill (a score below 1 is nobody's).
+## A newcomer to the top holds it STAR_HOLD s before the show switches: the cameras do not twitch between two
+## duellists trading the lead. The star keeps the show while dead (respawn is part of the broadcast); it ends
+## when the star leaves or nobody holds a positive score. Bots ignore the broadcast: only OnAir's cosmetics
+## read it, so the bot tests' landmarks stay put.
+func _server_pick_star(delta: float) -> void:
+	var top := 0
+	var top_key := Vector2i.ZERO
+	for id in Game.scores.keys():
+		if not players.has(id):
+			continue
+		var s: Dictionary = Game.scores[id]
+		var key := Vector2i(int(s.get("kills", 0)) - int(s.get("deaths", 0)), int(s.get("kills", 0)))
+		if key.x < 1:
+			continue
+		if top == 0 or key > top_key:
+			top = id
+			top_key = key
+	if top == _star_top:
+		_star_hold += delta
+	else:
+		_star_top = top
+		_star_hold = 0.0
+	if _star_hold < STAR_HOLD or on_air_id == _star_top:
+		return
+	on_air_id = _star_top
+	for peer in _ready_peers:
+		_sync_on_air.rpc_id(peer, on_air_id)
 
 
 func _broadcast_match() -> void:
@@ -851,6 +891,11 @@ func _sync_scores(scores: Dictionary, team_scores: Array) -> void:
 	if team_scores.size() == 2:
 		Game.team_scores = [int(team_scores[0]), int(team_scores[1])]
 	_apply_match_state()
+
+
+@rpc("authority", "reliable")
+func _sync_on_air(id: int) -> void:
+	on_air_id = id
 
 
 @rpc("authority", "reliable")

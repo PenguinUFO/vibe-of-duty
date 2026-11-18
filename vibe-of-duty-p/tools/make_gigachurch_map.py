@@ -8,18 +8,21 @@ spawns, the sun and the rose window - the hand-edited prefabs/levels/gigachurch.
 
 The plan (north is -z, east +x; the altar is east):
   x -50 .. -42                the narthex (a low room), the choir loft over it at 6.5
-  x -50 .. 18, z +-11         the nave, 18 m high, columns every 8 m; the studio wall (a lit LED panel) at x -8
-                              cuts its sightline in two, with 3 m passages by the columns
+  x -50 .. 18, z +-11         the nave, 18 m high, columns every 8 m; the 60 m sightline is open - the studio
+                              wall that used to cut it is gone (owner, 2026-11-18)
   x -50 .. 18, z 11 .. 18     the side aisles; the second floor is the old gallery ceiling's top at 9.75 (the
-                              low 6.5 gallery is gone), with the clerestory sill (1.25) as its bortik; two catwalks
+                              low 6.5 gallery is gone), with a low 0.8 m sill as its bortik and the old
+                              clerestory window band above it an open slot (owner, 2026-11-18); two catwalks
                               bridge the nave between the galleries (the upper loop)
-  x -50 .. 18, z 18 .. 24     the chapel bands (6.5 m high, arches to the aisles)
+  x -50 .. 18, z 18 .. 24     the chapel bands (6.5 m high, arches to the aisles); over each a sealed attic,
+                              walled off from the transept arm by the gable at x 18
   x 18 .. 32, z -24 .. 24     the transept; the crossing dome is at (25, 0)
   x 32 .. 52, z -12 .. 12     the apse: the choir (0.6), the stage (1.2), the backstage (0.6), side corridors
 
-The crypt is gone (owner, 2026-11-17): the game runs on two decks, the ground and the galleries. All the outer
-windows are sealed with stained glass; since the dusk sun cannot enter physically, every pane gets a warm lamp just
-inside it - the "sun through the glass" pools (GLASS_LIGHT).
+The crypt is gone (owner, 2026-11-17): the game runs on two decks, the ground and the galleries. The outer
+windows are sealed with stained glass (the clerestory band above the second floor's sill is an open slot now,
+owner, 2026-11-18); since the dusk sun cannot enter physically, every pane gets a warm lamp just inside it -
+the "sun through the glass" pools (GLASS_LIGHT).
 
 The shell holds the architecture and the lamps; the level scene holds the furniture and the spawns.
 Deck layers (Level.splits): the ground (6.375) and the gallery/upper (render layers 4/8); tall walls and columns
@@ -60,7 +63,6 @@ COLUMN = (0.42, 0.39, 0.34)
 WOOD = (0.48, 0.34, 0.23)
 WOOD_D = (0.38, 0.27, 0.19)
 IRON = (0.30, 0.30, 0.29)
-ROOF = (0.22, 0.23, 0.24)
 GOLD = (0.62, 0.46, 0.16)
 SCREEN = (0.10, 0.10, 0.11)
 CARPET = (0.23, 0.10, 0.08)
@@ -142,26 +144,6 @@ box("TranseptFloor", NAVE_E, TRANSEPT_E, -0.5, 0.0, NORTH, SOUTH, FLOOR_C)
 box("ApseFloor", TRANSEPT_E + 1.2, EAST, 0.0, CHOIR_Y, APSE_N, APSE_S, WOOD_D)
 
 
-def roof_z(name, x0, x1, z_low, z_high, y_low, y_high, color, thick=0.35):
-    run, rise = z_high - z_low, y_high - y_low
-    length = math.hypot(run, rise)
-    angle = math.atan2(rise, abs(run))
-    cy = y_low + rise / 2 - thick / 2 / math.cos(angle)
-    rot = -angle if run > 0 else angle
-    lv.rotated(name, ((x0 + x1) / 2, cy, (z_low + z_high) / 2), (x1 - x0, thick, length), color,
-               rot_x=rot, decks="all")
-
-
-def roof_x(name, z0, z1, x_low, x_high, y_low, y_high, color, thick=0.35):
-    run, rise = x_high - x_low, y_high - y_low
-    length = math.hypot(run, rise)
-    angle = math.atan2(rise, abs(run))
-    cy = y_low + rise / 2 - thick / 2 / math.cos(angle)
-    rot = angle if run > 0 else -angle
-    lv.rotated(name, ((x_low + x_high) / 2, cy, (z0 + z1) / 2), (length, thick, z1 - z0), color,
-               rot_z=rot, decks="all")
-
-
 def rail_x(name, x, y, z0, z1, color=IRON):
     box(name, x - RAIL_T / 2, x + RAIL_T / 2, y, y + RAIL, z0, z1, color)
 
@@ -206,9 +188,11 @@ for i in range(6):
     box("FacadeGable", WEST - WALL - 0.2, WEST - WALL, 18.0 + i * 0.9, 18.0 + (i + 1) * 0.9,
         -24.0 + i * 4.0, 24.0 - i * 4.0, STONE_L)
 box("FacadeCornice", WEST - WALL - 0.45, WEST - WALL + 0.1, 17.6, 18.0, NORTH, SOUTH, STONE)
-# Symmetrical pilasters give the west front a vertical rhythm without interrupting the central door.
-for z in (-22.0, -16.0, -10.0, 10.0, 16.0, 22.0):
-    box("FacadePilaster", WEST - WALL - 0.5, WEST - WALL, 0.0, 24.0, z - 0.5, z + 0.5, STONE)
+# Four pilasters give the west front a vertical rhythm without interrupting the central door. They stand flush
+# with the facade's inner face and protrude into the narthex (owner, 2026-11-18: used to be six, outside; the
+# +-22 pair is gone, +-10 moved to +-11 on the aisle walls' line).
+for z in (-16.0, -11.0, 11.0, 16.0):
+    box("FacadePilaster", WEST, WEST + 0.5, 0.0, 24.0, z - 0.5, z + 0.5, STONE)
 
 # --- the outer walls ---------------------------------------------------------------------------------------------------
 
@@ -218,19 +202,19 @@ for z in (NORTH, SOUTH):
     holes = chapel_windows + [(20.0, 30.0, 8.0, 16.0)]
     wall_x("OuterWall", z, WEST, TRANSEPT_E, 0.0, NAVE_CEIL, WALL_C, holes=holes)
 # Every outer window is sealed with stained glass (owner, 2026-11-17). The dusk sun cannot enter physically, so
-# each pane gets a warm lamp just inside it - the "sun through the glass" pools that tint the floor by the walls.
+# each pane gets a warm lamp in its own plane - no fixture, both decks - reading as light from the window, not a
+# lamp under it (owner, 2026-11-18: "как будто из окна", the hanging fixtures below the windows are gone).
 # Chapel windows alternate blue / ruby / amber; the tall transept windows are blue.
 for i, (xa, xb, ya, yb) in enumerate(chapel_windows):
     glass_x("WindowGlass", NORTH, xa, xb, ya, yb, GLASS[i % 3])
     glass_x("WindowGlass", SOUTH, xa, xb, ya, yb, GLASS[i % 3])
-    for z, inner in ((NORTH, 2.3), (SOUTH, -2.3)):
-        lv.lamp("WindowGlow", ((xa + xb) / 2, 2.2, z + inner), energy=1.1, rng=7.0,
-                shade=(0.35, 0.35, 0.35), color=GLASS_LIGHT[i % 3])
-for z, inner in ((NORTH, 2.2), (SOUTH, -2.2)):
+    for z, inner in ((NORTH, 0.35), (SOUTH, -0.35)):
+        lv.lamp("WindowGlow", ((xa + xb) / 2, (ya + yb) / 2, z + inner), energy=1.2, rng=8.0,
+                shade=(0, 0, 0), color=GLASS_LIGHT[i % 3], decks="all")
+for z, inner in ((NORTH, 0.35), (SOUTH, -0.35)):
     glass_x("WindowGlass", z, 20.0, 30.0, 8.0, 16.0, GLASS[0])
-    # The glow lamp stays under the deck split (6.375) so its light reaches the transept floor.
-    lv.lamp("WindowGlow", (25.0, 6.0, z + inner), energy=1.4, rng=9.0, shade=(0.4, 0.4, 0.4),
-            color=GLASS_LIGHT[0])
+    lv.lamp("WindowGlow", (25.0, 12.0, z + inner), energy=1.5, rng=10.0, shade=(0, 0, 0),
+            color=GLASS_LIGHT[0], decks="all")
 # The chapel bands' ceilings; the wall between them and the galleries (with arches).
 for z0, z1 in ((AISLE_Z, SOUTH), (NORTH, -AISLE_Z)):
     box("ChapelCeil", WEST, NAVE_E, CHAPEL_CEIL, CHAPEL_CEIL + 0.25, min(z0, z1), max(z0, z1), STONE_D)
@@ -239,15 +223,15 @@ for z0, z1 in ((NORTH, APSE_N), (APSE_S, SOUTH)):
     wall_z("TranseptEast", TRANSEPT_E - WALL / 2, z0, z1, 0.0, NAVE_CEIL, STONE_L,
            holes=[(z0 + 2.0, z1 - 2.0, 8.0, 16.0)])
     glass_z("WindowGlass", TRANSEPT_E - WALL / 2, z0 + 2.0, z1 - 2.0, 8.0, 16.0, GLASS[0])
-    lv.lamp("WindowGlow", (30.9, 6.0, (z0 + z1) / 2), energy=1.4, rng=9.0, shade=(0.4, 0.4, 0.4),
-            color=GLASS_LIGHT[0])
+    lv.lamp("WindowGlow", (TRANSEPT_E - WALL / 2 - 0.35, 12.0, (z0 + z1) / 2), energy=1.5, rng=10.0,
+            shade=(0, 0, 0), color=GLASS_LIGHT[0], decks="all")
 for z in (APSE_N, APSE_S):
     wall_x("ApseWall", z, TRANSEPT_E, EAST, 0.0, NAVE_CEIL, STONE_L,
            holes=[(36.0, 40.0, 8.0, 14.0), (44.0, 48.0, 8.0, 14.0)])
     for j, (xa, xb) in enumerate(((36.0, 40.0), (44.0, 48.0))):
         glass_x("WindowGlass", z, xa, xb, 8.0, 14.0, GLASS[(j + 1) % 3])
-        lv.lamp("WindowGlow", ((xa + xb) / 2, 6.0, z + (0.8 if z < 0 else -0.8)), energy=1.3, rng=8.0,
-                shade=(0.4, 0.4, 0.4), color=GLASS_LIGHT[(j + 1) % 3])
+        lv.lamp("WindowGlow", ((xa + xb) / 2, 11.0, z + (0.35 if z < 0 else -0.35)), energy=1.4, rng=9.0,
+                shade=(0, 0, 0), color=GLASS_LIGHT[(j + 1) % 3], decks="all")
 wall_z("ApseEast", EAST + WALL / 2, APSE_N, APSE_S, 0.0, NAVE_CEIL + 4.0, STONE_L)
 
 # --- the nave, the aisles and the galleries ----------------------------------------------------------------------------
@@ -267,24 +251,24 @@ for i in range(8):
             box("Arcade", x + 0.7, x + 7.3, 7.6, 8.8, z - 0.35, z + 0.35, COLUMN, decks="all")
             box("Arcade", x + 0.7, x + 1.3, 6.5, 7.8, z - 0.35, z + 0.35, COLUMN, decks="all")
             box("Arcade", x + 6.7, x + 7.3, 6.5, 7.8, z - 0.35, z + 0.35, COLUMN, decks="all")
-# The clerestory: the wall above the gallery, tall windows between the columns; solid at the ends. Its sill is
-# interrupted where a catwalk crosses the nave (the bridge floor continues the gallery); the windows carry glass.
+# The clerestory: the wall above the gallery. The window band is gone (owner, 2026-11-18) - the gap between the
+# sill and the header is an open slot, so the second floor sees and shoots down the whole nave over its bortik.
+# The sill itself follows his two marked blocks (_this): 0.8 m high, sitting on the deck, the full-bay pieces
+# grown to 6.5 (they reach the column faces) and the catwalk-side pieces to 1.7. The sill is interrupted where
+# a catwalk crosses the nave (the bridge floor continues the gallery); the glow lamps stay in the open slot.
 BRIDGE_BAYS = {2: (-21.5, -18.5), 5: (2.5, 5.5)}  # bay index -> the catwalk's x range
 for i in range(7):
     x0, x1 = -40.0 + i * 8.0 + 1.0, -40.0 + (i + 1) * 8.0 - 1.0
     for z in (-NAVE_Z, NAVE_Z):
         if i in BRIDGE_BAYS:
             bx0, bx1 = BRIDGE_BAYS[i]
-            box("Clerestory", x0, bx0, 9.75, 11.0, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
-            box("Clerestory", bx1, x1, 9.75, 11.0, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
+            box("Clerestory", bx0 - 1.7, bx0, 9.75, 10.55, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
+            box("Clerestory", bx1, bx1 + 1.7, 9.75, 10.55, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
         else:
-            box("Clerestory", x0, x1, 9.75, 11.0, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
+            box("Clerestory", x0 - 0.25, x1 + 0.25, 9.75, 10.55, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
         box("Clerestory", x0, x1, 16.0, NAVE_CEIL, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
-        box("ClerestoryMullion", x0 + 2.0, x0 + 2.2, 11.0, 16.0, z - WALL / 2, z + WALL / 2, STONE_D, decks="all")
-        glass_z("ClerestoryGlass", z, x0, x0 + 2.0, 11.0, 16.0, GLASS[i % 3])
-        glass_z("ClerestoryGlass", z, x0 + 2.2, x1, 11.0, 16.0, GLASS[i % 3])
-        lv.lamp("ClerestoryGlow", ((x0 + x1) / 2, 10.6, z + (-0.55 if z < 0 else 0.55)), energy=1.1, rng=8.0,
-                shade=(0.35, 0.35, 0.35), color=GLASS_LIGHT[i % 3])
+        lv.lamp("ClerestoryGlow", ((x0 + x1) / 2, 13.5, z + (-0.35 if z < 0 else 0.35)), energy=1.2, rng=9.0,
+                shade=(0, 0, 0), color=GLASS_LIGHT[i % 3], decks="all")
 for x0, x1 in ((NARTHEX_E, -39.0), (15.0, NAVE_E)):
     for z in (-NAVE_Z, NAVE_Z):
         box("Clerestory", x0, x1, 9.75, NAVE_CEIL, z - WALL / 2, z + WALL / 2, STONE_L, decks="all")
@@ -333,17 +317,9 @@ for x in (-34.0, -18.0, -2.0, 10.0):
 
 # --- the studio: the LED wall and the nave catwalks ---------------------------------------------------------------------
 
-# The studio wall on the column line at x -8: a 15 m block with a lit LED panel on its east face ("ON AIR" blue).
-# It cuts the nave's 60 m sightline in two; the passages run by the side aisles (the columns and their bases
-# stand at z +-10.1..11.9, past the wall's ends), and the aisle arcades connect onward to the chapel bands.
-box("StudioWall", -8.25, -7.75, 0.0, 9.5, -7.5, 7.5, STONE_D, decks="all")
-box("LEDPanel", -7.75, -7.65, 1.0, 8.5, -6.5, 6.5, LED_BLUE, decks="all")
-box("LEDFrame", -7.80, -7.60, 0.85, 1.0, -6.7, 6.7, GOLD, decks="all")
-box("LEDFrame", -7.80, -7.60, 8.5, 8.65, -6.7, 6.7, GOLD, decks="all")
-box("LEDFrame", -7.80, -7.60, 1.0, 8.5, -6.7, -6.5, GOLD, decks="all")
-box("LEDFrame", -7.80, -7.60, 1.0, 8.5, 6.5, 6.7, GOLD, decks="all")
-for z in (-4.0, 0.0, 4.0):
-    lv.lamp("LEDGlow", (-6.6, 5.0, z), energy=1.5, rng=11.0, shade=(0.4, 0.4, 0.4), color=(0.35, 0.55, 1.00))
+# The studio wall is gone altogether (owner, 2026-11-18): the nave's full 60 m sightline is back - first the LED
+# panel came off it, now the partition itself; the broadcast lives on the big screens around the level
+# (scripts/game/on_air.gd). The column line at x -8 is open ground again.
 # Two catwalks bridge the nave between the galleries, closing the upper loop (gallery N <-> gallery S); the
 # clerestory sill is interrupted for them. Rails guard the long sides; the ends meet the gallery floors flush.
 for bx0, bx1 in BRIDGE_BAYS.values():
@@ -357,6 +333,11 @@ for bx0, bx1 in BRIDGE_BAYS.values():
 for z in (-AISLE_Z, AISLE_Z):
     holes = [(x + 0.8, x + 4.6, 0.0, 4.6) for x in range(-46, 17, 6)]
     wall_x("ChapelArcade", z, WEST, NAVE_E, 0.0, CHAPEL_CEIL, STONE_L, holes=holes)
+# The gables sealing the chapel attics' east ends (owner, 2026-11-18): above each chapel ceiling (6.75) the
+# band's void would open into the transept arm's full height, so the arm's west face over z +-18..24 is walled
+# up to the transept ceiling. He built the south one by hand (marked "wall_this"); the north one is its mirror.
+for z0, z1 in ((-24.0, -18.0), (18.0, 24.0)):
+    box("ChapelGable", 17.5, 18.0, 6.75, NAVE_CEIL, z0, z1, STONE_L, decks="all")
 for z in (-21.0, 21.0):
     lv.lamp("TranseptLamp", (25.0, 5.0, z), energy=1.3, rng=9.0, shade=(0.5, 0.1, 0.5),
             color=(0.45, 0.60, 1.00))
@@ -376,10 +357,10 @@ lv.lamp("CrossingLamp", (25.0, 17.2, 0.0), energy=1.0, rng=10.0, shade=(0.35, 0.
 tilted("ChoirRamp", (TRANSEPT_E, 0.0), (TRANSEPT_E + 1.2, 0.0), 0.0, CHOIR_Y, APSE_S - APSE_N, WOOD_D)
 tilted("StageRamp", (38.0, 0.0), (39.2, 0.0), CHOIR_Y, STAGE_Y, 18.0, WOOD_D)
 box("Stage", 39.2, 46.0, 0.0, STAGE_Y, -9.0, 9.0, WOOD_D)
-for z in (-9.0, 9.0):
-    wall_z("StageSide", z, 38.4, EAST, STAGE_Y, NAVE_CEIL, STONE_D)
-    wall_z("BackstageSide", z, 46.0, EAST, CHOIR_Y, BACKSTAGE_CEIL, STONE_D,
-           holes=[(48.0, 51.0, CHOIR_Y, CHOIR_Y + 3.0)])
+# The stage's and the backstage' side walls are gone (owner, 2026-11-18). They were never in the playfield:
+# wall_z takes (x, z0, z1) but was fed the loop's z as x, so six slabs floated at x +-9, z 38..52 - outside
+# the map, invisible in every view. The stage and the backstage now openly meet the side corridors at z +-9;
+# the real apse boundary stays the outer wall at z +-12.
 box("BackstageCeil", 46.0, EAST, BACKSTAGE_CEIL, BACKSTAGE_CEIL + 0.25, -9.0, 9.0, STONE_D)
 box("CorridorCeilS", TRANSEPT_E + 1.2, EAST, BACKSTAGE_CEIL, BACKSTAGE_CEIL + 0.25, 9.0, 12.0, STONE_D)
 box("CorridorCeilN", TRANSEPT_E + 1.2, EAST, BACKSTAGE_CEIL, BACKSTAGE_CEIL + 0.25, -12.0, -9.0, STONE_D)
@@ -426,22 +407,12 @@ for i in range(9):
     box("OrganPipe", WEST + 0.6, WEST + 1.4, GALLERY_Y, GALLERY_Y + h, z - 0.35, z + 0.35, IRON)
 box("OrganBase", WEST + 0.4, WEST + 2.0, GALLERY_Y, GALLERY_Y + 1.2, -9.0, 9.0, WOOD_D)
 
-# The main roof: a gable over the nave, the transept and the apse.
-roof_z("RoofN", WEST, NAVE_E, NORTH, 0.0, NAVE_CEIL, 24.0, ROOF)
-roof_z("RoofS", WEST, NAVE_E, 0.0, SOUTH, 24.0, NAVE_CEIL, ROOF)
-roof_x("TranseptRoofW", NORTH, SOUTH, NAVE_E, 25.0, NAVE_CEIL, 24.0, ROOF)
-roof_x("TranseptRoofE", NORTH, SOUTH, 25.0, TRANSEPT_E, 24.0, NAVE_CEIL, ROOF)
-roof_z("ApseRoofN", TRANSEPT_E, EAST, APSE_N, 0.0, NAVE_CEIL, 22.0, ROOF)
-roof_z("ApseRoofS", TRANSEPT_E, EAST, 0.0, APSE_S, 22.0, NAVE_CEIL, ROOF)
-box("Ridge", WEST, NAVE_E, 23.7, 24.0, -0.3, 0.3, STONE_D, decks="all")
-box("RidgeT", 24.7, 25.3, 23.7, 24.0, NORTH, SOUTH, STONE_D, decks="all")
-box("RidgeA", TRANSEPT_E, EAST, 21.7, 22.0, -0.3, 0.3, STONE_D, decks="all")
-
-# The buttresses outside the outer walls and the pilasters inside the chapel bands.
-for x in range(-46, 32, 6):
-    for z0, z1 in ((NORTH - 0.75, NORTH - 0.25), (SOUTH + 0.25, SOUTH + 0.75)):
-        box("Buttress", x - 0.4, x + 0.4, 0.0, NAVE_CEIL - 2.0, z0, z1, STONE_D)
-for x in (-46.0, -34.0, -22.0, -10.0, 2.0, 14.0):
+# The exterior trim is gone (owner, 2026-11-18): the decorative roofs, ridges and buttresses never showed from
+# the playfield - the interior ceilings (NaveCeiling, ChapelCeil and the rest) are the real lid; above them the
+# flat slab tops now face the sky. The crossing's dome ring and cap stay.
+# The pilasters inside the chapel bands now sit in the middle of the gaps between the windows (they used to
+# stand on the windows' west edges and clip them); every 12 m, aligned with the buttress rhythm.
+for x in (-48.0, -36.0, -24.0, -12.0, 0.0, 12.0):
     for z in (NORTH + WALL / 2, SOUTH - WALL / 2):
         box("Pilaster", x - 0.35, x + 0.35, 0.0, CHAPEL_CEIL, z - 0.35, z + 0.35, STONE_D)
 

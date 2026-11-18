@@ -134,7 +134,7 @@ const VIEWS := {"plane": {  # plane.tscn: hold z -40 .. 40 (bulkheads at -16, 5,
 	"stage": [Vector3(28.0, 1.65, 0.0), Vector3(48.0, 6.0, 0.0)],
 	"gallery": [Vector3(-30.0, 11.4, 14.0), Vector3(10.0, 10.5, -2.0)],
 	"gallery_window": [Vector3(-4.0, 11.4, 14.5), Vector3(-4.0, 11.0, 10.0)],
-	"crypt": [Vector3(-32.0, -2.35, 0.0), Vector3(20.0, -3.0, 0.0)],
+	"led_wall": [Vector3(12.0, 1.65, 0.0), Vector3(-8.0, 5.0, 0.0)],  # the studio wall's LED panel from the east
 	"chapel": [Vector3(-20.0, 1.65, 15.0), Vector3(-20.0, 2.0, 23.0)],
 	"backstage": [Vector3(50.0, 1.65, 0.0), Vector3(46.0, 2.0, 0.0)],
 	"outside": [Vector3(-90.0, 30.0, 40.0), Vector3(-50.0, 10.0, 0.0)],

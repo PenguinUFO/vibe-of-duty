@@ -25,7 +25,7 @@ const PLANS := {
 	"elysium": {"area": [-35.0, 84.0, -35.0, 35.0], "along_z": false,
 			"decks": {"ground": [3.4, 0.0], "roof": [6.0, 4.0]}},
 	"gigachurch": {"area": [-54.0, 54.0, -26.0, 26.0], "along_z": false,
-			"decks": {"crypt": [-2.0, -4.5], "ground": [3.0, 0.0], "gallery": [10.6, 9.75], "top": [40.0, 0.0]}},
+			"decks": {"ground": [3.0, 0.0], "gallery": [10.6, 9.75], "top": [40.0, 0.0]}},
 }
 const DEPTH := 60.0  # m the camera sees below the cut
 const HEIGHT_SPAN := 20.0  # m of heights the _h pass encodes, centred on the floor
