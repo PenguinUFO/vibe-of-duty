@@ -5,6 +5,9 @@ extends Node
 
 const CASES := {  # name -> [weapon index, modules, bolt pulled back 0..1, a break-open's reload progress, loading shells]
 	"ak": [0, []],
+	"ak_rpk40": [0, ["ak.mag.rpk40"]],
+	"ak_bolt": [0, [], 1.0],
+	"ak_bolt_r": [0, [], 1.0],
 	"ak_brake": [0, ["ak.muzzle.brake"]],
 	"ak_pbs": [0, ["ak.suppressor.on"]],
 	"pdw": [1, []],
